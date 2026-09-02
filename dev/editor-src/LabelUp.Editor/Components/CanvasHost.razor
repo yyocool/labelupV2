@@ -1,3 +1,4 @@
+@using System.Text.Json
 @using LabelUp.Editor.Models
 @using LabelUp.Editor.Rendering
 @using LabelUp.Editor.Services
@@ -59,21 +60,45 @@
     private const float Gap = EditorSession.RulerGapPx;
 
     private bool _ctxBlocked;
+    private bool _ignoreInvalidate;
 
     protected override void OnInitialized() => Session.Changed += OnSessionChanged;
     public void Dispose() => Session.Changed -= OnSessionChanged;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_ctxBlocked) return;
+        if (!_ctxBlocked)
+        {
+            try
+            {
+                await Js.InvokeVoidAsync("labelUpEditor.blockContextMenu", ".canvas-stage");
+                _ctxBlocked = true;
+            }
+            catch
+            {
+                // JS가 아직 없으면 다음 렌더에서 재시도
+            }
+        }
+
         try
         {
-            await Js.InvokeVoidAsync("labelUpEditor.blockContextMenu", ".canvas-stage");
-            _ctxBlocked = true;
+            var size = await Js.InvokeAsync<JsonElement>("labelUpEditor.measureStage", _stageRef);
+            var sw = ReadSize(size, 0, "w");
+            var sh = ReadSize(size, 1, "h");
+            if (sw > 80 && sh > 80)
+            {
+                var grew = sw > _viewW + 16 || sh > _viewH + 16;
+                if (grew && (_viewW < 480 || Session.PendingFit))
+                    Session.PendingFit = true;
+                _viewW = sw;
+                _viewH = sh;
+                if (Session.PendingFit || grew)
+                    _view?.Invalidate();
+            }
         }
         catch
         {
-            // JS가 아직 없으면 다음 렌더에서 재시도
+            // 측정 실패는 페인트 크기만 사용
         }
     }
 
@@ -86,19 +111,33 @@
 
     private void OnSessionChanged()
     {
-        _view?.Invalidate();
+        if (!_ignoreInvalidate)
+            _view?.Invalidate();
         InvokeAsync(StateHasChanged);
     }
 
     public void Invalidate() => _view?.Invalidate();
+
+    private static float ReadSize(JsonElement el, int index, string name)
+    {
+        if (el.ValueKind == JsonValueKind.Array && el.GetArrayLength() > index && el[index].TryGetSingle(out var n))
+            return n;
+        if (el.ValueKind == JsonValueKind.Object && el.TryGetProperty(name, out var prop) && prop.TryGetSingle(out var v))
+            return v;
+        return 0;
+    }
 
     private (float Ox, float Oy, float Scale, float LabelW, float LabelH) LabelFrame()
     {
         var scale = Session.PxPerMm * Session.Zoom;
         var labelW = Session.Document.WidthMm * scale;
         var labelH = Session.Document.HeightMm * scale;
-        var ox = (_viewW - labelW) / 2f;
-        var oy = (_viewH - labelH) / 2f;
+        var left = EditorSession.VisibleLeft;
+        var top = EditorSession.VisibleTop;
+        var availW = Math.Max(80f, _viewW - left - EditorSession.VisibleRight);
+        var availH = Math.Max(80f, _viewH - top - EditorSession.VisibleBottom);
+        var ox = left + (availW - labelW) / 2f;
+        var oy = top + (availH - labelH) / 2f;
         return (ox, oy, scale, labelW, labelH);
     }
 
@@ -106,8 +145,17 @@
     {
         var canvas = e.Surface.Canvas;
         var info = e.Info;
-        _viewW = info.Width;
-        _viewH = info.Height;
+        if (info.Width >= 80 && info.Height >= 80)
+        {
+            _viewW = info.Width;
+            _viewH = info.Height;
+        }
+        if (Session.PendingFit && _viewW >= 480 && _viewH >= 280)
+        {
+            _ignoreInvalidate = true;
+            Session.FitToView(_viewW, _viewH);
+            _ignoreInvalidate = false;
+        }
         try
         {
             PaintSurfaceCore(canvas, info);
@@ -128,12 +176,22 @@
 
         using (var shadow = new SKPaint
         {
-            Color = new SKColor(0x2E, 0x2A, 0x27, 28),
+            Color = new SKColor(0x2E, 0x2A, 0x27, 46),
             IsAntialias = true,
-            MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 10)
+            MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 14)
         })
         {
-            canvas.DrawRoundRect(ox + 4, oy + 8, labelW, labelH, 4, 4, shadow);
+            canvas.DrawRoundRect(ox + 6, oy + 10, labelW, labelH, 5, 5, shadow);
+        }
+        using (var frame = new SKPaint
+        {
+            Color = new SKColor(0x7B, 0x28, 0x40, 210),
+            IsAntialias = true,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = 1.6f
+        })
+        {
+            canvas.DrawRoundRect(ox - 0.8f, oy - 0.8f, labelW + 1.6f, labelH + 1.6f, 4, 4, frame);
         }
 
         canvas.Save();

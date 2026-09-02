@@ -349,6 +349,7 @@ html, body {
   flex: 1 1 0;
   width: 0;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   background: var(--ed-bg);
@@ -356,12 +357,14 @@ html, body {
 }
 
 .ed__canvas-wrap {
-  flex: 1;
+  flex: 1 1 0;
   display: flex;
   align-items: stretch;
   justify-content: stretch;
   width: 100%;
+  height: 100%;
   min-width: 0;
+  min-height: 0;
   padding: 0;
   position: relative;
   overflow: hidden;
@@ -370,6 +373,8 @@ html, body {
 .ed__artboard-frame {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
   z-index: 3;
 }
 .ed__vendor-drop {
@@ -405,11 +410,17 @@ html, body {
 .canvas-stage {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
   touch-action: none;
 }
 .skia-view, .skia-view canvas {
+  position: absolute;
+  inset: 0;
   width: 100% !important;
   height: 100% !important;
+  min-width: 100%;
+  min-height: 100%;
   display: block;
 }
 
@@ -1155,6 +1166,18 @@ html, body {
 .ed-corner-fab--vendor:hover {
   border-color: var(--burgundy);
   box-shadow: 0 12px 28px rgba(123, 40, 64, 0.18), 0 4px 10px rgba(46, 42, 39, 0.1);
+}
+.ed-corner-fab__ico {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  display: block;
+}
+.ed-corner-fab--vendor .ed-corner-fab__ico {
+  padding: 3px;
+  border-radius: 50%;
+  background: var(--ed-primary-soft);
+  box-sizing: border-box;
 }
 
 .ed-import__tab-labi {

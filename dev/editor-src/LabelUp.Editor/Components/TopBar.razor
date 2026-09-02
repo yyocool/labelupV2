@@ -172,9 +172,8 @@
 
     private void ResetView()
     {
-        Session.PanX = 0;
-        Session.PanY = 0;
-        Session.SetZoom(1f);
+        Session.PendingFit = true;
+        Session.Notify();
     }
 
     private async Task SaveDesign()

@@ -144,8 +144,13 @@
 
     private void ApplySessionUi(System.Text.Json.JsonElement ui)
     {
-        if (ui.TryGetProperty("zoom", out var zoom) && zoom.TryGetSingle(out var z))
-            Session.Zoom = Math.Clamp(z, 0.25f, 4f);
+        if (ui.TryGetProperty("zoom", out var zoom) && zoom.TryGetSingle(out var z) && Math.Abs(z - 1f) > 0.04f)
+        {
+            Session.Zoom = Math.Clamp(z, EditorSession.MinZoom, EditorSession.MaxZoom);
+            Session.PendingFit = false;
+        }
+        else
+            Session.PendingFit = true;
         if (ui.TryGetProperty("panX", out var panX) && panX.TryGetSingle(out var px))
             Session.PanX = px;
         if (ui.TryGetProperty("panY", out var panY) && panY.TryGetSingle(out var py))

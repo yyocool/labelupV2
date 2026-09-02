@@ -101,8 +101,13 @@ public sealed class EditorCloudStorage(IJSRuntime js)
 
     public static void ApplySessionUi(EditorSession session, JsonElement ui)
     {
-        if (ui.TryGetProperty("zoom", out var zoom) && zoom.TryGetSingle(out var z))
-            session.Zoom = Math.Clamp(z, 0.25f, 4f);
+        if (ui.TryGetProperty("zoom", out var zoom) && zoom.TryGetSingle(out var z) && Math.Abs(z - 1f) > 0.04f)
+        {
+            session.Zoom = Math.Clamp(z, EditorSession.MinZoom, EditorSession.MaxZoom);
+            session.PendingFit = false;
+        }
+        else
+            session.PendingFit = true;
         if (ui.TryGetProperty("panX", out var panX) && panX.TryGetSingle(out var px))
             session.PanX = px;
         if (ui.TryGetProperty("panY", out var panY) && panY.TryGetSingle(out var py))

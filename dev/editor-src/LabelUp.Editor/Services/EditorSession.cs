@@ -50,6 +50,17 @@ public sealed class EditorSession
     public const float RulerPx = 28f;
     /// <summary>룰러와 라벨 사이 간격. CSS 픽셀(장치 독립)이라 DPI가 달라도 시각적 거리가 같습니다.</summary>
     public const float RulerGapPx = 20f;
+    public const float MinZoom = 0.25f;
+    public const float MaxZoom = 8f;
+
+    /// <summary>첫 페인트·용지 변경·화면 맞춤 시 라벨을 워크스페이스에 맞춥니다.</summary>
+    public bool PendingFit { get; set; } = true;
+
+    /// <summary>좌측 도구·우측 패널·하단 FAB가 가리는 영역을 뺀 편집 여백.</summary>
+    public const float VisibleLeft = 132f;
+    public const float VisibleRight = 304f;
+    public const float VisibleTop = 24f;
+    public const float VisibleBottom = 80f;
 
     public event Action? Changed;
 
@@ -243,7 +254,27 @@ public sealed class EditorSession
 
     public void SetZoom(float zoom)
     {
-        Zoom = Math.Clamp(zoom, 0.25f, 4f);
+        Zoom = Math.Clamp(zoom, MinZoom, MaxZoom);
+        Notify();
+    }
+
+    public float ComputeFitZoom(float viewW, float viewH)
+    {
+        var wMm = Math.Max(1f, Document.WidthMm);
+        var hMm = Math.Max(1f, Document.HeightMm);
+        var chrome = RulerPx + RulerGapPx + 28f;
+        var availW = Math.Max(80f, viewW - VisibleLeft - VisibleRight - chrome);
+        var availH = Math.Max(80f, viewH - VisibleTop - VisibleBottom - chrome);
+        var zoom = Math.Min(availW / (wMm * PxPerMm), availH / (hMm * PxPerMm));
+        return Math.Clamp(zoom, MinZoom, MaxZoom);
+    }
+
+    public void FitToView(float viewW, float viewH)
+    {
+        Zoom = ComputeFitZoom(viewW, viewH);
+        PanX = 0;
+        PanY = 0;
+        PendingFit = false;
         Notify();
     }
 
@@ -256,6 +287,7 @@ public sealed class EditorSession
         LabelIndex = 0;
         SelectedId = null;
         Dirty = true;
+        PendingFit = true;
         Status = $"용지 {paper.PaperNo} 적용";
         Notify();
     }

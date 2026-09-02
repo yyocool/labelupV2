@@ -4,6 +4,17 @@ window.labelUpEditor = {
   pageQuery: function () {
     return window.location.search || '';
   },
+  measureStage: function (el) {
+    if (!el) return [0, 0];
+    var w = Math.round(el.clientWidth || 0);
+    var h = Math.round(el.clientHeight || 0);
+    var canvas = el.querySelector ? el.querySelector('canvas') : null;
+    if (canvas && w > 0 && h > 0) {
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+    }
+    return { w: w, h: h };
+  },
   takePendingClipart: function () {
     try {
       var raw = sessionStorage.getItem('labelup.pendingClipart');
