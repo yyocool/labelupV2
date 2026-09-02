@@ -297,8 +297,9 @@
 
     function applyHeight(left, top, snapId) {
       if (panel.classList.contains('is-minimized')) {
-        panel.style.height = '';
-        panel.style.bottom = '';
+        panel.style.height = 'auto';
+        panel.style.minHeight = '0';
+        panel.style.bottom = 'auto';
         return;
       }
       if (opts.stretchToBottom && (snapId === 'stack-props' || snapId === 'tl' || snapId === 'tr')) {

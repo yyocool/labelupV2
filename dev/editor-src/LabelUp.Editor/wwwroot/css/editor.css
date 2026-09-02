@@ -587,6 +587,10 @@ html, body {
   top: auto;
   bottom: 12px;
 }
+.ed-preview.is-minimized.is-dragging,
+.ed-preview.is-minimized.is-moved {
+  bottom: auto !important;
+}
 
 @keyframes panelIn {
   from { opacity: 0; transform: translateX(10px); }
