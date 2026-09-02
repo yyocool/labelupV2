@@ -69,13 +69,14 @@ final class EditorWorkspaceRepository extends BaseModel
 
         $this->execute(
             'INSERT INTO user_editor_workspaces (user_id, title, document_json, ui_json, created_at, updated_at)
-             VALUES (:uid, :title, :doc, :ui, :now, :now)',
+             VALUES (:uid, :title, :doc, :ui, :created, :updated)',
             [
                 'uid' => $userId,
                 'title' => $title,
                 'doc' => $documentJson,
                 'ui' => $uiJson,
-                'now' => $now,
+                'created' => $now,
+                'updated' => $now,
             ]
         );
         return (int) $this->lastInsertId();

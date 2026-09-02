@@ -214,15 +214,20 @@ html, body {
   max-width: 380px;
 }
 .ed-topbar__logo {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: var(--ed-primary-soft);
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: transparent;
   display: grid;
   place-items: center;
   flex-shrink: 0;
 }
-.ed-topbar__logo img { width: 18px; height: auto; }
+.ed-topbar__logo img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  display: block;
+}
 .ed-topbar__name {
   display: block;
   width: 100%;

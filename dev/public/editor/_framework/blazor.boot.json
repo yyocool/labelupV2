@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "LabelUp.Editor",
   "resources": {
-    "hash": "sha256-D4kPhVasXh2JrFRkg+GU2vngzJQh2Tay1zcfM9plqJo=",
+    "hash": "sha256-P5cspJMBpuRomHYgwgyyOgyiAY5xkwuvaYQD2uxveJU=",
     "jsModuleNative": {
       "dotnet.native.8.0.28.rdr9hhu181.js": "sha256-5ygyczx2YI4yCLx78bsLlyebTDxDyocmYaYBZcx9GZA="
     },
@@ -19,7 +19,7 @@
     "assembly": {
       "ExcelDataReader.DataSet.wasm": "sha256-eM/Vt4GxUiQsxVwPh3KKAke/LL9EnUPuS5ajIFktgqQ=",
       "ExcelDataReader.wasm": "sha256-p2z9GHuyV5pTFXT+GKmexXTO4ltRggPcT9q47Kjwzvg=",
-      "LabelUp.Editor.wasm": "sha256-NnfaKYPMMrxZycPqvMp+W3HRAHBxgIinqglER2uYD/Q=",
+      "LabelUp.Editor.wasm": "sha256-16sB1p9kuZnFHx/cEK6tcQU7bM2ps+1A2rM63Nzhaok=",
       "Microsoft.AspNetCore.Components.wasm": "sha256-SiHWtHabxBHJsGjDSDPIEjlIXadQcURL1rbPnfvUIx8=",
       "Microsoft.AspNetCore.Components.Web.wasm": "sha256-tBZe0S3eL9L1K2RwcDpBXinSDZGGH6euWQReL2uJKu4=",
       "Microsoft.AspNetCore.Components.WebAssembly.wasm": "sha256-LaRHxGip4JnNCHIMbeWZDqCTegV56E6JLRbhbcDG0LY=",
