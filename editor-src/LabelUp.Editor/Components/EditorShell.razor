@@ -6,6 +6,7 @@
 @inject HistoryService History
 @inject FontCatalog Fonts
 @inject PaperCatalog Papers
+@inject ExternalImportService ExternalImport
 @inject IJSRuntime Js
 @implements IDisposable
 
@@ -18,6 +19,11 @@
         <div class="ed__artboard-frame">
           <CanvasHost @ref="_canvas" />
         </div>
+      </div>
+      <div class="ed__vendor-drop" aria-hidden="true">
+        <strong>타사포맷 가져오기</strong>
+        <span>여기에 놓으면 변환 분석을 시작합니다</span>
+        <em>.lbl · .idf · .dgz · .dgf · .zip</em>
       </div>
       <DataPanel />
       <FloatBar />
@@ -78,6 +84,7 @@
         {
             _self = DotNetObjectReference.Create(this);
             try { await Js.InvokeVoidAsync("labelUpEditor.bindHotkeys", _self); } catch { }
+            try { await Js.InvokeVoidAsync("labelUpEditor.bindVendorDrop", "[data-ed-workspace]", _self); } catch { }
             try { await Js.InvokeVoidAsync("labelUpEditor.hideErrorUi"); } catch { }
         }
 
@@ -87,6 +94,8 @@
             try
             {
                 await Js.InvokeVoidAsync("labelUpEditor.initPanels", "[data-ed-root]");
+                if (_self is not null)
+                    await Js.InvokeVoidAsync("labelUpEditor.bindVendorDrop", "[data-ed-workspace]", _self);
                 _panelsReady = true;
             }
             catch
@@ -96,6 +105,36 @@
         }
 
         try { await Js.InvokeVoidAsync("labelUpEditor.hideErrorUi"); } catch { }
+    }
+
+    [JSInvokable]
+    public async Task OnVendorFileDropped(string fileName, byte[] bytes)
+    {
+        try
+        {
+            Session.Status = "타사 포맷 분석 중…";
+            Session.Notify();
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(40);
+            var report = ExternalImport.Analyze(fileName, bytes);
+            Session.PendingVendorImport = report;
+            Session.OpenDialog(EditorDialog.VendorImport);
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error("타사 포맷 변환 실패", ex);
+            Session.Status = "타사 포맷 변환 실패: " + ex.Message;
+            Session.Notify();
+        }
+    }
+
+    [JSInvokable]
+    public void OnVendorDropRejected(string fileName)
+    {
+        Session.Status = ExternalImportService.IsVendorFileName(fileName)
+            ? "파일이 너무 큽니다 (최대 30MB)"
+            : $"타사 포맷이 아닙니다: {fileName}";
+        Session.Notify();
     }
 
     [JSInvokable]

@@ -57,6 +57,19 @@ public static class BarcodeRenderer
             return;
         }
 
+        if (!obj.BackgroundTransparent
+            && !string.IsNullOrWhiteSpace(obj.BackgroundFill)
+            && obj.BackgroundFill is not "transparent" and not "none")
+        {
+            using var bg = new SKPaint
+            {
+                Color = ColorUtil.Parse(obj.BackgroundFill, alpha),
+                IsAntialias = false,
+                Style = SKPaintStyle.Fill
+            };
+            canvas.DrawRect(0, 0, obj.Width, barH, bg);
+        }
+
         using var paint = new SKPaint
         {
             Color = ColorUtil.Parse(obj.Fill, alpha),

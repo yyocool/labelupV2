@@ -340,6 +340,12 @@ public static class DocumentRenderer
         if (obj.Italic)
             canvas.Skew(-0.25f, 0);
 
+        if (obj.TextDirection == "vertical")
+        {
+            DrawVerticalText(canvas, obj, text, font, paint);
+            return;
+        }
+
         var lines = text.Replace("\r\n", "\n").Split('\n');
         var lineH = obj.FontSize * Math.Max(0.8f, obj.LineHeight);
         var totalH = lineH * lines.Length;
@@ -373,6 +379,40 @@ public static class DocumentRenderer
                 if (obj.Underline) canvas.DrawLine(x, y + 0.4f, x + tw, y + 0.4f, lp);
                 if (obj.Strikeout) canvas.DrawLine(x, y - obj.FontSize * 0.35f, x + tw, y - obj.FontSize * 0.35f, lp);
             }
+        }
+    }
+
+    private static void DrawVerticalText(SKCanvas canvas, DesignObject obj, string text, SKFont font, SKPaint paint)
+    {
+        var chars = text.Replace("\r\n", "").Replace("\n", "").ToCharArray();
+        if (chars.Length == 0) return;
+        var lineH = obj.FontSize * Math.Max(0.9f, obj.LineHeight);
+        var colW = obj.FontSize * 1.15f;
+        var rows = Math.Max(1, (int)Math.Floor(obj.Height / lineH));
+        var cols = (int)Math.Ceiling(chars.Length / (double)rows);
+        var totalW = cols * colW;
+        var startX = obj.TextAlign switch
+        {
+            "left" => 0.4f,
+            "right" => Math.Max(0.4f, obj.Width - totalW),
+            _ => Math.Max(0, (obj.Width - totalW) / 2f)
+        };
+        var startY = obj.VerticalAlign switch
+        {
+            "top" => lineH,
+            "bottom" => obj.Height - 0.4f,
+            _ => (obj.Height + lineH * Math.Min(rows, chars.Length)) / 2f
+        };
+
+        for (var i = 0; i < chars.Length; i++)
+        {
+            var col = i / rows;
+            var row = i % rows;
+            var x = startX + (cols - 1 - col) * colW + colW * 0.5f;
+            var y = obj.VerticalAlign == "top"
+                ? lineH + row * lineH
+                : startY - (Math.Min(rows, chars.Length) - 1 - row) * lineH;
+            canvas.DrawText(chars[i].ToString(), x, y, SKTextAlign.Center, font, paint);
         }
     }
 

@@ -281,7 +281,7 @@
         panel.style.bottom = '';
         return;
       }
-      if (opts.stretchToBottom && snapId === 'stack-props') {
+      if (opts.stretchToBottom && (snapId === 'stack-props' || snapId === 'tl' || snapId === 'tr')) {
         panel.style.bottom = SNAP_PAD + 'px';
         panel.style.height = '';
         return;
@@ -402,6 +402,7 @@
     try {
       const saved = opts.storageKey ? localStorage.getItem(opts.storageKey) : null;
       if (saved === 'free') currentSnapId = 'free';
+      else if (saved === 'stack-props' && opts.defaultSnap === 'tl') currentSnapId = 'tl';
       else if (saved) currentSnapId = saved;
     } catch (e) { /* ignore */ }
 
@@ -430,7 +431,8 @@
       minSelector: '.ed-props__min',
       boundAttr: 'data-ed-props-bound',
       defaultSnap: 'tr',
-      storageKey: 'lu-ed-props-snap'
+      storageKey: 'lu-ed-props-snap',
+      stretchToBottom: true
     });
 
     const previewApi = bindPanel(root, {
@@ -438,7 +440,7 @@
       handleSelector: '[data-ed-preview-handle]',
       minSelector: '.ed-props__min',
       boundAttr: 'data-ed-preview-bound',
-      defaultSnap: 'stack-props',
+      defaultSnap: 'tl',
       storageKey: 'lu-ed-preview-snap',
       stretchToBottom: true,
       preserveHeight: true,

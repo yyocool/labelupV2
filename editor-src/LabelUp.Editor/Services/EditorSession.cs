@@ -20,7 +20,7 @@ public sealed class EditorSession
     public bool ShowGrid { get; set; } = true;
     public string Status { get; set; } = "준비됨";
     public string PropsTab { get; set; } = "props";
-    public bool PropsMinimized { get; set; }
+    public bool PropsMinimized { get; set; } = false;
     public bool PreviewMinimized { get; set; }
     public int PageIndex { get; set; }
     public int LabelIndex { get; set; }
@@ -292,17 +292,8 @@ public sealed class EditorSession
             return value;
         }
 
-        if (obj.TextMode == TextMode.Custom || obj.CustomKind is "date" or "time" or "serial")
-        {
-            text = obj.CustomKind switch
-            {
-                "date" => DateTime.Now.ToString(string.IsNullOrWhiteSpace(obj.CustomFormat) ? "yyyy-MM-dd" : obj.CustomFormat),
-                "time" => DateTime.Now.ToString(string.IsNullOrWhiteSpace(obj.CustomFormat) ? "HH:mm:ss" : obj.CustomFormat),
-                "serial" => (obj.SerialStart + idx * Math.Max(1, obj.SerialStep))
-                    .ToString("D" + Math.Clamp(obj.SerialDigits, 1, 12)),
-                _ => text
-            };
-        }
+        if (obj.TextMode == TextMode.Custom || obj.CustomKind is "date" or "time" or "serial" or "hexserial")
+            text = FormtecRecords.ExpandCustom(obj, idx);
 
         return text;
     }
