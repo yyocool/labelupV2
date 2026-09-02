@@ -21,6 +21,7 @@ use App\Controllers\ShopController;
 use App\Controllers\Api\AdminApiController;
 use App\Controllers\Api\AiChatApiController;
 use App\Controllers\Api\AuthApiController;
+use App\Controllers\Api\EditorWorkspaceApiController;
 use App\Controllers\Api\HealthController;
 use App\Controllers\Api\SeedController;
 use App\Controllers\Api\SystemController;
@@ -85,6 +86,7 @@ final class Router
         $system = new SystemController();
         $seed = new SeedController();
         $authApi = new AuthApiController();
+        $editorWorkspaceApi = new EditorWorkspaceApiController();
         $aiChatApi = new AiChatApiController();
         $adminApi = new AdminApiController();
         $legalApi = new LegalApiController();
@@ -152,6 +154,9 @@ final class Router
         $router->post('/api/auth/find-email', [$authApi, 'findEmail']);
         $router->post('/api/auth/password-reset/request', [$authApi, 'requestPasswordReset']);
         $router->post('/api/auth/password-reset/confirm', [$authApi, 'resetPassword']);
+
+        $router->get('/api/editor/workspace', [$editorWorkspaceApi, 'show']);
+        $router->post('/api/editor/workspace', [$editorWorkspaceApi, 'save']);
 
         $router->post('/api/ai/chat', [$aiChatApi, 'chat']);
 

@@ -147,6 +147,14 @@
         wrap.style.left = pos.left + 'px';
         wrap.style.top = pos.top + 'px';
         try { localStorage.setItem('lu-ed-float-corner', 'free'); } catch (e) { /* ignore */ }
+        try {
+          var bw = Math.max(1, workspace.clientWidth);
+          var bh = Math.max(1, workspace.clientHeight);
+          localStorage.setItem('lu-ed-float-free', JSON.stringify({
+            leftPct: pos.left / bw,
+            topPct: pos.top / bh
+          }));
+        } catch (e2) { /* ignore */ }
       }
     }
 
@@ -246,7 +254,19 @@
 
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
-        if (currentCorner !== 'free') applyCorner(currentCorner);
+        if (currentCorner === 'free') {
+          wrap.setAttribute('data-ed-float-corner', 'free');
+          try {
+            var free = JSON.parse(localStorage.getItem('lu-ed-float-free') || 'null');
+            if (free && typeof free.leftPct === 'number' && typeof free.topPct === 'number') {
+              var pos = clamp(workspace, wrap, free.leftPct * workspace.clientWidth, free.topPct * workspace.clientHeight, 0);
+              wrap.style.left = pos.left + 'px';
+              wrap.style.top = pos.top + 'px';
+              return;
+            }
+          } catch (e) { /* ignore */ }
+        }
+        applyCorner(currentCorner);
       });
     });
 
@@ -329,11 +349,17 @@
       const n = nearest(targets, left, top, SNAP_RELEASE);
       if (!n) {
         currentSnapId = 'free';
-        setPos(left, top);
+        var pos = setPos(left, top);
         panel.setAttribute('data-ed-snap-id', 'free');
         panel.classList.add('is-moved');
         if (opts.storageKey) {
           try { localStorage.setItem(opts.storageKey, 'free'); } catch (e) { /* ignore */ }
+          try {
+            localStorage.setItem(opts.storageKey + '-free', JSON.stringify({
+              leftPct: pos.left / Math.max(1, body.clientWidth),
+              topPct: pos.top / Math.max(1, body.clientHeight)
+            }));
+          } catch (e2) { /* ignore */ }
         }
         return;
       }
@@ -408,6 +434,17 @@
 
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
+        if (currentSnapId === 'free') {
+          panel.setAttribute('data-ed-snap-id', 'free');
+          panel.classList.add('is-moved');
+          try {
+            var free = JSON.parse(localStorage.getItem((opts.storageKey || '') + '-free') || 'null');
+            if (free && typeof free.leftPct === 'number' && typeof free.topPct === 'number') {
+              setPos(free.leftPct * body.clientWidth, free.topPct * body.clientHeight);
+              return;
+            }
+          } catch (e) { /* ignore */ }
+        }
         if (currentSnapId !== 'free') applySnap(currentSnapId, true);
       });
     });
@@ -569,6 +606,107 @@
     window.labelUpEditor.closeImportFan = closeFan;
   }
 
+  function readPct(key) {
+    try {
+      var raw = localStorage.getItem(key);
+      if (!raw) return null;
+      var o = JSON.parse(raw);
+      if (o && typeof o.leftPct === 'number' && typeof o.topPct === 'number') return o;
+    } catch (e) { /* ignore */ }
+    return null;
+  }
+
+  function panelLayout(sel, storageKey, containerSel) {
+    var panel = document.querySelector(sel);
+    var container = document.querySelector(containerSel);
+    if (!panel || !container) {
+      return { snap: localStorage.getItem(storageKey) || null, free: readPct(storageKey + '-free') };
+    }
+    var snap = panel.getAttribute('data-ed-snap-id') || localStorage.getItem(storageKey) || null;
+    var rect = panel.getBoundingClientRect();
+    var crect = container.getBoundingClientRect();
+    return {
+      snap: snap,
+      leftPct: (rect.left - crect.left) / Math.max(1, crect.width),
+      topPct: (rect.top - crect.top) / Math.max(1, crect.height),
+      free: readPct(storageKey + '-free')
+    };
+  }
+
+  function getUiLayout() {
+    var float = document.querySelector('[data-ed-float-tools]');
+    var workspace = document.querySelector('[data-ed-workspace]');
+    var floatLayout = {
+      corner: (float && float.getAttribute('data-ed-float-corner')) || localStorage.getItem('lu-ed-float-corner') || 'tl',
+      orient: (float && float.getAttribute('data-ed-float-orient')) || localStorage.getItem('lu-ed-float-orient') || 'horizontal',
+      free: readPct('lu-ed-float-free')
+    };
+    if (float && workspace && floatLayout.corner === 'free') {
+      var fr = float.getBoundingClientRect();
+      var wr = workspace.getBoundingClientRect();
+      floatLayout.leftPct = (fr.left - wr.left) / Math.max(1, wr.width);
+      floatLayout.topPct = (fr.top - wr.top) / Math.max(1, wr.height);
+    }
+    return {
+      version: 1,
+      float: floatLayout,
+      props: panelLayout('[data-ed-props-panel]', 'lu-ed-props-snap', '[data-ed-body]'),
+      preview: panelLayout('[data-ed-preview-panel]', 'lu-ed-preview-snap', '[data-ed-body]')
+    };
+  }
+
+  function applyUiLayout(layout) {
+    if (!layout || typeof layout !== 'object') return false;
+    try {
+      if (layout.float) {
+        if (layout.float.corner) localStorage.setItem('lu-ed-float-corner', layout.float.corner);
+        if (layout.float.orient) localStorage.setItem('lu-ed-float-orient', layout.float.orient);
+        if (layout.float.corner === 'free' && (layout.float.free || (layout.float.leftPct != null))) {
+          localStorage.setItem('lu-ed-float-free', JSON.stringify(layout.float.free || {
+            leftPct: layout.float.leftPct,
+            topPct: layout.float.topPct
+          }));
+        }
+      }
+      if (layout.props) {
+        if (layout.props.snap) localStorage.setItem('lu-ed-props-snap', layout.props.snap);
+        if (layout.props.snap === 'free') {
+          localStorage.setItem('lu-ed-props-snap-free', JSON.stringify(layout.props.free || {
+            leftPct: layout.props.leftPct,
+            topPct: layout.props.topPct
+          }));
+        }
+      }
+      if (layout.preview) {
+        if (layout.preview.snap) localStorage.setItem('lu-ed-preview-snap', layout.preview.snap);
+        if (layout.preview.snap === 'free') {
+          localStorage.setItem('lu-ed-preview-snap-free', JSON.stringify(layout.preview.free || {
+            leftPct: layout.preview.leftPct,
+            topPct: layout.preview.topPct
+          }));
+        }
+      }
+    } catch (e) {
+      console.warn('[LabelUp] applyUiLayout', e);
+      return false;
+    }
+    // Re-init panels so saved layout is applied to the live DOM.
+    var root = document.querySelector('[data-ed-root]');
+    if (root) {
+      root.querySelectorAll('[data-ed-bound],[data-ed-props-bound],[data-ed-preview-bound]').forEach(function (el) {
+        el.removeAttribute('data-ed-bound');
+        el.removeAttribute('data-ed-props-bound');
+        el.removeAttribute('data-ed-preview-bound');
+      });
+      if (typeof window.labelUpEditor.initPanels === 'function') {
+        window.labelUpEditor.initPanels('[data-ed-root]');
+      }
+    }
+    return true;
+  }
+
   window.labelUpEditor = window.labelUpEditor || {};
   window.labelUpEditor.initPanels = init;
+  window.labelUpEditor.getUiLayout = getUiLayout;
+  window.labelUpEditor.applyUiLayout = applyUiLayout;
 })();

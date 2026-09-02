@@ -16,5 +16,6 @@ builder.Services.AddScoped<FontCatalog>();
 builder.Services.AddScoped<PaperCatalog>();
 builder.Services.AddScoped<DataImportService>();
 builder.Services.AddScoped<ExternalImportService>();
+builder.Services.AddScoped<EditorCloudStorage>();
 
 await builder.Build().RunAsync();

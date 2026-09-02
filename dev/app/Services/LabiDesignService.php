@@ -148,19 +148,50 @@ final class LabiDesignService
 
         $w = $product['width_mm'] ?? null;
         $h = $product['height_mm'] ?? null;
+        $labels = isset($product['labels_per_sheet']) ? (int) $product['labels_per_sheet'] : 0;
+        $shape = (string) ($product['shape'] ?? '');
+        $material = (string) ($product['material'] ?? '');
         $specLine = trim(implode(' · ', array_filter([
-            (string) ($product['material'] ?? ''),
-            (string) ($product['shape'] ?? ''),
+            $material,
+            $shape,
             ($w !== null && $h !== null) ? "{$w}×{$h}mm" : '',
-            !empty($product['labels_per_sheet']) ? ((int) $product['labels_per_sheet'] . '칸') : '',
+            $labels > 0 ? ($labels . '칸') : '',
         ])));
+
+        $editorQuery = [];
+        if ($w !== null && $h !== null) {
+            $editorQuery['w'] = rtrim(rtrim(sprintf('%.2f', (float) $w), '0'), '.');
+            $editorQuery['h'] = rtrim(rtrim(sprintf('%.2f', (float) $h), '0'), '.');
+        }
+        if ($labels > 0) {
+            $editorQuery['labels'] = $labels;
+        }
+        if ($shape !== '') {
+            $editorQuery['shape'] = $shape;
+        }
+        if ($material !== '') {
+            $editorQuery['material'] = $material;
+        }
+        $productName = (string) ($product['name'] ?? '');
+        if ($productName !== '') {
+            $editorQuery['name'] = $productName;
+        }
+        $editorUrl = url('editor/');
+        if ($editorQuery !== []) {
+            $editorUrl .= '?' . http_build_query($editorQuery);
+        }
 
         return [
             'id' => (int) $product['id'],
-            'name' => (string) ($product['name'] ?? ''),
+            'name' => $productName,
             'sku' => (string) ($product['sku'] ?? ''),
             'category' => (string) ($product['category_name'] ?? ''),
             'spec' => $specLine,
+            'width_mm' => $w !== null ? (float) $w : null,
+            'height_mm' => $h !== null ? (float) $h : null,
+            'labels_per_sheet' => $labels > 0 ? $labels : null,
+            'shape' => $shape,
+            'material' => $material,
             'price' => $unit,
             'price_label' => $this->shopService->formatPrice($unit),
             'list_price' => (int) ($product['price'] ?? 0),
@@ -169,6 +200,7 @@ final class LabiDesignService
                 && (int) $product['sale_price'] < (int) ($product['price'] ?? 0),
             'thumbnail' => $thumbUrl,
             'url' => url('shop/products/' . (int) $product['id']),
+            'editor_url' => $editorUrl,
         ];
     }
 

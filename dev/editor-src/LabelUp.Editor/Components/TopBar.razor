@@ -6,6 +6,7 @@
 @inject DraftStorage Drafts
 @inject ExportService Export
 @inject DataImportService DataImport
+@inject EditorCloudStorage Cloud
 @implements IDisposable
 
 <header class="ed-topbar" data-tut="topbar" aria-label="편집기 상단">
@@ -99,18 +100,36 @@
     {
         try
         {
-            await Drafts.SaveAsync(Session.Document);
-            var json = LabelDocumentJson.Serialize(Session.Document);
-            var name = Sanitize(Session.Document.Name) + ".lbu";
-            var saved = await Export.SaveTextAsAsync(json, name, "application/json");
-            if (saved is null)
+            var loggedIn = await Cloud.EnsureLoggedInForSaveAsync();
+            if (!loggedIn)
             {
-                Session.Status = "저장이 취소되었습니다";
+                Session.Status = "로그인하면 작업 내역을 저장할 수 있어요";
                 Session.Notify();
                 return;
             }
+
+            await Drafts.SaveAsync(Session.Document);
+
+            var layout = await Cloud.GetUiLayoutAsync();
+            var ui = new
+            {
+                layout,
+                zoom = Session.Zoom,
+                panX = Session.PanX,
+                panY = Session.PanY,
+                showGrid = Session.ShowGrid,
+                propsTab = Session.PropsTab,
+                propsMinimized = Session.PropsMinimized,
+                previewMinimized = Session.PreviewMinimized,
+                dataPanelVisible = Session.DataPanelVisible,
+                dataPanelExpanded = Session.DataPanelExpanded,
+                pageIndex = Session.PageIndex,
+                labelIndex = Session.LabelIndex
+            };
+            await Cloud.SaveWorkspaceAsync(Session.Document, ui);
+
             Session.Dirty = false;
-            Session.Status = $"저장됨 · {saved}";
+            Session.Status = "저장됨 · 계정에 작업 내역을 보관했습니다";
             Session.Notify();
         }
         catch (Exception ex)

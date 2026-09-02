@@ -4,6 +4,7 @@
   const loginUrl = cfg.loginUrl || '/login';
   const chatApiUrl = cfg.chatApiUrl || '/api/ai/chat';
   const labiIconUrl = cfg.labiIconUrl || '';
+  const editorBaseUrl = cfg.editorUrl || '/editor/';
 
   const panel = document.getElementById('aiPromptPanel');
   const input = document.getElementById('promptInput');
@@ -99,6 +100,21 @@
     return escapeHtml(text).replace(/\n/g, '<br>');
   }
 
+  function buildEditorUrl(product) {
+    if (product && product.editor_url) return product.editor_url;
+    const params = new URLSearchParams();
+    if (product && product.width_mm != null && product.height_mm != null) {
+      params.set('w', String(product.width_mm));
+      params.set('h', String(product.height_mm));
+    }
+    if (product && product.labels_per_sheet) params.set('labels', String(product.labels_per_sheet));
+    if (product && product.shape) params.set('shape', String(product.shape));
+    if (product && product.material) params.set('material', String(product.material));
+    if (product && product.name) params.set('name', String(product.name));
+    const qs = params.toString();
+    return qs ? `${editorBaseUrl}${editorBaseUrl.includes('?') ? '&' : '?'}${qs}` : editorBaseUrl;
+  }
+
   function ensureLightbox() {
     if (lightboxEl) return lightboxEl;
     const root = document.createElement('div');
@@ -151,9 +167,16 @@
     kicker.hidden = !opts.kicker;
     actions.innerHTML = '';
 
+    if (opts.editHref) {
+      const edit = document.createElement('a');
+      edit.className = 'ai-lightbox-btn ai-lightbox-btn--primary';
+      edit.href = opts.editHref;
+      edit.textContent = opts.editLabel || '바로 편집';
+      actions.appendChild(edit);
+    }
     if (opts.primaryHref) {
       const a = document.createElement('a');
-      a.className = 'ai-lightbox-btn ai-lightbox-btn--primary';
+      a.className = opts.editHref ? 'ai-lightbox-btn' : 'ai-lightbox-btn ai-lightbox-btn--primary';
       a.href = opts.primaryHref;
       a.textContent = opts.primaryLabel || '자세히 보기';
       actions.appendChild(a);
@@ -216,6 +239,8 @@
         kicker: '추천 라벨 상품',
         title: product.name,
         desc: [product.category, product.spec, product.price_label].filter(Boolean).join(' · '),
+        editHref: buildEditorUrl(product),
+        editLabel: '바로 편집',
         primaryHref: product.url,
         primaryLabel: '상품 상세 보기',
       });
@@ -239,11 +264,16 @@
     previewBtn.className = 'ai-rec-btn ai-rec-btn--ghost';
     previewBtn.textContent = '미리보기';
     previewBtn.addEventListener('click', () => media.click());
+    const editLink = document.createElement('a');
+    editLink.className = 'ai-rec-btn ai-rec-btn--edit';
+    editLink.href = buildEditorUrl(product);
+    editLink.textContent = '바로 편집';
     const detailLink = document.createElement('a');
     detailLink.className = 'ai-rec-btn ai-rec-btn--solid';
     detailLink.href = product.url || '#';
     detailLink.textContent = '상품 보기';
     actions.appendChild(previewBtn);
+    actions.appendChild(editLink);
     actions.appendChild(detailLink);
     body.appendChild(actions);
 

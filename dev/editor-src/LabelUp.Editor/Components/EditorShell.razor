@@ -7,6 +7,8 @@
 @inject FontCatalog Fonts
 @inject PaperCatalog Papers
 @inject ExternalImportService ExternalImport
+@inject EditorCloudStorage Cloud
+@inject NavigationManager Nav
 @inject IJSRuntime Js
 @implements IDisposable
 
@@ -47,6 +49,7 @@
     private CanvasHost? _canvas;
     private bool _panelsReady;
     private DotNetObjectReference<EditorShell>? _self;
+    private object? _pendingUiLayout;
 
     protected override async Task OnInitializedAsync()
     {
@@ -60,13 +63,21 @@
             if (savedMap is { Entries.Count: > 0 })
                 Papers.ReplaceMap(savedMap);
 
-            var draft = await Drafts.LoadAsync();
-            if (draft is not null)
+            var bootFromQuery = TryApplyPaperFromQuery();
+            if (!bootFromQuery)
             {
-                Session.ReplaceDocument(draft);
-                Session.Dirty = false;
-                Session.Status = "저장된 초안을 불러왔습니다";
-                Session.DataPanelVisible = draft.Data is { RowCount: > 0 };
+                var restored = await TryRestoreCloudWorkspaceAsync();
+                if (!restored)
+                {
+                    var draft = await Drafts.LoadAsync();
+                    if (draft is not null)
+                    {
+                        Session.ReplaceDocument(draft);
+                        Session.Dirty = false;
+                        Session.Status = "저장된 초안을 불러왔습니다";
+                        Session.DataPanelVisible = draft.Data is { RowCount: > 0 };
+                    }
+                }
             }
 
             Session.Notify();
@@ -76,6 +87,127 @@
             EditorLog.Error("편집기 초기화 실패", ex);
             Session.Status = "초기화 경고: " + ex.Message;
         }
+    }
+
+    private async Task<bool> TryRestoreCloudWorkspaceAsync()
+    {
+        try
+        {
+            if (!await Cloud.IsLoggedInAsync()) return false;
+            var workspace = await Cloud.LoadWorkspaceAsync();
+            if (workspace?.Document is null) return false;
+
+            Session.ReplaceDocument(workspace.Document);
+            Session.Dirty = false;
+            Session.DataPanelVisible = workspace.Document.Data is { RowCount: > 0 };
+
+            if (workspace.Ui is { ValueKind: System.Text.Json.JsonValueKind.Object } ui)
+            {
+                ApplySessionUi(ui);
+                if (ui.TryGetProperty("layout", out var layout) && layout.ValueKind == System.Text.Json.JsonValueKind.Object)
+                    _pendingUiLayout = layout;
+                else
+                    _pendingUiLayout = ui;
+            }
+
+            Session.Status = string.IsNullOrWhiteSpace(workspace.Title)
+                ? "계정에 저장된 작업을 불러왔습니다"
+                : $"「{workspace.Title}」을(를) 불러왔습니다";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("클라우드 작업 복원 실패: " + ex.Message);
+            return false;
+        }
+    }
+
+    private void ApplySessionUi(System.Text.Json.JsonElement ui)
+    {
+        if (ui.TryGetProperty("zoom", out var zoom) && zoom.TryGetSingle(out var z))
+            Session.Zoom = Math.Clamp(z, 0.25f, 4f);
+        if (ui.TryGetProperty("panX", out var panX) && panX.TryGetSingle(out var px))
+            Session.PanX = px;
+        if (ui.TryGetProperty("panY", out var panY) && panY.TryGetSingle(out var py))
+            Session.PanY = py;
+        if (ui.TryGetProperty("showGrid", out var grid) && (grid.ValueKind is System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False))
+            Session.ShowGrid = grid.GetBoolean();
+        if (ui.TryGetProperty("propsTab", out var tab) && tab.ValueKind == System.Text.Json.JsonValueKind.String)
+            Session.PropsTab = tab.GetString() ?? Session.PropsTab;
+        if (ui.TryGetProperty("propsMinimized", out var pm) && (pm.ValueKind is System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False))
+            Session.PropsMinimized = pm.GetBoolean();
+        if (ui.TryGetProperty("previewMinimized", out var pvm) && (pvm.ValueKind is System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False))
+            Session.PreviewMinimized = pvm.GetBoolean();
+        if (ui.TryGetProperty("dataPanelVisible", out var dv) && (dv.ValueKind is System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False))
+            Session.DataPanelVisible = dv.GetBoolean();
+        if (ui.TryGetProperty("dataPanelExpanded", out var de) && (de.ValueKind is System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False))
+            Session.DataPanelExpanded = de.GetBoolean();
+        if (ui.TryGetProperty("pageIndex", out var pi) && pi.TryGetInt32(out var page))
+            Session.PageIndex = Math.Max(0, page);
+        if (ui.TryGetProperty("labelIndex", out var li) && li.TryGetInt32(out var label))
+            Session.LabelIndex = Math.Max(0, label);
+    }
+
+    private bool TryApplyPaperFromQuery()
+    {
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var q = ParseQuery(uri.Query);
+
+        string? Get(string key) =>
+            q.TryGetValue(key, out var v) && !string.IsNullOrWhiteSpace(v) ? v : null;
+
+        var paperNo = Get("paper") ?? Get("paperNo");
+        PaperSpec? paper = null;
+
+        if (!string.IsNullOrWhiteSpace(paperNo))
+            paper = Papers.Find(paperNo);
+
+        if (paper is null
+            && float.TryParse(Get("w") ?? Get("width"), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var w)
+            && float.TryParse(Get("h") ?? Get("height"), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var h)
+            && w > 0 && h > 0)
+        {
+            int? labels = null;
+            if (int.TryParse(Get("labels") ?? Get("labels_per_sheet"), out var l) && l > 0)
+                labels = l;
+            paper = Papers.FindBestMatch(w, h, labels)
+                    ?? Papers.CreateFromSize(w, h, labels ?? 1, Get("shape"), Get("name"));
+        }
+
+        if (paper is null) return false;
+
+        var doc = LabelDocument.CreateBlank(paper);
+        var name = Get("name");
+        if (!string.IsNullOrWhiteSpace(name))
+            doc.Name = name!;
+        else
+            doc.Name = $"{paper.PaperNo} {paper.LabelWidthMm:0.#}×{paper.LabelHeightMm:0.#} mm";
+
+        Session.ReplaceDocument(doc);
+        Session.Dirty = false;
+        Session.Status = $"「{doc.Name}」 규격으로 편집을 시작합니다";
+        Session.DataPanelVisible = false;
+        return true;
+    }
+
+    private static Dictionary<string, string> ParseQuery(string query)
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(query)) return map;
+        var q = query.StartsWith('?') ? query[1..] : query;
+        foreach (var part in q.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var i = part.IndexOf('=');
+            var key = i >= 0 ? part[..i] : part;
+            var val = i >= 0 ? part[(i + 1)..] : "";
+            key = Uri.UnescapeDataString(key.Replace('+', ' '));
+            val = Uri.UnescapeDataString(val.Replace('+', ' '));
+            if (!string.IsNullOrEmpty(key))
+                map[key] = val;
+        }
+        return map;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -96,6 +228,11 @@
                 await Js.InvokeVoidAsync("labelUpEditor.initPanels", "[data-ed-root]");
                 if (_self is not null)
                     await Js.InvokeVoidAsync("labelUpEditor.bindVendorDrop", "[data-ed-workspace]", _self);
+                if (_pendingUiLayout is not null)
+                {
+                    await Cloud.ApplyUiLayoutAsync(_pendingUiLayout);
+                    _pendingUiLayout = null;
+                }
                 _panelsReady = true;
             }
             catch

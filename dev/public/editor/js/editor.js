@@ -213,5 +213,164 @@ window.labelUpEditor = {
     if (!el) return;
     el.classList.remove('show');
     el.style.display = 'none';
+  },
+
+  apiUrl: function (path) {
+    var base = (document.querySelector('base') && document.querySelector('base').href) || (location.origin + '/editor/');
+    try {
+      return new URL(path, base.replace(/\/editor\/?$/, '/')).toString();
+    } catch (e) {
+      return location.origin + (path.charAt(0) === '/' ? path : '/' + path);
+    }
+  },
+
+  getAuthUser: async function () {
+    try {
+      var res = await fetch(this.apiUrl('/api/auth/me'), {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json' }
+      });
+      if (!res.ok) return null;
+      var json = await res.json();
+      if (!json || json.success === false) return null;
+      return json.data || null;
+    } catch (e) {
+      console.warn('[LabelUp] getAuthUser', e);
+      return null;
+    }
+  },
+
+  saveWorkspace: async function (payload) {
+    var res = await fetch(this.apiUrl('/api/editor/workspace'), {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(payload || {})
+    });
+    var json = await res.json().catch(function () { return null; });
+    if (!res.ok || !json || json.success === false) {
+      throw new Error((json && json.message) || '작업공간 저장에 실패했습니다.');
+    }
+    return json.data || {};
+  },
+
+  loadWorkspace: async function () {
+    var res = await fetch(this.apiUrl('/api/editor/workspace'), {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: { 'Accept': 'application/json' }
+    });
+    if (res.status === 401) return null;
+    var json = await res.json().catch(function () { return null; });
+    if (!res.ok || !json || json.success === false) return null;
+    return json.data || null;
+  },
+
+  showSaveAuthPrompt: function () {
+    var self = this;
+    return new Promise(function (resolve) {
+      var existing = document.getElementById('lu-save-auth-gate');
+      if (existing) existing.remove();
+
+      var root = document.createElement('div');
+      root.id = 'lu-save-auth-gate';
+      root.className = 'lu-auth-gate';
+      root.innerHTML =
+        '<div class="lu-auth-gate__backdrop" data-lu-auth-close></div>' +
+        '<div class="lu-auth-gate__card" role="dialog" aria-modal="true" aria-labelledby="lu-auth-title">' +
+        '  <button type="button" class="lu-auth-gate__close" data-lu-auth-close aria-label="닫기">×</button>' +
+        '  <div class="lu-auth-gate__hero" aria-hidden="true">' +
+        '    <img src="img/labi-icon.png" alt="" width="72" height="72">' +
+        '  </div>' +
+        '  <h3 id="lu-auth-title">작업 내역을 안전하게 보관해요</h3>' +
+        '  <p class="lu-auth-gate__lead">회원가입 또는 로그인하면 디자인 내용과 툴바·속성창 위치까지 모두 저장할 수 있어요.</p>' +
+        '  <ul class="lu-auth-gate__points">' +
+        '    <li>편집 중인 라벨 디자인 자동 보관</li>' +
+        '    <li>툴바·속성/레이어·미리보기 창 배치 저장</li>' +
+        '    <li>다른 기기에서도 이어서 작업</li>' +
+        '  </ul>' +
+        '  <div class="lu-auth-gate__tabs">' +
+        '    <button type="button" class="is-active" data-lu-auth-tab="login">로그인</button>' +
+        '    <button type="button" data-lu-auth-tab="register">회원가입</button>' +
+        '  </div>' +
+        '  <form class="lu-auth-gate__form" data-lu-auth-form="login">' +
+        '    <label>이메일<input type="email" name="email" required autocomplete="username" placeholder="you@email.com"></label>' +
+        '    <label>비밀번호<input type="password" name="password" required autocomplete="current-password" placeholder="비밀번호"></label>' +
+        '    <p class="lu-auth-gate__error" hidden></p>' +
+        '    <button type="submit" class="lu-auth-gate__submit">로그인하고 저장하기</button>' +
+        '  </form>' +
+        '  <form class="lu-auth-gate__form" data-lu-auth-form="register" hidden>' +
+        '    <label>이름<input type="text" name="name" required autocomplete="name" placeholder="이름"></label>' +
+        '    <label>이메일<input type="email" name="email" required autocomplete="email" placeholder="you@email.com"></label>' +
+        '    <label>비밀번호<input type="password" name="password" required minlength="8" autocomplete="new-password" placeholder="8자 이상"></label>' +
+        '    <p class="lu-auth-gate__error" hidden></p>' +
+        '    <button type="submit" class="lu-auth-gate__submit">가입하고 저장 시작하기</button>' +
+        '  </form>' +
+        '  <p class="lu-auth-gate__foot">지금 닫아도 화면의 작업은 유지됩니다. 저장만 로그인 후 가능해요.</p>' +
+        '</div>';
+      document.body.appendChild(root);
+      requestAnimationFrame(function () { root.classList.add('is-open'); });
+
+      function close(result) {
+        root.classList.remove('is-open');
+        setTimeout(function () { root.remove(); }, 200);
+        resolve(!!result);
+      }
+
+      root.addEventListener('click', function (e) {
+        if (e.target && e.target.closest && e.target.closest('[data-lu-auth-close]')) close(false);
+      });
+
+      root.querySelectorAll('[data-lu-auth-tab]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var tab = btn.getAttribute('data-lu-auth-tab');
+          root.querySelectorAll('[data-lu-auth-tab]').forEach(function (b) {
+            b.classList.toggle('is-active', b === btn);
+          });
+          root.querySelectorAll('[data-lu-auth-form]').forEach(function (form) {
+            form.hidden = form.getAttribute('data-lu-auth-form') !== tab;
+          });
+        });
+      });
+
+      async function submitForm(form, mode) {
+        var err = form.querySelector('.lu-auth-gate__error');
+        var submit = form.querySelector('.lu-auth-gate__submit');
+        err.hidden = true;
+        err.textContent = '';
+        submit.disabled = true;
+        try {
+          var body = {
+            email: (form.email && form.email.value || '').trim(),
+            password: form.password && form.password.value || '',
+            remember: true
+          };
+          if (mode === 'register') body.name = (form.name && form.name.value || '').trim();
+          var res = await fetch(self.apiUrl(mode === 'register' ? '/api/auth/register' : '/api/auth/login'), {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify(body)
+          });
+          var json = await res.json().catch(function () { return null; });
+          if (!res.ok || !json || json.success === false) {
+            throw new Error((json && json.message) || '처리에 실패했습니다.');
+          }
+          close(true);
+        } catch (e) {
+          err.textContent = e.message || '다시 시도해 주세요.';
+          err.hidden = false;
+          submit.disabled = false;
+        }
+      }
+
+      root.querySelectorAll('[data-lu-auth-form]').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          submitForm(form, form.getAttribute('data-lu-auth-form'));
+        });
+      });
+    });
   }
 };

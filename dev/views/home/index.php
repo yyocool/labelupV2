@@ -127,7 +127,8 @@ window.LABELUP_HOME = {
   isLoggedIn: <?= !empty($authUser) ? 'true' : 'false' ?>,
   loginUrl: <?= json_encode(url('login') . '?redirect=' . rawurlencode(url('')), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
   chatApiUrl: <?= json_encode(url('api/ai/chat'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
-  labiIconUrl: <?= json_encode(asset('labi-icon.png'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>
+  labiIconUrl: <?= json_encode(asset('labi-icon.png'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
+  editorUrl: <?= json_encode(url('editor/'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>
 };
 </script>
 <script src="<?= js('home.js') ?>"></script>

@@ -246,6 +246,8 @@ a.login{text-decoration:none}
 .ai-rec-btn{display:inline-flex;align-items:center;justify-content:center;height:32px;padding:0 12px;border-radius:10px;font-size:12px;font-weight:800;text-decoration:none;cursor:pointer;border:1px solid transparent;transition:background .15s,border-color .15s,color .15s,transform .15s}
 .ai-rec-btn--ghost{background:#fff;border-color:#e6e5ee;color:#4e5163}
 .ai-rec-btn--ghost:hover{border-color:var(--accent-soft-2);background:var(--accent-soft);color:var(--accent)}
+.ai-rec-btn--edit{background:#fff;border-color:var(--accent-soft-2);color:var(--accent)}
+.ai-rec-btn--edit:hover{background:var(--accent-soft);border-color:var(--accent);transform:translateY(-1px)}
 .ai-rec-btn--solid{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;box-shadow:0 6px 14px var(--accent-shadow)}
 .ai-rec-btn--solid:hover{filter:brightness(1.04);transform:translateY(-1px)}
 

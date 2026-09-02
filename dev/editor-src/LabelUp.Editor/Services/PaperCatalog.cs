@@ -68,6 +68,74 @@ public sealed class PaperCatalog
 
     public PaperSpec ResolveOrDefault(string? paperNo) => Find(paperNo) ?? _papers[0];
 
+    /// <summary>
+    /// 라벨 치수(및 칸수)로 가장 가까운 카탈로그 용지를 찾는다.
+    /// </summary>
+    public PaperSpec? FindBestMatch(float widthMm, float heightMm, int? labelsPerSheet = null)
+    {
+        if (_papers.Count == 0) return null;
+        PaperSpec? best = null;
+        var bestScore = double.MaxValue;
+        foreach (var p in _papers)
+        {
+            var dw = Math.Abs(p.LabelWidthMm - widthMm);
+            var dh = Math.Abs(p.LabelHeightMm - heightMm);
+            if (dw > 1.5f || dh > 1.5f) continue;
+            double score = dw + dh;
+            if (labelsPerSheet is > 0)
+                score += Math.Abs(p.LabelsPerPage - labelsPerSheet.Value) * 0.15;
+            if (score < bestScore)
+            {
+                bestScore = score;
+                best = p;
+            }
+        }
+        return best;
+    }
+
+    /// <summary>
+    /// 치수 매칭 실패 시 임시 커스텀 용지를 만든다.
+    /// </summary>
+    public PaperSpec CreateFromSize(float widthMm, float heightMm, int labelsPerSheet = 1, string? shape = null, string? name = null)
+    {
+        var paper = PaperSpec.CreateDefault().Clone();
+        paper.PaperNo = "CUSTOM";
+        paper.Name = string.IsNullOrWhiteSpace(name)
+            ? $"{widthMm:0.#}×{heightMm:0.#} mm"
+            : name!;
+        paper.LabelWidthMm = Math.Max(1f, widthMm);
+        paper.LabelHeightMm = Math.Max(1f, heightMm);
+        var labels = Math.Max(1, labelsPerSheet);
+        // A4 기준 대략 배치
+        paper.Columns = labels >= 14 ? 2 : (labels >= 6 ? 2 : 1);
+        paper.Rows = Math.Max(1, (int)Math.Ceiling(labels / (double)paper.Columns));
+        if (paper.Columns * paper.Rows < labels)
+            paper.Rows = Math.Max(1, (int)Math.Ceiling(labels / (double)paper.Columns));
+        paper.PaperWidthMm = 210f;
+        paper.PaperHeightMm = 297f;
+        paper.HGapMm = 4f;
+        paper.VGapMm = 3f;
+        paper.Shape.Kind = MapShapeKind(shape);
+        if (paper.Shape.Kind == "ellipse")
+        {
+            paper.LabelHeightMm = paper.LabelWidthMm = Math.Min(paper.LabelWidthMm, paper.LabelHeightMm);
+        }
+        paper.RecalcMarginsFromGaps();
+        return paper;
+    }
+
+    private static string MapShapeKind(string? shape)
+    {
+        var s = (shape ?? "").Trim().ToLowerInvariant();
+        return s switch
+        {
+            "circle" or "원형" or "ellipse" => "ellipse",
+            "round" or "roundrect" or "라운드" => "roundrect",
+            "heart" or "하트" => "svg",
+            _ => "roundrect"
+        };
+    }
+
     public void Upsert(PaperSpec spec)
     {
         var i = _papers.FindIndex(p => string.Equals(p.PaperNo, spec.PaperNo, StringComparison.OrdinalIgnoreCase));
