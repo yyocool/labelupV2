@@ -15,6 +15,14 @@ namespace LabelUp.Editor.Services;
 /// </summary>
 public sealed class ExternalImportService(PaperCatalog papers)
 {
+    public static readonly string[] VendorExtensions = [".lbl", ".idf", ".xml", ".dgz", ".dgf", ".fmt", ".fdx", ".zip"];
+
+    public static bool IsVendorFileName(string? fileName)
+    {
+        var ext = Path.GetExtension(fileName ?? "").ToLowerInvariant();
+        return VendorExtensions.Contains(ext);
+    }
+
     public LabelDocument Import(string fileName, byte[] bytes)
     {
         var result = Analyze(fileName, bytes);
@@ -299,8 +307,13 @@ public sealed class ExternalImportService(PaperCatalog papers)
     internal static string? FindImageDataUrl(byte[] data, int start, int end)
     {
         end = Math.Min(end, data.Length);
-        const int maxImage = 2 * 1024 * 1024;
-        for (var i = start; i + 8 < end && i < start + 1024; i++)
+        const int maxImage = 8 * 1024 * 1024;
+        if (start + 0x55 < end)
+        {
+            var structured = FormtecImageFallback(data, start, end);
+            if (structured is not null) return structured;
+        }
+        for (var i = start; i + 8 < end && i < start + 4096; i++)
         {
             if (data[i] == 0x89 && data[i + 1] == 0x50 && data[i + 2] == 0x4E)
             {
@@ -318,11 +331,32 @@ public sealed class ExternalImportService(PaperCatalog papers)
             if (data[i] == (byte)'B' && data[i + 1] == (byte)'M' && i + 6 < end)
             {
                 var len = BitConverter.ToInt32(data, i + 2);
-                if (len is > 54 and < 2_000_000 && i + len <= data.Length)
+                if (len is > 54 and < 8_000_000 && i + len <= data.Length)
                     return ToDataUrl(data.AsSpan(i, len).ToArray(), "image/bmp");
             }
             if (data[i] == (byte)'G' && data[i + 1] == (byte)'I' && data[i + 2] == (byte)'F')
                 return ToDataUrl(data.AsSpan(i, Math.Min(end, i + 2_000_000) - i).ToArray(), "image/gif");
+        }
+        return null;
+    }
+
+    private static string? FormtecImageFallback(byte[] data, int start, int end)
+    {
+        if (start + 0x55 > end) return null;
+        if (start + 0x53 + 4 <= data.Length && data[start + 0x51] == (byte)'B' && data[start + 0x52] == (byte)'M')
+        {
+            var len = BitConverter.ToInt32(data, start + 0x53);
+            if (len is > 54 and < 8_000_000 && start + 0x51 + len <= data.Length)
+                return ToDataUrl(data.AsSpan(start + 0x51, len).ToArray(), "image/bmp");
+        }
+        var dataLen = BitConverter.ToInt32(data, start + 0x51);
+        var off = start + 0x55;
+        if (dataLen is > 16 and < 8_000_000 && off + dataLen <= data.Length)
+        {
+            var slice = data.AsSpan(off, dataLen);
+            if (slice[0] == 0x89 && slice[1] == 0x50) return ToDataUrl(slice.ToArray(), "image/png");
+            if (slice[0] == 0xFF && slice[1] == 0xD8) return ToDataUrl(slice.ToArray(), "image/jpeg");
+            if (slice[0] == (byte)'G' && slice[1] == (byte)'I') return ToDataUrl(slice.ToArray(), "image/gif");
         }
         return null;
     }
@@ -991,6 +1025,8 @@ internal static class FormtecImporter
     private static long GuessLength(byte[] data, int start, long pageEnd, byte type)
     {
         var available = pageEnd - start;
+        if (FormtecRecords.TryObjectLength(data, start, (int)pageEnd, type, out var exact) && exact > 41)
+            return exact;
         switch (type)
         {
             case 0x04: return 95 <= available ? 95 : 41;
@@ -1004,6 +1040,7 @@ internal static class FormtecImporter
                 return Math.Min(available, 83 + 16L * (rows + columns));
             default:
                 var next = start + 41;
+                var scanCap = type is 0x09 or 0x18 or 0x16 ? start + 80 : start + 4_000;
                 while (next + 41 < pageEnd)
                 {
                     if (data[next] == 0xB8 && next + 1 < pageEnd && data[next + 1] == 0x01)
@@ -1011,9 +1048,9 @@ internal static class FormtecImporter
                     if (ExternalImportService.TryGeom(data, next, (int)pageEnd, out var t, out _, out _, out _, out _) && IsType(t))
                         return next - start;
                     next++;
-                    if (next > start + 4_000) break;
+                    if (next > scanCap) break;
                 }
-                return Math.Min(available, 4000);
+                return Math.Min(available, type is 0x09 or 0x18 ? available : 4000);
         }
     }
 
@@ -1029,7 +1066,9 @@ internal static class FormtecImporter
             case 0x18:
                 var img = DesignObject.CreateDefault(type == 0x18 ? ObjectType.Clipart : ObjectType.Image, x, y);
                 img.Width = w; img.Height = h;
-                img.ImageData = ExternalImportService.FindImageDataUrl(data, start, end);
+                FormtecRecords.Apply(img, data, geom, end, type);
+                if (string.IsNullOrEmpty(img.ImageData))
+                    img.ImageData = ExternalImportService.FindImageDataUrl(data, geom, end);
                 return img;
             case 0x07:
             case 0x08:
@@ -1040,6 +1079,8 @@ internal static class FormtecImporter
                 bar.Width = w; bar.Height = h;
                 bar.BarcodeValue = ReadAsciiPrefixed(data, start, end) ?? strings.LastOrDefault(s => s.Length is >= 1 and <= 80) ?? "12345678";
                 bar.BarcodeFormat = format;
+                if (type == 0x10)
+                    FormtecRecords.Apply(bar, data, geom, end, type);
                 return bar;
             case 0x0F:
                 var table = DesignObject.CreateDefault(ObjectType.Table, x, y);
@@ -1059,9 +1100,18 @@ internal static class FormtecImporter
             case 0x0A:
             case 0x0B:
             case 0x16:
-                var text = ReadDgfText(data, start, end) ?? strings.FirstOrDefault();
-                if (string.IsNullOrWhiteSpace(text)) return null;
-                var o = ExternalImportService.TextAt(x, y, w, h, text, type == 0x06, type == 0x06 ? text.Trim('[', ']') : null);
+                var text = type switch
+                {
+                    0x0A or 0x0B or 0x16 or 0x00 => null,
+                    _ => ReadDgfText(data, start, end)
+                } ?? strings.FirstOrDefault();
+                var o = ExternalImportService.TextAt(x, y, w, h, text ?? "", type == 0x06, type == 0x06 ? (text ?? "").Trim('[', ']') : null);
+                FormtecRecords.Apply(o, data, geom, end, type);
+                if (string.IsNullOrWhiteSpace(o.Text))
+                {
+                    if (string.IsNullOrWhiteSpace(text)) return null;
+                    o.Text = text;
+                }
                 if (type == 0x0A) o.TextMode = TextMode.WordArt;
                 if (type == 0x0B) o.TextMode = TextMode.Custom;
                 if (type == 0x16) o.TextMode = TextMode.Extended;

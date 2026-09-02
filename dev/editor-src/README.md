@@ -2,7 +2,7 @@
 
 ## Develop
 ```bash
-cd editor-src/LabelUp.Editor
+cd LabelUp.Editor
 dotnet run
 ```
 

@@ -1,5 +1,0 @@
-# Blazor / .NET build artifacts
-**/bin/
-**/obj/
-*.user
-.vs/
