@@ -121,6 +121,67 @@ window.labelUpEditor = {
       if (tabBtn) requestAnimationFrame(function () { tabBtn.click(); });
     }
   },
+  bindVendorDrop: function (selector, dotnet) {
+    var el = document.querySelector(selector);
+    if (!el || el.__luVendorDrop || !dotnet) return;
+    el.__luVendorDrop = true;
+    var exts = ['.lbl', '.idf', '.xml', '.dgz', '.dgf', '.fmt', '.fdx', '.zip'];
+    var depth = 0;
+    function hasFiles(e) {
+      var types = e.dataTransfer && e.dataTransfer.types;
+      if (!types) return false;
+      if (typeof types.contains === 'function') return types.contains('Files');
+      return Array.prototype.indexOf.call(types, 'Files') >= 0;
+    }
+    function isVendor(name) {
+      var n = String(name || '').toLowerCase();
+      var i = n.lastIndexOf('.');
+      return i >= 0 && exts.indexOf(n.slice(i)) >= 0;
+    }
+    function setHover(on) {
+      el.classList.toggle('is-vendor-drop', !!on);
+    }
+    el.addEventListener('dragenter', function (e) {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      depth++;
+      setHover(true);
+    });
+    el.addEventListener('dragover', function (e) {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      setHover(true);
+    });
+    el.addEventListener('dragleave', function (e) {
+      if (!hasFiles(e)) return;
+      depth = Math.max(0, depth - 1);
+      if (depth === 0) setHover(false);
+    });
+    el.addEventListener('drop', function (e) {
+      if (!hasFiles(e)) return;
+      var files = e.dataTransfer && e.dataTransfer.files;
+      depth = 0;
+      setHover(false);
+      if (!files || !files.length) return;
+      e.preventDefault();
+      e.stopPropagation();
+      var file = files[0];
+      if (!isVendor(file.name)) {
+        dotnet.invokeMethodAsync('OnVendorDropRejected', file.name);
+        return;
+      }
+      if (file.size > 30 * 1024 * 1024) {
+        dotnet.invokeMethodAsync('OnVendorDropRejected', file.name);
+        return;
+      }
+      file.arrayBuffer().then(function (buf) {
+        return dotnet.invokeMethodAsync('OnVendorFileDropped', file.name, new Uint8Array(buf));
+      }).catch(function (err) {
+        console.error('[LabelUp] vendor drop', err);
+      });
+    }, true);
+  },
   bindHotkeys: function (dotnet) {
     if (window.__luEditorKeysBound) return;
     window.__luEditorKeysBound = true;

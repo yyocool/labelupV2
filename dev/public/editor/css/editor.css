@@ -149,7 +149,7 @@ html, body {
   align-items: center;
   gap: 8px;
   min-width: 200px;
-  max-width: 280px;
+  max-width: 380px;
 }
 .ed-topbar__logo {
   width: 28px;
@@ -186,6 +186,15 @@ html, body {
 .ed-topbar__saved { font-size: 10px; font-weight: 600; color: #2f9d63; }
 .ed-topbar__saved.is-unsaved { color: #c47a22; }
 .ed-topbar__status { color: var(--ed-muted); font-weight: 500; margin-left: 6px; }
+.ed-topbar__build {
+  flex-shrink: 0;
+  align-self: center;
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--ed-muted);
+}
 .ed-topbar__center {
   flex: 1;
   display: flex;
@@ -295,6 +304,36 @@ html, body {
   inset: 0;
   z-index: 3;
 }
+.ed__vendor-drop {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 220;
+  pointer-events: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(123, 40, 64, 0.14);
+  border: 2px dashed #7b2840;
+  color: #5c1d30;
+  text-align: center;
+}
+.ed__workspace.is-vendor-drop > .ed__vendor-drop {
+  display: flex;
+}
+.ed__vendor-drop strong {
+  font-size: 18px;
+  font-weight: 800;
+}
+.ed__vendor-drop span {
+  font-size: 13px;
+}
+.ed__vendor-drop em {
+  font-size: 12px;
+  font-style: normal;
+  color: #8a4a5c;
+}
 .canvas-stage {
   position: absolute;
   inset: 0;
@@ -309,7 +348,7 @@ html, body {
 /* —— Floating tools (M-03) —— */
 .ed-float-tools {
   position: absolute;
-  z-index: 80;
+  z-index: 110;
   left: 28px;
   top: 28px;
   width: max-content;
@@ -452,13 +491,15 @@ html, body {
   overflow: hidden;
   animation: panelIn 0.5s var(--ed-ease) both;
 }
-.ed-props { top: 12px; }
-.ed-preview { top: 360px; bottom: 12px; max-height: none; min-height: 360px; }
+.ed-props { top: 12px; bottom: 12px; max-height: none; }
+.ed-preview { left: 12px; right: auto; top: 12px; bottom: 12px; max-height: none; min-height: 360px; }
 .ed-props.is-minimized,
 .ed-preview.is-minimized {
   max-height: none;
   width: auto;
   min-width: 200px;
+  bottom: auto;
+  height: auto;
 }
 .ed-preview.is-minimized {
   top: auto;
