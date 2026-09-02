@@ -9,13 +9,15 @@
   var STORAGE_SKIP = 'lu-ed-tutorial-skip';
   /** 전체 진행 배율 (클수록 느림). 요청: 기존 대비 절반 속도 → 2 */
   var PACE = 2;
+  /** 한 설명이 끝난 뒤 다음으로 넘어가기 전 쉬는 시간(ms) */
+  var GAP_AFTER_STEP = 1000;
 
   var STEPS = [
     {
       id: 'welcome',
       selector: '[data-tut="topbar"]',
       title: '라벨 편집기에 오신 걸 환영해요',
-      description: '상단 바에서 제목 수정, 실행 취소, 줌, 저장·미리보기·출력을 할 수 있어요.',
+      description: '상단 바에서 제목 수정, 줌, 그리드, 미리보기·저장하기·출력, 나가기를 할 수 있어요. 버튼마다 아이콘이 붙어 있어요.',
       effect: '편집기 전체 흐름을 한눈에 파악합니다.',
       speech: '라벨 편집기에 오신 걸 환영해요. 상단 바부터 살펴볼게요.',
       wait: 2800
@@ -53,14 +55,72 @@
       cursor: true
     },
     {
+      id: 'grid',
+      selector: '[data-tut="grid"]',
+      title: '그리드',
+      description: '그리드는 눈금자(룰러)와 같은 간격으로 맞춰집니다. 줌에 따라 1·2·5mm 칸이 바뀌어요.',
+      effect: '눈금과 격자가 어긋나지 않아 정확하게 배치할 수 있습니다.',
+      speech: '그리드는 눈금자와 같은 규격으로 맞춰져 있어요.',
+      wait: 2600,
+      cursor: true
+    },
+    {
       id: 'presets',
       selector: '[data-tut="presets"]',
-      title: '라벨 규격',
-      description: '자주 쓰는 라벨 크기를 여기서 바로 바꿀 수 있어요.',
-      effect: '용지에 맞는 규격으로 빠르게 전환합니다.',
-      speech: '규격 메뉴에서 라벨 크기를 바꿀 수 있어요.',
+      title: '용지선택',
+      description: '라벨용지와 태그용지를 여기서 고를 수 있어요. 버튼을 누르면 선택 창이 열립니다.',
+      effect: '작업에 맞는 용지 규격으로 빠르게 전환합니다.',
+      speech: '용지선택 버튼을 눌러 창을 열어볼게요.',
       wait: 2400,
-      cursor: true
+      cursor: true,
+      click: true,
+      action: 'openPaperPicker'
+    },
+    {
+      id: 'paper-picker',
+      selector: '[data-tut="paper-picker-head"]',
+      title: '용지선택 창',
+      description: '상단 라벨·태그 탭으로 용지 종류를 나눈 뒤, 검색하거나 카드를 눌러 적용합니다.',
+      effect: '라벨과 태그를 같은 창에서 고를 수 있습니다.',
+      speech: '용지선택 창이에요. 위쪽에 라벨과 태그 탭이 있어요.',
+      wait: 2800,
+      cursor: true,
+      action: 'openPaperPicker'
+    },
+    {
+      id: 'paper-tab-label',
+      selector: '[data-tut="paper-tab-label"]',
+      title: '라벨 용지',
+      description: '라벨 탭에서는 쇼핑몰에 등록된 라벨용지를 검색하고 선택합니다.',
+      effect: '일반 라벨 작업에 맞는 규격을 고릅니다.',
+      speech: '라벨 탭입니다. 라벨용지를 고를 수 있어요.',
+      wait: 2600,
+      cursor: true,
+      click: true,
+      action: 'paperTab:label'
+    },
+    {
+      id: 'paper-tab-tag',
+      selector: '[data-tut="paper-tab-tag"]',
+      title: '태그 용지',
+      description: '태그 탭에서는 행택·폴드택 같은 태그용지를 선택합니다.',
+      effect: '태그 작업도 같은 흐름으로 시작합니다.',
+      speech: '태그 탭으로 바꾸면 태그용지를 고를 수 있어요.',
+      wait: 2600,
+      cursor: true,
+      click: true,
+      action: 'paperTab:tag'
+    },
+    {
+      id: 'themes',
+      selector: '[data-tut="themes"]',
+      title: '템플릿선택',
+      description: '완성된 라벨 시안을 골라 바로 편집할 수 있어요.',
+      effect: '빈 용지 대신 시안으로 빠르게 시작합니다.',
+      speech: '옆의 템플릿선택에서 완성 시안을 불러올 수 있어요.',
+      wait: 2600,
+      cursor: true,
+      action: 'closePaperPicker'
     },
     {
       id: 'props',
@@ -97,241 +157,136 @@
       action: 'expandPreview'
     },
     {
+      id: 'labi-fab',
+      selector: '[data-tut="labi-fab"]',
+      title: '라비AI',
+      description: '우측 하단 라비AI로 원하는 라벨을 말로 만들 수 있어요.',
+      effect: '아이디어만 말해도 초안을 시작할 수 있습니다.',
+      speech: '우측 하단의 라비AI 버튼이에요.',
+      wait: 2600,
+      cursor: true
+    },
+    {
       id: 'import-fab',
       selector: '[data-tut="import-fab"]',
-      title: '가져오기 열기',
-      description: '우측 하단 가져오기를 누르면 부채 메뉴가 펼쳐지고, 원하는 종류를 고를 수 있어요.',
-      effect: '규격·시안을 빠르게 시작할 수 있습니다.',
-      speech: '가져오기 버튼을 눌러 메뉴를 펼쳐볼게요.',
+      title: '타사포맷',
+      description: '우측 하단 타사포맷 버튼을 누르면 라비AI처럼 변환 창만 열립니다.',
+      effect: '폼텍·아이라벨·애니라벨 파일을 바로 올립니다.',
+      speech: '타사포맷 버튼을 눌러 변환 창을 열게요.',
       wait: 2400,
       cursor: true,
       click: true,
-      action: 'openImport'
+      action: 'openVendorPicker'
     },
     {
-      id: 'import-head',
-      selector: '[data-tut="import-head"]',
-      title: '가져오기 창',
-      description: '라벨을 고르고 디자인을 선택하면 편집 화면으로 이어집니다.',
-      effect: '가져오기 전체 흐름을 이해합니다.',
-      speech: '가져오기 창의 안내 문구예요.',
-      wait: 2600,
+      id: 'vendor-picker-head',
+      selector: '[data-tut="vendor-picker-head"]',
+      title: '타사포맷 창',
+      description: '다른 탭 없이 타사 파일 변환만 보여 줍니다.',
+      effect: '가져오기 전체 메뉴와 섞이지 않습니다.',
+      speech: '타사포맷 전용 창이에요.',
+      wait: 2400,
       cursor: true,
-      action: 'openImport'
+      action: 'openVendorPicker'
     },
     {
-      id: 'import-tabs',
-      selector: '[data-tut="import-tabs"]',
-      title: '가져오기 탭 메뉴',
-      description: '내디자인, 타사포맷, 템플릿, 라벨, 태그, 라비로 나뉘어 있어요.',
-      effect: '목적에 맞는 가져오기 경로를 고릅니다.',
-      speech: '위쪽 탭으로 가져오기 종류를 바꿉니다.',
+      id: 'vendor-picker-drop',
+      selector: '[data-tut="vendor-picker-drop"]',
+      title: '파일 올리기',
+      description: '폼텍·아이라벨·애니라벨 파일을 끌어다 놓거나 클릭해 선택합니다.',
+      effect: '올리면 변환 분석 창으로 이어집니다.',
+      speech: '여기에 파일을 올려 변환할 수 있어요.',
       wait: 2800,
       cursor: true,
-      action: 'openImport'
+      action: 'openVendorPicker'
     },
     {
-      id: 'import-label',
-      selector: '[data-tut="import-tab-label"]',
-      title: '라벨 탭',
-      description: 'A4·제트·더롤 등 카테고리에서 빈 라벨 또는 디자인 라벨을 고를 수 있어요.',
-      effect: '가장 많이 쓰는 라벨 규격을 불러옵니다.',
-      speech: '라벨 탭입니다. 규격 카드를 누르면 편집기에 적용됩니다.',
+      id: 'topbar-actions',
+      selector: '[data-tut="topbar-actions"]',
+      title: '상단 작업 버튼',
+      description: '라벨쇼핑, 내디자인, 데이터 가져오기, 미리보기, 저장하기, 출력, 나가기가 아이콘과 함께 오른쪽 위에 있어요.',
+      effect: '자주 쓰는 작업을 상단에서 바로 실행합니다.',
+      speech: '상단 오른쪽 버튼들입니다. 미리보기 다음에 저장하기가 있어요.',
       wait: 2800,
       cursor: true,
-      click: true,
-      action: 'importTab:label'
+      action: 'closeVendorPicker'
     },
     {
-      id: 'import-cats',
-      selector: '[data-tut="import-cats"]',
-      title: '라벨 카테고리',
-      description: 'A4 라벨, 제트라벨, 더롤라벨, A3 라벨처럼 용지·브랜드별로 나뉩니다.',
-      effect: '원하는 제품군으로 목록을 좁힙니다.',
-      speech: '카테고리 칩으로 라벨 종류를 고르세요.',
-      wait: 2800,
+      id: 'shop',
+      selector: '[data-tut="shop"]',
+      title: '라벨쇼핑',
+      description: '편집 중에 라벨 상품을 고르고 담을 수 있어요.',
+      effect: '용지 구매와 편집을 이어서 합니다.',
+      speech: '라벨쇼핑 버튼이에요.',
+      wait: 2200,
       cursor: true,
-      action: 'importTab:label'
+      action: 'closeVendorPicker'
     },
     {
-      id: 'import-subtype',
-      selector: '[data-tut="import-subtype-blank"]',
-      title: '빈 라벨 / 디자인 라벨',
-      description: '빈(Blank)은 규격만, 디자인 라벨은 시안이 포함된 템플릿입니다.',
-      effect: '처음부터 그릴지, 시안으로 시작할지 선택합니다.',
-      speech: '빈 라벨과 디자인 라벨을 전환할 수 있어요.',
-      wait: 2800,
-      cursor: true,
-      action: 'importTab:label'
-    },
-    {
-      id: 'import-search',
-      selector: '[data-tut="import-search"]',
-      title: '검색 · 보기 옵션',
-      description: '규격코드 검색, 개수별 보기, 규격/크기별 정렬을 지원합니다.',
-      effect: '긴 목록에서도 원하는 규격을 빠르게 찾습니다.',
-      speech: '검색창에 규격코드를 입력해 찾아보세요.',
-      wait: 2800,
-      cursor: true,
-      action: 'importTab:label'
-    },
-    {
-      id: 'import-grid',
-      selector: '[data-tut="import-grid"]',
-      title: '규격 카드 그리드',
-      description: '장당 수량, 사이즈, 코드가 표시됩니다. 카드를 누르면 해당 규격으로 편집이 시작됩니다.',
-      effect: '선택한 규격이 캔버스에 바로 적용됩니다.',
-      speech: '카드 하나를 고르면 편집기로 이동합니다.',
-      wait: 3000,
-      cursor: true,
-      action: 'importTab:label'
-    },
-    {
-      id: 'import-tag',
-      selector: '[data-tut="import-tab-tag"]',
-      title: '태그 탭',
-      description: '행택·폴드택 등 태그 규격과 디자인 태그를 불러올 수 있어요. 구성은 라벨 탭과 비슷합니다.',
-      effect: '태그용 용지도 같은 방식으로 시작합니다.',
-      speech: '태그 탭으로 전환해 볼게요.',
-      wait: 2800,
-      cursor: true,
-      click: true,
-      action: 'importTab:tag'
-    },
-    {
-      id: 'import-tag-panel',
-      selector: '[data-tut="import-panel-tag"]',
-      title: '태그 카탈로그',
-      description: 'A4 태그, 제트태그, 더롤태그 카테고리와 빈/디자인 서브탭이 제공됩니다.',
-      effect: '태그 작업에 맞는 규격을 고릅니다.',
-      speech: '태그도 카테고리와 그리드로 고를 수 있어요.',
-      wait: 2800,
-      cursor: true,
-      action: 'importTab:tag'
-    },
-    {
-      id: 'import-template',
-      selector: '[data-tut="import-tab-template"]',
-      title: '템플릿 탭',
-      description: '키워드·해시태그로 완성 시안을 찾아 바로 편집할 수 있어요.',
-      effect: '디자인 시간을 크게 줄입니다.',
-      speech: '템플릿 탭을 열어볼게요.',
-      wait: 2600,
-      cursor: true,
-      click: true,
-      action: 'importTab:template'
-    },
-    {
-      id: 'import-template-tags',
-      selector: '[data-tut="import-template-tags"]',
-      title: '템플릿 해시태그',
-      description: '감사, 선물, 카페 등 태그로 템플릿을 필터링합니다.',
-      effect: '테마에 맞는 시안만 모아 봅니다.',
-      speech: '해시태그로 템플릿을 걸러보세요.',
-      wait: 2800,
-      cursor: true,
-      action: 'importTab:template'
-    },
-    {
-      id: 'import-template-panel',
-      selector: '[data-tut="import-panel-template"]',
-      title: '템플릿 목록',
-      description: '썸네일·제목·태그가 보이며, 선택하면 편집기로 불러옵니다.',
-      effect: '마음에 드는 시안으로 바로 시작합니다.',
-      speech: '원하는 템플릿 카드를 눌러 적용하세요.',
-      wait: 2800,
-      cursor: true,
-      action: 'importTab:template'
-    },
-    {
-      id: 'import-smart',
-      selector: '[data-tut="import-tab-smart"]',
-      title: '라비 탭',
-      description: '스마트 라벨 AI 라비에게 원하는 디자인을 말로 요청하거나, 이미지·엑셀·예시로 시작할 수 있어요.',
-      effect: '아이디어만으로도 초안을 만듭니다.',
-      speech: '라비 스마트 라벨 탭입니다.',
-      wait: 2800,
-      cursor: true,
-      click: true,
-      action: 'importTab:smart'
-    },
-    {
-      id: 'import-smart-box',
-      selector: '[data-tut="import-smart-box"]',
-      title: '라비 입력',
-      description: '프롬프트를 적고 전송하거나, 이미지 붙여넣기·엑셀·예시 카드를 이용하세요.',
-      effect: '요구사항을 구체화할수록 결과가 좋아집니다.',
-      speech: '여기에 원하는 라벨을 자세히 적어보세요.',
-      wait: 3000,
-      cursor: true,
-      action: 'importTab:smart'
-    },
-    {
-      id: 'import-external',
-      selector: '[data-tut="import-tab-external"]',
-      title: '타사포맷 탭',
-      description: 'iLabel2, 폼텍디자인프로9 등 타사 포맷 파일을 가져와 이어서 작업할 수 있어요.',
-      effect: '기존 작업물을 LabelUp으로 이전합니다.',
-      speech: '타사포맷 가져오기 탭입니다.',
-      wait: 2800,
-      cursor: true,
-      click: true,
-      action: 'importTab:external'
-    },
-    {
-      id: 'import-external-list',
-      selector: '[data-tut="import-external-list"]',
-      title: '타사포맷 업로드',
-      description: '지원 포맷별로 파일을 드래그하거나 클릭해 업로드합니다.',
-      effect: '호환 파일을 안전하게 불러옵니다.',
-      speech: '여기에 파일을 올려 가져올 수 있어요.',
-      wait: 2800,
-      cursor: true,
-      action: 'importTab:external'
-    },
-    {
-      id: 'import-mydesign',
-      selector: '[data-tut="import-tab-mydesign"]',
-      title: '내디자인 탭',
-      description: '이전에 작업한 프로젝트를 다시 불러와 이어서 편집합니다.',
+      id: 'mydesign',
+      selector: '[data-tut="mydesign"]',
+      title: '내디자인',
+      description: '저장해 둔 내 프로젝트를 불러와 이어서 편집합니다.',
       effect: '작업 연속성을 유지합니다.',
       speech: '내디자인에서 최근 작업을 불러올 수 있어요.',
-      wait: 2800,
+      wait: 2400,
       cursor: true,
-      click: true,
-      action: 'importTab:mydesign'
+      action: 'closeVendorPicker'
     },
     {
-      id: 'import-my-grid',
-      selector: '[data-tut="import-my-grid"]',
-      title: '내디자인 목록',
-      description: '제목·규격·수정일로 검색하고 카드를 눌러 불러옵니다.',
-      effect: '저장해 둔 시안을 바로 재사용합니다.',
-      speech: '내 프로젝트 카드를 선택해 보세요.',
-      wait: 2800,
+      id: 'data-import',
+      selector: '[data-tut="data-import"]',
+      title: '데이터 가져오기',
+      description: '엑셀·CSV 파일을 올려 라벨에 연결할 데이터를 가져옵니다.',
+      effect: '가변 데이터 라벨을 빠르게 시작합니다.',
+      speech: '데이터 가져오기로 표를 올릴 수 있어요.',
+      wait: 2400,
       cursor: true,
-      action: 'importTab:mydesign'
+      action: 'closeVendorPicker'
     },
     {
-      id: 'import-close',
-      selector: '[data-tut="import-fab"]',
-      title: '가져오기 닫기',
-      description: '튜토리얼을 위해 가져오기 창을 닫고, 저장 기능으로 넘어갑니다.',
-      effect: '편집 화면으로 돌아갑니다.',
-      speech: '가져오기 창을 닫을게요.',
+      id: 'preview-btn',
+      selector: '[data-tut="preview-btn"]',
+      title: '미리보기',
+      description: '인쇄 미리보기 창을 열어 시트 배치를 확인합니다.',
+      effect: '출력 전에 결과를 검증합니다.',
+      speech: '미리보기 버튼입니다.',
       wait: 2200,
-      action: 'closeImport'
+      cursor: true,
+      action: 'closeVendorPicker'
     },
     {
       id: 'save',
       selector: '[data-tut="save"]',
       title: '저장하기',
-      description: '작업 내용은 브라우저에 초안으로 저장됩니다. 자주 저장해 주세요.',
+      description: '미리보기 바로 옆에 있어요. 작업 내용은 초안으로 저장됩니다.',
       effect: '작업 손실을 줄입니다.',
-      speech: '저장하기를 눌러 초안을 남겨 두세요.',
+      speech: '미리보기 다음의 저장하기를 눌러 초안을 남겨 두세요.',
       wait: 2600,
       cursor: true,
-      action: 'closeImport'
+      action: 'closeVendorPicker'
+    },
+    {
+      id: 'export',
+      selector: '[data-tut="export"]',
+      title: '편집기에서 출력',
+      description: '미리보기와 같은 출력 창에서 인쇄하거나 PNG를 저장합니다.',
+      effect: '완성된 라벨을 바로 출력합니다.',
+      speech: '편집기에서 출력 버튼이에요.',
+      wait: 2400,
+      cursor: true,
+      action: 'closeVendorPicker'
+    },
+    {
+      id: 'exit',
+      selector: '[data-tut="exit"]',
+      title: '나가기',
+      description: '편집기를 닫고 홈으로 돌아갑니다. 예전 닫기 버튼이 나가기로 바뀌었어요.',
+      effect: '홈으로 안전하게 이동합니다.',
+      speech: '나가기를 누르면 홈으로 돌아갑니다.',
+      wait: 2400,
+      cursor: true,
+      action: 'closeVendorPicker'
     },
     {
       id: 'done',
@@ -341,10 +296,9 @@
       effect: '실전 편집으로 바로 이어갑니다.',
       speech: '튜토리얼이 끝났어요. 멋진 라벨을 만들어 보세요!',
       wait: 3200,
-      action: 'closeImport'
+      action: 'closeVendorPicker'
     }
   ];
-
   function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
   function isTouch() {
     return window.matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
@@ -633,12 +587,21 @@
     var self = this;
     var step = this.steps[this.index];
     if (!step || this.paused) return;
-    var wait = ((step.wait || 2500) * PACE) / this.speed;
+    var minWait = ((step.wait || 2500) * PACE) / this.speed;
+    var gap = GAP_AFTER_STEP / Math.max(this.speed, 0.5);
     var token = this._token;
-    this._timer = setTimeout(function () {
+    var started = Date.now();
+    this._whenSpeechDone().then(function () {
+      if (token !== self._token || self.paused || !self.playing) return;
+      var remain = Math.max(0, minWait - (Date.now() - started));
+      return self._wait(remain);
+    }).then(function () {
+      if (token !== self._token || self.paused || !self.playing) return;
+      return self._wait(gap);
+    }).then(function () {
       if (token !== self._token || self.paused || !self.playing) return;
       self.next();
-    }, wait);
+    });
   };
 
   Tutorial.prototype._runStep = function () {
@@ -665,7 +628,10 @@
 
     this._runAction(step).then(function () {
       var settle = 0;
-      if (step.action === 'openImport' || (step.action && step.action.indexOf('importTab:') === 0)) {
+      if (step.action === 'openImport' || step.action === 'openPaperPicker' ||
+          step.action === 'openVendorPicker' || step.action === 'closeVendorPicker' ||
+          step.action === 'closeVendorPickerThenImport' ||
+          (step.action && (step.action.indexOf('importTab:') === 0 || step.action.indexOf('paperTab:') === 0))) {
         settle = (420 * PACE) / self.speed;
       }
       return settle ? self._wait(settle) : null;
@@ -740,7 +706,10 @@
     var self = this;
     if (!step.action) return Promise.resolve();
     var needsDom = step.action === 'openImport' || step.action === 'closeImport' ||
-      step.action.indexOf('importTab:') === 0;
+      step.action === 'openPaperPicker' || step.action === 'closePaperPicker' ||
+      step.action === 'openVendorPicker' || step.action === 'closeVendorPicker' ||
+      step.action === 'closeVendorPickerThenImport' ||
+      step.action.indexOf('importTab:') === 0 || step.action.indexOf('paperTab:') === 0;
     this._ignoreUserUntil = Date.now() + (needsDom ? 2800 : 1200);
     var runLocal = function () { return self._fallbackAction(step.action); };
     if (this.dotNet) {
@@ -762,15 +731,43 @@
       var tab = action.split(':')[1];
       var btn = document.querySelector(tab === 'layers' ? '[data-tut="tab-layers"]' : '[data-tut="tab-props"]');
       if (btn) btn.click();
+    } else if (action === 'openPaperPicker') {
+      if (!document.querySelector('[data-tut="paper-picker-head"]')) {
+        var paperBtn = document.querySelector('[data-tut="presets"]');
+        if (paperBtn) paperBtn.click();
+      }
+    } else if (action === 'closePaperPicker') {
+      var paperClose = document.querySelector('[data-tut="paper-picker-head"]') &&
+        document.querySelector('.ed-modal__card--papers .ed-modal__close');
+      if (paperClose) paperClose.click();
+    } else if (action.indexOf('paperTab:') === 0) {
+      if (!document.querySelector('[data-tut="paper-picker-head"]')) {
+        var openPaper = document.querySelector('[data-tut="presets"]');
+        if (openPaper) openPaper.click();
+      }
+      var paperTab = action.split(':')[1];
+      var paperTabBtn = document.querySelector('[data-tut="paper-tab-' + paperTab + '"]');
+      if (paperTabBtn) paperTabBtn.click();
+    } else if (action === 'openVendorPicker') {
+      var vendorDlg = document.querySelector('[data-tut="vendor-picker-dialog"]');
+      if (!vendorDlg) {
+        var vendorFab = document.querySelector('[data-tut="import-fab"]');
+        if (vendorFab) vendorFab.click();
+      }
+    } else if (action === 'closeVendorPicker') {
+      var vendorClose = document.querySelector('[data-tut="vendor-picker-head"]') &&
+        document.querySelector('.ed-vendor-picker .ed-modal__close');
+      if (vendorClose) vendorClose.click();
+    } else if (action === 'closeVendorPickerThenImport') {
+      var vendorClose2 = document.querySelector('[data-tut="vendor-picker-head"]') &&
+        document.querySelector('.ed-vendor-picker .ed-modal__close');
+      if (vendorClose2) vendorClose2.click();
+      if (window.labelUpEditor && typeof window.labelUpEditor.openImport === 'function') {
+        window.labelUpEditor.openImport();
+      }
     } else if (action === 'openImport') {
       if (window.labelUpEditor && typeof window.labelUpEditor.openImport === 'function') {
         window.labelUpEditor.openImport();
-      } else {
-        var overlay = document.querySelector('[data-ed-import-overlay]');
-        if (overlay && !overlay.classList.contains('is-open')) {
-          var fab = document.querySelector('[data-ed-import-fab]');
-          if (fab) fab.click();
-        }
       }
     } else if (action === 'closeImport') {
       if (window.labelUpEditor && typeof window.labelUpEditor.closeImport === 'function') {
@@ -781,9 +778,6 @@
       if (ov && !ov.classList.contains('is-open')) {
         if (window.labelUpEditor && typeof window.labelUpEditor.openImport === 'function') {
           window.labelUpEditor.openImport();
-        } else {
-          var fab2 = document.querySelector('[data-ed-import-fab]');
-          if (fab2) fab2.click();
         }
       }
       var tabId = action.split(':')[1];
@@ -878,6 +872,26 @@
       this._speechUtter = u;
       window.speechSynthesis.speak(u);
     } catch (e) { /* ignore */ }
+  };
+
+  Tutorial.prototype._whenSpeechDone = function () {
+    var self = this;
+    return new Promise(function (resolve) {
+      var u = self._speechUtter;
+      if (!self.voiceOn || !u) {
+        resolve();
+        return;
+      }
+      var done = false;
+      var finish = function () {
+        if (done) return;
+        done = true;
+        resolve();
+      };
+      u.addEventListener('end', finish);
+      u.addEventListener('error', finish);
+      setTimeout(finish, 18000);
+    });
   };
 
   Tutorial.prototype._stopSpeech = function () {

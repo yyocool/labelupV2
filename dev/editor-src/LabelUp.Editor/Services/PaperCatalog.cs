@@ -7,12 +7,17 @@ public sealed class PaperCatalog
 {
     private readonly HttpClient _http;
     private readonly List<PaperSpec> _papers = [];
+    private readonly List<ShopPaperItem> _shopPapers = [];
+    private readonly List<ShopPaperCategory> _shopCategories = [];
     private VendorPaperMap _map = new();
     private bool _loaded;
+    private bool _shopLoaded;
 
     public PaperCatalog(HttpClient http) => _http = http;
 
     public IReadOnlyList<PaperSpec> Papers => _papers;
+    public IReadOnlyList<ShopPaperItem> ShopPapers => _shopPapers;
+    public IReadOnlyList<ShopPaperCategory> ShopCategories => _shopCategories;
     public VendorPaperMap Map => _map;
 
     public async Task EnsureLoadedAsync()
@@ -61,6 +66,80 @@ public sealed class PaperCatalog
 
         _loaded = true;
         EditorLog.Info($"용지 카탈로그 {_papers.Count}종 로드");
+    }
+
+    public async Task EnsureShopPapersAsync()
+    {
+        if (_shopLoaded) return;
+        try
+        {
+            var json = await _http.GetStringAsync("/api/shop/editor-papers");
+            var env = JsonSerializer.Deserialize<ApiEnvelope<ShopPaperCatalogDto>>(json, LabelDocumentJson.Options);
+            if (env?.Success == true && env.Data is not null)
+            {
+                _shopPapers.Clear();
+                _shopPapers.AddRange(env.Data.Items ?? []);
+                _shopCategories.Clear();
+                _shopCategories.AddRange(env.Data.Categories ?? []);
+            }
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("상점 라벨 목록 로드 실패: " + ex.Message);
+        }
+
+        _shopLoaded = true;
+        EditorLog.Info($"상점 라벨 {_shopPapers.Count}종 로드");
+    }
+
+    public PaperSpec FromShopProduct(ShopPaperItem item)
+    {
+        PaperSpec? paper = null;
+        if (!string.IsNullOrWhiteSpace(item.Sku))
+            paper = Find(item.Sku)?.Clone();
+
+        if (paper is null)
+        {
+            foreach (var (vendor, code) in new (string, string?)[]
+            {
+                ("formtec", item.CompatFormtec),
+                ("ilabel", item.CompatIlabel),
+                ("anylabel", item.CompatAnylabel)
+            })
+            {
+                if (string.IsNullOrWhiteSpace(code)) continue;
+                var mapped = MapVendor(vendor, code.Trim()) ?? code.Trim();
+                paper = Find(mapped)?.Clone();
+                if (paper is not null) break;
+            }
+        }
+
+        var width = item.WidthMm > 0 ? item.WidthMm : paper?.LabelWidthMm ?? 70f;
+        var height = item.HeightMm > 0 ? item.HeightMm : paper?.LabelHeightMm ?? 36f;
+        var labels = item.LabelsPerSheet > 0 ? item.LabelsPerSheet : paper?.LabelsPerPage ?? 1;
+
+        if (paper is null)
+            paper = FindBestMatch(width, height, labels)?.Clone()
+                    ?? CreateFromSize(width, height, labels, item.Shape, item.Name);
+
+        if (item.WidthMm > 0) paper.LabelWidthMm = item.WidthMm;
+        if (item.HeightMm > 0) paper.LabelHeightMm = item.HeightMm;
+        if (item.LabelsPerSheet > 0 && paper.LabelsPerPage != item.LabelsPerSheet)
+        {
+            var rebuilt = CreateFromSize(paper.LabelWidthMm, paper.LabelHeightMm, item.LabelsPerSheet, item.Shape, item.Name);
+            rebuilt.PaperNo = paper.PaperNo;
+            rebuilt.Name = paper.Name;
+            rebuilt.Category = paper.Category;
+            paper = rebuilt;
+        }
+
+        paper.PaperNo = string.IsNullOrWhiteSpace(item.Sku) ? $"P{item.Id}" : item.Sku.Trim();
+        paper.Name = string.IsNullOrWhiteSpace(item.Name) ? paper.Name : item.Name;
+        if (!string.IsNullOrWhiteSpace(item.CategoryName))
+            paper.Category = item.CategoryName!;
+        if (!string.IsNullOrWhiteSpace(item.Shape))
+            paper.Shape.Kind = MapShapeKind(item.Shape);
+        return paper;
     }
 
     public PaperSpec? Find(string? paperNo)

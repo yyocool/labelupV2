@@ -211,6 +211,8 @@ final class ShopRepository extends BaseModel
 
             'name' => $data['name'],
 
+            'kind' => self::normalizePaperKind($data['kind'] ?? null, (string) ($data['name'] ?? ''), (string) ($data['description'] ?? '')),
+
             'image_path' => $data['image_path'] ?? null,
 
             'width_mm' => $data['width_mm'],
@@ -235,7 +237,7 @@ final class ShopRepository extends BaseModel
 
             $this->execute(
 
-                'UPDATE label_specs SET name=:name,image_path=:image_path,width_mm=:width_mm,height_mm=:height_mm,material=:material,shape=:shape,labels_per_sheet=:labels_per_sheet,description=:description,is_active=:is_active,updated_at=:now WHERE id=:id',
+                'UPDATE label_specs SET name=:name,kind=:kind,image_path=:image_path,width_mm=:width_mm,height_mm=:height_mm,material=:material,shape=:shape,labels_per_sheet=:labels_per_sheet,description=:description,is_active=:is_active,updated_at=:now WHERE id=:id',
 
                 $params + ['id' => $id]
 
@@ -247,6 +249,7 @@ final class ShopRepository extends BaseModel
 
         $insertParams = [
             'name' => $params['name'],
+            'kind' => $params['kind'],
             'image_path' => $data['image_path'] ?? null,
             'width_mm' => $params['width_mm'],
             'height_mm' => $params['height_mm'],
@@ -261,7 +264,7 @@ final class ShopRepository extends BaseModel
 
         $this->execute(
 
-            'INSERT INTO label_specs (name,image_path,width_mm,height_mm,material,shape,labels_per_sheet,description,is_active,created_at,updated_at) VALUES (:name,:image_path,:width_mm,:height_mm,:material,:shape,:labels_per_sheet,:description,:is_active,:created_at,:updated_at)',
+            'INSERT INTO label_specs (name,kind,image_path,width_mm,height_mm,material,shape,labels_per_sheet,description,is_active,created_at,updated_at) VALUES (:name,:kind,:image_path,:width_mm,:height_mm,:material,:shape,:labels_per_sheet,:description,:is_active,:created_at,:updated_at)',
 
             $insertParams
 
@@ -305,7 +308,44 @@ final class ShopRepository extends BaseModel
 
     }
 
+    /**
+     * @param array<string, mixed> $filters
+     * @return array{items: array<int, array<string, mixed>>, total: int, page: int, pages: int}
+     */
+    public function adminProducts(array $filters = [], int $page = 1, int $perPage = 20): array
+    {
+        $page = max(1, $page);
+        $perPage = max(1, min(100, $perPage));
+        [$where, $params] = $this->productFilterClause($filters);
 
+        $countRow = $this->fetchOne(
+            "SELECT COUNT(*) AS cnt
+             FROM shop_products p
+             LEFT JOIN shop_categories c ON c.id = p.category_id
+             LEFT JOIN label_specs s ON s.id = p.spec_id
+             WHERE {$where}",
+            $params
+        );
+        $total = (int) ($countRow['cnt'] ?? 0);
+        $pages = max(1, (int) ceil($total / $perPage));
+        if ($page > $pages) {
+            $page = $pages;
+        }
+        $offset = ($page - 1) * $perPage;
+
+        $items = $this->fetchAll(
+            "SELECT p.*, c.name AS category_name, s.name AS spec_name
+             FROM shop_products p
+             LEFT JOIN shop_categories c ON c.id = p.category_id
+             LEFT JOIN label_specs s ON s.id = p.spec_id
+             WHERE {$where}
+             ORDER BY p.sort_order ASC, p.id DESC
+             LIMIT {$perPage} OFFSET {$offset}",
+            $params
+        );
+
+        return ['items' => $items, 'total' => $total, 'page' => $page, 'pages' => $pages];
+    }
 
     public function saveProduct(array $data): int
 
@@ -341,6 +381,12 @@ final class ShopRepository extends BaseModel
 
             'thumbnail' => $data['thumbnail'] ?? null,
 
+            'compat_formtec' => $this->nullableText($data['compat_formtec'] ?? null),
+
+            'compat_ilabel' => $this->nullableText($data['compat_ilabel'] ?? null),
+
+            'compat_anylabel' => $this->nullableText($data['compat_anylabel'] ?? null),
+
             'now' => $now,
 
         ];
@@ -349,7 +395,7 @@ final class ShopRepository extends BaseModel
 
             $this->execute(
 
-                'UPDATE shop_products SET category_id=:category_id,spec_id=:spec_id,name=:name,sku=:sku,price=:price,sale_price=:sale_price,stock_qty=:stock_qty,status=:status,description=:description,meta_json=:meta_json,sort_order=:sort_order,thumbnail=:thumbnail,updated_at=:now WHERE id=:id',
+                'UPDATE shop_products SET category_id=:category_id,spec_id=:spec_id,name=:name,sku=:sku,price=:price,sale_price=:sale_price,stock_qty=:stock_qty,status=:status,description=:description,meta_json=:meta_json,compat_formtec=:compat_formtec,compat_ilabel=:compat_ilabel,compat_anylabel=:compat_anylabel,sort_order=:sort_order,thumbnail=:thumbnail,updated_at=:now WHERE id=:id',
 
                 $params + ['id' => $id]
 
@@ -372,13 +418,16 @@ final class ShopRepository extends BaseModel
             'meta_json' => $params['meta_json'],
             'sort_order' => $params['sort_order'],
             'thumbnail' => $params['thumbnail'],
+            'compat_formtec' => $params['compat_formtec'],
+            'compat_ilabel' => $params['compat_ilabel'],
+            'compat_anylabel' => $params['compat_anylabel'],
             'created_at' => $now,
             'updated_at' => $now,
         ];
 
         $this->execute(
 
-            'INSERT INTO shop_products (category_id,spec_id,name,sku,price,sale_price,stock_qty,status,description,meta_json,sort_order,thumbnail,created_at,updated_at) VALUES (:category_id,:spec_id,:name,:sku,:price,:sale_price,:stock_qty,:status,:description,:meta_json,:sort_order,:thumbnail,:created_at,:updated_at)',
+            'INSERT INTO shop_products (category_id,spec_id,name,sku,price,sale_price,stock_qty,status,description,meta_json,compat_formtec,compat_ilabel,compat_anylabel,sort_order,thumbnail,created_at,updated_at) VALUES (:category_id,:spec_id,:name,:sku,:price,:sale_price,:stock_qty,:status,:description,:meta_json,:compat_formtec,:compat_ilabel,:compat_anylabel,:sort_order,:thumbnail,:created_at,:updated_at)',
 
             $insertParams
 
@@ -741,6 +790,56 @@ final class ShopRepository extends BaseModel
         );
     }
 
+    public function findActiveProductByCode(string $code): ?array
+    {
+        $code = trim($code);
+        if ($code === '') {
+            return null;
+        }
+
+        if (preg_match('/^P(\d+)$/i', $code, $m) === 1) {
+            $byId = $this->findActiveProduct((int) $m[1]);
+            if ($byId) {
+                return $byId;
+            }
+        }
+
+        $select = 'SELECT p.*, c.name AS category_name, c.slug AS category_slug,
+                          s.name AS spec_name, s.width_mm, s.height_mm, s.material, s.shape, s.labels_per_sheet
+                   FROM shop_products p
+                   INNER JOIN shop_categories c ON c.id = p.category_id AND c.is_active = 1
+                   LEFT JOIN label_specs s ON s.id = p.spec_id
+                   WHERE p.status IN (\'active\', \'soldout\')';
+
+        $exact = $this->fetchOne(
+            $select . ' AND (p.sku = :sku OR p.compat_formtec = :cf OR p.compat_ilabel = :ci OR p.compat_anylabel = :ca)
+             ORDER BY CASE WHEN p.sku = :sku_rank THEN 0 ELSE 1 END, p.id DESC
+             LIMIT 1',
+            [
+                'sku' => $code,
+                'cf' => $code,
+                'ci' => $code,
+                'ca' => $code,
+                'sku_rank' => $code,
+            ]
+        );
+        if ($exact) {
+            return $exact;
+        }
+
+        $like = '%' . $code . '%';
+        return $this->fetchOne(
+            $select . ' AND (p.compat_formtec LIKE :lf OR p.compat_ilabel LIKE :li OR p.compat_anylabel LIKE :la)
+             ORDER BY p.id DESC
+             LIMIT 1',
+            [
+                'lf' => $like,
+                'li' => $like,
+                'la' => $like,
+            ]
+        );
+    }
+
     /** @return array{items: array<int, array<string, mixed>>, total: int, page: int, pages: int} */
     public function activeProducts(array $filters = [], int $page = 1, int $perPage = 12): array
     {
@@ -763,6 +862,64 @@ final class ShopRepository extends BaseModel
         );
 
         return ['items' => $items, 'total' => $total, 'page' => $page, 'pages' => $pages, 'per_page' => $perPage];
+    }
+
+    /**
+     * 편집기 용지 선택용 — 판매중/품절 상품 + 규격 + 호환코드.
+     *
+     * @return array{items: array<int, array<string, mixed>>, categories: array<int, array{id:int,name:string}>}
+     */
+    public function editorPapers(): array
+    {
+        $rows = $this->fetchAll(
+            "SELECT p.id, p.name, p.sku, p.thumbnail, p.category_id, p.spec_id, p.status,
+                    p.compat_formtec, p.compat_ilabel, p.compat_anylabel,
+                    c.name AS category_name,
+                    s.name AS spec_name, s.kind AS spec_kind, s.width_mm, s.height_mm, s.material, s.shape, s.labels_per_sheet
+             FROM shop_products p
+             LEFT JOIN shop_categories c ON c.id = p.category_id
+             LEFT JOIN label_specs s ON s.id = p.spec_id
+             WHERE p.status IN ('active','soldout')
+             ORDER BY p.sort_order ASC, p.name ASC, p.id DESC
+             LIMIT 500"
+        );
+
+        $items = [];
+        $categories = [];
+        foreach ($rows as $row) {
+            $categoryId = (int) ($row['category_id'] ?? 0);
+            $categoryName = trim((string) ($row['category_name'] ?? ''));
+            if ($categoryId > 0 && $categoryName !== '' && !isset($categories[$categoryId])) {
+                $categories[$categoryId] = ['id' => $categoryId, 'name' => $categoryName];
+            }
+            $items[] = [
+                'id' => (int) ($row['id'] ?? 0),
+                'name' => (string) ($row['name'] ?? ''),
+                'sku' => (string) ($row['sku'] ?? ''),
+                'kind' => self::normalizePaperKind(
+                    $row['spec_kind'] ?? null,
+                    $categoryName . ' ' . (string) ($row['name'] ?? '') . ' ' . (string) ($row['sku'] ?? '') . ' ' . (string) ($row['spec_name'] ?? '')
+                ),
+                'thumbnailUrl' => ShopProductImageService::resolveUrl((string) ($row['thumbnail'] ?? '')),
+                'categoryId' => $categoryId,
+                'categoryName' => $categoryName,
+                'specId' => !empty($row['spec_id']) ? (int) $row['spec_id'] : null,
+                'specName' => (string) ($row['spec_name'] ?? ''),
+                'widthMm' => (float) ($row['width_mm'] ?? 0),
+                'heightMm' => (float) ($row['height_mm'] ?? 0),
+                'shape' => (string) ($row['shape'] ?? ''),
+                'labelsPerSheet' => (int) ($row['labels_per_sheet'] ?? 0),
+                'material' => (string) ($row['material'] ?? ''),
+                'compatFormtec' => (string) ($row['compat_formtec'] ?? ''),
+                'compatIlabel' => (string) ($row['compat_ilabel'] ?? ''),
+                'compatAnylabel' => (string) ($row['compat_anylabel'] ?? ''),
+            ];
+        }
+
+        return [
+            'items' => $items,
+            'categories' => array_values($categories),
+        ];
     }
 
     public function countActiveProducts(array $filters = []): int
@@ -920,15 +1077,341 @@ final class ShopRepository extends BaseModel
             $params['material'] = '%' . $filters['material'] . '%';
         }
         if (!empty($filters['q'])) {
-            $where .= ' AND (p.name LIKE :q OR p.sku LIKE :q OR p.description LIKE :q OR s.name LIKE :q)';
-            $params['q'] = '%' . $filters['q'] . '%';
+            $where .= ' AND (p.name LIKE :q_name OR p.sku LIKE :q_sku OR p.description LIKE :q_desc OR s.name LIKE :q_spec'
+                . ' OR p.compat_formtec LIKE :q_formtec OR p.compat_ilabel LIKE :q_ilabel OR p.compat_anylabel LIKE :q_anylabel)';
+            $like = '%' . $filters['q'] . '%';
+            $params['q_name'] = $like;
+            $params['q_sku'] = $like;
+            $params['q_desc'] = $like;
+            $params['q_spec'] = $like;
+            $params['q_formtec'] = $like;
+            $params['q_ilabel'] = $like;
+            $params['q_anylabel'] = $like;
         }
         if (!empty($filters['shape'])) {
             $where .= ' AND s.shape = :shape';
             $params['shape'] = (string) $filters['shape'];
         }
+        if (!empty($filters['status'])) {
+            $where .= ' AND p.status = :status';
+            $params['status'] = (string) $filters['status'];
+        }
+        if (!empty($filters['spec_id'])) {
+            $where .= ' AND p.spec_id = :spec_id';
+            $params['spec_id'] = (int) $filters['spec_id'];
+        }
+        if (!empty($filters['compat_missing'])) {
+            $where .= " AND IFNULL(p.compat_formtec,'') = '' AND IFNULL(p.compat_ilabel,'') = '' AND IFNULL(p.compat_anylabel,'') = ''";
+        }
 
         return [$where, $params];
+    }
+
+    public function updateProductCompat(int $id, array $codes): void
+    {
+        $this->execute(
+            'UPDATE shop_products
+             SET compat_formtec = :compat_formtec, compat_ilabel = :compat_ilabel, compat_anylabel = :compat_anylabel, updated_at = :now
+             WHERE id = :id',
+            [
+                'compat_formtec' => $this->nullableText($codes['compat_formtec'] ?? null),
+                'compat_ilabel' => $this->nullableText($codes['compat_ilabel'] ?? null),
+                'compat_anylabel' => $this->nullableText($codes['compat_anylabel'] ?? null),
+                'now' => date('Y-m-d H:i:s'),
+                'id' => $id,
+            ]
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     * @return array{items: array<int, array<string, mixed>>, total: int, page: int, pages: int, per_page: int}
+     */
+    public function paginateAdminOrders(array $filters = [], int $page = 1, int $perPage = 20): array
+    {
+        $page = max(1, $page);
+        $perPage = max(1, min(5000, $perPage));
+        [$where, $params] = $this->orderFilterClause($filters);
+
+        $countRow = $this->fetchOne(
+            "SELECT COUNT(*) AS cnt FROM shop_orders o WHERE {$where}",
+            $params
+        );
+        $total = (int) ($countRow['cnt'] ?? 0);
+        $pages = max(1, (int) ceil($total / $perPage));
+        if ($page > $pages) {
+            $page = $pages;
+        }
+        $offset = ($page - 1) * $perPage;
+
+        $items = $this->fetchAll(
+            "SELECT o.* FROM shop_orders o WHERE {$where} ORDER BY o.id DESC LIMIT {$perPage} OFFSET {$offset}",
+            $params
+        );
+        $this->attachOrderItems($items);
+
+        return ['items' => $items, 'total' => $total, 'page' => $page, 'pages' => $pages, 'per_page' => $perPage];
+    }
+
+    /** @return array<string, int> */
+    public function orderStatusCounts(array $filters = []): array
+    {
+        $countFilters = $filters;
+        unset($countFilters['status']);
+        [$where, $params] = $this->orderFilterClause($countFilters);
+        $rows = $this->fetchAll(
+            "SELECT o.status, COUNT(*) AS cnt FROM shop_orders o WHERE {$where} GROUP BY o.status",
+            $params
+        );
+        $counts = [
+            'all' => 0,
+            'pending' => 0,
+            'paid' => 0,
+            'preparing' => 0,
+            'shipping' => 0,
+            'delivered' => 0,
+            'cancelled' => 0,
+            'refunded' => 0,
+        ];
+        foreach ($rows as $row) {
+            $key = (string) ($row['status'] ?? '');
+            $n = (int) ($row['cnt'] ?? 0);
+            if (isset($counts[$key])) {
+                $counts[$key] = $n;
+            }
+            $counts['all'] += $n;
+        }
+        return $counts;
+    }
+
+    public function findAdminOrder(int $id): ?array
+    {
+        $row = $this->fetchOne('SELECT * FROM shop_orders WHERE id = :id LIMIT 1', ['id' => $id]);
+        if (!$row) {
+            return null;
+        }
+        $items = [$row];
+        $this->attachOrderItems($items);
+        return $items[0];
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $orders
+     */
+    private function attachOrderItems(array &$orders): void
+    {
+        if ($orders === []) {
+            return;
+        }
+        $ids = [];
+        foreach ($orders as $row) {
+            $ids[] = (int) ($row['id'] ?? 0);
+        }
+        $ids = array_values(array_filter($ids));
+        if ($ids === []) {
+            return;
+        }
+        $placeholders = [];
+        $params = [];
+        foreach ($ids as $i => $id) {
+            $key = 'oid' . $i;
+            $placeholders[] = ':' . $key;
+            $params[$key] = $id;
+        }
+        $rows = $this->fetchAll(
+            'SELECT * FROM shop_order_items WHERE order_id IN (' . implode(',', $placeholders) . ') ORDER BY id ASC',
+            $params
+        );
+        $grouped = [];
+        foreach ($rows as $item) {
+            $grouped[(int) $item['order_id']][] = $item;
+        }
+        foreach ($orders as &$order) {
+            $oid = (int) ($order['id'] ?? 0);
+            $order['items'] = $grouped[$oid] ?? [];
+            $order['item_count'] = count($order['items']);
+            $order['item_qty'] = 0;
+            foreach ($order['items'] as $item) {
+                $order['item_qty'] += (int) ($item['qty'] ?? 0);
+            }
+        }
+        unset($order);
+    }
+
+    /** @return array{0:string,1:array<string,mixed>} */
+    private function orderFilterClause(array $filters): array
+    {
+        $where = '1=1';
+        $params = [];
+
+        $status = trim((string) ($filters['status'] ?? ''));
+        if ($status === 'cancel_group') {
+            $where .= " AND o.status IN ('cancelled','refunded')";
+        } elseif ($status !== '') {
+            $where .= ' AND o.status = :status';
+            $params['status'] = $status;
+        }
+
+        $payment = trim((string) ($filters['payment_status'] ?? ''));
+        if ($payment !== '') {
+            $where .= ' AND o.payment_status = :payment_status';
+            $params['payment_status'] = $payment;
+        }
+
+        if (!empty($filters['date_from'])) {
+            $where .= ' AND o.created_at >= :date_from';
+            $params['date_from'] = $filters['date_from'] . ' 00:00:00';
+        }
+        if (!empty($filters['date_to'])) {
+            $where .= ' AND o.created_at <= :date_to';
+            $params['date_to'] = $filters['date_to'] . ' 23:59:59';
+        }
+
+        if (!empty($filters['missing_tracking'])) {
+            $where .= " AND o.status IN ('paid','preparing','shipping') AND IFNULL(o.tracking_no,'') = ''";
+        }
+
+        $q = trim((string) ($filters['q'] ?? ''));
+        if ($q !== '') {
+            $where .= ' AND (
+                o.order_no LIKE :oq1 OR o.customer_name LIKE :oq2 OR o.customer_email LIKE :oq3
+                OR o.customer_phone LIKE :oq4 OR o.shipping_name LIKE :oq5 OR o.shipping_phone LIKE :oq6
+                OR o.tracking_no LIKE :oq7
+                OR EXISTS (
+                    SELECT 1 FROM shop_order_items i
+                    WHERE i.order_id = o.id AND (i.product_name LIKE :oq8 OR i.sku LIKE :oq9)
+                )
+            )';
+            $like = '%' . $q . '%';
+            foreach (range(1, 9) as $n) {
+                $params['oq' . $n] = $like;
+            }
+        }
+
+        return [$where, $params];
+    }
+
+    private function nullableText(mixed $value): ?string
+    {
+        $text = trim((string) ($value ?? ''));
+        return $text === '' ? null : $text;
+    }
+
+    /**
+     * @param array<string, mixed> $order
+     * @param array<int, array<string, mixed>> $items
+     * @return array{id:int,order_no:string}
+     */
+    public function createCustomerOrder(array $order, array $items): array
+    {
+        $this->db->beginTransaction();
+        try {
+            $orderNo = $this->nextOrderNo();
+            $now = date('Y-m-d H:i:s');
+            $this->execute(
+                'INSERT INTO shop_orders (
+                    order_no, user_id, customer_name, customer_email, customer_phone,
+                    status, payment_status, subtotal, shipping_fee, discount_amount, total_amount,
+                    shipping_name, shipping_phone, shipping_address, shipping_memo,
+                    created_at, updated_at
+                ) VALUES (
+                    :order_no, :user_id, :customer_name, :customer_email, :customer_phone,
+                    :status, :payment_status, :subtotal, :shipping_fee, :discount_amount, :total_amount,
+                    :shipping_name, :shipping_phone, :shipping_address, :shipping_memo,
+                    :created_at, :updated_at
+                )',
+                [
+                    'order_no' => $orderNo,
+                    'user_id' => $order['user_id'] ?? null,
+                    'customer_name' => $order['customer_name'],
+                    'customer_email' => $order['customer_email'],
+                    'customer_phone' => $order['customer_phone'] ?? null,
+                    'status' => 'pending',
+                    'payment_status' => 'pending',
+                    'subtotal' => (int) ($order['subtotal'] ?? 0),
+                    'shipping_fee' => (int) ($order['shipping_fee'] ?? 0),
+                    'discount_amount' => (int) ($order['discount_amount'] ?? 0),
+                    'total_amount' => (int) ($order['total_amount'] ?? 0),
+                    'shipping_name' => $order['shipping_name'] ?? $order['customer_name'],
+                    'shipping_phone' => $order['shipping_phone'] ?? ($order['customer_phone'] ?? null),
+                    'shipping_address' => $order['shipping_address'] ?? null,
+                    'shipping_memo' => $order['shipping_memo'] ?? null,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]
+            );
+            $orderId = (int) $this->lastInsertId();
+            foreach ($items as $item) {
+                $this->execute(
+                    'INSERT INTO shop_order_items (order_id, product_id, product_name, sku, qty, unit_price, line_total)
+                     VALUES (:order_id, :product_id, :product_name, :sku, :qty, :unit_price, :line_total)',
+                    [
+                        'order_id' => $orderId,
+                        'product_id' => (int) ($item['id'] ?? 0) ?: null,
+                        'product_name' => (string) ($item['name'] ?? ''),
+                        'sku' => (string) ($item['sku'] ?? ''),
+                        'qty' => (int) ($item['qty'] ?? 1),
+                        'unit_price' => (int) ($item['unit_price'] ?? 0),
+                        'line_total' => (int) ($item['line_total'] ?? 0),
+                    ]
+                );
+                $pid = (int) ($item['id'] ?? 0);
+                $qty = (int) ($item['qty'] ?? 1);
+                if ($pid > 0 && $qty > 0) {
+                    $fresh = $this->findActiveProduct($pid);
+                    $left = max(0, (int) ($fresh['stock_qty'] ?? 0) - $qty);
+                    $this->execute(
+                        'UPDATE shop_products SET stock_qty = :qty, status = :status, updated_at = :now WHERE id = :id',
+                        [
+                            'qty' => $left,
+                            'status' => $left <= 0 ? 'soldout' : (string) ($fresh['status'] ?? 'active'),
+                            'now' => $now,
+                            'id' => $pid,
+                        ]
+                    );
+                }
+            }
+            $this->db->commit();
+            return ['id' => $orderId, 'order_no' => $orderNo];
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    private function nextOrderNo(): string
+    {
+        $prefix = 'LU' . date('Ymd');
+        $row = $this->fetchOne(
+            'SELECT order_no FROM shop_orders WHERE order_no LIKE :prefix ORDER BY order_no DESC LIMIT 1',
+            ['prefix' => $prefix . '%']
+        );
+        $seq = 1;
+        if ($row && preg_match('/(\d{4})$/', (string) ($row['order_no'] ?? ''), $m)) {
+            $seq = ((int) $m[1]) + 1;
+        }
+        return $prefix . str_pad((string) $seq, 4, '0', STR_PAD_LEFT);
+    }
+
+    public static function normalizePaperKind(mixed $kind, string $hint = '', string $extra = ''): string
+    {
+        $raw = strtolower(trim((string) $kind));
+        if ($raw === 'tag') {
+            return 'tag';
+        }
+        if ($raw === 'label') {
+            return 'label';
+        }
+        $hay = mb_strtolower($hint . ' ' . $extra);
+        if (
+            str_contains($hay, '태그')
+            || str_contains($hay, '행택')
+            || preg_match('/(?<![a-z])tag(?![a-z])/u', $hay)
+            || str_contains($hay, 'hangtag')
+        ) {
+            return 'tag';
+        }
+        return 'label';
     }
 
 }

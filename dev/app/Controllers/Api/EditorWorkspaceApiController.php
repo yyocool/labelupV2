@@ -6,36 +6,39 @@ namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
 use App\Middleware\AuthMiddleware;
-use App\Repositories\EditorWorkspaceRepository;
 use App\Services\AuthService;
+use App\Services\EditorWorkspaceService;
+use RuntimeException;
 
 final class EditorWorkspaceApiController extends BaseController
 {
     private AuthService $auth;
-    private EditorWorkspaceRepository $repo;
+    private EditorWorkspaceService $workspaces;
 
     public function __construct()
     {
         $this->auth = new AuthService();
-        $this->repo = new EditorWorkspaceRepository();
+        $this->workspaces = new EditorWorkspaceService();
+    }
+
+    public function index(): never
+    {
+        (new AuthMiddleware($this->auth))->handle();
+        $limit = max(1, min(48, (int) ($_GET['limit'] ?? 24)));
+        $this->jsonSuccess([
+            'items' => $this->workspaces->recentForUser((int) $this->auth->id(), $limit),
+        ]);
     }
 
     public function show(): never
     {
         (new AuthMiddleware($this->auth))->handle();
-        $row = $this->repo->findByUserId($this->auth->id());
+        $id = (int) ($_GET['id'] ?? 0);
+        $row = $this->workspaces->findForUser((int) $this->auth->id(), $id);
         if (!$row) {
             $this->jsonSuccess(null, '저장된 작업공간이 없습니다.');
         }
-
-        $doc = json_decode((string) ($row['document_json'] ?? ''), true);
-        $ui = json_decode((string) ($row['ui_json'] ?? ''), true);
-        $this->jsonSuccess([
-            'title' => (string) ($row['title'] ?? ''),
-            'document' => is_array($doc) ? $doc : null,
-            'ui' => is_array($ui) ? $ui : null,
-            'updated_at' => $row['updated_at'] ?? null,
-        ]);
+        $this->jsonSuccess($row);
     }
 
     public function save(): never
@@ -53,22 +56,15 @@ final class EditorWorkspaceApiController extends BaseController
             $title = '새 라벨 디자인';
         }
         $title = mb_substr($title, 0, 200);
+        $ui = isset($data['ui']) && is_array($data['ui']) ? $data['ui'] : null;
+        $preview = (string) ($data['preview'] ?? $data['preview_data_url'] ?? '');
+        $id = (int) ($data['id'] ?? 0);
 
-        $ui = $data['ui'] ?? null;
-        $docJson = json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        if ($docJson === false) {
-            $this->jsonError('문서 JSON 직렬화에 실패했습니다.', null, 500);
+        try {
+            $saved = $this->workspaces->save((int) $this->auth->id(), $id, $title, $document, $ui, $preview);
+            $this->jsonSuccess($saved, '작업 내역이 저장되었습니다.');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 500);
         }
-        $uiJson = null;
-        if (is_array($ui)) {
-            $encoded = json_encode($ui, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            $uiJson = $encoded === false ? null : $encoded;
-        }
-
-        $this->repo->upsert($this->auth->id(), $title, $docJson, $uiJson);
-        $this->jsonSuccess([
-            'title' => $title,
-            'updated_at' => date('Y-m-d H:i:s'),
-        ], '작업 내역이 저장되었습니다.');
     }
 }

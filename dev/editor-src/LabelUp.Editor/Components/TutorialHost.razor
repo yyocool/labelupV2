@@ -12,7 +12,7 @@
       <img class="lu-tut-invite__labi" src="img/labi-icon.png" alt="" width="88" height="88" />
       <h3>라비와 함께 편집기 둘러볼까요?</h3>
       <p>
-        처음이라면 튜토리얼 모드로 도구바·캔버스·속성·가져오기 사용법을
+        처음이라면 튜토리얼 모드로 도구바·용지·템플릿·캔버스·라비AI 사용법을
         가상 커서와 함께 배워볼 수 있어요.
       </p>
       <div class="lu-tut-invite__actions">
@@ -98,8 +98,23 @@
             return Task.CompletedTask;
         }
 
+        if (action == "openPaperPicker")
+        {
+            Session.OpenDialog(EditorDialog.PaperPicker);
+            return Task.CompletedTask;
+        }
+
+        if (action == "closePaperPicker")
+        {
+            if (Session.Dialog == EditorDialog.PaperPicker)
+                Session.CloseDialog();
+            return Task.CompletedTask;
+        }
+
         if (action == "expandProps")
         {
+            if (Session.Dialog == EditorDialog.PaperPicker)
+                Session.CloseDialog();
             if (Session.PropsMinimized)
             {
                 Session.PropsMinimized = false;
@@ -130,8 +145,28 @@
             return Task.CompletedTask;
         }
 
-        // Import open/close/tab are handled in JS (DOM), keep as no-op success
-        if (action is "openImport" or "closeImport" || action.StartsWith("importTab:", StringComparison.Ordinal))
+        if (action == "openVendorPicker")
+        {
+            Session.OpenDialog(EditorDialog.VendorPicker);
+            return Task.CompletedTask;
+        }
+
+        if (action == "closeVendorPicker")
+        {
+            if (Session.Dialog == EditorDialog.VendorPicker)
+                Session.CloseDialog();
+            return Task.CompletedTask;
+        }
+
+        if (action == "closeVendorPickerThenImport")
+        {
+            if (Session.Dialog == EditorDialog.VendorPicker)
+                Session.CloseDialog();
+            return Task.CompletedTask;
+        }
+
+        if (action is "openImport" or "closeImport" || action.StartsWith("importTab:", StringComparison.Ordinal)
+            || action.StartsWith("paperTab:", StringComparison.Ordinal))
         {
             return Task.CompletedTask;
         }

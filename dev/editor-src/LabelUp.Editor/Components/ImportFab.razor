@@ -7,46 +7,21 @@
 @inject IJSRuntime Js
 @implements IDisposable
 
-<div class="ed-import-fab-wrap" data-ed-import-fab-wrap>
-  <button type="button" class="ed-import-fan-backdrop" data-ed-import-fan-backdrop aria-label="메뉴 닫기" tabindex="-1"></button>
-  <div class="ed-import-fan" id="edImportFan" data-ed-import-fan aria-hidden="true">
-    @for (var i = 0; i < FanItems.Length; i++)
-    {
-      var item = FanItems[i];
-      <button type="button"
-              class="ed-import-fan__item ed-import-fan__item--@item.Id"
-              data-ed-import-fan-item
-              data-tab="@item.Id"
-              data-tut="@($"import-fan-{item.Id}")"
-              style="@FanItemStyle(i)"
-              title="@item.Label"
-              aria-label="@item.Label">
-        <span class="ed-import-fan__bubble">
-          @if (item.Id == "smart")
-          {
-            <img class="ed-import-fan__labi" src="img/labi-icon.png" alt="" width="28" height="28" />
-          }
-          else
-          {
-            <span class="ed-import-fan__glyph" aria-hidden="true">@item.Icon</span>
-          }
-        </span>
-        <span class="ed-import-fan__label">@item.Label</span>
-      </button>
-    }
-  </div>
+<div class="ed-corner-fabs" data-ed-corner-fabs>
   <button type="button"
-          class="ed-import-fab"
-          data-ed-import-fab
+          class="ed-corner-fab ed-corner-fab--labi"
+          data-tut="labi-fab"
+          title="라비와 라벨 만들기"
+          @onclick="() => Session.OpenDialog(EditorDialog.LabiAi)">
+    <img src="/assets/labi-icon.png" alt="" width="22" height="22" />
+    <span>라비AI</span>
+  </button>
+  <button type="button"
+          class="ed-corner-fab ed-corner-fab--vendor"
           data-tut="import-fab"
-          title="가져오기"
-          aria-expanded="false"
-          aria-controls="edImportFan"
-          aria-haspopup="true">
-    <span class="ed-import-fab__icon" aria-hidden="true">
-      <span class="ed-import-fab__plus">+</span>
-    </span>
-    <span class="ed-import-fab__text">가져오기</span>
+          title="애니라벨·아이라벨·폼텍 파일 가져오기"
+          @onclick="OpenVendorImport">
+    <span>타사포맷</span>
   </button>
 </div>
 
@@ -351,30 +326,6 @@
         ("smart", "라비", "")
     ];
 
-    private static readonly (string Id, string Label, string Icon)[] FanItems =
-    [
-        ("mydesign", "내디자인", "◇"),
-        ("external", "타사포맷", "⇪"),
-        ("template", "템플릿", "▦"),
-        ("label", "라벨", "▣"),
-        ("tag", "태그", "◈"),
-        ("smart", "라비", "")
-    ];
-
-    private static string FanItemStyle(int index)
-    {
-        const int count = 6;
-        const double startDeg = 185;
-        const double endDeg = 95;
-        const double radius = 108;
-        var t = count <= 1 ? 0 : (double)index / (count - 1);
-        var deg = startDeg + (endDeg - startDeg) * t;
-        var rad = deg * Math.PI / 180.0;
-        var x = Math.Cos(rad) * radius;
-        var y = -Math.Sin(rad) * radius;
-        return $"--i:{index};--fan-x:{x:0.##}px;--fan-y:{y:0.##}px";
-    }
-
     private static readonly string[] SmartExamples =
     [
         "유기농 올리브오일 라벨", "빈티지 스타일", "70x50mm", "올리브 일러스트", "녹색 톤"
@@ -635,6 +586,11 @@
             EditorLog.Error("타사 포맷 변환 실패", ex);
             SessionHint("타사 포맷 변환 실패: " + ex.Message);
         }
+    }
+
+    private void OpenVendorImport()
+    {
+        Session.OpenDialog(EditorDialog.VendorPicker);
     }
 
     private void SessionHint(string msg)

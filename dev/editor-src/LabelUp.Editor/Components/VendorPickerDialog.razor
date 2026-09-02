@@ -1,0 +1,74 @@
+@using LabelUp.Editor.Models
+@using LabelUp.Editor.Services
+@inject EditorSession Session
+@inject ExternalImportService ExternalImport
+@implements IDisposable
+
+@if (Session.Dialog == EditorDialog.VendorPicker)
+{
+  <div class="ed-modal ed-labi-modal ed-vendor-picker-modal" role="dialog" aria-label="타사포맷" @onclick="Session.CloseDialog">
+    <div class="ed-modal__card ed-modal__card--labi ed-labi ed-vendor-picker" data-tut="vendor-picker-dialog" @onclick:stopPropagation="true">
+      <header class="ed-modal__head" data-tut="vendor-picker-head">
+        <div>
+          <h3>타사포맷</h3>
+          <p>폼텍·아이라벨·애니라벨 PC 파일을 올리면 변환 분석으로 이어집니다.</p>
+        </div>
+        <button type="button" class="ed-modal__close" @onclick="Session.CloseDialog">×</button>
+      </header>
+      <div class="ed-modal__body ed-labi__body">
+        <section class="prompt ed-vendor-picker__panel" data-tut="vendor-picker">
+          <div class="prompt-head">
+            <div class="prompt-title">
+              <b>타사포맷 가져오기</b>
+              <span>파일을 끌어다 놓거나 클릭해서 선택하세요</span>
+            </div>
+            <span class="prompt-badge">VENDOR</span>
+          </div>
+
+          <label class="ed-import__dropzone ed-vendor-picker__drop" data-tut="vendor-picker-drop">
+            <InputFile OnChange="OnVendorFile" accept=".lbl,.idf,.xml,.dgz,.dgf,.fmt,.fdx,.zip" />
+            <span class="ed-import__drop-icon">📁</span>
+            <span class="ed-import__drop-title">파일을 드래그하거나 클릭하여 선택</span>
+            <span class="ed-import__drop-hint">.lbl · .idf · .dgz · .dgf · .fmt · .fdx · .zip</span>
+          </label>
+
+          <ul class="ed-import__ext-list ed-vendor-picker__exts" data-tut="vendor-picker-list">
+            <li><b>폼텍</b> .dgz · .dgf · .fmt · .fdx</li>
+            <li><b>아이라벨</b> .idf · .xml · .zip</li>
+            <li><b>애니라벨</b> .lbl</li>
+          </ul>
+          <p class="ed-vendor-picker__note">폼텍은 바로 변환되고, 아이라벨·애니라벨도 같은 모듈로 시도합니다.</p>
+        </section>
+      </div>
+    </div>
+  </div>
+}
+
+@code {
+    protected override void OnInitialized() => Session.Changed += OnChanged;
+    public void Dispose() => Session.Changed -= OnChanged;
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private async Task OnVendorFile(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            await using var stream = e.File.OpenReadStream(30 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            Session.Status = "타사 포맷 분석 중…";
+            Session.Notify();
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(40);
+            var report = ExternalImport.Analyze(e.File.Name, ms.ToArray());
+            Session.PendingVendorImport = report;
+            Session.OpenDialog(EditorDialog.VendorImport);
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error("타사 포맷 변환 실패", ex);
+            Session.Status = "타사 포맷 변환 실패: " + ex.Message;
+            Session.Notify();
+        }
+    }
+}

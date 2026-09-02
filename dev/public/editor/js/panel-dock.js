@@ -451,6 +451,11 @@
 
     return {
       applySnap: applySnap,
+      applyHeight: function () {
+        const bodyRect = body.getBoundingClientRect();
+        const rect = panel.getBoundingClientRect();
+        applyHeight(rect.left - bodyRect.left, rect.top - bodyRect.top, currentSnapId);
+      },
       getSnapId: function () { return panel.getAttribute('data-ed-snap-id') || currentSnapId; },
       panel: panel
     };
@@ -501,10 +506,16 @@
 
     const propsPanel = root.querySelector('[data-ed-props-panel]');
     if (propsPanel) {
+      const syncPropsHeight = function () {
+        if (propsApi && typeof propsApi.applyHeight === 'function') propsApi.applyHeight();
+        restack();
+      };
       const minBtn = propsPanel.querySelector('.ed-props__min');
       if (minBtn) minBtn.addEventListener('click', function () {
-        setTimeout(restack, 0);
+        setTimeout(syncPropsHeight, 0);
+        requestAnimationFrame(function () { requestAnimationFrame(syncPropsHeight); });
       });
+      new MutationObserver(syncPropsHeight).observe(propsPanel, { attributes: true, attributeFilter: ['class'] });
     }
 
     window.addEventListener('resize', function () {
@@ -512,71 +523,27 @@
       restack();
     });
 
-    // Import FAB fan menu / overlay
-    const fabWrap = root.querySelector('[data-ed-import-fab-wrap]');
-    const fab = root.querySelector('[data-ed-import-fab]');
-    const fan = root.querySelector('[data-ed-import-fan]');
-    const fanBackdrop = root.querySelector('[data-ed-import-fan-backdrop]');
+    // Import overlay (타사포맷 플로팅 버튼 등에서 연다)
     const overlay = root.querySelector('[data-ed-import-overlay]');
     const closeBtns = root.querySelectorAll('[data-ed-import-close]');
-    const fanItems = root.querySelectorAll('[data-ed-import-fan-item]');
-
-    function setFanOpen(open) {
-      if (!fabWrap) return;
-      fabWrap.classList.toggle('is-open', open);
-      if (fab) fab.setAttribute('aria-expanded', open ? 'true' : 'false');
-      if (fan) fan.setAttribute('aria-hidden', open ? 'false' : 'true');
-    }
-
-    function closeFan() {
-      setFanOpen(false);
-    }
-
-    function openFan() {
-      setFanOpen(true);
-    }
 
     function openImport(tabId) {
-      closeFan();
       if (!overlay) return;
       overlay.classList.add('is-open');
       overlay.setAttribute('aria-hidden', 'false');
       if (tabId) {
         var tabBtn = overlay.querySelector('[data-tut="import-tab-' + tabId + '"]');
         if (tabBtn) {
-          // Defer so Blazor tab buttons are interactive after overlay paint
           requestAnimationFrame(function () { tabBtn.click(); });
         }
       }
     }
 
     function closeImport() {
-      closeFan();
       if (!overlay) return;
       overlay.classList.remove('is-open');
       overlay.setAttribute('aria-hidden', 'true');
     }
-
-    if (fab) fab.addEventListener('click', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      if (fabWrap && fabWrap.classList.contains('is-open')) closeFan();
-      else openFan();
-    });
-
-    if (fanBackdrop) fanBackdrop.addEventListener('click', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      closeFan();
-    });
-
-    fanItems.forEach(function (item) {
-      item.addEventListener('click', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        openImport(item.getAttribute('data-tab') || '');
-      });
-    });
 
     closeBtns.forEach(function (btn) {
       btn.addEventListener('click', function (e) {
@@ -593,17 +560,12 @@
 
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Escape') return;
-      if (overlay && overlay.classList.contains('is-open')) {
-        closeImport();
-        return;
-      }
-      if (fabWrap && fabWrap.classList.contains('is-open')) closeFan();
+      if (overlay && overlay.classList.contains('is-open')) closeImport();
     });
 
     window.labelUpEditor = window.labelUpEditor || {};
     window.labelUpEditor.openImport = openImport;
     window.labelUpEditor.closeImport = closeImport;
-    window.labelUpEditor.closeImportFan = closeFan;
   }
 
   function readPct(key) {

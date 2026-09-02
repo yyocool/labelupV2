@@ -1,4 +1,123 @@
+window.LABELUP_LABI_SKIP_AUTO = true;
+
 window.labelUpEditor = {
+  pageQuery: function () {
+    return window.location.search || '';
+  },
+  takePendingClipart: function () {
+    try {
+      var raw = sessionStorage.getItem('labelup.pendingClipart');
+      if (!raw) return null;
+      sessionStorage.removeItem('labelup.pendingClipart');
+      var data = JSON.parse(raw);
+      if (!data || !data.url) return null;
+      return {
+        url: String(data.url),
+        title: data.title ? String(data.title) : '',
+        fit: data.fit ? String(data.fit) : ''
+      };
+    } catch (e) {
+      return null;
+    }
+  },
+  takePendingVendorFile: async function () {
+    function fromSession() {
+      try {
+        var raw = sessionStorage.getItem('labelup.pendingVendorFile');
+        if (!raw) return null;
+        sessionStorage.removeItem('labelup.pendingVendorFile');
+        var data = JSON.parse(raw);
+        if (!data || !data.dataUrl) return null;
+        return {
+          fileName: data.fileName ? String(data.fileName) : 'vendor-import',
+          dataUrl: String(data.dataUrl)
+        };
+      } catch (e) {
+        return null;
+      }
+    }
+    try {
+      var idbData = await new Promise(function (resolve) {
+        var settled = false;
+        var timer = 0;
+        var finish = function (value) {
+          if (settled) return;
+          settled = true;
+          if (timer) window.clearTimeout(timer);
+          resolve(value || null);
+        };
+        timer = window.setTimeout(function () { finish(null); }, 4000);
+        var req = indexedDB.open('labelup', 1);
+        req.onerror = function () { finish(null); };
+        req.onblocked = function () { finish(null); };
+        req.onupgradeneeded = function () {
+          if (!req.result.objectStoreNames.contains('pending'))
+            req.result.createObjectStore('pending');
+        };
+        req.onsuccess = function () {
+          try {
+            var db = req.result;
+            if (!db.objectStoreNames.contains('pending')) {
+              finish(null);
+              return;
+            }
+            var tx = db.transaction('pending', 'readwrite');
+            var get = tx.objectStore('pending').get('vendorFile');
+            get.onsuccess = function () {
+              var row = get.result || null;
+              if (row && row.dataUrl) {
+                try { tx.objectStore('pending').delete('vendorFile'); } catch (e) { /* ignore */ }
+              }
+              finish(row);
+            };
+            get.onerror = function () { finish(null); };
+          } catch (e) {
+            finish(null);
+          }
+        };
+      });
+      if (idbData && idbData.dataUrl) {
+        try { sessionStorage.removeItem('labelup.pendingVendorFile'); } catch (e) { /* ignore */ }
+        return {
+          fileName: idbData.fileName ? String(idbData.fileName) : 'vendor-import',
+          dataUrl: String(idbData.dataUrl)
+        };
+      }
+    } catch (e) { /* ignore */ }
+    return fromSession();
+  },
+  takePendingDocument: function () {
+    try {
+      var raw = sessionStorage.getItem('labelup.pendingDocument');
+      if (!raw) return null;
+      sessionStorage.removeItem('labelup.pendingDocument');
+      var data = JSON.parse(raw);
+      if (!data || !data.document) return null;
+      return {
+        json: JSON.stringify(data.document),
+        title: data.title ? String(data.title) : '',
+        projectId: data.projectId ? String(data.projectId) : ''
+      };
+    } catch (e) {
+      return null;
+    }
+  },
+  fetchImageDataUrl: async function (src) {
+    if (!src) return '';
+    if (String(src).indexOf('data:image') === 0) return String(src);
+    var url = String(src);
+    if (url.charAt(0) === '/') url = window.location.origin + url;
+    var res = await fetch(url, { credentials: 'same-origin' });
+    if (!res.ok) return '';
+    var blob = await res.blob();
+    if (!blob || blob.size < 8) return '';
+    return await new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () { resolve(String(reader.result || '')); };
+      reader.onerror = function () { reject(reader.error || new Error('read failed')); };
+      reader.readAsDataURL(blob);
+    });
+  },
   downloadBase64: function (base64, fileName, mime) {
     try {
       var bin = atob(base64);
@@ -25,7 +144,6 @@ window.labelUpEditor = {
     try { return localStorage.getItem(key); } catch (e) { return null; }
   },
   closeImport: function () {
-    if (typeof this.closeImportFan === 'function') this.closeImportFan();
     var el = document.querySelector('[data-ed-import-overlay]');
     if (!el) return;
     el.classList.remove('is-open');
@@ -111,8 +229,6 @@ window.labelUpEditor = {
   },
   openImport: function (tabId) {
     var el = document.querySelector('[data-ed-import-overlay]');
-    var wrap = document.querySelector('[data-ed-import-fab-wrap]');
-    if (wrap) wrap.classList.remove('is-open');
     if (!el) return;
     el.classList.add('is-open');
     el.setAttribute('aria-hidden', 'false');
@@ -215,6 +331,86 @@ window.labelUpEditor = {
     el.style.display = 'none';
   },
 
+  bindLabi: function (dotnet) {
+    this._labiDotNet = dotnet;
+  },
+
+  mountLabiChat: async function () {
+    var root = document.getElementById('aiPromptPanel');
+    if (!root || !window.LabelUpLabiChat) return;
+    var self = this;
+    var user = null;
+    try { user = await this.getAuthUser(); } catch (e) { user = null; }
+    window.LabelUpLabiChat.mount({
+      rootEl: root,
+      embedMode: 'editor',
+      chatApiUrl: this.apiUrl('/api/ai/chat'),
+      examplePromptsUrl: this.apiUrl('/api/ai/example-prompts?surface=editor'),
+      labiIconUrl: '/assets/labi-icon.png',
+      isLoggedIn: !!user,
+      ensureLogin: async function () {
+        var current = null;
+        try { current = await self.getAuthUser(); } catch (e) { current = null; }
+        if (current) return true;
+        return await self.showSaveAuthPrompt();
+      },
+      onApplyProduct: function (product) {
+        if (!self._labiDotNet) return;
+        self._labiDotNet.invokeMethodAsync('ApplyLabiProduct', JSON.stringify(product || {}));
+      },
+      onApplyClipart: function (clipart) {
+        if (!self._labiDotNet) return;
+        self._labiDotNet.invokeMethodAsync('ApplyLabiClipart', JSON.stringify(clipart || {}));
+      },
+      onApplyTemplate: function (template) {
+        if (!self._labiDotNet) return;
+        if (template && template.document) {
+          self._labiDotNet.invokeMethodAsync('ApplyLabiDocument', JSON.stringify(template.document));
+          return;
+        }
+        self._labiDotNet.invokeMethodAsync('ApplyLabiTemplate', JSON.stringify(template || {}));
+      },
+      onApplyVendor: function (file) {
+        if (!self._labiDotNet || !file) return;
+        self._labiDotNet.invokeMethodAsync('OnVendorFileFromLabi', file.fileName || 'vendor-import', file.dataUrl || '');
+      }
+    });
+  },
+
+  apiGetJson: async function (path) {
+    var res = await fetch(this.apiUrl(path), {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: { 'Accept': 'application/json' }
+    });
+    var json = await res.json().catch(function () { return null; });
+    if (!res.ok || !json || json.success === false) {
+      var err = new Error((json && json.message) || '요청에 실패했습니다.');
+      err.status = res.status;
+      throw err;
+    }
+    return JSON.stringify(json.data == null ? {} : json.data);
+  },
+
+  apiPostJson: async function (path, body) {
+    var res = await fetch(this.apiUrl(path), {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(body || {})
+    });
+    var json = await res.json().catch(function () { return null; });
+    if (!res.ok || !json || json.success === false) {
+      var err = new Error((json && json.message) || '요청에 실패했습니다.');
+      err.status = res.status;
+      throw err;
+    }
+    return JSON.stringify({
+      data: json.data == null ? {} : json.data,
+      message: json.message || ''
+    });
+  },
+
   apiUrl: function (path) {
     var base = (document.querySelector('base') && document.querySelector('base').href) || (location.origin + '/editor/');
     try {
@@ -231,13 +427,13 @@ window.labelUpEditor = {
         credentials: 'same-origin',
         headers: { 'Accept': 'application/json' }
       });
-      if (!res.ok) return null;
+      if (!res.ok) return false;
       var json = await res.json();
-      if (!json || json.success === false) return null;
-      return json.data || null;
+      if (!json || json.success === false) return false;
+      return json.data || false;
     } catch (e) {
       console.warn('[LabelUp] getAuthUser', e);
-      return null;
+      return false;
     }
   },
 
@@ -255,8 +451,24 @@ window.labelUpEditor = {
     return json.data || {};
   },
 
-  loadWorkspace: async function () {
-    var res = await fetch(this.apiUrl('/api/editor/workspace'), {
+  listWorkspaces: async function (limit) {
+    var url = this.apiUrl('/api/editor/workspaces');
+    if (limit) url += (url.indexOf('?') >= 0 ? '&' : '?') + 'limit=' + encodeURIComponent(limit);
+    var res = await fetch(url, {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: { 'Accept': 'application/json' }
+    });
+    if (res.status === 401) return { items: [] };
+    var json = await res.json().catch(function () { return null; });
+    if (!res.ok || !json || json.success === false) return { items: [] };
+    return json.data || { items: [] };
+  },
+
+  loadWorkspace: async function (id) {
+    var url = this.apiUrl('/api/editor/workspace');
+    if (id) url += (url.indexOf('?') >= 0 ? '&' : '?') + 'id=' + encodeURIComponent(id);
+    var res = await fetch(url, {
       method: 'GET',
       credentials: 'same-origin',
       headers: { 'Accept': 'application/json' }
@@ -265,6 +477,28 @@ window.labelUpEditor = {
     var json = await res.json().catch(function () { return null; });
     if (!res.ok || !json || json.success === false) return null;
     return json.data || null;
+  },
+
+  getTopBarPinned: function () {
+    try {
+      var v = localStorage.getItem('labelup.topbar.pinned');
+      if (v === null) return true;
+      return v === '1';
+    } catch (e) {
+      return true;
+    }
+  },
+  setTopBarPinned: function (pinned) {
+    try { localStorage.setItem('labelup.topbar.pinned', pinned ? '1' : '0'); } catch (e) { /* ignore */ }
+  },
+
+  setProjectId: function (id) {
+    try {
+      var u = new URL(window.location.href);
+      if (id) u.searchParams.set('project', String(id));
+      else u.searchParams.delete('project');
+      window.history.replaceState(null, '', u.toString());
+    } catch (e) { /* ignore */ }
   },
 
   showSaveAuthPrompt: function () {

@@ -45,6 +45,27 @@ final class AdminApiController extends BaseController
         }
     }
 
+    public function changePassword(): never
+    {
+        $this->requireAdmin();
+        $data = request_json();
+        $new = (string) ($data['new_password'] ?? '');
+        $confirm = (string) ($data['new_password_confirm'] ?? '');
+        if ($confirm !== '' && $new !== $confirm) {
+            $this->jsonError('새 비밀번호가 일치하지 않습니다.', null, 422);
+        }
+        try {
+            $this->users->changePassword(
+                (int) ($this->auth->adminId() ?? 0),
+                (string) ($data['current_password'] ?? ''),
+                $new
+            );
+            $this->jsonSuccess(null, '비밀번호가 변경되었습니다.');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
+        }
+    }
+
     public function updateUser(): never
     {
         $this->requireAdmin();
@@ -56,14 +77,16 @@ final class AdminApiController extends BaseController
         }
 
         try {
-            if (isset($payload['role'])) {
-                $this->admin->updateUserRole($userId, (string) $payload['role'], (int) $this->auth->adminId());
+            if (array_key_exists('grade_id', $payload)) {
+                $this->admin->updateUserGrade($userId, (int) $payload['grade_id']);
             }
             if (isset($payload['status'])) {
                 $this->admin->updateUserStatus($userId, (string) $payload['status'], (int) $this->auth->adminId());
             }
         } catch (\InvalidArgumentException $e) {
             $this->jsonError($e->getMessage());
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
         }
 
         $this->jsonSuccess(null, '회원 정보가 저장되었습니다.');

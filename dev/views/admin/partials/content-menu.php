@@ -1,9 +1,15 @@
 <?php
 $contentMenus = [
     ['key' => 'content-cliparts', 'label' => '클립아트관리', 'href' => 'admin/content/cliparts', 'ic' => '✦'],
+    ['key' => 'content-user-designs', 'label' => '사용자디자인', 'href' => 'admin/content/user-designs', 'ic' => '★'],
+    ['key' => 'content-templates', 'label' => '템플릿관리', 'href' => 'admin/content/templates', 'ic' => '▦'],
 ];
+$contentMenus = admin_filter_menu_items($contentMenus);
 $isContentOpen = ($menuGroup ?? '') === 'content'
-    || in_array((string) ($activeMenu ?? ''), ['content-cliparts'], true);
+    || in_array((string) ($activeMenu ?? ''), ['content-cliparts', 'content-user-designs', 'content-templates'], true);
+if ($contentMenus === []) {
+    return;
+}
 ?>
 <div class="admin-lnb-group<?= $isContentOpen ? ' is-open' : '' ?>">
   <button type="button" class="admin-lnb-group-toggle" aria-expanded="<?= $isContentOpen ? 'true' : 'false' ?>">

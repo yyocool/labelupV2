@@ -108,6 +108,19 @@
         var info = e.Info;
         _viewW = info.Width;
         _viewH = info.Height;
+        try
+        {
+            PaintSurfaceCore(canvas, info);
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error("캔버스 그리기 실패", ex);
+            canvas.Clear(new SKColor(0xF4, 0xF1, 0xEE));
+        }
+    }
+
+    private void PaintSurfaceCore(SKCanvas canvas, SKImageInfo info)
+    {
         canvas.Clear(new SKColor(0xF4, 0xF1, 0xEE));
 
         var doc = Session.Document;
@@ -126,9 +139,20 @@
         canvas.Save();
         canvas.Translate(ox, oy);
         canvas.Scale(scale);
-        if (Session.ShowGrid)
-            DrawLabelGrid(canvas, doc.WidthMm, doc.HeightMm);
-        DocumentRenderer.DrawCell(canvas, doc, Session.CurrentCell, o => Session.ResolveObjectText(o));
+        DocumentRenderer.DrawCell(
+            canvas,
+            doc,
+            Session.CurrentCell,
+            o => Session.ResolveObjectText(o),
+            afterBackground: () =>
+            {
+                if (!Session.ShowGrid)
+                    return;
+                canvas.Save();
+                canvas.ResetMatrix();
+                DrawLabelGrid(canvas, ox, oy, scale, labelW, labelH, doc.WidthMm, doc.HeightMm);
+                canvas.Restore();
+            });
         foreach (var sel in Session.SelectedObjects)
             DocumentRenderer.DrawSelection(canvas, sel, Session.PxPerMm, Session.Zoom);
         canvas.Restore();
@@ -142,18 +166,53 @@
             DrawGuides(canvas, ox, oy, scale, labelW, labelH);
     }
 
-    private static void DrawLabelGrid(SKCanvas canvas, float w, float h)
+    private static float RulerStep(float zoom)
+        => zoom >= 1.4f ? 1f : zoom >= 0.7f ? 2f : 5f;
+
+    private void DrawLabelGrid(SKCanvas canvas, float ox, float oy, float scale, float labelW, float labelH, float mmW, float mmH)
     {
-        using var paint = new SKPaint
+        var step = RulerStep(Session.Zoom);
+        canvas.Save();
+        canvas.ClipRect(new SKRect(ox, oy, ox + labelW, oy + labelH));
+        using var minor = new SKPaint
         {
-            Color = new SKColor(0x7B, 0x28, 0x40, 28),
-            StrokeWidth = 0.08f,
-            IsAntialias = false
+            Color = new SKColor(0x7B, 0x28, 0x40, 36),
+            StrokeWidth = 1f,
+            IsAntialias = false,
+            Style = SKPaintStyle.Stroke
         };
-        for (var x = 0f; x <= w + 0.01f; x += 1f)
-            canvas.DrawLine(x, 0, x, h, paint);
-        for (var y = 0f; y <= h + 0.01f; y += 1f)
-            canvas.DrawLine(0, y, w, y, paint);
+        using var mid = new SKPaint
+        {
+            Color = new SKColor(0x7B, 0x28, 0x40, 58),
+            StrokeWidth = 1f,
+            IsAntialias = false,
+            Style = SKPaintStyle.Stroke
+        };
+        using var major = new SKPaint
+        {
+            Color = new SKColor(0x7B, 0x28, 0x40, 92),
+            StrokeWidth = 1.2f,
+            IsAntialias = false,
+            Style = SKPaintStyle.Stroke
+        };
+        for (var mm = 0f; mm <= mmW + 0.01f; mm += step)
+        {
+            var x = ox + mm * scale;
+            canvas.DrawLine(x, oy, x, oy + labelH, GridPaint(mm, minor, mid, major));
+        }
+        for (var mm = 0f; mm <= mmH + 0.01f; mm += step)
+        {
+            var y = oy + mm * scale;
+            canvas.DrawLine(ox, y, ox + labelW, y, GridPaint(mm, minor, mid, major));
+        }
+        canvas.Restore();
+    }
+
+    private static SKPaint GridPaint(float mm, SKPaint minor, SKPaint mid, SKPaint major)
+    {
+        if (Math.Abs(mm % 10f) < 0.01f) return major;
+        if (Math.Abs(mm % 5f) < 0.01f) return mid;
+        return minor;
     }
 
     private void DrawRulers(SKCanvas canvas, float ox, float oy, float scale, float labelW, float labelH, float mmW, float mmH)
@@ -177,7 +236,7 @@
         using var font = new SKFont(DocumentRenderer.ResolveTypeface(false), 9);
         using var text = new SKPaint { Color = new SKColor(0x6B, 0x65, 0x60), IsAntialias = true };
 
-        var step = Session.Zoom >= 1.4f ? 1f : Session.Zoom >= 0.7f ? 2f : 5f;
+        var step = RulerStep(Session.Zoom);
         for (var mm = 0f; mm <= mmW + 0.01f; mm += step)
         {
             var x = ox + mm * scale;

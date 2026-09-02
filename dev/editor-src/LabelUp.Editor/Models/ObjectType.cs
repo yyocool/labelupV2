@@ -60,6 +60,7 @@ public enum EditorDialog
 {
     None,
     PaperPicker,
+    ThemePicker,
     PaperMaker,
     PaperMap,
     DataManager,
@@ -69,7 +70,11 @@ public enum EditorDialog
     Barcode,
     Qr,
     Table,
-    VendorImport
+    VendorImport,
+    VendorPicker,
+    LabiAi,
+    LabelShop,
+    ProjectPicker
 }
 
 public enum TextMode

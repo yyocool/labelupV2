@@ -92,6 +92,23 @@ final class CreditAdminService
         return $this->creditService->adjust($userId, $amount, $description, $adminId);
     }
 
+    public function grantUserCredit(int $userId, int $amount, string $reason, int $adminId): int
+    {
+        if ($userId <= 0) {
+            throw new RuntimeException('회원을 선택해주세요.');
+        }
+        if (!(new UserRepository())->findById($userId)) {
+            throw new RuntimeException('회원을 찾을 수 없습니다.');
+        }
+        return $this->creditService->grant($userId, $amount, $reason, $adminId);
+    }
+
+    /** @return array{items: array, total: int, page: int, pages: int, per_page: int} */
+    public function grantHistory(?int $userId = null, int $page = 1, int $perPage = 20): array
+    {
+        return $this->credits->adminGrants($userId, $page, $perPage);
+    }
+
     /** @return array<string, mixed> */
     public function userDetail(int $userId): array
     {
@@ -105,6 +122,7 @@ final class CreditAdminService
             'user' => $user,
             'credit_balance' => $this->creditService->balance($userId),
             'credit_tx' => $this->credits->transactionsForUser($userId, 1, 30),
+            'credit_grants' => $this->credits->adminGrants($userId, 1, 30),
             'cs_logs' => $this->credits->csLogsForUser($userId),
             'login_logs' => (new UserLoginLogRepository())->recentForUser($userId, 15),
             'orders' => (new ShopRepository())->ordersByUser($userId, 10),

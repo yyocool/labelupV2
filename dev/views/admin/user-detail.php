@@ -4,6 +4,7 @@ use App\Services\ShopAdminService;
 $user = $detail['user'] ?? [];
 $creditBalance = (int) ($detail['credit_balance'] ?? 0);
 $creditTx = $detail['credit_tx']['items'] ?? [];
+$creditGrants = $detail['credit_grants']['items'] ?? [];
 $csLogs = $detail['cs_logs'] ?? [];
 $loginLogs = $detail['login_logs'] ?? [];
 $orders = $detail['orders'] ?? [];
@@ -15,6 +16,7 @@ $userId = (int) ($user['id'] ?? 0);
     <p><?= e($user['email'] ?? '') ?> · ID <?= $userId ?></p>
   </div>
   <div class="admin-head-actions">
+    <a class="admin-btn" href="<?= url('admin/content/user-designs?user_id=' . $userId) ?>">사용자디자인</a>
     <a class="admin-btn" href="<?= url('admin/users') ?>">← 회원 목록</a>
   </div>
 </div>
@@ -28,6 +30,13 @@ $userId = (int) ($user['id'] ?? 0);
       <div><dt>회사</dt><dd><?= e($user['company'] ?? '-') ?></dd></div>
       <div><dt>전화</dt><dd><?= e($user['phone'] ?? '-') ?></dd></div>
       <div><dt>역할</dt><dd><?= ($user['role'] ?? '') === 'admin' ? '관리자' : '일반회원' ?></dd></div>
+      <div><dt>회원등급</dt><dd>
+        <?php if (!empty($user['grade_name'])): ?>
+        <span class="admin-grade-chip" style="--grade-color:<?= e((string) ($user['grade_color'] ?? '#7B2D3E')) ?>"><?= e((string) $user['grade_name']) ?></span>
+        <?php else: ?>
+        -
+        <?php endif; ?>
+      </dd></div>
       <div><dt>상태</dt><dd><?= e($user['status'] ?? '-') ?></dd></div>
       <div><dt>가입일</dt><dd><?= e(substr((string) ($user['created_at'] ?? ''), 0, 16)) ?></dd></div>
       <div><dt>최근 로그인</dt><dd><?= e(substr((string) ($user['last_login_at'] ?? '-'), 0, 16)) ?></dd></div>
@@ -35,16 +44,56 @@ $userId = (int) ($user['id'] ?? 0);
   </section>
 
   <section class="admin-card">
-    <h2>크레딧</h2>
+    <h2>크레딧 지급</h2>
     <p class="admin-credit-balance"><strong><?= number_format($creditBalance) ?> C</strong></p>
-    <form id="creditAdjustForm" class="admin-inline-form">
+    <form id="creditGrantForm" class="admin-grant-form">
       <input type="hidden" name="user_id" value="<?= $userId ?>">
-      <input class="admin-input" type="number" name="amount" placeholder="± 크레딧" required>
-      <input class="admin-input" type="text" name="description" placeholder="사유" value="관리자 조정">
-      <button type="submit" class="admin-btn admin-btn--primary">조정</button>
+      <label class="admin-field">
+        <span>지급 크레딧</span>
+        <input class="admin-input" type="number" name="amount" min="1" max="1000000" step="1" required placeholder="예: 500">
+      </label>
+      <label class="admin-field">
+        <span>지급 사유</span>
+        <input class="admin-input" type="text" name="reason" maxlength="255" required placeholder="예: 이벤트 보상, CS 보상">
+      </label>
+      <button type="submit" class="admin-btn admin-btn--primary">지급하기</button>
     </form>
   </section>
 </div>
+
+<section class="admin-section">
+  <div class="admin-section-head">
+    <h2 class="admin-section-title">관리자 지급 이력</h2>
+  </div>
+  <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>일시</th>
+          <th>지급</th>
+          <th>지급 후 잔액</th>
+          <th>지급 사유</th>
+          <th>처리자</th>
+        </tr>
+      </thead>
+      <tbody>
+      <?php if (empty($creditGrants)): ?>
+        <tr><td colspan="5" class="empty">지급 이력이 없습니다.</td></tr>
+      <?php else: ?>
+      <?php foreach ($creditGrants as $grant): ?>
+        <tr>
+          <td><?= e(substr((string) ($grant['created_at'] ?? ''), 0, 16)) ?></td>
+          <td class="is-plus">+<?= number_format((int) ($grant['amount'] ?? 0)) ?> C</td>
+          <td><?= number_format((int) ($grant['balance_after'] ?? 0)) ?> C</td>
+          <td><?= e($grant['description'] ?? '') ?></td>
+          <td><small><?= e($grant['admin_email'] ?? $grant['admin_name'] ?? '-') ?></small></td>
+        </tr>
+      <?php endforeach; ?>
+      <?php endif; ?>
+      </tbody>
+    </table>
+  </div>
+</section>
 
 <section class="admin-section">
   <div class="admin-section-head">

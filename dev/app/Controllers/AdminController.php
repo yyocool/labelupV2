@@ -8,6 +8,7 @@ use App\Middleware\AuthMiddleware;
 use App\Services\AdminService;
 use App\Services\AuthService;
 use App\Services\CreditAdminService;
+use App\Services\MemberGradeService;
 use App\Services\LegalDocumentService;
 use App\Services\ShopAdminService;
 
@@ -63,12 +64,15 @@ final class AdminController extends BaseController
         $search = trim((string) ($_GET['q'] ?? ''));
         $page = max(1, (int) ($_GET['page'] ?? 1));
 
+        $credits = new CreditAdminService();
         $this->renderAdmin('admin/users', [
             'pageTitle' => '회원 관리 — 라벨업',
             'activeMenu' => 'users',
             'user' => $user,
             'search' => $search,
-            'list' => (new CreditAdminService())->listUsers($search, $page),
+            'list' => $credits->listUsers($search, $page),
+            'grants' => $credits->grantHistory(null, 1, 20),
+            'grades' => (new MemberGradeService())->listActive(),
         ]);
     }
 

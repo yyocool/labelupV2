@@ -90,6 +90,32 @@ final class CreditAdminApiController extends BaseController
         }
     }
 
+    public function grantCredit(): never
+    {
+        $this->guard();
+        $data = request_json();
+        $reason = trim((string) ($data['reason'] ?? $data['description'] ?? ''));
+        try {
+            $balance = $this->credits->grantUserCredit(
+                (int) ($data['user_id'] ?? 0),
+                (int) ($data['amount'] ?? 0),
+                $reason,
+                (int) $this->auth->adminId()
+            );
+            $this->jsonSuccess(['balance' => $balance], '크레딧이 지급되었습니다.');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
+        }
+    }
+
+    public function grantHistory(): never
+    {
+        $this->guard();
+        $userId = (int) ($_GET['user_id'] ?? 0);
+        $page = max(1, (int) ($_GET['page'] ?? 1));
+        $this->jsonSuccess($this->credits->grantHistory($userId > 0 ? $userId : null, $page, 20));
+    }
+
     public function saveCsLog(): never
     {
         $this->guard();

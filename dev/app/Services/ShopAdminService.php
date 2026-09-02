@@ -73,6 +73,7 @@ final class ShopAdminService
         return $this->repo->saveSpec([
             'id' => (int) ($data['id'] ?? 0),
             'name' => $name,
+            'kind' => $data['kind'] ?? null,
             'image_path' => ShopProductImageService::normalizePublicPath((string) ($data['image_path'] ?? '')) ?: null,
             'width_mm' => (float) ($data['width_mm'] ?? 0),
             'height_mm' => (float) ($data['height_mm'] ?? 0),
@@ -98,12 +99,15 @@ final class ShopAdminService
         $this->repo->deleteSpec($id);
     }
 
-    /** @return array<int, array<string, mixed>> */
-    public function products(): array
+    /**
+     * @param array<string, mixed> $filters
+     * @return array{items: array<int, array<string, mixed>>, total: int, page: int, pages: int}
+     */
+    public function products(array $filters = [], int $page = 1, int $perPage = 20): array
     {
-        $items = $this->repo->allProducts();
+        $list = $this->repo->adminProducts($filters, $page, $perPage);
         $images = $this->repo->allProductImagesGrouped();
-        foreach ($items as &$row) {
+        foreach ($list['items'] as &$row) {
             $pid = (int) ($row['id'] ?? 0);
             $row['images'] = $images[$pid] ?? [];
             if (empty($row['thumbnail']) && !empty($row['images'])) {
@@ -120,7 +124,7 @@ final class ShopAdminService
             $row['meta'] = self::resolveProductMeta($row);
         }
         unset($row);
-        return $items;
+        return $list;
     }
 
     /** @param array<string, mixed> $row
@@ -211,6 +215,9 @@ final class ShopAdminService
             'meta_json' => $meta,
             'sort_order' => (int) ($data['sort_order'] ?? 0),
             'thumbnail' => $thumbnail !== '' ? $thumbnail : null,
+            'compat_formtec' => $data['compat_formtec'] ?? ($meta['compat_formtec'] ?? null),
+            'compat_ilabel' => $data['compat_ilabel'] ?? ($meta['compat_ilabel'] ?? null),
+            'compat_anylabel' => $data['compat_anylabel'] ?? ($meta['compat_anylabel'] ?? null),
         ]);
 
         if (array_key_exists('images', $data)) {
@@ -236,10 +243,73 @@ final class ShopAdminService
         $this->repo->deleteProduct($id);
     }
 
-    /** @return array{items: array<int, array<string, mixed>>, total: int, page: int, pages: int, per_page: int} */
-    public function orders(string $status = '', int $page = 1): array
+    public function saveProductCompat(int $id, array $codes): void
     {
-        return $this->repo->paginateOrders($status, $page);
+        if ($id <= 0) {
+            throw new RuntimeException('잘못된 요청입니다.');
+        }
+        $this->repo->updateProductCompat($id, $codes);
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     * @return array{items: array<int, array<string, mixed>>, total: int, page: int, pages: int, per_page: int}
+     */
+    public function orders(array $filters = [], int $page = 1, int $perPage = 20): array
+    {
+        return $this->repo->paginateAdminOrders($filters, $page, $perPage);
+    }
+
+    /** @return array<string, int> */
+    public function orderStatusCounts(array $filters = []): array
+    {
+        return $this->repo->orderStatusCounts($filters);
+    }
+
+    public function orderDetail(int $id): array
+    {
+        $row = $this->repo->findAdminOrder($id);
+        if (!$row) {
+            throw new RuntimeException('주문을 찾을 수 없습니다.');
+        }
+        return $row;
+    }
+
+    /**
+     * @param array<int, int> $ids
+     */
+    public function bulkUpdateOrders(array $ids, array $data): int
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
+        if ($ids === []) {
+            throw new RuntimeException('선택된 주문이 없습니다.');
+        }
+        $updated = 0;
+        foreach ($ids as $id) {
+            $current = $this->repo->findAdminOrder($id);
+            if (!$current) {
+                continue;
+            }
+            $payload = [
+                'status' => (string) ($data['status'] ?? $current['status'] ?? 'pending'),
+                'payment_status' => (string) ($data['payment_status'] ?? $current['payment_status'] ?? 'pending'),
+                'admin_memo' => array_key_exists('admin_memo', $data)
+                    ? trim((string) $data['admin_memo'])
+                    : (string) ($current['admin_memo'] ?? ''),
+                'carrier' => array_key_exists('carrier', $data)
+                    ? trim((string) $data['carrier'])
+                    : (string) ($current['carrier'] ?? ''),
+                'tracking_no' => array_key_exists('tracking_no', $data)
+                    ? trim((string) $data['tracking_no'])
+                    : (string) ($current['tracking_no'] ?? ''),
+            ];
+            if ($payload['status'] === 'shipping' && $payload['tracking_no'] === '') {
+                throw new RuntimeException('배송중 처리 시 송장번호가 필요합니다.');
+            }
+            $this->repo->updateOrder($id, $payload);
+            $updated++;
+        }
+        return $updated;
     }
 
     /** @return array<int, array<string, mixed>> */
@@ -253,12 +323,17 @@ final class ShopAdminService
         if ($id <= 0) {
             throw new RuntimeException('잘못된 요청입니다.');
         }
+        $status = (string) ($data['status'] ?? 'pending');
+        $tracking = trim((string) ($data['tracking_no'] ?? ''));
+        if ($status === 'shipping' && $tracking === '') {
+            throw new RuntimeException('배송중 처리 시 송장번호가 필요합니다.');
+        }
         $this->repo->updateOrder($id, [
-            'status' => (string) ($data['status'] ?? 'pending'),
+            'status' => $status,
             'payment_status' => (string) ($data['payment_status'] ?? 'pending'),
             'admin_memo' => trim((string) ($data['admin_memo'] ?? '')),
             'carrier' => trim((string) ($data['carrier'] ?? '')),
-            'tracking_no' => trim((string) ($data['tracking_no'] ?? '')),
+            'tracking_no' => $tracking,
         ]);
     }
 
@@ -357,6 +432,23 @@ final class ShopAdminService
             'hidden' => '숨김',
             default => $status,
         };
+    }
+
+    public static function paymentStatusLabel(string $status): string
+    {
+        return match ($status) {
+            'pending' => '결제대기',
+            'paid' => '결제완료',
+            'failed' => '결제실패',
+            'refunded' => '환불완료',
+            default => $status,
+        };
+    }
+
+    /** @return array<int, string> */
+    public static function carriers(): array
+    {
+        return ['CJ대한통운', '우체국택배', '한진택배', '롯데택배', '로젠택배', '대신택배', '경동택배', 'GS25편의점택배', 'CU편의점택배'];
     }
 }
 

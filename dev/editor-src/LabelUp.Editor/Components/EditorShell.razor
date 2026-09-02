@@ -1,3 +1,5 @@
+@using System.Globalization
+@using System.Text.Json
 @using LabelUp.Editor.Rendering
 @using LabelUp.Editor.Services
 @using Microsoft.JSInterop
@@ -6,13 +8,15 @@
 @inject HistoryService History
 @inject FontCatalog Fonts
 @inject PaperCatalog Papers
+@inject TemplateCatalog Themes
 @inject ExternalImportService ExternalImport
 @inject EditorCloudStorage Cloud
 @inject NavigationManager Nav
+@inject HttpClient Http
 @inject IJSRuntime Js
 @implements IDisposable
 
-<div class="ed" data-ed-root>
+<div class="ed @(Session.TopBarPinned ? "is-topbar-pinned" : "is-topbar-auto")" data-ed-root>
   <TopBar />
   <div class="ed__body" data-ed-body>
     <div class="ed__workspace" data-ed-workspace>
@@ -35,13 +39,18 @@
   </div>
   <ImportFab />
   <PaperPickerDialog />
+  <ThemePickerDialog />
   <PaperMakerDialog />
   <PaperMapDialog />
   <DataManagerDialog />
   <PrintPreviewDialog />
   <InsertDialog />
   <VendorImportDialog />
+  <VendorPickerDialog />
   <ShapePickerDialog />
+  <LabiAiDialog />
+  <LabelShopDialog />
+  <ProjectPickerDialog />
   <TutorialHost />
 </div>
 
@@ -63,8 +72,18 @@
             if (savedMap is { Entries.Count: > 0 })
                 Papers.ReplaceMap(savedMap);
 
-            var bootFromQuery = TryApplyPaperFromQuery();
-            if (!bootFromQuery)
+            var pageQuery = await ReadPageQueryAsync();
+            var projectLoaded = await TryLoadProjectFromQueryAsync(pageQuery);
+            if (projectLoaded)
+            {
+                try { await Js.InvokeVoidAsync("labelUpEditor.takePendingDocument"); } catch { }
+            }
+            var themeApplied = !projectLoaded && await TryApplyTemplateFromQueryAsync(pageQuery);
+            var pendingDocApplied = !projectLoaded && !themeApplied && await TryApplyPendingDocumentAsync(pageQuery);
+            var wantVendor = pageQuery.ContainsKey("vendor") || pageQuery.ContainsKey("vendorImport");
+            var bootFromQuery = !projectLoaded && !themeApplied && !pendingDocApplied && !wantVendor && TryApplyPaperFromQuery(pageQuery);
+            var clipartApplied = !projectLoaded && !pendingDocApplied && !wantVendor && await TryApplyClipartFromQueryAsync(pageQuery);
+            if (!projectLoaded && !themeApplied && !pendingDocApplied && !wantVendor && !bootFromQuery && !clipartApplied)
             {
                 var restored = await TryRestoreCloudWorkspaceAsync();
                 if (!restored)
@@ -98,6 +117,7 @@
             if (workspace?.Document is null) return false;
 
             Session.ReplaceDocument(workspace.Document);
+            Session.WorkspaceId = workspace.Id;
             Session.Dirty = false;
             Session.DataPanelVisible = workspace.Document.Data is { RowCount: > 0 };
 
@@ -132,6 +152,8 @@
             Session.PanY = py;
         if (ui.TryGetProperty("showGrid", out var grid) && (grid.ValueKind is System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False))
             Session.ShowGrid = grid.GetBoolean();
+        if (ui.TryGetProperty("topBarPinned", out var tbp) && (tbp.ValueKind is System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False))
+            Session.TopBarPinned = tbp.GetBoolean();
         if (ui.TryGetProperty("propsTab", out var tab) && tab.ValueKind == System.Text.Json.JsonValueKind.String)
             Session.PropsTab = tab.GetString() ?? Session.PropsTab;
         if (ui.TryGetProperty("propsMinimized", out var pm) && (pm.ValueKind is System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False))
@@ -148,10 +170,201 @@
             Session.LabelIndex = Math.Max(0, label);
     }
 
-    private bool TryApplyPaperFromQuery()
+    private async Task<Dictionary<string, string>> ReadPageQueryAsync()
     {
-        var uri = Nav.ToAbsoluteUri(Nav.Uri);
-        var q = ParseQuery(uri.Query);
+        var map = ParseQuery(Nav.ToAbsoluteUri(Nav.Uri).Query);
+        try
+        {
+            var search = await Js.InvokeAsync<string>("labelUpEditor.pageQuery");
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                foreach (var kv in ParseQuery(search))
+                    map[kv.Key] = kv.Value;
+            }
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("페이지 쿼리 읽기 실패: " + ex.Message);
+        }
+        return map;
+    }
+
+    private async Task<bool> TryLoadProjectFromQueryAsync(Dictionary<string, string>? q = null)
+    {
+        q ??= await ReadPageQueryAsync();
+        if (!q.TryGetValue("project", out var raw) && !q.TryGetValue("workspace", out raw))
+            return false;
+        if (!int.TryParse(raw, out var id) || id <= 0)
+            return false;
+        try
+        {
+            if (!await Cloud.IsLoggedInAsync())
+            {
+                Session.Status = "로그인하면 저장된 작업을 이어서 편집할 수 있어요";
+                return false;
+            }
+            var workspace = await Cloud.LoadWorkspaceAsync(id);
+            if (workspace?.Document is null)
+            {
+                Session.Status = "저장된 작업을 찾지 못했습니다";
+                return false;
+            }
+            Session.ReplaceDocument(workspace.Document);
+            Session.Document.EnsurePagesForData();
+            Session.WorkspaceId = workspace.Id > 0 ? workspace.Id : id;
+            Session.Dirty = false;
+            Session.DataPanelVisible = workspace.Document.Data is { RowCount: > 0 };
+            Session.DataPanelExpanded = Session.DataPanelVisible;
+            if (workspace.Ui is { ValueKind: System.Text.Json.JsonValueKind.Object } ui)
+            {
+                ApplySessionUi(ui);
+                if (ui.TryGetProperty("layout", out var layout) && layout.ValueKind == System.Text.Json.JsonValueKind.Object)
+                    _pendingUiLayout = layout;
+                else
+                    _pendingUiLayout = ui;
+            }
+            Session.Status = string.IsNullOrWhiteSpace(workspace.Title)
+                ? "저장된 작업을 불러왔습니다"
+                : $"「{workspace.Title}」을(를) 불러왔습니다";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("프로젝트 불러오기 실패: " + ex.Message);
+            Session.Status = "저장된 작업을 불러오지 못했습니다";
+            return false;
+        }
+    }
+
+    private async Task<bool> TryApplyPendingDocumentAsync(Dictionary<string, string>? q = null)
+    {
+        q ??= await ReadPageQueryAsync();
+        var want = q.ContainsKey("labiDoc") || q.ContainsKey("labidoc");
+        try
+        {
+            var pending = await Js.InvokeAsync<PendingDocumentDto>("labelUpEditor.takePendingDocument");
+            if (pending is null || string.IsNullOrWhiteSpace(pending.Json))
+                return false;
+            var doc = LabelDocumentJson.Parse(pending.Json);
+            doc.EnsureStructure();
+            doc.EnsurePagesForData();
+            Session.ReplaceDocument(doc);
+            Session.Dirty = false;
+            Session.DataPanelVisible = doc.Data is { RowCount: > 0 };
+            Session.DataPanelExpanded = Session.DataPanelVisible;
+            Session.Status = string.IsNullOrWhiteSpace(pending.Title)
+                ? "라비가 만든 데이터 템플릿으로 편집을 시작합니다"
+                : $"「{pending.Title}」 데이터 템플릿을 불러왔습니다";
+            Session.Notify();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("대기 문서 적용 실패: " + ex.Message);
+            return want && false;
+        }
+    }
+
+    private async Task<bool> TryApplyPendingVendorAsync(Dictionary<string, string>? q = null)
+    {
+        q ??= await ReadPageQueryAsync();
+        var want = q.ContainsKey("vendor") || q.ContainsKey("vendorImport");
+        if (!want) return false;
+        try
+        {
+            var pending = await Js.InvokeAsync<PendingVendorDto>("labelUpEditor.takePendingVendorFile");
+            if (pending is null || string.IsNullOrWhiteSpace(pending.DataUrl))
+            {
+                Session.Status = "타사 포맷 파일을 찾지 못했습니다";
+                Session.Notify();
+                return false;
+            }
+            var bytes = DecodeDataUrl(pending.DataUrl);
+            if (bytes is not { Length: > 16 })
+            {
+                Session.Status = "타사 포맷 파일이 비어 있습니다";
+                Session.Notify();
+                return false;
+            }
+            var name = string.IsNullOrWhiteSpace(pending.FileName) ? "vendor-import" : pending.FileName!;
+            await OnVendorFileDropped(name, bytes);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("대기 타사포맷 적용 실패: " + ex.Message);
+            Session.Status = "타사 포맷을 불러오지 못했습니다";
+            Session.Notify();
+            return false;
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnVendorFileFromLabi(string fileName, string dataUrl)
+    {
+        try
+        {
+            var bytes = DecodeDataUrl(dataUrl);
+            if (bytes is not { Length: > 16 })
+            {
+                Session.Status = "타사 포맷 파일이 비어 있습니다";
+                Session.Notify();
+                return;
+            }
+            await OnVendorFileDropped(string.IsNullOrWhiteSpace(fileName) ? "vendor-import" : fileName, bytes);
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error("라비 타사포맷 변환 실패", ex);
+            Session.Status = "타사 포맷 변환 실패: " + ex.Message;
+            Session.Notify();
+        }
+    }
+
+    private static byte[] DecodeDataUrl(string? dataUrl)
+    {
+        if (string.IsNullOrWhiteSpace(dataUrl)) return [];
+        var raw = dataUrl.Trim();
+        var comma = raw.IndexOf(',');
+        if (raw.StartsWith("data:", StringComparison.OrdinalIgnoreCase) && comma > 0)
+            raw = raw[(comma + 1)..];
+        try { return Convert.FromBase64String(raw); }
+        catch { return []; }
+    }
+
+    private async Task<bool> TryApplyTemplateFromQueryAsync(Dictionary<string, string>? q = null)
+    {
+        q ??= ParseQuery(Nav.ToAbsoluteUri(Nav.Uri).Query);
+        if (!q.TryGetValue("template", out var key) && !q.TryGetValue("theme", out key))
+            return false;
+        key = (key ?? "").Trim();
+        if (key.Length == 0) return false;
+
+        try
+        {
+            var doc = await Themes.LoadDocumentAsync(key);
+            if (doc is null)
+            {
+                Session.Status = "템플릿을 불러오지 못했습니다";
+                return false;
+            }
+            Session.ReplaceDocument(doc);
+            Session.Dirty = false;
+            Session.DataPanelVisible = false;
+            Session.Status = $"「{doc.Name}」 템플릿으로 편집을 시작합니다";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("템플릿 쿼리 적용 실패: " + ex.Message);
+            Session.Status = "템플릿을 불러오지 못했습니다";
+            return false;
+        }
+    }
+
+    private bool TryApplyPaperFromQuery(Dictionary<string, string>? q = null)
+    {
+        q ??= ParseQuery(Nav.ToAbsoluteUri(Nav.Uri).Query);
 
         string? Get(string key) =>
             q.TryGetValue(key, out var v) && !string.IsNullOrWhiteSpace(v) ? v : null;
@@ -192,6 +405,155 @@
         return true;
     }
 
+    private async Task<bool> TryApplyClipartFromQueryAsync(Dictionary<string, string>? q = null)
+    {
+        q ??= await ReadPageQueryAsync();
+        string? src = null;
+        string? title = null;
+        var fillLabel = IsFillFit(q.TryGetValue("fit", out var fitQ) ? fitQ : null);
+        if (q.TryGetValue("clipart", out var clip) && !string.IsNullOrWhiteSpace(clip))
+            src = clip.Trim();
+        else if (q.TryGetValue("img", out var imgSrc) && !string.IsNullOrWhiteSpace(imgSrc))
+            src = imgSrc.Trim();
+        if (q.TryGetValue("name", out var n) && !string.IsNullOrWhiteSpace(n))
+            title = n;
+
+        if (string.IsNullOrWhiteSpace(src))
+        {
+            try
+            {
+                var pending = await Js.InvokeAsync<PendingClipartDto>("labelUpEditor.takePendingClipart");
+                if (pending is not null && !string.IsNullOrWhiteSpace(pending.Url))
+                {
+                    src = pending.Url;
+                    if (string.IsNullOrWhiteSpace(title) && !string.IsNullOrWhiteSpace(pending.Title))
+                        title = pending.Title;
+                    if (!fillLabel)
+                        fillLabel = IsFillFit(pending.Fit);
+                }
+            }
+            catch (Exception ex)
+            {
+                EditorLog.Warn("대기 클립아트 읽기 실패: " + ex.Message);
+            }
+        }
+        else
+        {
+            try
+            {
+                var pending = await Js.InvokeAsync<PendingClipartDto>("labelUpEditor.takePendingClipart");
+                if (pending is not null && !fillLabel)
+                    fillLabel = IsFillFit(pending.Fit);
+            }
+            catch { }
+        }
+
+        src = (src ?? "").Trim();
+        if (src.Length == 0) return false;
+
+        var dataUrl = await FetchImageAsDataUrlAsync(src);
+        if (string.IsNullOrEmpty(dataUrl))
+        {
+            Session.Status = "클립아트 이미지를 불러오지 못했습니다";
+            return false;
+        }
+
+        if (!q.ContainsKey("paper") && !q.ContainsKey("paperNo") && !q.ContainsKey("w") && !q.ContainsKey("width"))
+        {
+            var doc = LabelDocument.CreateBlank();
+            if (!string.IsNullOrWhiteSpace(title))
+                doc.Name = title!;
+            Session.ReplaceDocument(doc);
+        }
+
+        Session.Document.EnsureStructure();
+        Session.CurrentCell.Objects.Clear();
+        PlaceLabiImage(dataUrl, fillLabel);
+        if (!string.IsNullOrWhiteSpace(title))
+            Session.Document.Name = title!;
+        Session.Dirty = false;
+        Session.DataPanelVisible = false;
+        Session.Status = fillLabel ? "라비 템플릿으로 편집을 시작합니다" : "AI 클립아트로 편집을 시작합니다";
+        Session.Notify();
+        return true;
+    }
+
+    private static bool IsFillFit(string? fit)
+        => string.Equals(fit?.Trim(), "cover", StringComparison.OrdinalIgnoreCase)
+           || string.Equals(fit?.Trim(), "template", StringComparison.OrdinalIgnoreCase)
+           || string.Equals(fit?.Trim(), "fill", StringComparison.OrdinalIgnoreCase);
+
+    private void PlaceLabiImage(string dataUrl, bool fillLabel)
+    {
+        var pw = Math.Max(10f, Session.Document.WidthMm);
+        var ph = Math.Max(10f, Session.Document.HeightMm);
+        DesignObject img;
+        if (fillLabel)
+        {
+            img = DesignObject.CreateDefault(ObjectType.Image, 0, 0);
+            img.Width = pw;
+            img.Height = ph;
+            img.ImageFit = "cover";
+        }
+        else
+        {
+            var size = Math.Min(pw, ph) * 0.72f;
+            img = DesignObject.CreateDefault(ObjectType.Image, (pw - size) / 2f, (ph - size) / 2f);
+            img.Width = size;
+            img.Height = size;
+        }
+        img.Fill = "transparent";
+        img.StrokeWidth = 0;
+        img.ImageData = dataUrl;
+        Session.AddObject(img);
+    }
+
+    private string ResolvePublicUrl(string src)
+    {
+        if (string.IsNullOrWhiteSpace(src)) return src;
+        if (src.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) return src;
+        if (Uri.TryCreate(src, UriKind.Absolute, out _)) return src;
+        var origin = new Uri(Nav.BaseUri).GetLeftPart(UriPartial.Authority);
+        return src.StartsWith('/') ? origin + src : origin + "/" + src.TrimStart('/');
+    }
+
+    private async Task<string?> FetchImageAsDataUrlAsync(string src)
+    {
+        try
+        {
+            if (src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase))
+                return src;
+
+            var resolved = ResolvePublicUrl(src);
+            try
+            {
+                var viaJs = await Js.InvokeAsync<string>("labelUpEditor.fetchImageDataUrl", resolved);
+                if (!string.IsNullOrWhiteSpace(viaJs) && viaJs.StartsWith("data:image", StringComparison.OrdinalIgnoreCase))
+                    return viaJs;
+            }
+            catch (Exception ex)
+            {
+                EditorLog.Warn("클립아트 JS 로드 실패: " + ex.Message);
+            }
+
+            using var res = await Http.GetAsync(resolved);
+            if (!res.IsSuccessStatusCode) return null;
+            var bytes = await res.Content.ReadAsByteArrayAsync();
+            if (bytes.Length is 0 or > 8 * 1024 * 1024) return null;
+            var mime = res.Content.Headers.ContentType?.MediaType;
+            if (string.IsNullOrWhiteSpace(mime) || !mime.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+                mime = src.Contains(".jpg", StringComparison.OrdinalIgnoreCase) || src.Contains(".jpeg", StringComparison.OrdinalIgnoreCase)
+                    ? "image/jpeg"
+                    : "image/png";
+            return $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("클립아트 이미지 로드 실패: " + ex.Message);
+            return null;
+        }
+    }
+
     private static Dictionary<string, string> ParseQuery(string query)
     {
         var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -217,7 +579,9 @@
             _self = DotNetObjectReference.Create(this);
             try { await Js.InvokeVoidAsync("labelUpEditor.bindHotkeys", _self); } catch { }
             try { await Js.InvokeVoidAsync("labelUpEditor.bindVendorDrop", "[data-ed-workspace]", _self); } catch { }
+            try { await Js.InvokeVoidAsync("labelUpEditor.bindLabi", _self); } catch { }
             try { await Js.InvokeVoidAsync("labelUpEditor.hideErrorUi"); } catch { }
+            try { await TryApplyPendingVendorAsync(); } catch { }
         }
 
         if (_panelsReady) return;
@@ -290,6 +654,232 @@
         if (Session.SelectedIds.Count == 0) return;
         History.Push(Session.Document);
         Session.DeleteSelection();
+    }
+
+    [JSInvokable]
+    public async Task ApplyLabiProduct(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json);
+            var root = doc.RootElement;
+            var sku = ReadString(root, "sku", "paper", "paperNo", "paper_no");
+            var name = ReadString(root, "name");
+            var shape = ReadString(root, "shape");
+            var w = ReadFloat(root, "width_mm", "widthMm", "w", "width");
+            var h = ReadFloat(root, "height_mm", "heightMm", "h", "height");
+            var labels = ReadInt(root, "labels_per_sheet", "labelsPerSheet", "labels");
+
+            await Papers.EnsureLoadedAsync();
+            PaperSpec? paper = null;
+            if (!string.IsNullOrWhiteSpace(sku))
+                paper = Papers.Find(sku);
+            if (paper is null && w is > 0 && h is > 0)
+                paper = Papers.FindBestMatch(w.Value, h.Value, labels)
+                        ?? Papers.CreateFromSize(w.Value, h.Value, labels ?? 1, shape, name);
+            if (paper is null)
+            {
+                Session.Status = "추천 상품 규격을 적용하지 못했습니다";
+                Session.Notify();
+                return;
+            }
+
+            History.Push(Session.Document);
+            Session.ApplyPaper(paper);
+            if (!string.IsNullOrWhiteSpace(name)
+                && (string.IsNullOrWhiteSpace(Session.Document.Name)
+                    || Session.Document.Name == "새 라벨 디자인"))
+                Session.Document.Name = name!;
+            Session.Status = $"라비 추천 규격 「{paper.Name}」을 적용했습니다";
+            Session.CloseDialog();
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("라비 상품 적용 실패: " + ex.Message);
+            Session.Status = "추천 상품을 적용하지 못했습니다";
+            Session.Notify();
+        }
+    }
+
+    [JSInvokable]
+    public async Task ApplyLabiClipart(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json);
+            var root = doc.RootElement;
+            var src = ReadString(root, "url", "src", "image") ?? "";
+            var title = ReadString(root, "title", "name");
+            if (string.IsNullOrWhiteSpace(src))
+            {
+                Session.Status = "클립아트 이미지를 찾지 못했습니다";
+                Session.Notify();
+                return;
+            }
+
+            var dataUrl = await FetchImageAsDataUrlAsync(src);
+            if (string.IsNullOrEmpty(dataUrl))
+            {
+                Session.Status = "클립아트 이미지를 불러오지 못했습니다";
+                Session.Notify();
+                return;
+            }
+
+            History.Push(Session.Document);
+            Session.Document.EnsureStructure();
+            var fillLabel = IsFillFit(ReadString(root, "fit", "mode"));
+            if (!fillLabel)
+            {
+                var pw = Math.Max(10f, Session.Document.WidthMm);
+                var ph = Math.Max(10f, Session.Document.HeightMm);
+                var size = Math.Min(pw, ph) * (Session.CurrentCell.Objects.Count == 0 ? 0.62f : 0.42f);
+                var img = DesignObject.CreateDefault(ObjectType.Image, (pw - size) / 2f, (ph - size) / 2f);
+                img.Width = size;
+                img.Height = size;
+                img.Fill = "transparent";
+                img.StrokeWidth = 0;
+                img.ImageData = dataUrl;
+                Session.AddObject(img);
+            }
+            else
+            {
+                PlaceLabiImage(dataUrl, true);
+            }
+            Session.Status = string.IsNullOrWhiteSpace(title)
+                ? "라비 클립아트를 편집기에 넣었습니다"
+                : $"「{title}」 클립아트를 편집기에 넣었습니다";
+            Session.CloseDialog();
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("라비 클립아트 적용 실패: " + ex.Message);
+            Session.Status = "클립아트를 적용하지 못했습니다";
+            Session.Notify();
+        }
+    }
+
+    [JSInvokable]
+    public async Task ApplyLabiTemplate(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json);
+            var root = doc.RootElement;
+            var src = ReadString(root, "url", "src", "image") ?? "";
+            var title = ReadString(root, "title", "name");
+            if (string.IsNullOrWhiteSpace(src))
+            {
+                Session.Status = "템플릿 이미지를 찾지 못했습니다";
+                Session.Notify();
+                return;
+            }
+
+            var dataUrl = await FetchImageAsDataUrlAsync(src);
+            if (string.IsNullOrEmpty(dataUrl))
+            {
+                Session.Status = "템플릿 이미지를 불러오지 못했습니다";
+                Session.Notify();
+                return;
+            }
+
+            var w = ReadFloat(root, "width_mm", "widthMm", "w", "width");
+            var h = ReadFloat(root, "height_mm", "heightMm", "h", "height");
+            History.Push(Session.Document);
+            if (w is > 0 && h is > 0)
+            {
+                await Papers.EnsureLoadedAsync();
+                var paper = Papers.FindBestMatch(w.Value, h.Value, 1)
+                            ?? Papers.CreateFromSize(w.Value, h.Value, 1, ReadString(root, "shape"), title);
+                Session.ApplyPaper(paper);
+            }
+
+            Session.Document.EnsureStructure();
+            Session.CurrentCell.Objects.Clear();
+            PlaceLabiImage(dataUrl, true);
+            if (!string.IsNullOrWhiteSpace(title))
+                Session.Document.Name = title!;
+            Session.Status = string.IsNullOrWhiteSpace(title)
+                ? "라비 템플릿을 편집기에 넣었습니다"
+                : $"「{title}」 템플릿으로 편집을 시작합니다";
+            Session.CloseDialog();
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("라비 템플릿 적용 실패: " + ex.Message);
+            Session.Status = "템플릿을 적용하지 못했습니다";
+            Session.Notify();
+        }
+    }
+
+    [JSInvokable]
+    public Task ApplyLabiDocument(string json)
+    {
+        try
+        {
+            var doc = LabelDocumentJson.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json);
+            doc.EnsureStructure();
+            doc.EnsurePagesForData();
+            History.Push(Session.Document);
+            Session.ReplaceDocument(doc);
+            Session.Dirty = true;
+            Session.DataPanelVisible = doc.Data is { RowCount: > 0 };
+            Session.DataPanelExpanded = Session.DataPanelVisible;
+            Session.Status = string.IsNullOrWhiteSpace(doc.Name)
+                ? "라비 데이터 템플릿을 편집기에 넣었습니다"
+                : $"「{doc.Name}」 데이터 템플릿을 적용했습니다";
+            Session.CloseDialog();
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("라비 문서 적용 실패: " + ex.Message);
+            Session.Status = "데이터 템플릿을 적용하지 못했습니다";
+            Session.Notify();
+        }
+        return Task.CompletedTask;
+    }
+
+    private static string? ReadString(JsonElement el, params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            if (!el.TryGetProperty(key, out var p)) continue;
+            if (p.ValueKind == JsonValueKind.String)
+            {
+                var s = p.GetString();
+                if (!string.IsNullOrWhiteSpace(s)) return s;
+            }
+        }
+        return null;
+    }
+
+    private static float? ReadFloat(JsonElement el, params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            if (!el.TryGetProperty(key, out var p)) continue;
+            if (p.ValueKind == JsonValueKind.Number && p.TryGetSingle(out var n) && n > 0)
+                return n;
+            if (p.ValueKind == JsonValueKind.String
+                && float.TryParse(p.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var s)
+                && s > 0)
+                return s;
+        }
+        return null;
+    }
+
+    private static int? ReadInt(JsonElement el, params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            if (!el.TryGetProperty(key, out var p)) continue;
+            if (p.ValueKind == JsonValueKind.Number && p.TryGetInt32(out var n) && n > 0)
+                return n;
+            if (p.ValueKind == JsonValueKind.String
+                && int.TryParse(p.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var s)
+                && s > 0)
+                return s;
+        }
+        return null;
     }
 
     public void Dispose() => _self?.Dispose();

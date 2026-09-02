@@ -145,6 +145,9 @@ CREATE TABLE IF NOT EXISTS shop_products (
     thumbnail VARCHAR(255) NULL,
     description TEXT NULL,
     meta_json TEXT NULL,
+    compat_formtec VARCHAR(80) NULL,
+    compat_ilabel VARCHAR(80) NULL,
+    compat_anylabel VARCHAR(80) NULL,
     sort_order INT UNSIGNED NOT NULL DEFAULT 0,
     created_at DATETIME NULL,
     updated_at DATETIME NULL,
@@ -499,4 +502,38 @@ CREATE TABLE IF NOT EXISTS user_editor_workspaces (
     updated_at DATETIME NULL,
     UNIQUE KEY uk_user_editor_workspace_user (user_id),
     KEY idx_user_editor_workspaces_updated (updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS user_ai_cliparts (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    title VARCHAR(200) NOT NULL DEFAULT '',
+    prompt TEXT NULL,
+    image_url VARCHAR(500) NOT NULL,
+    file_name VARCHAR(180) NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    KEY idx_user_ai_cliparts_user (user_id, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS label_templates (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    slug VARCHAR(80) NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    tags VARCHAR(255) NULL,
+    description VARCHAR(500) NULL,
+    tone VARCHAR(16) NOT NULL DEFAULT '#7B2840',
+    paper_no VARCHAR(40) NULL,
+    paper_w_mm DECIMAL(8,2) NOT NULL DEFAULT 70.00,
+    paper_h_mm DECIMAL(8,2) NOT NULL DEFAULT 36.00,
+    paper_shape VARCHAR(20) NOT NULL DEFAULT 'rect',
+    document_json LONGTEXT NOT NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uk_label_templates_slug (slug),
+    KEY idx_label_templates_cat (category, is_active, sort_order),
+    KEY idx_label_templates_active (is_active, sort_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;

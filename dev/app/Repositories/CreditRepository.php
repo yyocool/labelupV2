@@ -233,6 +233,45 @@ final class CreditRepository extends BaseModel
         return ['items' => $items, 'total' => $total, 'page' => $page, 'pages' => max(1, (int) ceil($total / $perPage)), 'per_page' => $perPage];
     }
 
+    /** @return array{items: array, total: int, page: int, pages: int, per_page: int} */
+    public function adminGrants(?int $userId = null, int $page = 1, int $perPage = 20): array
+    {
+        $page = max(1, $page);
+        $perPage = max(1, min(100, $perPage));
+        $offset = ($page - 1) * $perPage;
+        $where = 't.source = \'admin\' AND t.amount > 0';
+        $params = [];
+        if ($userId !== null && $userId > 0) {
+            $where .= ' AND t.user_id = :user_id';
+            $params['user_id'] = $userId;
+        }
+        $items = $this->fetchAll(
+            "SELECT t.id, t.user_id, t.amount, t.balance_after, t.tx_type, t.source, t.description, t.admin_id, t.created_at,
+                    u.email AS user_email, p.name AS user_name,
+                    a.email AS admin_email, ap.name AS admin_name
+             FROM credit_transactions t
+             INNER JOIN users u ON u.id = t.user_id
+             LEFT JOIN user_profiles p ON p.user_id = u.id AND p.deleted_at IS NULL
+             LEFT JOIN users a ON a.id = t.admin_id
+             LEFT JOIN user_profiles ap ON ap.user_id = a.id AND ap.deleted_at IS NULL
+             WHERE {$where}
+             ORDER BY t.id DESC
+             LIMIT {$perPage} OFFSET {$offset}",
+            $params
+        );
+        $total = (int) ($this->fetchOne(
+            "SELECT COUNT(*) AS cnt FROM credit_transactions t WHERE {$where}",
+            $params
+        )['cnt'] ?? 0);
+        return [
+            'items' => $items,
+            'total' => $total,
+            'page' => $page,
+            'pages' => max(1, (int) ceil($total / $perPage)),
+            'per_page' => $perPage,
+        ];
+    }
+
     /** @return array<int, array<string, mixed>> */
     public function csLogsForUser(int $userId): array
     {
@@ -284,11 +323,13 @@ final class CreditRepository extends BaseModel
             $params['search'] = '%' . $search . '%';
         }
         $items = $this->fetchAll(
-            "SELECT u.id, u.email, u.role, u.status, u.created_at, u.last_login_at,
-                    p.name, p.phone, p.company, COALESCE(c.balance, 0) AS credit_balance
+            "SELECT u.id, u.email, u.role, u.status, u.grade_id, u.created_at, u.last_login_at,
+                    p.name, p.phone, p.company, COALESCE(c.balance, 0) AS credit_balance,
+                    g.name AS grade_name, g.color AS grade_color
              FROM users u
              LEFT JOIN user_profiles p ON p.user_id = u.id AND p.deleted_at IS NULL
              LEFT JOIN user_credits c ON c.user_id = u.id
+             LEFT JOIN member_grades g ON g.id = u.grade_id
              WHERE {$where}
              ORDER BY u.id DESC
              LIMIT {$perPage} OFFSET {$offset}",

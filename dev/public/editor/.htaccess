@@ -1,4 +1,4 @@
-DirectoryIndex index.html
+﻿DirectoryIndex index.html
 <IfModule mod_mime.c>
   AddType application/wasm .wasm
   AddType application/octet-stream .dll
@@ -11,3 +11,4 @@ DirectoryIndex index.html
   RewriteRule ^ - [L]
   RewriteRule ^ index.html [L]
 </IfModule>
+

@@ -7,16 +7,22 @@ namespace App\Controllers;
 use App\Middleware\AuthMiddleware;
 use App\Services\AuthService;
 use App\Services\ClipartService;
+use App\Services\LabelTemplateService;
+use App\Services\UserAiClipartService;
 
 final class ContentAdminController extends BaseController
 {
     private AuthService $auth;
     private ClipartService $cliparts;
+    private LabelTemplateService $templates;
+    private UserAiClipartService $userDesigns;
 
     public function __construct()
     {
         $this->auth = new AuthService();
         $this->cliparts = new ClipartService();
+        $this->templates = new LabelTemplateService();
+        $this->userDesigns = new UserAiClipartService();
     }
 
     public function cliparts(): void
@@ -50,6 +56,79 @@ final class ContentAdminController extends BaseController
                 'q' => $q,
                 'category_id' => $categoryId,
                 'tag' => $tag,
+            ],
+        ]);
+    }
+
+    public function userDesigns(): void
+    {
+        $this->requireAdmin();
+
+        $q = trim((string) ($_GET['q'] ?? ''));
+        $userId = (int) ($_GET['user_id'] ?? 0);
+        $status = array_key_exists('status', $_GET)
+            ? trim((string) $_GET['status'])
+            : ($userId > 0 ? '' : 'pending');
+        $dateFrom = trim((string) ($_GET['date_from'] ?? ''));
+        $dateTo = trim((string) ($_GET['date_to'] ?? ''));
+        $page = max(1, (int) ($_GET['page'] ?? 1));
+        if (!in_array($status, ['', 'pending', 'approved', 'rejected'], true)) {
+            $status = 'pending';
+        }
+
+        $filters = [
+            'q' => $q,
+            'user_id' => $userId,
+            'status' => $status,
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
+            'page' => $page,
+            'per_page' => 20,
+        ];
+
+        view('admin/layout', [
+            'contentTemplate' => 'admin/content/user-designs',
+            'pageTitle' => '컨텐츠관리 › 사용자디자인 — 라벨업 관리자',
+            'activeMenu' => 'content-user-designs',
+            'menuGroup' => 'content',
+            'crumbTitle' => '컨텐츠관리 › 사용자디자인',
+            'user' => $this->auth->admin(),
+            'list' => $this->userDesigns->adminList($filters),
+            'stats' => $this->userDesigns->adminStats(),
+            'rejectReasons' => UserAiClipartService::rejectReasons(),
+            'filters' => $filters,
+        ]);
+    }
+
+    public function templates(): void
+    {
+        $this->requireAdmin();
+        $this->templates->ensureSeeded();
+
+        $q = trim((string) ($_GET['q'] ?? ''));
+        $category = trim((string) ($_GET['category'] ?? ''));
+        $page = max(1, (int) ($_GET['page'] ?? 1));
+
+        $list = $this->templates->list([
+            'q' => $q,
+            'category' => $category,
+            'page' => $page,
+            'per_page' => 24,
+            'with_document' => true,
+        ]);
+
+        view('admin/layout', [
+            'contentTemplate' => 'admin/content/templates',
+            'pageTitle' => '컨텐츠관리 › 템플릿관리 — 라벨업 관리자',
+            'activeMenu' => 'content-templates',
+            'menuGroup' => 'content',
+            'crumbTitle' => '컨텐츠관리 › 템플릿관리',
+            'user' => $this->auth->admin(),
+            'list' => $list,
+            'categories' => $this->templates->categories(),
+            'filters' => [
+                'q' => $q,
+                'category' => $category,
             ],
         ]);
     }

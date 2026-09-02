@@ -11,9 +11,11 @@ final class UserRepository extends BaseModel
     public function findById(int $id): ?array
     {
         return $this->fetchOne(
-            'SELECT u.*, p.name, p.phone, p.company, p.avatar, p.locale
+            'SELECT u.*, p.name, p.phone, p.company, p.avatar, p.locale,
+                    g.name AS grade_name, g.slug AS grade_slug, g.color AS grade_color, g.description AS grade_description
              FROM users u
              LEFT JOIN user_profiles p ON p.user_id = u.id AND p.deleted_at IS NULL
+             LEFT JOIN member_grades g ON g.id = u.grade_id
              WHERE u.id = :id AND u.deleted_at IS NULL LIMIT 1',
             ['id' => $id]
         );
@@ -195,6 +197,40 @@ final class UserRepository extends BaseModel
         $this->execute(
             'UPDATE users SET status = :status, updated_at = :now WHERE id = :id AND deleted_at IS NULL',
             ['status' => $status, 'now' => date('Y-m-d H:i:s'), 'id' => $userId]
+        );
+    }
+
+    public function setSuperAdmin(int $userId, bool $isSuper): void
+    {
+        $this->execute(
+            'UPDATE users SET is_super_admin = :flag, updated_at = :now WHERE id = :id AND deleted_at IS NULL',
+            ['flag' => $isSuper ? 1 : 0, 'now' => date('Y-m-d H:i:s'), 'id' => $userId]
+        );
+    }
+
+    public function countSuperAdmins(?int $exceptUserId = null): int
+    {
+        $sql = "SELECT COUNT(*) AS cnt FROM users
+                WHERE deleted_at IS NULL AND role = 'admin' AND is_super_admin = 1 AND status = 'active'";
+        $params = [];
+        if ($exceptUserId) {
+            $sql .= ' AND id != :except_id';
+            $params['except_id'] = $exceptUserId;
+        }
+        $row = $this->fetchOne($sql, $params);
+        return (int) ($row['cnt'] ?? 0);
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function listAdmins(): array
+    {
+        return $this->fetchAll(
+            "SELECT u.id, u.email, u.role, u.status, u.is_super_admin, u.last_login_at, u.created_at,
+                    p.name, p.phone
+             FROM users u
+             LEFT JOIN user_profiles p ON p.user_id = u.id AND p.deleted_at IS NULL
+             WHERE u.deleted_at IS NULL AND u.role = 'admin'
+             ORDER BY u.is_super_admin DESC, u.id ASC"
         );
     }
 }

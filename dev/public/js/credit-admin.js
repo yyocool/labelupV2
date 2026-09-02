@@ -1,16 +1,21 @@
 const CreditAPI = {
-  async post(path, body) {
+  async request(path, options = {}) {
     const res = await fetch(path, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
-      body: JSON.stringify(body),
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+      ...options,
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || data.success === false) {
       throw new Error(data.message || '요청 처리 중 오류가 발생했습니다.');
     }
     return data;
+  },
+  get(path) {
+    return this.request(path);
+  },
+  post(path, body) {
+    return this.request(path, { method: 'POST', body: JSON.stringify(body) });
   },
 };
 
@@ -179,3 +184,144 @@ document.getElementById('creditAdjustForm')?.addEventListener('submit', async (e
     showAdminAlert(err.message, 'error');
   }
 });
+
+function closeNamedModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.hidden = true;
+}
+
+function openNamedModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.hidden = false;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+async function submitCreditGrant(form) {
+  const fd = new FormData(form);
+  const amount = Number(fd.get('amount') || 0);
+  const reason = String(fd.get('reason') || fd.get('description') || '').trim();
+  const userId = Number(fd.get('user_id') || 0);
+  if (!userId) {
+    showAdminAlert('회원을 선택해주세요.', 'error');
+    return;
+  }
+  if (amount <= 0) {
+    showAdminAlert('지급 크레딧은 1 이상이어야 합니다.', 'error');
+    return;
+  }
+  if (!reason) {
+    showAdminAlert('지급 사유를 입력해주세요.', 'error');
+    return;
+  }
+  const submit = form.querySelector('[type=submit]') || document.querySelector('button[form="creditGrantForm"]');
+  if (submit) submit.disabled = true;
+  try {
+    const res = await CreditAPI.post('/api/admin/credit/grant', {
+      user_id: userId,
+      amount,
+      reason,
+    });
+    showAdminAlert(`크레딧이 지급되었습니다. (잔액 ${Number(res.data?.balance || 0).toLocaleString()} C)`, 'success');
+    window.location.reload();
+  } catch (err) {
+    showAdminAlert(err.message, 'error');
+  } finally {
+    if (submit) submit.disabled = false;
+  }
+}
+
+function initCreditGrantUi() {
+  const grantForm = document.getElementById('creditGrantForm');
+  const grantModal = document.getElementById('creditGrantModal');
+  const historyModal = document.getElementById('creditGrantHistoryModal');
+
+  grantForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await submitCreditGrant(grantForm);
+  });
+
+  document.querySelectorAll('[data-close="creditGrantModal"]').forEach((el) => {
+    el.addEventListener('click', () => closeNamedModal('creditGrantModal'));
+  });
+  document.querySelectorAll('[data-close="creditGrantHistoryModal"]').forEach((el) => {
+    el.addEventListener('click', () => closeNamedModal('creditGrantHistoryModal'));
+  });
+
+  document.querySelectorAll('.js-credit-grant').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (!grantForm || !grantModal) return;
+      grantForm.reset();
+      const userId = btn.dataset.userId || '';
+      const email = btn.dataset.userEmail || '';
+      const name = btn.dataset.userName || '';
+      const balance = Number(btn.dataset.balance || 0);
+      const idInput = document.getElementById('creditGrantUserId');
+      if (idInput) idInput.value = userId;
+      const target = document.getElementById('creditGrantTarget');
+      if (target) {
+        target.textContent = `${name ? name + ' · ' : ''}${email} · 현재 ${balance.toLocaleString()} C`;
+      }
+      openNamedModal('creditGrantModal');
+      grantForm.querySelector('[name=amount]')?.focus();
+    });
+  });
+
+  document.querySelectorAll('.js-credit-grant-history').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!historyModal) return;
+      const userId = Number(btn.dataset.userId || 0);
+      const email = btn.dataset.userEmail || '';
+      const name = btn.dataset.userName || '';
+      const title = document.getElementById('creditGrantHistoryTitle');
+      if (title) title.textContent = `${name || email || '회원'} 지급 이력`;
+      const body = document.getElementById('creditGrantHistoryBody');
+      if (body) body.innerHTML = '<p class="admin-muted">이력을 불러오는 중…</p>';
+      openNamedModal('creditGrantHistoryModal');
+      try {
+        const res = await CreditAPI.get(`/api/admin/credit/grants?user_id=${userId}`);
+        const items = res?.data?.items || [];
+        if (!body) return;
+        if (!items.length) {
+          body.innerHTML = '<p class="admin-muted">지급 이력이 없습니다.</p>';
+          return;
+        }
+        body.innerHTML = `
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>일시</th>
+                  <th>지급</th>
+                  <th>지급 후 잔액</th>
+                  <th>지급 사유</th>
+                  <th>처리자</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${items.map((row) => `
+                  <tr>
+                    <td>${escapeHtml(String(row.created_at || '').slice(0, 16))}</td>
+                    <td class="is-plus">+${Number(row.amount || 0).toLocaleString()} C</td>
+                    <td>${Number(row.balance_after || 0).toLocaleString()} C</td>
+                    <td>${escapeHtml(row.description || '')}</td>
+                    <td><small>${escapeHtml(row.admin_email || row.admin_name || '-')}</small></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>`;
+      } catch (err) {
+        if (body) body.innerHTML = `<p class="admin-muted">${escapeHtml(err.message)}</p>`;
+      }
+    });
+  });
+}
+
+initCreditGrantUi();

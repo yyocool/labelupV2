@@ -124,10 +124,11 @@ OPENAI_IMAGE_QUALITY={openai_image_quality}
         f"mkdir -p {REMOTE_ROOT}/storage/{{uploads,designs,pdf,logs,ai-clipart,imports}}",
         f"mkdir -p {REMOTE_ROOT}/public/assets/ai-clipart",
         f"mkdir -p {REMOTE_ROOT}/public/assets/cliparts",
+        f"mkdir -p {REMOTE_ROOT}/public/assets/editor-previews",
         # labelupdev PHP-FPM runs as www-data (php8.1)
-        f"chown -R www-data:www-data {REMOTE_ROOT}/public/assets/ai-clipart {REMOTE_ROOT}/public/assets/cliparts {REMOTE_ROOT}/storage/ai-clipart {REMOTE_ROOT}/storage/imports",
+        f"chown -R www-data:www-data {REMOTE_ROOT}/public/assets/ai-clipart {REMOTE_ROOT}/public/assets/cliparts {REMOTE_ROOT}/public/assets/editor-previews {REMOTE_ROOT}/storage/ai-clipart {REMOTE_ROOT}/storage/imports",
         f"chmod -R 775 {REMOTE_ROOT}/storage",
-        f"chmod 777 {REMOTE_ROOT}/public/assets/ai-clipart {REMOTE_ROOT}/public/assets/cliparts {REMOTE_ROOT}/storage/ai-clipart {REMOTE_ROOT}/storage/imports",
+        f"chmod 777 {REMOTE_ROOT}/public/assets/ai-clipart {REMOTE_ROOT}/public/assets/cliparts {REMOTE_ROOT}/public/assets/editor-previews {REMOTE_ROOT}/storage/ai-clipart {REMOTE_ROOT}/storage/imports",
     ]
     for cmd in cmds:
         run_ssh(ssh, cmd)

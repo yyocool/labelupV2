@@ -22,8 +22,8 @@
       </p>
 
       <div class="ed-preview__actions">
-        <button type="button" class="ed-preview__apply" @onclick="ApplyPage">현재 디자인을 현재 페이지에 적용</button>
-        <button type="button" class="ed-preview__apply" @onclick="ApplyAll">현재 디자인을 전체 라벨에 적용</button>
+        <button type="button" class="ed-preview__apply" @onclick="ApplyPage">현재 페이지적용</button>
+        <button type="button" class="ed-preview__apply" @onclick="ApplyAll">전체라벨 적용</button>
       </div>
 
       <div class="ed-preview__page-wrap">
@@ -58,6 +58,7 @@
         <button type="button" @onclick="NextPage">›</button>
         <button type="button" @onclick="LastPage">»</button>
         <button type="button" class="ed-preview__add" @onclick="AddPage">페이지 추가</button>
+        <button type="button" class="ed-preview__order" @onclick="OrderCurrentLabel">이 라벨 주문</button>
       </div>
     </div>
   }
@@ -144,6 +145,11 @@
         Session.Status = "페이지 추가됨";
         Session.Dirty = true;
         Session.Notify();
+    }
+
+    private void OrderCurrentLabel()
+    {
+        Session.OpenShopBuyNow();
     }
 
     private void ApplyPage()

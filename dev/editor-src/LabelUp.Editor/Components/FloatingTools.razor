@@ -52,22 +52,18 @@
 
     <span class="ed-float-tools__divider" aria-hidden="true"></span>
 
-    <div class="ed-float-tools__group" role="group">
+    <div class="ed-float-tools__group ed-float-tools__group--stack" role="group">
       <button type="button" class="ed-float-tools__paper" data-tut="presets" @onclick="() => Session.OpenDialog(EditorDialog.PaperPicker)">
-        <span class="ed-float-tools__paper-kicker">라벨용지선택</span>
+        <span class="ed-float-tools__paper-kicker">용지선택</span>
         <strong>@Session.Document.Paper.PaperNo</strong>
         <em>@Session.Document.Paper.LabelWidthMm.ToString("0.#")×@Session.Document.Paper.LabelHeightMm.ToString("0.#") mm · @Session.Document.Paper.LabelsPerPage 칸</em>
       </button>
+      <button type="button" class="ed-float-tools__paper" data-tut="themes" @onclick="() => Session.OpenDialog(EditorDialog.ThemePicker)">
+        <span class="ed-float-tools__paper-kicker">템플릿선택</span>
+        <strong>@ThemeTitle</strong>
+        <em>@ThemeMeta</em>
+      </button>
     </div>
-
-    @if (Session.ShowAdminTools)
-    {
-      <span class="ed-float-tools__divider" aria-hidden="true"></span>
-      <div class="ed-float-tools__group ed-float-tools__group--admin" role="group">
-        <button type="button" class="ed-float-tools__admin" @onclick="() => Session.OpenDialog(EditorDialog.PaperMaker)">용지 데이터 만들기</button>
-        <button type="button" class="ed-float-tools__admin" @onclick="() => Session.OpenDialog(EditorDialog.PaperMap)">용지 규격 변환 만들기</button>
-      </div>
-    }
 
     <span class="ed-float-tools__divider" aria-hidden="true"></span>
     <div class="ed-float-tools__dock" data-ed-float-dock data-tut="dock">
@@ -119,6 +115,30 @@
         (ShapeKind.Arrow, "→", "화살표"),
         (ShapeKind.Polygon, "⬠", "정다각형")
     ];
+
+    private string ThemeTitle
+    {
+        get
+        {
+            var name = Session.Document.Name?.Trim();
+            return string.IsNullOrWhiteSpace(name) || name is "새 라벨 디자인" ? "템플릿을 선택하세요" : name;
+        }
+    }
+
+    private string ThemeMeta
+    {
+        get
+        {
+            var paper = Session.Document.Paper;
+            var shape = paper.Shape?.Kind switch
+            {
+                "ellipse" => "원형",
+                "roundrect" => "라운드",
+                _ => "사각형"
+            };
+            return $"{shape} · {paper.LabelWidthMm:0.#}×{paper.LabelHeightMm:0.#} mm";
+        }
+    }
 
     protected override void OnInitialized() => Session.Changed += OnChanged;
     public void Dispose() => Session.Changed -= OnChanged;

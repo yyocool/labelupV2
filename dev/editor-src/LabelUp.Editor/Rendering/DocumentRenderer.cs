@@ -83,7 +83,8 @@ public static class DocumentRenderer
         LabelDocument doc,
         LabelCell cell,
         Func<DesignObject, string>? resolve = null,
-        bool forExport = false)
+        bool forExport = false,
+        Action? afterBackground = null)
     {
         var w = doc.WidthMm;
         var h = doc.HeightMm;
@@ -102,6 +103,7 @@ public static class DocumentRenderer
 
         if (!forExport)
         {
+            afterBackground?.Invoke();
             using var border = new SKPaint
             {
                 Color = new SKColor(0xE5, 0xDD, 0xD3),

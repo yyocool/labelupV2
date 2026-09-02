@@ -49,6 +49,24 @@ final class CreditService
         return $next;
     }
 
+    public function grant(int $userId, int $amount, string $reason, int $adminId): int
+    {
+        if ($amount <= 0) {
+            throw new RuntimeException('지급 크레딧은 1 이상이어야 합니다.');
+        }
+        if ($amount > 1000000) {
+            throw new RuntimeException('한 번에 지급할 수 있는 크레딧은 1,000,000 C까지입니다.');
+        }
+        $reason = trim($reason);
+        if ($reason === '') {
+            throw new RuntimeException('지급 사유를 입력해주세요.');
+        }
+        if (mb_strlen($reason) > 255) {
+            throw new RuntimeException('지급 사유는 255자 이내로 입력해주세요.');
+        }
+        return $this->adjust($userId, $amount, $reason, $adminId, 'earn');
+    }
+
     public static function format(int $amount): string
     {
         return number_format($amount) . ' C';

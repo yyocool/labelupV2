@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Repositories\ShopRepository;
+use RuntimeException;
 
 final class LabiDesignService
 {
@@ -25,15 +26,63 @@ final class LabiDesignService
      *   reply: string,
      *   intent: string,
      *   product: ?array<string, mixed>,
-     *   clipart: ?array{url:string, prompt:string, title:string}
+     *   clipart: ?array{url:string, prompt:string, title:string},
+     *   template: ?array<string, mixed>,
+     *   choices: ?array<int, array{id:string, title:string, desc:string}>,
+     *   usage: ?array{model:?string,prompt_tokens:?int,completion_tokens:?int,total_tokens:?int},
+     *   clipart_id: ?int
      * }
      */
-    public function handle(array $messages): array
+    public function handle(array $messages, ?int $userId = null, string $surface = 'unknown', string $forceIntent = ''): array
     {
         $catalog = $this->buildCatalog();
-        $structured = $this->openai->chatLabelAssist($messages, $catalog);
+        $hasImage = self::messagesHaveImage($messages);
+        $explicit = $this->explicitImageMode($this->lastUserText($messages));
+        $forced = $this->normalizeForceIntent($forceIntent);
+        $officeParser = new OfficeDocumentParser();
+        $officeSheet = null;
+        try {
+            $officeSheet = $officeParser->extractFromMessages($messages);
+        } catch (RuntimeException $e) {
+            if ($forced === 'generate_data_template' || $officeParser->messagesHaveOfficePart($messages)) {
+                throw $e;
+            }
+        }
+
+        if (
+            $officeSheet !== null
+            && $forced !== 'generate_clipart'
+            && $forced !== 'ask_image_mode'
+        ) {
+            return $this->handleOfficeTemplate($messages, $officeSheet, $userId, $surface);
+        }
+
+        $skipAssist = $forced === 'ask_image_mode'
+            || ($hasImage && $forced === '' && $explicit === null);
+
+        $structured = [
+            'intent' => 'chat',
+            'message' => '',
+            'product_id' => null,
+            'search_query' => '',
+            'clipart_prompt' => '',
+            'width_mm' => 0.0,
+            'height_mm' => 0.0,
+        ];
+
+        if (!$skipAssist) {
+            $structured = $this->openai->chatLabelAssist($messages, $catalog);
+        }
 
         $intent = (string) ($structured['intent'] ?? 'chat');
+        if ($forced !== '') {
+            $intent = $forced;
+        } elseif ($explicit !== null) {
+            $intent = $explicit;
+        } elseif ($hasImage && in_array($intent, ['generate_clipart', 'generate_template', 'chat'], true)) {
+            $intent = 'ask_image_mode';
+        }
+
         $reply = trim((string) ($structured['message'] ?? ''));
         if ($reply === '') {
             $reply = '요청을 확인했어요. 조금 더 구체적으로 말씀해 주시면 바로 도와드릴게요.';
@@ -41,8 +90,14 @@ final class LabiDesignService
 
         $product = null;
         $clipart = null;
+        $template = null;
+        $choices = null;
+        $clipartId = null;
 
-        if ($intent === 'recommend_product') {
+        if ($intent === 'ask_image_mode') {
+            $reply = '첨부하신 이미지를 봤어요. 라벨에 넣을 클립아트를 그릴까요, 아니면 완성된 라벨 템플릿을 만들까요?';
+            $choices = self::imageModeChoices();
+        } elseif ($intent === 'recommend_product') {
             $product = $this->resolveProduct($structured, $catalog);
             if ($product === null) {
                 $intent = 'chat';
@@ -58,17 +113,165 @@ final class LabiDesignService
                 $prompt = $this->fallbackClipartPrompt($messages);
             }
             $clipart = $this->openai->generateClipart($prompt);
+            if ($clipart && $userId !== null && $userId > 0) {
+                $saved = (new UserAiClipartService())->saveForUser($userId, $clipart);
+                $clipartId = $saved > 0 ? $saved : null;
+            }
             if (!str_contains($reply, '클립아트') && !str_contains($reply, '이미지')) {
                 $reply .= "\n\n라벨에 넣을 클립아트를 그려 두었어요. 이미지를 눌러 확대해 볼 수 있어요.";
             }
+        } elseif ($intent === 'generate_template') {
+            $prompt = trim((string) ($structured['clipart_prompt'] ?? ''));
+            if ($prompt === '') {
+                $prompt = $this->fallbackTemplatePrompt($messages);
+            } else {
+                $prompt .= ' Full-bleed print-ready label artwork filling the entire canvas edge to edge. No mockup, no table, no torn paper, no watermark, no extra background around the label.';
+            }
+            $image = $this->openai->generateClipart($prompt);
+            $image['title'] = '라비가 만든 라벨 템플릿';
+            if ($image && $userId !== null && $userId > 0) {
+                $saved = (new UserAiClipartService())->saveForUser($userId, $image);
+                $clipartId = $saved > 0 ? $saved : null;
+            }
+            $size = $this->resolveTemplateSize($structured, $catalog);
+            $template = $this->presentTemplate($image, $size['width_mm'], $size['height_mm']);
+            if (!str_contains($reply, '템플릿') && !str_contains($reply, '디자인')) {
+                $reply = '첨부하신 이미지를 참고해 라벨 템플릿을 만들었어요. 바로편집으로 이어서 다듬어 보세요.';
+            }
         }
+
+        $usage = $this->openai->lastUsage();
+        (new AiUsageService())->log([
+            'user_id' => $userId ?? 0,
+            'surface' => $surface,
+            'intent' => $intent,
+            'model' => $usage['model'] ?? null,
+            'prompt_tokens' => $usage['prompt_tokens'] ?? null,
+            'completion_tokens' => $usage['completion_tokens'] ?? null,
+            'total_tokens' => $usage['total_tokens'] ?? null,
+            'has_image' => self::messagesHaveImage($messages),
+            'clipart_id' => $clipartId,
+            'status' => 'ok',
+        ]);
 
         return [
             'reply' => $reply,
             'intent' => $intent,
             'product' => $product,
             'clipart' => $clipart,
+            'template' => $template,
+            'choices' => $choices,
+            'usage' => $usage,
+            'clipart_id' => $clipartId,
         ];
+    }
+
+    /** @return array<int, array{id:string, title:string, desc:string}> */
+    public static function imageModeChoices(): array
+    {
+        return [
+            [
+                'id' => 'generate_clipart',
+                'title' => '클립아트 그리기',
+                'desc' => '라벨 위에 올릴 일러스트만 그려 드려요',
+            ],
+            [
+                'id' => 'generate_template',
+                'title' => '템플릿 만들기',
+                'desc' => '완성된 라벨 디자인으로 편집기를 열어 드려요',
+            ],
+        ];
+    }
+
+    /**
+     * @param array<int, array{role:string, content:mixed}> $messages
+     * @param array{source_name:string, source_kind:string, columns:array<int,string>, rows:array<int,array<int,string>>, summary:string} $sheet
+     * @return array<string, mixed>
+     */
+    private function handleOfficeTemplate(array $messages, array $sheet, ?int $userId, string $surface): array
+    {
+        $ai = null;
+        try {
+            $ai = $this->openai->suggestDataLabelLayout(
+                $sheet['source_name'],
+                $sheet['columns'],
+                $sheet['rows'],
+                $this->lastUserText($messages)
+            );
+        } catch (RuntimeException) {
+            $ai = null;
+        }
+
+        $builder = new LabiDataTemplateService();
+        $built = $builder->build($sheet, $this->lastUserText($messages), $ai);
+        $template = $builder->present($built, $sheet, $userId);
+        $reply = (string) $built['message'];
+
+        $usage = $this->openai->lastUsage();
+        (new AiUsageService())->log([
+            'user_id' => $userId ?? 0,
+            'surface' => $surface,
+            'intent' => 'generate_data_template',
+            'model' => $usage['model'] ?? null,
+            'prompt_tokens' => $usage['prompt_tokens'] ?? null,
+            'completion_tokens' => $usage['completion_tokens'] ?? null,
+            'total_tokens' => $usage['total_tokens'] ?? null,
+            'has_image' => false,
+            'clipart_id' => null,
+            'status' => 'ok',
+        ]);
+
+        return [
+            'reply' => $reply,
+            'intent' => 'generate_data_template',
+            'product' => null,
+            'clipart' => null,
+            'template' => $template,
+            'choices' => null,
+            'usage' => $usage,
+            'clipart_id' => null,
+        ];
+    }
+
+    private function normalizeForceIntent(string $intent): string
+    {
+        $intent = trim($intent);
+        return in_array($intent, ['generate_clipart', 'generate_template', 'generate_data_template', 'ask_image_mode'], true)
+            ? $intent
+            : '';
+    }
+
+    /** @param array<int, array{role:string, content:mixed}> $messages */
+    public function explicitImageMode(string $text): ?string
+    {
+        $text = trim($text);
+        if ($text === '') {
+            return null;
+        }
+        if (preg_match('/템플릿|라벨\s*디자인|전체\s*라벨|라벨지\s*만들|디자인으로\s*만들/u', $text)) {
+            return 'generate_template';
+        }
+        if (preg_match('/그려|그림|클립아트|일러스트|아이콘|로고|캐릭터|스케치|드로잉/u', $text)) {
+            return 'generate_clipart';
+        }
+        return null;
+    }
+
+    /** @param array<int, array{role:string, content:mixed}> $messages */
+    public static function messagesHaveImage(array $messages): bool
+    {
+        foreach ($messages as $item) {
+            $content = $item['content'] ?? null;
+            if (!is_array($content)) {
+                continue;
+            }
+            foreach ($content as $part) {
+                if (is_array($part) && ($part['type'] ?? '') === 'image_url') {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -230,5 +433,100 @@ final class LabiDesignService
         $hint = trim(mb_substr($lastUser !== '' ? $lastUser : 'cute label decoration', 0, 120));
 
         return "Simple clean label clipart illustration for sticker printing, white background, centered motif inspired by: {$hint}. Flat vector style, high contrast, no text, no watermark.";
+    }
+
+    /** @param array<int, array{role:string, content:mixed}> $messages */
+    private function fallbackTemplatePrompt(array $messages): string
+    {
+        $hint = trim(mb_substr($this->lastUserText($messages) !== '' ? $this->lastUserText($messages) : 'product label', 0, 120));
+
+        return "Print-ready full-bleed label sticker design filling the entire square canvas edge to edge. Professional packaging label inspired by: {$hint}. Clean layout, vivid print colors, no mockup, no wooden table, no torn paper, no watermark, no extra background around the label.";
+    }
+
+    /** @param array<int, array{role:string, content:mixed}> $messages */
+    private function lastUserText(array $messages): string
+    {
+        for ($i = count($messages) - 1; $i >= 0; $i--) {
+            if (($messages[$i]['role'] ?? '') !== 'user') {
+                continue;
+            }
+            $content = $messages[$i]['content'] ?? '';
+            if (is_string($content)) {
+                return trim($content);
+            }
+            if (is_array($content)) {
+                foreach ($content as $part) {
+                    if (is_array($part) && ($part['type'] ?? '') === 'text') {
+                        return trim((string) ($part['text'] ?? ''));
+                    }
+                }
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * @param array<string, mixed> $structured
+     * @param array<int, array{id:int, name:string, sku:string, category:string, shape:string, size:string, material:string}> $catalog
+     * @return array{width_mm:float, height_mm:float}
+     */
+    private function resolveTemplateSize(array $structured, array $catalog): array
+    {
+        $w = (float) ($structured['width_mm'] ?? 0);
+        $h = (float) ($structured['height_mm'] ?? 0);
+        if ($w >= 15 && $h >= 15) {
+            $w = $this->clampMm($w, 20, 210);
+            $h = $this->clampMm($h, 15, 297);
+            if ($w <= 120 && $h <= 120) {
+                return [
+                    'width_mm' => $w,
+                    'height_mm' => $h,
+                ];
+            }
+        }
+
+        $product = $this->resolveProduct($structured, $catalog);
+        if ($product && ($product['width_mm'] ?? null) && ($product['height_mm'] ?? null)) {
+            return [
+                'width_mm' => (float) $product['width_mm'],
+                'height_mm' => (float) $product['height_mm'],
+            ];
+        }
+
+        return ['width_mm' => 70.0, 'height_mm' => 36.0];
+    }
+
+    private function clampMm(float $value, float $min, float $max): float
+    {
+        return max($min, min($max, $value));
+    }
+
+    /**
+     * @param array{url:string, prompt:string, title:string} $image
+     * @return array<string, mixed>
+     */
+    private function presentTemplate(array $image, float $widthMm, float $heightMm): array
+    {
+        $title = (string) ($image['title'] ?? '라비가 만든 라벨 템플릿');
+        $url = (string) ($image['url'] ?? '');
+        $query = [
+            'w' => rtrim(rtrim(sprintf('%.2f', $widthMm), '0'), '.'),
+            'h' => rtrim(rtrim(sprintf('%.2f', $heightMm), '0'), '.'),
+            'name' => $title,
+            'clipart' => $url,
+            'fit' => 'cover',
+        ];
+        $editorUrl = url('editor/') . '?' . http_build_query($query);
+
+        return [
+            'url' => $url,
+            'prompt' => (string) ($image['prompt'] ?? ''),
+            'title' => $title,
+            'width_mm' => $widthMm,
+            'height_mm' => $heightMm,
+            'fit' => 'cover',
+            'editor_url' => $editorUrl,
+        ];
     }
 }

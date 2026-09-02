@@ -1,0 +1,164 @@
+@using LabelUp.Editor.Models
+@using LabelUp.Editor.Services
+@inject EditorSession Session
+@inject EditorCloudStorage Cloud
+@inject HistoryService History
+@inject IJSRuntime Js
+@implements IDisposable
+
+@if (Session.Dialog == EditorDialog.ProjectPicker)
+{
+  <div class="ed-modal" role="dialog" aria-label="프로젝트 불러오기" @onclick="Session.CloseDialog">
+    <div class="ed-modal__card ed-modal__card--papers" @onclick:stopPropagation="true">
+      <header class="ed-modal__head">
+        <div>
+          <h3>프로젝트 불러오기</h3>
+          <p>계정에 저장한 라벨 작업을 골라 이어서 편집할 수 있습니다.</p>
+        </div>
+        <button type="button" class="ed-modal__close" @onclick="Session.CloseDialog">×</button>
+      </header>
+
+      <div class="ed-paper-toolbar">
+        <input class="ed-paper-search" type="search" placeholder="프로젝트 이름 검색"
+               @bind="_query" @bind:event="oninput" />
+        <span class="ed-paper-count">@Filtered.Count() / @_items.Count</span>
+      </div>
+
+      <div class="ed-modal__body ed-paper-grid ed-project-grid">
+        @if (_loading)
+        {
+          <p class="ed-paper-empty">저장된 작업을 불러오는 중…</p>
+        }
+        else if (!string.IsNullOrWhiteSpace(_error) && _items.Count == 0)
+        {
+          <p class="ed-paper-empty">@_error</p>
+        }
+        else if (!Filtered.Any())
+        {
+          <p class="ed-paper-empty">@(string.IsNullOrWhiteSpace(_query) ? "저장된 프로젝트가 없습니다. 편집기에서 저장하면 여기에 모입니다." : "검색 결과가 없습니다.")</p>
+        }
+        else
+        {
+          @foreach (var item in Filtered)
+          {
+            var active = Session.WorkspaceId == item.Id;
+            <button type="button" class="ed-paper-card ed-project-card @(active ? "is-active" : null)" @onclick="() => OpenAsync(item)">
+              <div class="ed-project-card__preview">
+                @if (!string.IsNullOrWhiteSpace(item.PreviewUrl))
+                {
+                  <img src="@item.PreviewUrl" alt="@item.Title" />
+                }
+                else
+                {
+                  <span>라벨</span>
+                }
+              </div>
+              <div class="ed-paper-card__meta">
+                <strong>@item.Title</strong>
+                <span>@(string.IsNullOrWhiteSpace(item.UpdatedLabel) ? item.UpdatedAt : item.UpdatedLabel)</span>
+              </div>
+            </button>
+          }
+        }
+      </div>
+    </div>
+  </div>
+}
+
+@code {
+    private string _query = "";
+    private bool _loading;
+    private bool _tried;
+    private bool _opening;
+    private string? _error;
+    private IReadOnlyList<EditorWorkspaceListItem> _items = [];
+
+    private IEnumerable<EditorWorkspaceListItem> Filtered =>
+        string.IsNullOrWhiteSpace(_query)
+            ? _items
+            : _items.Where(i => (i.Title ?? "").Contains(_query.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    protected override void OnInitialized() => Session.Changed += OnChanged;
+    public void Dispose() => Session.Changed -= OnChanged;
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Session.Dialog != EditorDialog.ProjectPicker)
+        {
+            _tried = false;
+            return;
+        }
+        if (!_tried && !_loading)
+        {
+            _tried = true;
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            _items = await Cloud.ListWorkspacesAsync(48);
+            if (_items.Count == 0)
+                _error = "저장된 프로젝트가 없습니다. 편집기에서 저장하면 여기에 모입니다.";
+        }
+        catch (Exception ex)
+        {
+            _error = "프로젝트 목록을 불러오지 못했습니다.";
+            EditorLog.Warn("프로젝트 목록 실패: " + ex.Message);
+        }
+        finally
+        {
+            _loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task OpenAsync(EditorWorkspaceListItem item)
+    {
+        if (_opening || item.Id <= 0) return;
+        if (Session.Dirty)
+        {
+            try
+            {
+                var ok = await Js.InvokeAsync<bool>("confirm", "저장하지 않은 내용이 있습니다. 이 프로젝트를 불러올까요?");
+                if (!ok) return;
+            }
+            catch { }
+        }
+
+        _opening = true;
+        try
+        {
+            var workspace = await Cloud.LoadWorkspaceAsync(item.Id);
+            if (workspace?.Document is null)
+            {
+                Session.Status = "저장된 작업을 찾지 못했습니다";
+                Session.Notify();
+                return;
+            }
+            if (workspace.Id <= 0)
+                workspace.Id = item.Id;
+            if (string.IsNullOrWhiteSpace(workspace.Title))
+                workspace.Title = item.Title;
+            History.Push(Session.Document);
+            await Cloud.ApplyLoadedWorkspaceAsync(Session, workspace);
+            Session.CloseDialog();
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("프로젝트 불러오기 실패: " + ex.Message);
+            Session.Status = "프로젝트를 불러오지 못했습니다";
+            Session.Notify();
+        }
+        finally
+        {
+            _opening = false;
+        }
+    }
+}

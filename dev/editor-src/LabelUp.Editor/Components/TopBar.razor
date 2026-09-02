@@ -1,15 +1,22 @@
 @using LabelUp.Editor.Models
 @using LabelUp.Editor.Rendering
 @using LabelUp.Editor.Services
+@using Microsoft.JSInterop
 @inject EditorSession Session
 @inject HistoryService History
 @inject DraftStorage Drafts
 @inject ExportService Export
 @inject DataImportService DataImport
 @inject EditorCloudStorage Cloud
+@inject IJSRuntime Js
 @implements IDisposable
 
-<header class="ed-topbar" data-tut="topbar" aria-label="편집기 상단">
+<div class="ed-topbar-dock @(Session.TopBarPinned ? "is-pinned" : "is-auto")" data-ed-topbar-dock>
+  @if (!Session.TopBarPinned)
+  {
+    <div class="ed-topbar-hotzone" title="헤더 보기"></div>
+  }
+  <header class="ed-topbar" data-tut="topbar" aria-label="편집기 상단">
   <div class="ed-topbar__file" data-tut="topbar-file">
     <a class="ed-topbar__logo" href="/" title="라벨업 홈">
       <img src="/assets/logo.png" alt="LABEL UP" />
@@ -21,7 +28,6 @@
         <span class="ed-topbar__status">@Session.Status</span>
       </div>
     </div>
-    <span class="ed-topbar__build" title="빌드 시각">@BuildInfo.Stamp</span>
   </div>
 
   <div class="ed-topbar__center" data-tut="topbar-center">
@@ -34,26 +40,88 @@
       <button type="button" @onclick="() => Session.SetZoom(Session.Zoom + 0.1f)">+</button>
     </div>
     <button type="button" class="ed-chip @(Session.ShowGrid ? "is-active" : null)" data-tut="grid" title="그리드" @onclick="ToggleGrid">⊞</button>
+    <button type="button"
+            class="ed-chip ed-chip--pin @(Session.TopBarPinned ? "is-active" : null)"
+            title="@(Session.TopBarPinned ? "헤더 숨기기 · 상단에 올리면 다시 표시" : "헤더 고정")"
+            aria-pressed="@Session.TopBarPinned"
+            aria-label="@(Session.TopBarPinned ? "헤더 숨기기" : "헤더 고정")"
+            @onclick="ToggleTopBarPin">
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+        @if (Session.TopBarPinned)
+        {
+          <path fill="currentColor" d="M9.2 1.4 8 2.6l.7 2.6-2.1 2.1H3.2l2.4 2.4-3.4 4.4.8.8 4.4-3.4 2.4 2.4V9.4l2.1-2.1 2.6.7 1.2-1.2-6.5-6.4z"/>
+        }
+        else
+        {
+          <path fill="currentColor" d="M10.1 2.3 8.7 3.7l.5 2-2.4 2.4H4.3l1.7 1.7-2.8 3.6.6.6 3.6-2.8 1.7 1.7V9.2l2.4-2.4 2 .5 1.4-1.4-4.8-5.3zm-1 8.8 1.5 1.5.7-.7-1.5-1.5-.7.7z"/>
+        }
+      </svg>
+    </button>
   </div>
 
   <div class="ed-topbar__actions" data-tut="topbar-actions">
-    <button type="button" class="ed-btn" data-tut="save" @onclick="SaveDesign">저장하기</button>
-    <label class="ed-btn ed-btn--file">
+    <button type="button" class="ed-btn ed-btn--shop" data-tut="shop" title="라벨 상품 구매" @onclick="() => Session.OpenDialog(EditorDialog.LabelShop)">
+      <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M5.2 2.2 4.4 5H2.6a.6.6 0 0 0-.6.7l.9 6.2A1.6 1.6 0 0 0 4.5 14h7a1.6 1.6 0 0 0 1.6-1.1l.9-6.2a.6.6 0 0 0-.6-.7h-1.8l-.8-2.8A1.4 1.4 0 0 0 9.5 1.8H6.5c-.6 0-1.1.4-1.3.9Zm1.4.8h2.8l.6 2H6l.6-2ZM5 8.2a.7.7 0 0 1 1.4 0v2.4a.7.7 0 1 1-1.4 0V8.2Zm4.6 0a.7.7 0 0 1 1.4 0v2.4a.7.7 0 1 1-1.4 0V8.2Z"/></svg>
+      라벨쇼핑
+    </button>
+    <button type="button" class="ed-btn" data-tut="mydesign" title="내 디자인 불러오기" @onclick="OpenProjects">
+      <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2.4 3.2A1.4 1.4 0 0 1 3.8 2h3.1c.3 0 .6.1.8.4L8.4 3H12a1.6 1.6 0 0 1 1.6 1.6v7.8A1.6 1.6 0 0 1 12 14H4a1.6 1.6 0 0 1-1.6-1.6V3.2Zm1.4.6v8.6c0 .1.1.2.2.2h8c.1 0 .2-.1.2-.2V5H8.2L7.5 4H4c-.1 0-.2.1-.2.2Z"/></svg>
+      내디자인
+    </button>
+    <label class="ed-btn ed-btn--file" data-tut="data-import">
+      <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3.2 2.2h9.6c.7 0 1.2.5 1.2 1.2v9.2c0 .7-.5 1.2-1.2 1.2H3.2c-.7 0-1.2-.5-1.2-1.2V3.4c0-.7.5-1.2 1.2-1.2Zm0 1.4v1.8h9.6V3.6H3.2Zm0 3.2v1.8h3V6.8h-3Zm4.4 0v1.8h5.2V6.8H7.6Zm-4.4 3.2V13h3v-3h-3Zm4.4 0V13h5.2v-3H7.6Z"/></svg>
       데이터 가져오기
       <InputFile OnChange="OnDataFile" accept=".csv,.txt,.xlsx,.xls" />
     </label>
-    <button type="button" class="ed-btn" data-tut="preview-btn" @onclick="OpenPrintPreview">미리보기</button>
-    <button type="button" class="ed-btn ed-btn--primary" data-tut="export" @onclick="() => Session.OpenDialog(EditorDialog.PrintPreview)">편집기에서 출력</button>
-    <a class="ed-btn" href="/">닫기</a>
+    <button type="button" class="ed-btn" data-tut="preview-btn" @onclick="OpenPrintPreview">
+      <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 3.2c3.2 0 5.8 2.3 6.7 4.3a.8.8 0 0 1 0 .6C13.8 10.1 11.2 12.8 8 12.8S2.2 10.1 1.3 8.1a.8.8 0 0 1 0-.6C2.2 5.5 4.8 3.2 8 3.2Zm0 1.5c-2.4 0-4.5 1.7-5.4 3.3.9 1.6 3 3.3 5.4 3.3s4.5-1.7 5.4-3.3C12.5 6.4 10.4 4.7 8 4.7Zm0 1.3A2 2 0 1 1 8 10a2 2 0 0 1 0-4Z"/></svg>
+      미리보기
+    </button>
+    <button type="button" class="ed-btn" data-tut="save" @onclick="SaveDesign">
+      <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3.4 2.2h7.1c.2 0 .5.1.6.3l2.4 2.4c.2.2.3.4.3.6v8.1c0 .7-.6 1.2-1.2 1.2H3.4c-.7 0-1.2-.5-1.2-1.2V3.4c0-.7.5-1.2 1.2-1.2Zm.6 1.4v3.4h6.2V3.6H4Zm8.2 3.2-1.4-1.4v2.2c0 .4-.3.6-.6.6H3.8a.6.6 0 0 1-.6-.6V3.6h-.4v9.2h.8V9.4c0-.4.3-.6.6-.6h7.6c.4 0 .6.2.6.6v3.4h.8V6.8ZM5 10h6v2.4H5V10Z"/></svg>
+      저장하기
+    </button>
+    <button type="button" class="ed-btn ed-btn--primary" data-tut="export" @onclick="() => Session.OpenDialog(EditorDialog.PrintPreview)">
+      <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4.2 2.2h7.6c.6 0 1 .4 1 .9V5h.6A1.6 1.6 0 0 1 15 6.6v4.2A1.4 1.4 0 0 1 13.6 12h-.8v1.8c0 .6-.5 1-1 .9H4.2c-.6 0-1-.4-1-.9V12h-.8A1.4 1.4 0 0 1 1 10.8V6.6A1.6 1.6 0 0 1 2.6 5h.6V3.1c0-.5.4-.9 1-.9ZM5 3.6v1.4h6V3.6H5Zm-.8 8.4v1.6h7.6V12H4.2Zm8.6-5.6a.8.8 0 1 0 0 1.6.8.8 0 0 0 0-1.6Z"/></svg>
+      편집기에서 출력
+    </button>
+    <a class="ed-btn" data-tut="exit" href="/" title="편집기 나가기">
+      <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3.4 2.2h5.2c.7 0 1.2.5 1.2 1.2v2h-1.4V3.6H3.6v8.8h4.8V10.6h1.4v2.2c0 .7-.5 1.2-1.2 1.2H3.4c-.7 0-1.2-.5-1.2-1.2V3.4c0-.7.5-1.2 1.2-1.2Zm7.4 3.1 2.4 2.4c.3.3.3.7 0 1L10.8 11a.7.7 0 0 1-1.2-.5V9.2H6.6a.7.7 0 0 1 0-1.4h3V5.8a.7.7 0 0 1 1.2-.5Z"/></svg>
+      나가기
+    </a>
   </div>
-</header>
+  </header>
+</div>
 
 @code {
     private string ZoomPercent => $"{Session.Zoom * 100:0}";
+    private bool _pinLoaded;
 
     protected override void OnInitialized() => Session.Changed += OnChanged;
     public void Dispose() => Session.Changed -= OnChanged;
     private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _pinLoaded) return;
+        _pinLoaded = true;
+        try
+        {
+            Session.TopBarPinned = await Js.InvokeAsync<bool>("labelUpEditor.getTopBarPinned");
+            Session.Notify();
+        }
+        catch { }
+    }
+
+    private async Task ToggleTopBarPin()
+    {
+        Session.TopBarPinned = !Session.TopBarPinned;
+        try { await Js.InvokeVoidAsync("labelUpEditor.setTopBarPinned", Session.TopBarPinned); } catch { }
+        Session.Status = Session.TopBarPinned
+            ? "헤더를 고정했습니다"
+            : "헤더를 숨겼습니다 · 상단에 마우스를 올리면 다시 표시됩니다";
+        Session.Notify();
+    }
 
     private void OnRename(ChangeEventArgs e)
     {
@@ -65,12 +133,25 @@
     private void ToggleGrid()
     {
         Session.ShowGrid = !Session.ShowGrid;
+        Session.Status = Session.ShowGrid ? "그리드 표시" : "그리드 숨김";
         Session.Notify();
     }
 
     private void OpenPrintPreview()
     {
         Session.OpenDialog(EditorDialog.PrintPreview);
+    }
+
+    private async Task OpenProjects()
+    {
+        var loggedIn = await Cloud.EnsureLoggedInForSaveAsync();
+        if (!loggedIn)
+        {
+            Session.Status = "로그인하면 저장된 프로젝트를 불러올 수 있어요";
+            Session.Notify();
+            return;
+        }
+        Session.OpenDialog(EditorDialog.ProjectPicker);
     }
 
     private void Undo()
@@ -118,6 +199,7 @@
                 panX = Session.PanX,
                 panY = Session.PanY,
                 showGrid = Session.ShowGrid,
+                topBarPinned = Session.TopBarPinned,
                 propsTab = Session.PropsTab,
                 propsMinimized = Session.PropsMinimized,
                 previewMinimized = Session.PreviewMinimized,
@@ -126,10 +208,13 @@
                 pageIndex = Session.PageIndex,
                 labelIndex = Session.LabelIndex
             };
-            await Cloud.SaveWorkspaceAsync(Session.Document, ui);
+            var preview = CapturePreview();
+            var savedId = await Cloud.SaveWorkspaceAsync(Session.Document, ui, preview, Session.WorkspaceId);
+            if (savedId > 0)
+                Session.WorkspaceId = savedId;
 
             Session.Dirty = false;
-            Session.Status = "저장됨 · 계정에 작업 내역을 보관했습니다";
+            Session.Status = "저장됨 · 계정에 작업과 미리보기를 보관했습니다";
             Session.Notify();
         }
         catch (Exception ex)
@@ -165,6 +250,29 @@
             EditorLog.Error("자료 가져오기 실패", ex);
             Session.Status = "자료 가져오기 실패: " + ex.Message;
             Session.Notify();
+        }
+    }
+
+    private string? CapturePreview()
+    {
+        try
+        {
+            Session.Document.EnsureStructure();
+            var maxMm = Math.Max(Session.Document.WidthMm, Session.Document.HeightMm);
+            var dpi = maxMm <= 1 ? 72f : Math.Clamp(480f / maxMm * 25.4f, 36f, 120f);
+            var bytes = DocumentRenderer.ExportPng(
+                Session.Document,
+                Session.CurrentCell,
+                dpi,
+                o => Session.ResolveObjectText(o));
+            if (bytes.Length is 0 or > 1_500_000)
+                return null;
+            return "data:image/png;base64," + Convert.ToBase64String(bytes);
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("미리보기 이미지 생성 실패: " + ex.Message);
+            return null;
         }
     }
 

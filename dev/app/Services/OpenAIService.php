@@ -11,6 +11,15 @@ final class OpenAIService
     private const CHAT_URL = 'https://api.openai.com/v1/chat/completions';
     private const IMAGE_URL = 'https://api.openai.com/v1/images/generations';
 
+    /** @var array{model:?string,prompt_tokens:?int,completion_tokens:?int,total_tokens:?int}|null */
+    private ?array $lastUsage = null;
+
+    /** @return array{model:?string,prompt_tokens:?int,completion_tokens:?int,total_tokens:?int}|null */
+    public function lastUsage(): ?array
+    {
+        return $this->lastUsage;
+    }
+
     public function chat(array $messages): string
     {
         $response = $this->chatRequest(array_merge([
@@ -74,7 +83,7 @@ final class OpenAIService
         }
 
         $intent = (string) ($decoded['intent'] ?? 'chat');
-        if (!in_array($intent, ['recommend_product', 'generate_clipart', 'chat'], true)) {
+        if (!in_array($intent, ['recommend_product', 'generate_clipart', 'generate_template', 'ask_image_mode', 'chat'], true)) {
             $intent = 'chat';
         }
 
@@ -88,12 +97,94 @@ final class OpenAIService
             $productId = null;
         }
 
+        $widthMm = isset($decoded['width_mm']) ? (float) $decoded['width_mm'] : 0.0;
+        $heightMm = isset($decoded['height_mm']) ? (float) $decoded['height_mm'] : 0.0;
+
         return [
             'intent' => $intent,
             'message' => trim((string) ($decoded['message'] ?? '')),
             'product_id' => $productId,
             'search_query' => trim((string) ($decoded['search_query'] ?? '')),
             'clipart_prompt' => trim((string) ($decoded['clipart_prompt'] ?? '')),
+            'width_mm' => $widthMm > 0 ? $widthMm : 0.0,
+            'height_mm' => $heightMm > 0 ? $heightMm : 0.0,
+        ];
+    }
+
+    /**
+     * @param array<int, string> $columns
+     * @param array<int, array<int, string>> $sampleRows
+     * @return array{title:string, message:string, width_mm:float, height_mm:float, fields:array<int, array{column:string, kind:string}>}
+     */
+    public function suggestDataLabelLayout(string $sourceName, array $columns, array $sampleRows, string $userHint = ''): array
+    {
+        $table = '| ' . implode(' | ', $columns) . " |\n| " . implode(' | ', array_fill(0, count($columns), '---')) . " |\n";
+        foreach (array_slice($sampleRows, 0, 8) as $row) {
+            $table .= '| ' . implode(' | ', $row) . " |\n";
+        }
+        $hint = trim($userHint);
+        $prompt = <<<PROMPT
+첨부 표로 라벨 템플릿을 만듭니다. JSON만 출력하세요.
+{
+  "title": "짧은 한국어 템플릿 이름",
+  "message": "사용자에게 보여줄 2~3문장 안내",
+  "width_mm": 라벨 가로 mm,
+  "height_mm": 라벨 세로 mm,
+  "fields": [{"column":"표의 열 이름 그대로","kind":"text|barcode|qr"}]
+}
+규칙:
+- fields는 라벨에 넣을 열만, 최대 8개, column은 아래 표에 있는 이름만.
+- 이름/상품명은 text, 바코드·SKU는 barcode, URL·홈페이지는 qr.
+- 주소라벨이면 90×50 전후, 일반은 70×36 전후. 한 변은 20~120mm.
+파일: {$sourceName}
+사용자 요청: {$hint}
+표:
+{$table}
+PROMPT;
+
+        $response = $this->chatRequest([
+            ['role' => 'system', 'content' => '당신은 라벨업의 데이터 라벨 설계 도우미입니다. JSON만 출력합니다.'],
+            ['role' => 'user', 'content' => $prompt],
+        ], [
+            'response_format' => ['type' => 'json_object'],
+            'temperature' => 0.3,
+            'max_tokens' => 900,
+        ]);
+
+        $content = $response['choices'][0]['message']['content'] ?? '';
+        $decoded = is_string($content) ? json_decode($content, true) : null;
+        if (!is_array($decoded)) {
+            return [
+                'title' => '',
+                'message' => '',
+                'width_mm' => 0,
+                'height_mm' => 0,
+                'fields' => [],
+            ];
+        }
+
+        $fields = [];
+        foreach ($decoded['fields'] ?? [] as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $col = trim((string) ($item['column'] ?? ''));
+            if ($col === '') {
+                continue;
+            }
+            $kind = strtolower(trim((string) ($item['kind'] ?? 'text')));
+            if (!in_array($kind, ['text', 'barcode', 'qr'], true)) {
+                $kind = 'text';
+            }
+            $fields[] = ['column' => $col, 'kind' => $kind];
+        }
+
+        return [
+            'title' => trim((string) ($decoded['title'] ?? '')),
+            'message' => trim((string) ($decoded['message'] ?? '')),
+            'width_mm' => (float) ($decoded['width_mm'] ?? 0),
+            'height_mm' => (float) ($decoded['height_mm'] ?? 0),
+            'fields' => $fields,
         ];
     }
 
@@ -281,6 +372,14 @@ final class OpenAIService
             throw new RuntimeException($message);
         }
 
+        $usage = is_array($decoded['usage'] ?? null) ? $decoded['usage'] : [];
+        $this->lastUsage = [
+            'model' => isset($decoded['model']) ? (string) $decoded['model'] : (isset($payload['model']) ? (string) $payload['model'] : null),
+            'prompt_tokens' => isset($usage['prompt_tokens']) ? (int) $usage['prompt_tokens'] : null,
+            'completion_tokens' => isset($usage['completion_tokens']) ? (int) $usage['completion_tokens'] : null,
+            'total_tokens' => isset($usage['total_tokens']) ? (int) $usage['total_tokens'] : null,
+        ];
+
         return $decoded;
     }
 
@@ -364,11 +463,13 @@ final class OpenAIService
 
 반드시 아래 JSON 객체만 출력하세요 (설명 문장·마크다운 금지):
 {
-  "intent": "recommend_product" | "generate_clipart" | "chat",
+  "intent": "recommend_product" | "generate_clipart" | "generate_template" | "ask_image_mode" | "chat",
   "message": "사용자에게 보여줄 친절한 한국어 안내",
   "product_id": null 또는 카탈로그의 숫자 id,
   "search_query": "상품 검색용 짧은 한국어 키워드",
-  "clipart_prompt": "이미지 생성용 영어 프롬프트"
+  "clipart_prompt": "이미지 생성용 영어 프롬프트",
+  "width_mm": 라벨 가로 mm 숫자 또는 0,
+  "height_mm": 라벨 세로 mm 숫자 또는 0
 }
 
 intent 선택 규칙:
@@ -376,14 +477,25 @@ intent 선택 규칙:
    - 카탈로그에서 가장 적합한 상품 1개의 id를 product_id에 넣습니다.
    - 확신이 없으면 search_query로 검색 힌트를 넣습니다.
    - message에는 추천 이유(용도·모양·크기)를 2~4문장으로 적습니다.
-2) generate_clipart — 라벨 위에 넣을 일러스트·아이콘·로고성 그림·캐릭터·장식 클립아트를 "그려달라/만들어달라"고 할 때.
+2) generate_clipart — 라벨 위에 넣을 일러스트·아이콘·로고성 그림·캐릭터·장식 클립아트를 "그려달라"고 할 때.
    - clipart_prompt에 인쇄용 스티커 클립아트에 맞는 영어 프롬프트를 작성합니다.
    - 흰 배경, 중앙 모티브, 텍스트/워터마크 없음, 플랫·선명한 벡터 느낌으로 유도하세요.
-3) chat — 일반 질문, 인쇄 팁, 추가 확인이 필요할 때.
+   - 첨부 이미지가 있으면 그 분위기·모티프를 반영하되 장식이 되는 클립아트로 재해석합니다.
+3) generate_template — 완성된 라벨 디자인/템플릿을 만들어 편집기에서 쓰려 할 때.
+   - clipart_prompt에 라벨 전체를 채우는 인쇄용 아트워크 영어 프롬프트를 작성합니다.
+   - 캔버스를 가장자리까지 채우고(full-bleed), 목업·책상·찢어진 종이·여백 배경은 넣지 마세요.
+   - 첨부 이미지의 구도·색·텍스트 분위기를 살립니다.
+   - width_mm/height_mm에 적당한 라벨 규격(없으면 70×36)을 넣습니다.
+4) ask_image_mode — 첨부 이미지가 있는데 클립아트인지 템플릿인지 분명하지 않을 때.
+   - 이미지를 생성하지 않습니다.
+   - message에서 클립아트 그리기 / 템플릿 만들기 중 고르라고 짧게 안내합니다.
+5) chat — 일반 질문, 인쇄 팁, 추가 확인이 필요할 때.
 
 원칙:
-- 단순 "라벨 추천/만들어줘/주소라벨/바코드라벨"처럼 상품(용지) 선택이면 recommend_product를 우선합니다.
-- "고양이 그림 그려줘", "로고 아이콘 만들어줘", "하트 일러스트"처럼 그림 생성이면 generate_clipart입니다.
+- 단순 "라벨 추천/주소라벨/바코드라벨"처럼 상품(용지) 선택이면 recommend_product를 우선합니다.
+- "고양이 그림 그려줘", "로고 아이콘 만들어줘"처럼 그림만 생성이면 generate_clipart입니다.
+- "템플릿 만들어줘", "이 사진으로 라벨 디자인 만들어줘"면 generate_template입니다.
+- 이미지만 보냈거나 "이거 참고해서"처럼 목적이 모호하면 ask_image_mode입니다. 추측으로 바로 그리지 마세요.
 - product_id는 카탈로그에 있는 id만 사용합니다.
 - message는 불필요하게 길지 않게 핵심만 전달합니다.
 PROMPT;

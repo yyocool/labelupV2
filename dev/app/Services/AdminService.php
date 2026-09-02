@@ -52,15 +52,9 @@ final class AdminService
         ];
     }
 
-    public function updateUserRole(int $userId, string $role, int $actorId): void
+    public function updateUserGrade(int $userId, int $gradeId): void
     {
-        if (!in_array($role, ['member', 'admin'], true)) {
-            throw new \InvalidArgumentException('유효하지 않은 역할입니다.');
-        }
-        if ($userId === $actorId && $role !== 'admin') {
-            throw new \InvalidArgumentException('본인의 관리자 권한은 해제할 수 없습니다.');
-        }
-        $this->users->updateRole($userId, $role);
+        (new MemberGradeService())->assign($userId, $gradeId);
     }
 
     public function updateUserStatus(int $userId, string $status, int $actorId): void

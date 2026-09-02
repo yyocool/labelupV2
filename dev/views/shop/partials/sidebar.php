@@ -48,6 +48,7 @@ $isActive = static fn (string ...$keys): string => in_array($shopSubNav, $keys, 
       <a href="<?= url('shop/products') ?>"><span class="ico">📐</span>규격 가이드</a>
       <a href="<?= url('shop/products') ?>?category=label-paper"><span class="ico">📦</span>용지 샘플 안내</a>
       <a href="#"><span class="ico">🖨</span>인쇄 가이드</a>
+      <a href="<?= url('faq') ?>"><span class="ico">?</span>자주 묻는 질문</a>
     </nav>
   </div>
 

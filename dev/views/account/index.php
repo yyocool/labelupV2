@@ -3,6 +3,7 @@
 /** @var App\Services\AccountService $accountService */
 $user = $dash['user'];
 $plan = $dash['plan'];
+$grade = $dash['grade'] ?? ['name' => $plan['name'] ?? '일반', 'color' => '#7B2D3E', 'description' => ''];
 $stats = $dash['stats'];
 $usage = $dash['usage'];
 $initial = mb_substr((string) ($user['name'] ?? '회'), 0, 1);
@@ -14,7 +15,7 @@ $usagePct = min(100, (int) round(($usage['used'] / max(1, $usage['limit'])) * 10
     <div>
       <div class="account-name-row">
         <h1><?= e((string) ($user['name'] ?? '회원')) ?>님</h1>
-        <span class="account-plan-badge"><?= e($plan['name']) ?></span>
+        <span class="account-plan-badge" style="--grade-color:<?= e((string) ($grade['color'] ?? '#7B2D3E')) ?>"><?= e((string) ($grade['name'] ?? '일반')) ?></span>
       </div>
       <p class="account-meta"><?= e((string) ($user['email'] ?? '')) ?></p>
       <p class="account-meta"><?= e((string) ($user['phone'] ?? '연락처 미등록')) ?></p>
@@ -25,9 +26,9 @@ $usagePct = min(100, (int) round(($usage['used'] / max(1, $usage['limit'])) * 10
     </div>
   </div>
   <div class="account-hero-plan">
-    <h2><?= e($plan['name']) ?></h2>
-    <p class="account-plan-period"><?= e($plan['period']) ?></p>
-    <p class="account-plan-remain">잔여 <strong><?= number_format((int) $plan['remain_days']) ?></strong>일</p>
+    <p class="account-grade-kicker">회원등급</p>
+    <h2><?= e((string) ($grade['name'] ?? '일반')) ?></h2>
+    <p class="account-plan-period"><?= e((string) (($grade['description'] ?? '') !== '' ? $grade['description'] : '현재 적용 중인 회원등급입니다.')) ?></p>
     <div class="account-usage">
       <div class="account-usage-head">
         <span><?= e($usage['label']) ?></span>
@@ -107,6 +108,40 @@ $usagePct = min(100, (int) round(($usage['used'] / max(1, $usage['limit'])) * 10
     </ul>
   </section>
 </div>
+
+<section class="account-panel card" id="cliparts">
+  <div class="account-panel-head">
+    <h2>내 클립아트</h2>
+    <a href="<?= url('/') ?>">AI로 더 만들기 →</a>
+  </div>
+  <?php $myCliparts = $dash['cliparts'] ?? []; ?>
+  <?php if (empty($myCliparts)): ?>
+  <p class="account-empty">아직 생성한 클립아트가 없습니다. 홈에서 라비에게 그림을 요청하면 여기에 모아집니다.</p>
+  <?php else: ?>
+  <p class="account-meta" style="margin-top:-6px;margin-bottom:12px">총 <b><?= number_format((int) ($dash['clipartCount'] ?? count($myCliparts))) ?></b>개</p>
+  <div class="account-clip-grid">
+    <?php foreach ($myCliparts as $clip): ?>
+    <?php
+      $clipUrl = (string) ($clip['image_url'] ?? '');
+      $clipTitle = (string) ($clip['title'] ?? '라비가 그린 클립아트');
+      $clipEdit = (string) ($clip['editor_url'] ?? url('editor/'));
+      $clipDate = substr((string) ($clip['created_at'] ?? ''), 0, 16);
+    ?>
+    <article class="account-clip-card">
+      <button type="button" class="account-clip-thumb js-clip-preview" data-src="<?= e($clipUrl) ?>" data-title="<?= e($clipTitle) ?>" data-edit="<?= e($clipEdit) ?>">
+        <img src="<?= e($clipUrl) ?>" alt="<?= e($clipTitle) ?>">
+      </button>
+      <strong><?= e($clipTitle) ?></strong>
+      <span class="account-meta"><?= e($clipDate) ?></span>
+      <div class="account-clip-actions">
+        <button type="button" class="account-btn account-btn--outline js-clip-preview" data-src="<?= e($clipUrl) ?>" data-title="<?= e($clipTitle) ?>" data-edit="<?= e($clipEdit) ?>">확대보기</button>
+        <a class="account-btn account-btn--primary" href="<?= e($clipEdit) ?>">바로편집</a>
+      </div>
+    </article>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
+</section>
 
 <div class="account-grid-sub">
   <section class="account-panel card">
@@ -192,8 +227,8 @@ $usagePct = min(100, (int) round(($usage['used'] / max(1, $usage['limit'])) * 10
     <p>1:1 문의와 FAQ에서 빠르게 답변을 받아보세요.</p>
   </div>
   <div class="account-support-actions">
-    <button type="button" class="account-btn account-btn--primary" disabled>1:1 문의</button>
-    <button type="button" class="account-btn account-btn--outline" disabled>FAQ</button>
+    <button type="button" class="account-btn account-btn--primary" data-open-modal="inquiryModal">1:1 문의</button>
+    <a class="account-btn account-btn--outline" href="<?= url('faq') ?>">FAQ</a>
   </div>
 </section>
 

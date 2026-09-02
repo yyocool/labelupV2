@@ -39,8 +39,13 @@ const SHOP_ENDPOINTS = {
     save: '/api/admin/shop/product/save',
     delete: '/api/admin/shop/product/delete',
     uploadImages: '/api/admin/shop/product/upload-images',
+    compatSave: '/api/admin/shop/product/compat-save',
   },
-  order: { save: '/api/admin/shop/order/update' },
+  order: {
+    save: '/api/admin/shop/order/update',
+    detail: '/api/admin/shop/order/detail',
+    bulk: '/api/admin/shop/order/bulk',
+  },
   coupon: { save: '/api/admin/shop/coupon/save', delete: '/api/admin/shop/coupon/delete' },
   banner: { save: '/api/admin/shop/banner/save', delete: '/api/admin/shop/banner/delete' },
 };
@@ -242,6 +247,12 @@ function buildProductForm(row = {}) {
   html += shopField('정렬', 'sort_order', row.sort_order ?? 0, 'number');
   html += '</div></section>';
 
+  html += '<section class="admin-product-section"><h4 class="admin-product-section-title">\uD638\uD658\uCF54\uB4DC</h4><div class="admin-product-form-grid">';
+  html += shopField('\uD3FC\uD14D', 'compat_formtec', row.compat_formtec || '');
+  html += shopField('\uC544\uC774\uB77C\uBCA8', 'compat_ilabel', row.compat_ilabel || '');
+  html += shopField('\uC560\uB2C8\uB77C\uBCA8', 'compat_anylabel', row.compat_anylabel || '');
+  html += '</div></section>';
+
   html += '<section class="admin-product-section"><h4 class="admin-product-section-title">가격 · 재고</h4><div class="admin-product-form-grid">';
   html += shopField('정가(원)', 'price', row.price ?? 0, 'number', { required: true });
   html += shopField('할인가(원)', 'sale_price', row.sale_price ?? '', 'number');
@@ -287,6 +298,59 @@ function buildProductImagesSection(thumbnail = '') {
     </div>`;
 }
 
+function orderItemSummary(row = {}) {
+  const items = row.items || [];
+  if (!items.length) return '-';
+  const first = items[0];
+  const extra = items.length > 1 ? ` \uC678 ${items.length - 1}\uAC74` : '';
+  return `${first.product_name || ''} x${first.qty || 0}${extra}`;
+}
+
+function buildOrderForm(row = {}) {
+  const items = row.items || [];
+  const itemRows = items.length
+    ? items.map((it) => `<tr><td>${escHtml(it.product_name)}</td><td>${escHtml(it.sku)}</td><td>${Number(it.qty || 0)}</td><td>${Number(it.unit_price || 0).toLocaleString()}</td><td>${Number(it.line_total || 0).toLocaleString()}</td></tr>`).join('')
+    : '<tr><td colspan="5">\uC0C1\uD488 \uC815\uBCF4\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.</td></tr>';
+  const carriers = (window.SHOP_ORDER_META && window.SHOP_ORDER_META.carriers) || ['CJ\uB300\uD55C\uD1B5\uC6B4', '\uC6B0\uCCB4\uAD6D\uD0DD\uBC30', '\uD55C\uC9C4\uD0DD\uBC30', '\uB86F\uB370\uD0DD\uBC30', '\uB85C\uC820\uD0DD\uBC30'];
+  let html = `<input type="hidden" name="id" value="${row.id || 0}">`;
+  html += `<div class="admin-order-detail">`;
+  html += `<div class="admin-order-detail__grid">`;
+  html += `<div class="admin-field"><label>\uC8FC\uBB38\uBC88\uD638</label><input type="text" value="${escHtml(row.order_no || '')}" readonly></div>`;
+  html += `<div class="admin-field"><label>\uC8FC\uBB38\uC77C\uC2DC</label><input type="text" value="${escHtml((row.created_at || '').replace('T', ' ').slice(0, 16))}" readonly></div>`;
+  html += `<div class="admin-field"><label>\uAD6C\uB9E4\uC790</label><input type="text" value="${escHtml(row.customer_name || '')}" readonly></div>`;
+  html += `<div class="admin-field"><label>\uC5F0\uB77D\uCC98</label><input type="text" value="${escHtml(row.customer_phone || '')}" readonly></div>`;
+  html += `<div class="admin-field admin-field--full"><label>\uC774\uBA54\uC77C</label><input type="text" value="${escHtml(row.customer_email || '')}" readonly></div>`;
+  html += `<div class="admin-field admin-field--full"><label>\uC218\uB839\uC778 / \uBC30\uC1A1\uC9C0</label><textarea rows="2" readonly>${escHtml((row.shipping_name || row.customer_name || '') + ' ' + (row.shipping_phone || '') + '\n' + (row.shipping_address || ''))}</textarea></div>`;
+  html += `<div class="admin-field admin-field--full"><label>\uBC30\uC1A1\uBA54\uBAA8</label><input type="text" value="${escHtml(row.shipping_memo || '')}" readonly></div>`;
+  html += `<div class="admin-field"><label>\uC0C1\uD488\uAE08\uC561</label><input type="text" value="${Number(row.subtotal || 0).toLocaleString()}\uC6D0" readonly></div>`;
+  html += `<div class="admin-field"><label>\uBC30\uC1A1\uBE44</label><input type="text" value="${Number(row.shipping_fee || 0).toLocaleString()}\uC6D0" readonly></div>`;
+  html += `<div class="admin-field"><label>\uD560\uC778</label><input type="text" value="${Number(row.discount_amount || 0).toLocaleString()}\uC6D0" readonly></div>`;
+  html += `<div class="admin-field"><label>\uACB0\uC81C\uAE08\uC561</label><input type="text" value="${Number(row.total_amount || 0).toLocaleString()}\uC6D0" readonly></div>`;
+  html += `</div>`;
+  html += `<table class="admin-table admin-order-items"><thead><tr><th>\uC0C1\uD488\uBA85</th><th>SKU</th><th>\uC218\uB7C9</th><th>\uB2E8\uAC00</th><th>\uAE08\uC561</th></tr></thead><tbody>${itemRows}</tbody></table>`;
+  html += '<div class="admin-order-detail__grid">';
+  html += shopField('\uC8FC\uBB38\uC0C1\uD0DC', 'status', row.status || 'pending', 'select', {
+    options: [
+      { v: 'pending', t: '\uC811\uC218\uB300\uAE30' }, { v: 'paid', t: '\uACB0\uC81C\uC644\uB8CC' }, { v: 'preparing', t: '\uC0C1\uD488\uC900\uBE44' },
+      { v: 'shipping', t: '\uBC30\uC1A1\uC911' }, { v: 'delivered', t: '\uBC30\uC1A1\uC644\uB8CC' },
+      { v: 'cancelled', t: '\uCDE8\uC18C' }, { v: 'refunded', t: '\uD658\uBD88' },
+    ],
+  });
+  html += shopField('\uACB0\uC81C\uC0C1\uD0DC', 'payment_status', row.payment_status || 'pending', 'select', {
+    options: [
+      { v: 'pending', t: '\uACB0\uC81C\uB300\uAE30' }, { v: 'paid', t: '\uACB0\uC81C\uC644\uB8CC' },
+      { v: 'failed', t: '\uACB0\uC81C\uC2E4\uD328' }, { v: 'refunded', t: '\uD658\uBD88\uC644\uB8CC' },
+    ],
+  });
+  html += shopField('\uD0DD\uBC30\uC0AC', 'carrier', row.carrier || '', 'select', {
+    options: [{ v: '', t: '\uC120\uD0DD' }, ...carriers.map((c) => ({ v: c, t: c }))],
+  });
+  html += shopField('\uC1A1\uC7A5\uBC88\uD638', 'tracking_no', row.tracking_no);
+  html += shopField('\uAD00\uB9AC\uC790 \uBA54\uBAA8', 'admin_memo', row.admin_memo, 'textarea', { full: true });
+  html += '</div></div>';
+  return html;
+}
+
 function buildShopForm(entity, row = {}) {
   const id = row.id || 0;
   let html = `<input type="hidden" name="id" value="${id}">`;
@@ -299,6 +363,9 @@ function buildShopForm(entity, row = {}) {
   } else if (entity === 'spec') {
     html += buildEntityImageSection(row.image_path || '', 'spec');
     html += shopField('규격명', 'name', row.name, 'text', { required: true });
+    html += shopField('용지 종류', 'kind', row.kind || 'label', 'select', {
+      options: [{ v: 'label', t: '라벨용지' }, { v: 'tag', t: '태그용지' }],
+    });
     html += shopField('가로(mm)', 'width_mm', row.width_mm ?? '', 'number', { required: true, step: '0.01' });
     html += shopField('세로(mm)', 'height_mm', row.height_mm ?? '', 'number', { required: true, step: '0.01' });
     html += shopField('재질', 'material', row.material);
@@ -311,24 +378,7 @@ function buildShopForm(entity, row = {}) {
   } else if (entity === 'product') {
     html += buildProductForm(row);
   } else if (entity === 'order') {
-    html += `<div class="admin-field"><label>주문번호</label><input type="text" value="${row.order_no || ''}" disabled></div>`;
-    html += `<div class="admin-field"><label>배송지</label><textarea rows="2" disabled>${row.shipping_address || ''}</textarea></div>`;
-    html += shopField('주문상태', 'status', row.status || 'pending', 'select', {
-      options: [
-        { v: 'pending', t: '접수대기' }, { v: 'paid', t: '결제완료' }, { v: 'preparing', t: '상품준비' },
-        { v: 'shipping', t: '배송중' }, { v: 'delivered', t: '배송완료' },
-        { v: 'cancelled', t: '취소' }, { v: 'refunded', t: '환불' },
-      ],
-    });
-    html += shopField('결제상태', 'payment_status', row.payment_status || 'pending', 'select', {
-      options: [
-        { v: 'pending', t: 'pending' }, { v: 'paid', t: 'paid' },
-        { v: 'failed', t: 'failed' }, { v: 'refunded', t: 'refunded' },
-      ],
-    });
-    html += shopField('택배사', 'carrier', row.carrier);
-    html += shopField('송장번호', 'tracking_no', row.tracking_no);
-    html += shopField('관리자 메모', 'admin_memo', row.admin_memo, 'textarea');
+    html += buildOrderForm(row);
   } else if (entity === 'coupon') {
     html += shopField('쿠폰 코드', 'code', row.code, 'text', { required: true });
     html += shopField('쿠폰명', 'name', row.name, 'text', { required: true });
@@ -490,9 +540,12 @@ function openShopModal(entity, row = {}) {
   destroyProductSummernote();
   dialog?.classList.toggle('admin-modal-dialog--product', entity === 'product');
   dialog?.classList.toggle('admin-modal-dialog--wide', entity === 'category' || entity === 'spec');
+  dialog?.classList.toggle('admin-modal-dialog--order', entity === 'order');
 
   const labels = { category: '카테고리', spec: '규격', product: '상품', order: '주문', coupon: '쿠폰', banner: '배너' };
-  title.textContent = (row.id ? '수정' : '등록') + ' — ' + (labels[entity] || entity);
+  title.textContent = entity === 'order' && row.id
+    ? '주문 상세'
+    : ((row.id ? '수정' : '등록') + ' — ' + (labels[entity] || entity));
   form.dataset.entity = entity;
   form.innerHTML = buildShopForm(entity, row);
   modal.hidden = false;
@@ -530,12 +583,16 @@ document.querySelectorAll('.js-shop-add').forEach((btn) => {
 });
 
 document.querySelectorAll('.js-shop-edit').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    try {
-      openShopModal(btn.dataset.entity, JSON.parse(btn.dataset.row || '{}'));
-    } catch (_) {
-      openShopModal(btn.dataset.entity, {});
+  btn.addEventListener('click', async () => {
+    let row = {};
+    try { row = JSON.parse(btn.dataset.row || '{}'); } catch (_) { row = {}; }
+    if (btn.dataset.entity === 'order' && row.id && !row.items) {
+      try {
+        const res = await ShopAPI.post(SHOP_ENDPOINTS.order.detail, { id: Number(row.id) });
+        row = res.data || row;
+      } catch (_) { /* keep row */ }
     }
+    openShopModal(btn.dataset.entity, row);
   });
 });
 
@@ -596,6 +653,103 @@ if (shopForm) {
     }
   });
 }
+
+function selectedOrderIds() {
+  return Array.from(document.querySelectorAll('.js-order-check:checked')).map((el) => Number(el.value)).filter(Boolean);
+}
+
+function bindOrderDesk() {
+  const table = document.getElementById('orderTable');
+  if (!table) return;
+
+  const selectAll = document.getElementById('orderSelectAll');
+  if (selectAll) {
+    selectAll.addEventListener('change', () => {
+      document.querySelectorAll('.js-order-check').forEach((el) => { el.checked = selectAll.checked; });
+    });
+  }
+
+  document.querySelectorAll('.js-order-bulk').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const ids = selectedOrderIds();
+      if (!ids.length) {
+        if (typeof showAdminAlert === 'function') showAdminAlert('\uC8FC\uBB38\uC744 \uC120\uD0DD\uD574 \uC8FC\uC138\uC694.', 'error');
+        return;
+      }
+      const status = btn.dataset.status;
+      const payload = { ids, status };
+      if (status === 'shipping') {
+        const carrier = document.getElementById('bulkCarrier')?.value || '';
+        const tracking = document.getElementById('bulkTracking')?.value || '';
+        if (!tracking) {
+          if (typeof showAdminAlert === 'function') showAdminAlert('\uC1A1\uC7A5\uBC88\uD638\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694.', 'error');
+          return;
+        }
+        payload.carrier = carrier;
+        payload.tracking_no = tracking;
+        payload.payment_status = 'paid';
+      } else if (status === 'preparing' || status === 'delivered') {
+        payload.payment_status = 'paid';
+      } else if (status === 'cancelled') {
+        if (!confirm('\uC120\uD0DD\uD55C \uC8FC\uBB38\uC744 \uCDE8\uC18C \uCC98\uB9AC\uD560\uAE4C\uC694?')) return;
+      }
+      try {
+        await ShopAPI.post(SHOP_ENDPOINTS.order.bulk, payload);
+        if (typeof showAdminAlert === 'function') showAdminAlert('\uCC98\uB9AC\uB418\uC5C8\uC2B5\uB2C8\uB2E4.', 'success');
+        setTimeout(() => location.reload(), 400);
+      } catch (err) {
+        if (typeof showAdminAlert === 'function') showAdminAlert(err.message, 'error');
+      }
+    });
+  });
+
+  document.querySelectorAll('.js-order-ship').forEach((form) => {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = Number(form.dataset.id);
+      if (!id) return;
+      try {
+        await ShopAPI.post(SHOP_ENDPOINTS.order.save, {
+          id,
+          status: 'shipping',
+          payment_status: 'paid',
+          carrier: form.carrier?.value || '',
+          tracking_no: form.tracking_no?.value || '',
+          admin_memo: form.dataset.memo || '',
+        });
+        if (typeof showAdminAlert === 'function') showAdminAlert('\uBC30\uC1A1\uC815\uBCF4\uAC00 \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4.', 'success');
+        setTimeout(() => location.reload(), 400);
+      } catch (err) {
+        if (typeof showAdminAlert === 'function') showAdminAlert(err.message, 'error');
+      }
+    });
+  });
+}
+
+bindOrderDesk();
+
+document.querySelectorAll('.js-compat-form').forEach((form) => {
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = Number(form.dataset.id);
+    if (!id) return;
+    const btn = form.querySelector('button[type="submit"]');
+    if (btn) btn.disabled = true;
+    try {
+      await ShopAPI.post(SHOP_ENDPOINTS.product.compatSave, {
+        id,
+        compat_formtec: form.compat_formtec?.value || '',
+        compat_ilabel: form.compat_ilabel?.value || '',
+        compat_anylabel: form.compat_anylabel?.value || '',
+      });
+      if (typeof showAdminAlert === 'function') showAdminAlert('\uD638\uD658\uCF54\uB4DC\uAC00 \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4.', 'success');
+    } catch (err) {
+      if (typeof showAdminAlert === 'function') showAdminAlert(err.message, 'error');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  });
+});
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {

@@ -40,7 +40,14 @@
       <div class="shop-cart-total"><dt>결제 예정</dt><dd id="cartTotal"><?= e($shopService->formatPrice($cart['total'])) ?></dd></div>
     </dl>
     <p class="shop-cart-note">5만원 이상 구매 시 배송비 무료</p>
-    <button type="button" class="shop-btn shop-btn--primary shop-btn--block" disabled title="준비 중">주문하기 (준비 중)</button>
+    <form id="shopCheckoutForm" class="shop-checkout-form">
+      <label>이름<input name="customer_name" required maxlength="80" value="<?= e((string) ($authUser['name'] ?? '')) ?>"></label>
+      <label>이메일<input type="email" name="customer_email" required maxlength="190" value="<?= e((string) ($authUser['email'] ?? '')) ?>"></label>
+      <label>연락처<input name="customer_phone" required maxlength="30" value="<?= e((string) ($authUser['phone'] ?? '')) ?>" placeholder="010-0000-0000"></label>
+      <label>배송지<textarea name="shipping_address" required maxlength="500" rows="3" placeholder="주소와 상세주소를 입력하세요"></textarea></label>
+      <label>배송 메모<textarea name="shipping_memo" maxlength="255" rows="2" placeholder="문 앞, 경비실 등"></textarea></label>
+      <button type="submit" class="shop-btn shop-btn--primary shop-btn--block">주문 접수</button>
+    </form>
     <a class="shop-btn shop-btn--outline shop-btn--block" href="<?= url('shop/products') ?>">쇼핑 계속하기</a>
   </aside>
 </div>

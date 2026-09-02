@@ -15,6 +15,7 @@
       <li><a href="<?= url('shop/products') ?>">📐 규격 가이드</a></li>
       <li><a href="<?= url('shop/products') ?>?category=label-paper">📦 용지 샘플 안내</a></li>
       <li><a href="#">🖨️ 인쇄 가이드</a></li>
+      <li><a href="<?= url('faq') ?>">❓ 자주 묻는 질문</a></li>
     </ul>
   </section>
   <section class="shop-aside-promo">

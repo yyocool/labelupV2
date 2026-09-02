@@ -5,22 +5,34 @@ alwaysApply: true
 
 # dev 원격 자동 배포
 
-`dev/` 폴더(LabelUp 실서비스)에서 코드·뷰·정적 파일을 변경한 작업은 **커밋/PR 여부와 관계없이** 완료 직후 원격 서버에 반영한다.
+`dev/` 폴더(LabelUp 실서비스)에서 코드·뷰·정적 파일을 변경한 작업은 **커밋/PR 여부와 관계없이** 완료 직후 원격 서버에 반영하고, 배포 직후 반드시 원격에서 테스트한다.
+
+로컬 `dev/` ↔ 원격 `/home/labelupdev` 가 1:1 대응이다. `.env` 는 덮어쓰지 않도록 배포 스크립트가 서버용 값을 유지한다.
 
 ## 배포 대상
 
 - URL: http://labelupdev.gagamkorea.kr
+- SSH: `root@115.71.237.145`
 - 서버 경로: `/home/labelupdev`
 - 배포 스크립트: `dev/scripts/deploy.py`
+- 원격 확인: `dev/scripts/test_remote.py`
 
 ## 실행 방법
 
 ```powershell
-$env:LABELUP_SSH_PASSWORD = '<SSH 비밀번호>'
+$env:LABELUP_SSH_PASSWORD = $env:LABELUP_SSH_PASSWORD
+if (-not $env:LABELUP_SSH_PASSWORD) { $env:LABELUP_SSH_PASSWORD = '<SSH 비밀번호>' }
 python dev/scripts/deploy.py
+python dev/scripts/test_remote.py
 ```
 
-환경 변수 `LABELUP_SSH_PASSWORD`가 설정되어 있으면 그대로 사용한다.
+환경 변수 `LABELUP_SSH_PASSWORD`가 이미 설정되어 있으면 그대로 사용한다. 비밀번호를 저장소 파일에 쓰지 않는다.
+
+## 배포 후 테스트 (필수)
+
+1. `GET /api/health` — `success:true`, `database: connected`
+2. 변경한 화면/API를 `http://labelupdev.gagamkorea.kr` 에서 실제 동작 확인
+3. DB 스키마 변경이 있으면 `POST /api/system/migrate` 후 결과 확인
 
 ## DB 변경 시
 

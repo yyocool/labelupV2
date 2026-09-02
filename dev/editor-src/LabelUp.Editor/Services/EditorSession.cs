@@ -18,6 +18,7 @@ public sealed class EditorSession
     public float PanY { get; set; }
     public bool Dirty { get; set; }
     public bool ShowGrid { get; set; } = true;
+    public bool TopBarPinned { get; set; } = true;
     public string Status { get; set; } = "준비됨";
     public string PropsTab { get; set; } = "props";
     public bool PropsMinimized { get; set; } = false;
@@ -25,7 +26,7 @@ public sealed class EditorSession
     public int PageIndex { get; set; }
     public int LabelIndex { get; set; }
     public EditorDialog Dialog { get; set; } = EditorDialog.None;
-    public bool ShowAdminTools { get; set; } = true;
+    public bool ShowAdminTools { get; set; } = false;
     public bool DataPanelVisible { get; set; }
     public bool DataPanelExpanded { get; set; }
     public int DataPage { get; set; }
@@ -38,13 +39,17 @@ public sealed class EditorSession
     public string ClipartTab { get; set; } = "clipart";
     public List<UserAsset> UserAssets { get; } = [];
     public VendorImportResult? PendingVendorImport { get; set; }
+    public int WorkspaceId { get; set; }
+    public int? CurrentShopProductId { get; set; }
+    public bool PendingShopBuyNow { get; set; }
+    public string? PendingShopPaperNo { get; set; }
 
     /// <summary>Pixels per mm at zoom 1 (screen preview density).</summary>
     public float PxPerMm { get; set; } = 4.2f;
 
     public const float RulerPx = 28f;
     /// <summary>룰러와 라벨 사이 간격. CSS 픽셀(장치 독립)이라 DPI가 달라도 시각적 거리가 같습니다.</summary>
-    public const float RulerGapPx = 40f;
+    public const float RulerGapPx = 20f;
 
     public event Action? Changed;
 
@@ -242,8 +247,9 @@ public sealed class EditorSession
         Notify();
     }
 
-    public void ApplyPaper(PaperSpec paper)
+    public void ApplyPaper(PaperSpec paper, int? shopProductId = null)
     {
+        CurrentShopProductId = shopProductId is > 0 ? shopProductId : null;
         Document.ApplyPaper(paper, keepDesign: true);
         Document.Background = paper.LabelColor;
         PageIndex = 0;
@@ -252,6 +258,19 @@ public sealed class EditorSession
         Dirty = true;
         Status = $"용지 {paper.PaperNo} 적용";
         Notify();
+    }
+
+    public void OpenShopBuyNow(string? paperNo = null)
+    {
+        PendingShopBuyNow = true;
+        PendingShopPaperNo = string.IsNullOrWhiteSpace(paperNo) ? Document.Paper.PaperNo : paperNo.Trim();
+        OpenDialog(EditorDialog.LabelShop);
+    }
+
+    public void ClearPendingShopBuyNow()
+    {
+        PendingShopBuyNow = false;
+        PendingShopPaperNo = null;
     }
 
     public DesignObject PlaceBoundText(string column, float? x = null, float? y = null)

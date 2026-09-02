@@ -31,9 +31,13 @@
 .account-name-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .account-name-row h1{margin:0;font-size:22px;font-weight:900}
 .account-plan-badge{
-  padding:4px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent);
-  font-size:11px;font-weight:800;border:1px solid var(--accent-soft-2);
+  padding:4px 10px;border-radius:999px;
+  background:color-mix(in srgb, var(--grade-color, var(--accent)) 16%, #fff);
+  color:var(--grade-color, var(--accent));
+  font-size:11px;font-weight:800;
+  border:1px solid color-mix(in srgb, var(--grade-color, var(--accent)) 28%, #fff);
 }
+.account-grade-kicker{margin:0 0 4px;font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.02em}
 .account-meta{margin:4px 0 0;font-size:13px;color:var(--muted)}
 .account-hero-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .account-btn{
@@ -168,8 +172,10 @@
 .account-modal-divider{margin:20px 0;border:0;border-top:1px solid var(--line)}
 .account-field{margin-bottom:14px}
 .account-field label{display:block;margin-bottom:6px;font-size:13px;font-weight:700}
-.account-field input{width:100%;height:44px;border:1px solid var(--line);border-radius:10px;padding:0 12px;font-size:14px}
-.account-field input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.account-field input,.account-field textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:0 12px;font-size:14px;font-family:inherit;box-sizing:border-box}
+.account-field input{height:44px}
+.account-field textarea{min-height:140px;padding:12px;resize:vertical}
+.account-field input:focus,.account-field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
 .account-alert{margin-bottom:12px;padding:10px 12px;border-radius:10px;font-size:12px;display:none}
 .account-alert.show{display:block}
 .account-alert.error{background:#fdecec;color:#9b1c1c;border:1px solid #f5c2c2}
@@ -184,6 +190,26 @@
 .account-credit-amt.is-plus{color:#176b3a}
 .account-credit-amt.is-minus{color:#9b1c1c}
 .account-empty{margin:8px 0 0;color:var(--muted);font-size:13px}
+
+.account-clip-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:12px}
+.account-clip-card{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid #ececf2;border-radius:16px;background:#fff}
+.account-clip-thumb{border:0;padding:0;border-radius:12px;overflow:hidden;background:
+  linear-gradient(45deg,#f4f2f5 25%,transparent 25%) 0 0/16px 16px,
+  linear-gradient(-45deg,#f4f2f5 25%,transparent 25%) 0 0/16px 16px,#faf9fb;cursor:zoom-in;aspect-ratio:1}
+.account-clip-thumb img{width:100%;height:100%;object-fit:contain;display:block;padding:8px}
+.account-clip-card strong{font-size:12px;line-height:1.35;color:var(--charcoal)}
+.account-clip-actions{display:flex;gap:6px;margin-top:4px}
+.account-clip-actions .account-btn{height:32px;padding:0 10px;font-size:11px;flex:1}
+
+.account-clip-lb{position:fixed;inset:0;z-index:220;display:grid;place-items:center;padding:20px}
+.account-clip-lb[hidden]{display:none!important}
+.account-clip-lb-backdrop{position:absolute;inset:0;background:rgba(22,20,32,.58)}
+.account-clip-lb-dialog{position:relative;z-index:1;width:min(640px,100%);background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 24px 60px rgba(20,16,40,.28)}
+.account-clip-lb-figure{background:#f7f5f8;min-height:280px;display:grid;place-items:center;padding:18px}
+.account-clip-lb-figure img{max-width:100%;max-height:min(58vh,480px);object-fit:contain}
+.account-clip-lb-meta{padding:16px 18px 18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.account-clip-lb-meta strong{flex:1 1 160px;font-size:15px}
+.account-clip-lb-close{position:absolute;top:10px;right:10px;width:34px;height:34px;border:0;border-radius:50%;background:#fff;cursor:pointer;font-size:20px;box-shadow:0 4px 12px rgba(0,0,0,.12)}
 
 @media (max-width:1280px){
   .account-hero{grid-template-columns:1fr 1fr}

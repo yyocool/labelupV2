@@ -7,33 +7,96 @@
 
 @if (Session.Dialog == EditorDialog.PaperPicker)
 {
-  <div class="ed-modal" role="dialog" aria-label="라벨용지선택" @onclick="Session.CloseDialog">
-    <div class="ed-modal__card ed-modal__card--wide" @onclick:stopPropagation="true">
-      <header class="ed-modal__head">
+  <div class="ed-modal" role="dialog" aria-label="용지선택" @onclick="Session.CloseDialog">
+    <div class="ed-modal__card ed-modal__card--papers" @onclick:stopPropagation="true">
+      <header class="ed-modal__head" data-tut="paper-picker-head">
         <div>
-          <h3>라벨용지선택</h3>
-          <p>paperData 폴더의 용지 규격을 미리보고 선택합니다.</p>
+          <h3>용지선택</h3>
+          <p>라벨용지와 태그용지를 검색하고 선택합니다.</p>
         </div>
         <button type="button" class="ed-modal__close" @onclick="Session.CloseDialog">×</button>
       </header>
+
+      <nav class="ed-paper-tabs" role="tablist" aria-label="용지 종류" data-tut="paper-tabs">
+        <button type="button"
+                class="ed-paper-tab @(_tab == "label" ? "is-active" : null)"
+                role="tab"
+                aria-selected="@(_tab == "label")"
+                data-tut="paper-tab-label"
+                @onclick='() => SetTab("label")'>라벨</button>
+        <button type="button"
+                class="ed-paper-tab @(_tab == "tag" ? "is-active" : null)"
+                role="tab"
+                aria-selected="@(_tab == "tag")"
+                data-tut="paper-tab-tag"
+                @onclick='() => SetTab("tag")'>태그</button>
+      </nav>
+
+      <div class="ed-paper-toolbar">
+        <input class="ed-paper-search" type="search" placeholder="상품명, SKU, 호환코드 검색"
+               @bind="_query" @bind:event="oninput" />
+        <select class="ed-paper-select" @bind="_category">
+          <option value="">전체 분류</option>
+          @foreach (var cat in TabCategories)
+          {
+            <option value="@cat">@cat</option>
+          }
+        </select>
+        <span class="ed-paper-count">@Filtered.Count() / @TabItems.Count()</span>
+      </div>
+
       <div class="ed-modal__body ed-paper-grid">
-        @foreach (var paper in Papers.Papers)
+        @if (_loading)
         {
-          <button type="button" class="ed-paper-card @(Session.Document.Paper.PaperNo == paper.PaperNo ? "is-active" : null)" @onclick="() => Apply(paper)">
-            <div class="ed-paper-card__preview">@((MarkupString)paper.ToSheetSvg(168))</div>
-            <div class="ed-paper-card__meta">
-              <strong>@paper.PaperNo</strong>
-              <span>@paper.Name</span>
-              <ul>
-                <li>용지 @paper.PaperWidthMm.ToString("0.#")×@paper.PaperHeightMm.ToString("0.#") mm</li>
-                <li>라벨 @paper.LabelWidthMm.ToString("0.#")×@paper.LabelHeightMm.ToString("0.#") mm</li>
-                <li>배열 @paper.Columns 열 × @paper.Rows 행 (@paper.LabelsPerPage 칸)</li>
-                <li>여백 L @paper.LeftMarginMm.ToString("0.#") / T @paper.TopMarginMm.ToString("0.#") / R @paper.RightMarginMm.ToString("0.#") / B @paper.BottomMarginMm.ToString("0.#")</li>
-                <li>간격 가로 @paper.HGapMm.ToString("0.#") / 세로 @paper.VGapMm.ToString("0.#") mm</li>
-                <li>모양 @paper.Shape.Kind@(paper.Shape.Hole is null ? "" : " · 타공")</li>
-              </ul>
-            </div>
-          </button>
+          <p class="ed-paper-empty">등록된 용지를 불러오는 중…</p>
+        }
+        else if (!string.IsNullOrWhiteSpace(_error) && !_source.Any())
+        {
+          <p class="ed-paper-empty">@_error</p>
+        }
+        else if (!Filtered.Any())
+        {
+          <p class="ed-paper-empty">검색 결과가 없습니다.</p>
+        }
+        else
+        {
+          @foreach (var item in Filtered)
+          {
+            var paper = PreviewPaper(item);
+            var active = string.Equals(Session.Document.Paper.PaperNo, paper.PaperNo, StringComparison.OrdinalIgnoreCase);
+            <button type="button" class="ed-paper-card @(active ? "is-active" : null)" @onclick="() => Apply(item)">
+              <div class="ed-paper-card__preview">
+                @if (!string.IsNullOrWhiteSpace(item.ThumbnailUrl))
+                {
+                  <img src="@item.ThumbnailUrl" alt="@item.Name" />
+                }
+                else
+                {
+                  @((MarkupString)paper.ToSheetSvg(168))
+                }
+              </div>
+              <div class="ed-paper-card__meta">
+                <strong>@item.Name</strong>
+                <span>@item.Sku @(string.IsNullOrWhiteSpace(item.CategoryName) ? "" : " · " + item.CategoryName)</span>
+                <ul>
+                  <li>@(_tab == "tag" ? "태그" : "라벨") @item.SizeText</li>
+                  @if (item.LabelsPerSheet > 0)
+                  {
+                    <li>시트당 @item.LabelsPerSheet 칸</li>
+                  }
+                  @if (!string.IsNullOrWhiteSpace(item.Material))
+                  {
+                    <li>재질 @item.Material</li>
+                  }
+                </ul>
+                <div class="ed-paper-compat">
+                  <span class="ed-paper-compat__chip @(string.IsNullOrWhiteSpace(item.CompatFormtec) ? "is-empty" : null)">폼텍 @(string.IsNullOrWhiteSpace(item.CompatFormtec) ? "-" : item.CompatFormtec)</span>
+                  <span class="ed-paper-compat__chip @(string.IsNullOrWhiteSpace(item.CompatIlabel) ? "is-empty" : null)">아이라벨 @(string.IsNullOrWhiteSpace(item.CompatIlabel) ? "-" : item.CompatIlabel)</span>
+                  <span class="ed-paper-compat__chip @(string.IsNullOrWhiteSpace(item.CompatAnylabel) ? "is-empty" : null)">애니라벨 @(string.IsNullOrWhiteSpace(item.CompatAnylabel) ? "-" : item.CompatAnylabel)</span>
+                </div>
+              </div>
+            </button>
+          }
         }
       </div>
     </div>
@@ -41,14 +104,164 @@
 }
 
 @code {
+    private string _query = "";
+    private string _tab = "label";
+    private string _category = "";
+    private bool _loading;
+    private bool _tried;
+    private string? _error;
+    private IReadOnlyList<ShopPaperItem> _source = [];
+    private readonly Dictionary<int, PaperSpec> _preview = new();
+
+    private IEnumerable<ShopPaperItem> TabItems
+    {
+        get
+        {
+            var shop = _source.Where(i => ItemKind(i) == _tab).ToList();
+            if (shop.Count > 0)
+                return shop;
+            return CatalogFallback(_tab);
+        }
+    }
+
+    private IEnumerable<string> TabCategories => TabItems
+        .Select(i => i.CategoryName)
+        .Where(n => !string.IsNullOrWhiteSpace(n))
+        .Cast<string>()
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(n => n, StringComparer.OrdinalIgnoreCase);
+
+    private IEnumerable<ShopPaperItem> Filtered => TabItems.Where(Matches);
+
     protected override void OnInitialized() => Session.Changed += OnChanged;
     public void Dispose() => Session.Changed -= OnChanged;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Session.Dialog == EditorDialog.PaperPicker && !_tried && !_loading)
+        {
+            _tried = true;
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            await Papers.EnsureLoadedAsync();
+            await Papers.EnsureShopPapersAsync();
+            _source = Papers.ShopPapers.Count > 0
+                ? Papers.ShopPapers
+                : Papers.Papers.Select(ToFallbackItem).ToList();
+            if (Papers.ShopPapers.Count == 0)
+                _error = "등록된 쇼핑몰 용지가 없어 기본 용지를 표시합니다.";
+        }
+        catch (Exception ex)
+        {
+            _error = "용지 목록을 불러오지 못했습니다.";
+            EditorLog.Warn("용지 선택 목록 실패: " + ex.Message);
+            _source = Papers.Papers.Select(ToFallbackItem).ToList();
+        }
+        finally
+        {
+            _loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
     private void OnChanged() => InvokeAsync(StateHasChanged);
 
-    private void Apply(PaperSpec paper)
+    private void SetTab(string tab)
     {
+        _tab = tab == "tag" ? "tag" : "label";
+        _category = "";
+    }
+
+    private bool Matches(ShopPaperItem item)
+    {
+        if (!string.IsNullOrWhiteSpace(_category)
+            && !string.Equals(item.CategoryName, _category, StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (string.IsNullOrWhiteSpace(_query)) return true;
+        var hay = string.Join(' ', item.Name, item.Sku, item.SpecName, item.CategoryName, item.Material,
+            item.CompatFormtec, item.CompatIlabel, item.CompatAnylabel);
+        return hay.Contains(_query.Trim(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string ItemKind(ShopPaperItem item)
+    {
+        if (string.Equals(item.Kind, "tag", StringComparison.OrdinalIgnoreCase))
+            return "tag";
+        if (string.Equals(item.Kind, "label", StringComparison.OrdinalIgnoreCase))
+            return "label";
+        var hay = $"{item.Name} {item.Sku} {item.CategoryName} {item.SpecName}";
+        if (hay.Contains("태그", StringComparison.OrdinalIgnoreCase)
+            || hay.Contains("행택", StringComparison.OrdinalIgnoreCase)
+            || hay.Contains("tag", StringComparison.OrdinalIgnoreCase))
+            return "tag";
+        return "label";
+    }
+
+    private static IReadOnlyList<ShopPaperItem> CatalogFallback(string kind)
+    {
+        var blanks = kind == "tag" ? ImportCatalog.TagBlank : ImportCatalog.LabelBlank;
+        var cats = kind == "tag" ? ImportCatalog.TagCategories : ImportCatalog.LabelCategories;
+        var catMap = cats.ToDictionary(c => c.Id, c => c.Label);
+        var list = new List<ShopPaperItem>();
+        var id = kind == "tag" ? -2000 : -1000;
+        foreach (var (catId, specs) in blanks)
+        {
+            catMap.TryGetValue(catId, out var catName);
+            foreach (var spec in specs)
+            {
+                list.Add(new ShopPaperItem
+                {
+                    Id = id--,
+                    Name = $"{spec.Code} {spec.Size}",
+                    Sku = spec.Code,
+                    Kind = kind,
+                    CategoryName = string.IsNullOrWhiteSpace(catName) ? catId : catName,
+                    WidthMm = spec.WidthMm,
+                    HeightMm = spec.HeightMm,
+                    LabelsPerSheet = spec.Qty,
+                    Shape = spec.Shape
+                });
+            }
+        }
+        return list;
+    }
+
+    private PaperSpec PreviewPaper(ShopPaperItem item)
+    {
+        if (_preview.TryGetValue(item.Id, out var cached)) return cached;
+        var paper = Papers.FromShopProduct(item);
+        _preview[item.Id] = paper;
+        return paper;
+    }
+
+    private void Apply(ShopPaperItem item)
+    {
+        var paper = Papers.FromShopProduct(item);
+        Papers.Upsert(paper);
         History.Push(Session.Document);
-        Session.ApplyPaper(paper);
+        Session.ApplyPaper(paper, item.Id > 0 ? item.Id : null);
         Session.CloseDialog();
     }
+
+    private static ShopPaperItem ToFallbackItem(PaperSpec paper, int index) => new()
+    {
+        Id = -(index + 1),
+        Name = paper.Name,
+        Sku = paper.PaperNo,
+        Kind = ItemKind(new ShopPaperItem { Name = paper.Name, Sku = paper.PaperNo, CategoryName = paper.Category }),
+        CategoryName = paper.Category,
+        WidthMm = paper.LabelWidthMm,
+        HeightMm = paper.LabelHeightMm,
+        LabelsPerSheet = paper.LabelsPerPage,
+        Shape = paper.Shape.Kind
+    };
 }

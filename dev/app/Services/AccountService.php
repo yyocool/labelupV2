@@ -32,9 +32,13 @@ final class AccountService
         $creditRepo->ensureBalanceRow($userId);
         $creditBalance = $creditRepo->getBalance($userId);
         $creditTx = $creditRepo->transactionsForUser($userId, 1, 10);
+        $cliparts = new UserAiClipartService();
+        $myCliparts = $cliparts->listForUser($userId, 48);
+        $clipartCount = $cliparts->countForUser($userId);
 
         return [
             'user' => $user,
+            'grade' => (new MemberGradeService())->forUser($userId),
             'plan' => $this->planInfo($user),
             'stats' => [
                 'points' => $creditBalance,
@@ -51,16 +55,19 @@ final class AccountService
                 'limit' => 200,
                 'label' => '이번 달 디자인/출력 사용량',
             ],
+            'cliparts' => $myCliparts,
+            'clipartCount' => $clipartCount,
             'quickLinks' => [
+                ['label' => '내 클립아트', 'ic' => '✦', 'href' => '#cliparts', 'badge' => $clipartCount],
                 ['label' => '배송지 관리', 'ic' => '📍', 'href' => '#address'],
                 ['label' => '결제수단 관리', 'ic' => '💳', 'href' => '#', 'disabled' => true],
                 ['label' => '쿠폰함', 'ic' => '🎫', 'href' => url('shop/cart'), 'badge' => 3],
-                ['label' => '관심상품', 'ic' => '♡', 'href' => url('shop/products'), 'badge' => 2],
             ],
             'shortcuts' => [
                 ['label' => '라벨 편집', 'ic' => '✎', 'href' => url('editor/')],
                 ['label' => '새 라벨 만들기', 'ic' => '＋', 'href' => url('editor/')],
                 ['label' => 'AI 라벨 디자인', 'ic' => '✦', 'href' => url('/')],
+                ['label' => '내 클립아트', 'ic' => '★', 'href' => '#cliparts'],
                 ['label' => '엑셀로 만들기', 'ic' => '⌘', 'href' => '#', 'disabled' => true],
                 ['label' => '주문하기', 'ic' => '🛒', 'href' => url('shop/cart')],
                 ['label' => '샘플 요청', 'ic' => '📦', 'href' => url('shop/products') . '?category=label-paper'],
@@ -74,6 +81,7 @@ final class AccountService
                 ['label' => '라벨 편집', 'ic' => '✎', 'href' => url('editor/')],
                 ['label' => '엑셀 데이터 연동', 'ic' => '⌘', 'href' => '#', 'disabled' => true],
                 ['label' => 'AI 라벨 디자인', 'ic' => '✦', 'href' => url('/')],
+                ['label' => '내 클립아트', 'ic' => '★', 'href' => '#cliparts'],
                 ['label' => '템플릿 둘러보기', 'ic' => '▦', 'href' => url('/')],
             ],
         ];

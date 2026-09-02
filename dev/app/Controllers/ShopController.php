@@ -28,6 +28,7 @@ final class ShopController extends BaseController
             $byMaterial[$key][] = $product;
         }
         $this->renderShop('shop/index', '쇼핑몰 — 라벨업', [
+            'seoPage' => 'shop',
             'banners' => $data['banners'],
             'categories' => $data['categories'],
             'specs' => $data['specs'],
@@ -55,6 +56,7 @@ final class ShopController extends BaseController
         $list = $this->shop->listProducts($filters, $page, 12);
 
         $this->renderShop('shop/products', '상품 목록 — 라벨업 쇼핑몰', [
+            'seoPage' => 'shop-products',
             'list' => $list,
             'filters' => $filters,
             'category' => $category,
@@ -78,7 +80,35 @@ final class ShopController extends BaseController
             4
         );
 
+        $desc = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($product['description'] ?? ''))));
+        if ($desc === '') {
+            $desc = trim((string) ($product['spec'] ?? ''));
+        }
         $this->renderShop('shop/product', e($product['name']) . ' — 라벨업 쇼핑몰', [
+            'seoPage' => 'shop-product',
+            'seoOverride' => [
+                'title' => (string) $product['name'] . ' — 라벨업',
+                'description' => mb_substr($desc, 0, 160),
+                'og_image' => (string) ($product['thumbnail'] ?? ''),
+                'og_type' => 'product',
+                'canonical_path' => '/shop/products/' . (int) $product['id'],
+                'jsonld' => [
+                    '@context' => 'https://schema.org',
+                    '@type' => 'Product',
+                    'name' => (string) $product['name'],
+                    'description' => mb_substr($desc, 0, 300),
+                    'image' => (string) ($product['thumbnail'] ?? ''),
+                    'sku' => (string) ($product['sku'] ?? ''),
+                    'offers' => [
+                        '@type' => 'Offer',
+                        'priceCurrency' => 'KRW',
+                        'price' => (int) ($product['unit_price'] ?? $product['price'] ?? 0),
+                        'availability' => !empty($product['soldout'])
+                            ? 'https://schema.org/OutOfStock'
+                            : 'https://schema.org/InStock',
+                    ],
+                ],
+            ],
             'product' => $product,
             'related' => array_values(array_filter(
                 $related['items'],
@@ -90,6 +120,7 @@ final class ShopController extends BaseController
     public function cart(): void
     {
         $this->renderShop('shop/cart', '장바구니 — 라벨업 쇼핑몰', [
+            'seoPage' => 'shop-cart',
             'cart' => $this->shop->cartSummary(),
         ]);
     }

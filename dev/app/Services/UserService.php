@@ -43,6 +43,7 @@ final class UserService
         $hash = password_hash($password, PASSWORD_DEFAULT);
         $userId = $this->users->create($email, $hash);
         $this->profiles->create($userId, trim($name));
+        (new MemberGradeService())->assignDefault($userId);
 
         return $this->users->findById($userId) ?? [];
     }
@@ -112,6 +113,8 @@ final class UserService
         }
         $userId = $this->users->create($email, password_hash('admin1234!', PASSWORD_DEFAULT), 'admin');
         $this->profiles->create($userId, '관리자');
+        $this->users->setSuperAdmin($userId, true);
+        (new MemberGradeService())->assignDefault($userId);
     }
 
     public function sanitizeUser(array $user): array

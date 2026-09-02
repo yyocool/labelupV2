@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title><?= e($pageTitle ?? '관리자 로그인') ?></title>
+  <meta name="robots" content="noindex,nofollow">
   <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
   <link rel="stylesheet" href="<?= css('brand.css') ?>">
   <link rel="stylesheet" href="<?= css('admin.css') ?>">

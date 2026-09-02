@@ -153,6 +153,32 @@ function bindCartPage() {
       }
     });
   });
+
+  const checkoutForm = document.getElementById('shopCheckoutForm');
+  checkoutForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(checkoutForm);
+    const submit = checkoutForm.querySelector('button[type="submit"]');
+    if (submit) submit.disabled = true;
+    try {
+      const res = await ShopAPI.post('/api/shop/checkout', {
+        customer_name: String(fd.get('customer_name') || ''),
+        customer_email: String(fd.get('customer_email') || ''),
+        customer_phone: String(fd.get('customer_phone') || ''),
+        shipping_address: String(fd.get('shipping_address') || ''),
+        shipping_memo: String(fd.get('shipping_memo') || ''),
+      });
+      const orderNo = res.data?.order_no || '';
+      showShopToast(res.message || '주문이 접수되었습니다.');
+      window.location.href = orderNo ? `/account?ordered=${encodeURIComponent(orderNo)}` : '/account';
+    } catch (err) {
+      showShopToast(err.message);
+      if (String(err.message || '').includes('로그인')) {
+        window.location.href = '/login?next=/shop/cart';
+      }
+      if (submit) submit.disabled = false;
+    }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {

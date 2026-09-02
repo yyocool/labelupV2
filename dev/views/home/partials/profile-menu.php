@@ -5,6 +5,7 @@ $userName = (string) ($authUser['name'] ?? '회원');
 $userEmail = (string) ($authUser['email'] ?? '');
 $userInitial = mb_substr($userName, 0, 1) ?: '회';
 $isAdmin = ($authUser['role'] ?? '') === 'admin';
+$memberGrade = $isLoggedIn ? member_grade_for_user($authUser) : null;
 ?>
 <?php if ($isLoggedIn): ?>
 <div class="profile-menu" id="profileMenu">
@@ -24,6 +25,9 @@ $isAdmin = ($authUser['role'] ?? '') === 'admin';
     <div class="profile-dropdown-head">
       <strong><?= e($userName) ?></strong>
       <span><?= e($userEmail) ?></span>
+      <?php if ($memberGrade): ?>
+      <em class="profile-grade-badge" style="--grade-color:<?= e((string) ($memberGrade['color'] ?? '#7B2D3E')) ?>"><?= e((string) $memberGrade['name']) ?></em>
+      <?php endif; ?>
     </div>
     <nav class="profile-dropdown-nav" aria-label="사용자 메뉴">
       <a class="profile-dropdown-item" href="<?= url('account') ?>">
@@ -39,10 +43,9 @@ $isAdmin = ($authUser['role'] ?? '') === 'admin';
         <span>내 프로젝트</span>
         <em>준비중</em>
       </a>
-      <a class="profile-dropdown-item is-disabled" href="#" tabindex="-1" aria-disabled="true" onclick="return false">
-        <span class="profile-dropdown-ic">▤</span>
-        <span>내 보관함</span>
-        <em>준비중</em>
+      <a class="profile-dropdown-item" href="<?= url('account') ?>#cliparts">
+        <span class="profile-dropdown-ic">★</span>
+        <span>내 클립아트</span>
       </a>
       <a class="profile-dropdown-item" href="<?= url('account') ?>#orders">
         <span class="profile-dropdown-ic">▧</span>

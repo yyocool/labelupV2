@@ -3,12 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title><?= e($pageTitle ?? '회원가입') ?></title>
+  <?php marketing_render_head(); ?>
+  <?php seo_render_head($seoPage ?? 'register', array_merge($seoOverride ?? [], ['fallback_title' => $pageTitle ?? '회원가입'])); ?>
   <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
   <link rel="stylesheet" href="<?= css('brand.css') ?>">
   <link rel="stylesheet" href="<?= css('login.css') ?>">
 </head>
 <body class="login-page register-page">
+<?php marketing_render_body_start(); ?>
 <?php require view_path('auth/partials/auth-back.php'); ?>
 
 <div class="login-shell">
@@ -172,5 +174,6 @@
   </div>
 </div>
 <script src="<?= js('auth.js') ?>"></script>
+<?php marketing_render_body_end(); ?>
 </body>
 </html>

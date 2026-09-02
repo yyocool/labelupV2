@@ -145,6 +145,45 @@ final class ShopAdminApiController extends BaseController
         }
     }
 
+    public function orderDetail(): never
+    {
+        $this->guard();
+        $id = (int) (request_json()['id'] ?? $_GET['id'] ?? 0);
+        try {
+            $this->jsonSuccess($this->shop->orderDetail($id));
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage());
+        }
+    }
+
+    public function bulkUpdateOrders(): never
+    {
+        $this->guard();
+        $payload = request_json();
+        try {
+            $count = $this->shop->bulkUpdateOrders(
+                is_array($payload['ids'] ?? null) ? $payload['ids'] : [],
+                $payload
+            );
+            $this->jsonSuccess(['count' => $count], $count . '건이 처리되었습니다.');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage());
+        }
+    }
+
+    public function saveProductCompat(): never
+    {
+        $this->guard();
+        $payload = request_json();
+        $id = (int) ($payload['id'] ?? 0);
+        try {
+            $this->shop->saveProductCompat($id, $payload);
+            $this->jsonSuccess(null, '호환코드가 저장되었습니다.');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage());
+        }
+    }
+
     public function saveCoupon(): never
     {
         $this->guard();
