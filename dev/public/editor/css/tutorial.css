@@ -1,0 +1,396 @@
+/* LabelUp editor tutorial */
+.lu-tut {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  pointer-events: none;
+  font-family: Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+.lu-tut__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 24, 28, 0.52);
+  pointer-events: none;
+}
+.lu-tut__spot {
+  position: fixed;
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 9999px rgba(30, 24, 28, 0.52),
+    0 0 0 3px rgba(123, 40, 64, 0.85),
+    0 8px 28px rgba(123, 40, 64, 0.35);
+  background: transparent;
+  pointer-events: none;
+  transition: left 0.35s ease, top 0.35s ease, width 0.35s ease, height 0.35s ease;
+  z-index: 1;
+}
+.lu-tut__overlay[hidden],
+.lu-tut__spot[hidden],
+.lu-tut__tip[hidden],
+.lu-tut__cursor[hidden],
+.lu-tut__caption[hidden],
+.lu-tut__toast[hidden],
+.lu-tut__ctrl[hidden] {
+  display: none !important;
+}
+
+.lu-tut__tip {
+  position: fixed;
+  z-index: 3;
+  width: min(320px, calc(100vw - 24px));
+  padding: 14px 14px 12px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid #E8D4DB;
+  box-shadow: 0 16px 40px rgba(46, 42, 39, 0.2);
+  pointer-events: auto;
+  color: #2E2A27;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity .28s ease, transform .28s ease;
+}
+.lu-tut__tip.is-shown {
+  opacity: 1;
+  transform: none;
+}
+.lu-tut__tip-kicker {
+  font-size: 11px;
+  font-weight: 800;
+  color: #7B2840;
+  margin-bottom: 4px;
+}
+.lu-tut__tip h4 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.lu-tut__tip p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #6B6560;
+}
+.lu-tut__effect {
+  font-size: 12px !important;
+  color: #7B2840 !important;
+  background: #F3E8EC;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.lu-tut__tip-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+.lu-tut__tip-actions button {
+  flex: 1;
+  height: 32px;
+  border: 1px solid #E5DDD3;
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6B6560;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.lu-tut__tip-actions button.is-primary {
+  background: linear-gradient(135deg, #9A3A55, #5E1F30);
+  border-color: transparent;
+  color: #fff;
+}
+
+.lu-tut__cursor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 4;
+  width: 22px;
+  height: 22px;
+  margin: -4px 0 0 -4px;
+  pointer-events: none;
+  transform: translate(-40px, -40px);
+}
+.lu-tut__cursor-dot {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: linear-gradient(135deg, #9A3A55, #5E1F30);
+  box-shadow: 0 4px 12px rgba(123, 40, 64, 0.4);
+  border: 2px solid #fff;
+}
+.lu-tut__cursor.is-touch .lu-tut__cursor-dot {
+  border-radius: 50%;
+  transform: none;
+  width: 28px;
+  height: 28px;
+  background: rgba(123, 40, 64, 0.35);
+  border: 2px solid #7B2840;
+  box-shadow: none;
+}
+.lu-tut__cursor-ripple {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 50%;
+  border: 2px solid rgba(123, 40, 64, 0.7);
+  opacity: 0;
+  pointer-events: none;
+}
+.lu-tut__cursor.is-click .lu-tut__cursor-ripple {
+  animation: luTutRipple 0.45s ease-out;
+}
+.lu-tut__cursor.is-click .lu-tut__cursor-dot {
+  transform: rotate(-45deg) scale(0.86);
+}
+.lu-tut__cursor.is-touch.is-click .lu-tut__cursor-dot {
+  transform: scale(0.9);
+}
+@keyframes luTutRipple {
+  0% { transform: scale(0.4); opacity: 0.9; }
+  100% { transform: scale(3.2); opacity: 0; }
+}
+
+.lu-tut__caption {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%);
+  z-index: 3;
+  max-width: min(640px, calc(100vw - 24px));
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: rgba(46, 42, 39, 0.88);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: center;
+  pointer-events: none;
+}
+
+.lu-tut__toast {
+  position: fixed;
+  left: 50%;
+  top: 72px;
+  transform: translateX(-50%);
+  z-index: 5;
+  max-width: min(420px, calc(100vw - 24px));
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #E8D4DB;
+  box-shadow: 0 10px 28px rgba(46, 42, 39, 0.16);
+  color: #5E1F30;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  pointer-events: none;
+}
+
+.lu-tut__ctrl {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 5;
+  width: min(240px, calc(100vw - 24px));
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid #E5DDD3;
+  box-shadow: 0 12px 36px rgba(46, 42, 39, 0.18);
+  pointer-events: auto;
+}
+.lu-tut__ctrl-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+.lu-tut__ctrl-top strong {
+  color: #7B2840;
+  font-size: 13px;
+}
+.lu-tut__ctrl-top span {
+  color: #6B6560;
+  font-weight: 700;
+}
+.lu-tut__progress {
+  height: 4px;
+  border-radius: 99px;
+  background: #eadfe4;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.lu-tut__progress i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #9A3A55, #C4A574);
+  transition: width 0.3s ease;
+}
+.lu-tut__ctrl-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+}
+.lu-tut__ctrl-row + .lu-tut__ctrl-row {
+  margin-top: 8px;
+}
+.lu-tut__ctrl-row button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #E5DDD3;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  color: #2E2A27;
+}
+.lu-tut__ctrl-row button:hover {
+  background: #F3E8EC;
+  border-color: #E8D4DB;
+  color: #7B2840;
+}
+.lu-tut__ctrl-row--opts {
+  justify-content: space-between;
+}
+.lu-tut__ctrl-row--opts label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6B6560;
+}
+.lu-tut__ctrl-row--opts select {
+  height: 28px;
+  border: 1px solid #E5DDD3;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  background: #fff;
+}
+.lu-tut__ctrl-row--opts button.is-on {
+  background: #F3E8EC;
+  border-color: #E8D4DB;
+  color: #7B2840;
+}
+
+/* invite modal */
+.lu-tut-invite {
+  position: fixed;
+  inset: 0;
+  z-index: 4800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(46, 42, 39, 0.45);
+}
+.lu-tut-invite[hidden] { display: none !important; }
+.lu-tut-invite__card {
+  width: min(420px, 100%);
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #E5DDD3;
+  box-shadow: 0 24px 60px rgba(46, 42, 39, 0.22);
+  padding: 22px 22px 18px;
+  text-align: center;
+  animation: luTutInviteIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.lu-tut-invite__labi {
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+  margin: 0 auto 8px;
+  display: block;
+  filter: drop-shadow(0 8px 14px rgba(123, 40, 64, 0.2));
+}
+.lu-tut-invite__card h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #2E2A27;
+}
+.lu-tut-invite__card p {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #6B6560;
+}
+.lu-tut-invite__actions {
+  display: grid;
+  gap: 8px;
+}
+.lu-tut-invite__actions button {
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid #E5DDD3;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  color: #2E2A27;
+}
+.lu-tut-invite__actions button.is-primary {
+  border: none;
+  color: #fff;
+  background: linear-gradient(135deg, #9A3A55, #5E1F30);
+}
+.lu-tut-invite__actions button.is-ghost {
+  border: none;
+  background: transparent;
+  color: #6B6560;
+  font-weight: 700;
+  height: 34px;
+}
+@keyframes luTutInviteIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+.ed-tut-reopen {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  z-index: 90;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid #E5DDD3;
+  background: #fff;
+  color: #7B2840;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(46, 42, 39, 0.1);
+}
+.ed-tut-reopen:hover {
+  background: #F3E8EC;
+  border-color: #E8D4DB;
+}
+
+@media (max-width: 720px) {
+  .lu-tut__ctrl {
+    left: 12px;
+    right: 12px;
+    width: auto;
+    bottom: 12px;
+  }
+  .lu-tut__caption {
+    bottom: 150px;
+  }
+}

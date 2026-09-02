@@ -1,0 +1,51 @@
+# ── DB 비밀번호 (팀원마다 로컬 복사본 사용) ──
+project/config/database.local.php
+project/config/database.remote.php
+dev/config/database.local.php
+dev/config/database.remote.php
+
+# ── DB 백업 / 덤프 (스키마·마이그레이션은 포함) ──
+*.sql
+!project/sql/schema.sql
+!.dbSchema/
+!.dbSchema/**
+!dev/database/migrations/
+!dev/database/migrations/**
+
+# ── 설치·런타임 ──
+project/storage/installed.lock
+project/storage/php-error.log
+project/storage/uploads/*
+!project/storage/uploads/.htaccess
+!project/storage/uploads/archive/
+!project/storage/uploads/archive/.gitkeep
+
+# ── OS / IDE ──
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*~
+
+# ── Docker ──
+.env
+dev/.env
+
+# ── dev 런타임 / 임시 ──
+dev/tmp_*.txt
+dev/public/assets/_labi_backup_blue/
+
+# ── 배포·실험·백업 (소스 제외) ──
+_dgz_probe/
+bak/
+_deploy_*/
+*.zip
+*.pdf
+.bkit/
+.startup/~$*
+.startup/~WRL*.tmp
+_merge_backup_*/
+project/storage/uploads/archive/*/*
+!project/storage/uploads/archive/.gitkeep

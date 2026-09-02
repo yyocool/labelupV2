@@ -1,0 +1,182 @@
+[
+    {
+        "id": 1,
+        "name": "라벨지",
+        "slug": "label-paper",
+        "image_path": "\/assets\/categories\/cat_label-paper.webp",
+        "sort_order": 1,
+        "is_active": 1,
+        "created_at": "2026-08-27 14:54:42",
+        "updated_at": "2026-08-28 14:04:05"
+    },
+    {
+        "id": 5,
+        "name": "물류관리용 라벨",
+        "slug": "logistics-label",
+        "image_path": "\/assets\/categories\/cat_logistics-label.webp",
+        "sort_order": 1,
+        "is_active": 1,
+        "created_at": "2026-08-28 11:50:06",
+        "updated_at": "2026-08-28 14:04:05"
+    },
+    {
+        "id": 2,
+        "name": "감열지",
+        "slug": "thermal-paper",
+        "image_path": "\/assets\/categories\/cat_thermal-paper.webp",
+        "sort_order": 2,
+        "is_active": 1,
+        "created_at": "2026-08-27 14:54:42",
+        "updated_at": "2026-08-28 14:04:05"
+    },
+    {
+        "id": 3,
+        "name": "봉투·포장",
+        "slug": "packaging",
+        "image_path": "\/assets\/categories\/cat_packaging.webp",
+        "sort_order": 3,
+        "is_active": 1,
+        "created_at": "2026-08-27 14:54:42",
+        "updated_at": "2026-08-28 14:04:05"
+    },
+    {
+        "id": 4,
+        "name": "프린터 소모품",
+        "slug": "supplies",
+        "image_path": "\/assets\/categories\/cat_supplies.webp",
+        "sort_order": 4,
+        "is_active": 1,
+        "created_at": "2026-08-27 14:54:42",
+        "updated_at": "2026-08-28 14:04:05"
+    },
+    {
+        "id": 6,
+        "name": "주소용라벨",
+        "slug": "address-label",
+        "image_path": "\/assets\/categories\/cat_address-label.webp",
+        "sort_order": 16,
+        "is_active": 1,
+        "created_at": "2026-08-28 11:50:23",
+        "updated_at": "2026-08-28 14:04:05"
+    },
+    {
+        "id": 7,
+        "name": "바코드용라벨",
+        "slug": "barcode-label",
+        "image_path": "\/assets\/categories\/cat_barcode-label.webp",
+        "sort_order": 38,
+        "is_active": 1,
+        "created_at": "2026-08-28 11:50:23",
+        "updated_at": "2026-08-28 14:04:05"
+    },
+    {
+        "id": 8,
+        "name": "인덱스용라벨",
+        "slug": "index-label",
+        "image_path": "\/assets\/categories\/cat_index-label.webp",
+        "sort_order": 50,
+        "is_active": 1,
+        "created_at": "2026-08-28 11:50:23",
+        "updated_at": "2026-08-28 14:04:05"
+    },
+    {
+        "id": 9,
+        "name": "정부문서",
+        "slug": "government-doc",
+        "image_path": "\/assets\/categories\/cat_government-doc.webp",
+        "sort_order": 78,
+        "is_active": 1,
+        "created_at": "2026-08-28 11:50:23",
+        "updated_at": "2026-08-28 14:04:05"
+    },
+    {
+        "id": 10,
+        "name": "광택라벨",
+        "slug": "gloss-label",
+        "image_path": "\/assets\/categories\/cat_gloss-label.webp",
+        "sort_order": 82,
+        "is_active": 1,
+        "created_at": "2026-08-28 11:50:23",
+        "updated_at": "2026-08-28 14:04:05"
+    },
+    {
+        "id": 11,
+        "name": "방수라벨",
+        "slug": "waterproof-label",
+        "image_path": "\/assets\/categories\/cat_waterproof-label.webp",
+        "sort_order": 88,
+        "is_active": 1,
+        "created_at": "2026-08-28 11:50:23",
+        "updated_at": "2026-08-28 14:04:05"
+    },
+    {
+        "id": 12,
+        "name": "반투명라벨",
+        "slug": "translucent-label",
+        "image_path": "\/assets\/categories\/cat_translucent-label.webp",
+        "sort_order": 97,
+        "is_active": 1,
+        "created_at": "2026-08-28 11:50:23",
+        "updated_at": "2026-08-28 14:04:05"
+    },
+    {
+        "id": 13,
+        "name": "잉크젯 투명라벨",
+        "slug": "inkjet-clear-label",
+        "image_path": "\/assets\/categories\/cat_inkjet-clear-label.webp",
+        "sort_order": 103,
+        "is_active": 1,
+        "created_at": "2026-08-28 11:50:23",
+        "updated_at": "2026-08-28 14:04:05"
+    },
+    {
+        "id": 14,
+        "name": "레이저 투명라벨",
+        "slug": "laser-clear-label",
+        "image_path": "\/assets\/categories\/cat_laser-clear-label.webp",
+        "sort_order": 109,
+        "is_active": 1,
+        "created_at": "2026-08-28 11:50:23",
+        "updated_at": "2026-08-28 14:04:05"
+    },
+    {
+        "id": 15,
+        "name": "보호용 필름",
+        "slug": "protective-film",
+        "image_path": "\/assets\/categories\/cat_protective-film.webp",
+        "sort_order": 115,
+        "is_active": 1,
+        "created_at": "2026-08-28 11:50:23",
+        "updated_at": "2026-08-28 14:04:05"
+    },
+    {
+        "id": 16,
+        "name": "컬러라벨",
+        "slug": "color-label",
+        "image_path": "\/assets\/categories\/cat_color-label.webp",
+        "sort_order": 119,
+        "is_active": 1,
+        "created_at": "2026-08-28 11:50:23",
+        "updated_at": "2026-08-28 14:04:05"
+    },
+    {
+        "id": 17,
+        "name": "파스텔 컬러 라벨",
+        "slug": "pastel-color-label",
+        "image_path": "\/assets\/categories\/cat_pastel-color-label.webp",
+        "sort_order": 122,
+        "is_active": 1,
+        "created_at": "2026-08-28 11:50:23",
+        "updated_at": "2026-08-28 14:04:05"
+    },
+    {
+        "id": 18,
+        "name": "크라프트 라벨",
+        "slug": "kraft-label",
+        "image_path": "\/assets\/categories\/cat_kraft-label.webp",
+        "sort_order": 126,
+        "is_active": 1,
+        "created_at": "2026-08-28 11:50:23",
+        "updated_at": "2026-08-28 14:04:05"
+    }
+]

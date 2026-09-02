@@ -1,0 +1,16 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+-  React를 활용한 웹뷰 기반 하이브리드 앱
+- 서버는 Node.js 사용 
+- 서버의 DB는 SQL이 필요한것에는 mariaDB 사용
+- 테이블의 schema가 변경될때는 항상  .dbSchema\latestSQL_YYMMDD.sql 파일에 최신의 전체 테이블 구조를 생성 할 수 있도록 Create table SQL 쿼리를 따로 저장해줘.
+  직전의 DB에서 변경되는 부분은 .dbSchema\updateSQL_YYMMDD_n.sql 파일에 DB의 변경 부분을 적용할 SQL 문을 넣어줘. n은 오늘 날짜의 1부터 증가. 
+- 서버의 mariaDB 버전은 10.3.39 이다. 
+- 개발은 로컬에서 도커 데스크탑을 이용해서 한다. 
+- 배포는 서버에서 도커 없이 우분투 20.04버전에서 구동한다. 
+- 
+
+

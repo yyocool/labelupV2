@@ -1,0 +1,56 @@
+@using LabelUp.Editor.Services
+@inject EditorSession Session
+@inject HistoryService History
+@implements IDisposable
+
+<div class="ed-float-bar" data-tut="float-bar" aria-label="선택 도구">
+  <button type="button" title="앞으로" @onclick="BringForward" disabled="@(Session.Selected is null)">앞으로</button>
+  <button type="button" title="뒤로" @onclick="SendBackward" disabled="@(Session.Selected is null)">뒤로</button>
+  <button type="button" title="복제" @onclick="Duplicate" disabled="@(Session.Selected is null)">⧉</button>
+  <button type="button" title="삭제" @onclick="DeleteSelected" disabled="@(Session.Selected is null)">🗑</button>
+</div>
+
+@code {
+    protected override void OnInitialized() => Session.Changed += OnChanged;
+    public void Dispose() => Session.Changed -= OnChanged;
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private void BringForward()
+    {
+        var list = Session.CurrentCell.Objects;
+        var i = list.FindIndex(x => x.Id == Session.SelectedId);
+        if (i < 0 || i >= list.Count - 1) return;
+        History.Push(Session.Document);
+        (list[i], list[i + 1]) = (list[i + 1], list[i]);
+        list[i].ZIndex++;
+        Session.Dirty = true;
+        Session.Notify();
+    }
+
+    private void SendBackward()
+    {
+        var list = Session.CurrentCell.Objects;
+        var i = list.FindIndex(x => x.Id == Session.SelectedId);
+        if (i <= 0) return;
+        History.Push(Session.Document);
+        (list[i], list[i - 1]) = (list[i - 1], list[i]);
+        list[i].ZIndex--;
+        Session.Dirty = true;
+        Session.Notify();
+    }
+
+    private void Duplicate()
+    {
+        if (Session.SelectedIds.Count == 0) return;
+        History.Push(Session.Document);
+        Session.CopySelection();
+        Session.PasteClipboard();
+    }
+
+    private void DeleteSelected()
+    {
+        if (Session.SelectedIds.Count == 0) return;
+        History.Push(Session.Document);
+        Session.DeleteSelection();
+    }
+}

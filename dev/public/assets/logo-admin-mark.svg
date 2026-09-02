@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" role="img" aria-label="LABEL UP">
+  <rect width="40" height="40" rx="10" fill="rgba(255,255,255,0.1)"/>
+  <path fill="#FFFFFF" d="M18 11 20 8 22 11Z"/>
+  <text x="20" y="28" fill="#FFFFFF" text-anchor="middle" font-family="Pretendard, Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="800" letter-spacing="0.5">UP</text>
+</svg>

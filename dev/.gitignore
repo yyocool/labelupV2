@@ -1,0 +1,10 @@
+.env
+/storage/logs/*.log
+/storage/uploads/*
+!/storage/uploads/.gitkeep
+/storage/designs/*
+!/storage/designs/.gitkeep
+/storage/pdf/*
+!/storage/pdf/.gitkeep
+/vendor/
+composer.lock

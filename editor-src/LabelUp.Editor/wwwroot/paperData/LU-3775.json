@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "paperNo": "LU-3775",
+  "name": "A4 84×58 mm 타공 8칸",
+  "category": "A4",
+  "brand": "LabelUp",
+  "paperWidthMm": 210,
+  "paperHeightMm": 297,
+  "labelWidthMm": 84,
+  "labelHeightMm": 58,
+  "columns": 2,
+  "rows": 4,
+  "leftMarginMm": 14,
+  "topMarginMm": 17.5,
+  "rightMarginMm": 14,
+  "bottomMarginMm": 17.5,
+  "hGapMm": 14,
+  "vGapMm": 10,
+  "labelColor": "#FFFFFF",
+  "shape": {
+    "kind": "roundrect",
+    "cornerRadiusMm": 2,
+    "hole": {
+      "x": 30.5,
+      "y": 17.5,
+      "width": 23,
+      "height": 23
+    }
+  }
+}

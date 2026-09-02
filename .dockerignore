@@ -1,0 +1,15 @@
+.git
+.gitignore
+.env
+*.sql
+!project/sql/schema.sql
+project/storage/installed.lock
+project/storage/php-error.log
+project/storage/uploads/*
+!project/storage/uploads/.htaccess
+!project/storage/uploads/archive/
+project/config/database.local.php
+project/config/database.remote.php
+README.md
+.idea
+.vscode

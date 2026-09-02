@@ -1,0 +1,9 @@
+# 루트 .gitignore 참고 (저장소 루트: labelup/)
+# DB 비밀번호 파일은 Git에 포함되지 않습니다.
+
+storage/installed.lock
+storage/php-error.log
+storage/uploads/*
+!storage/uploads/.htaccess
+!storage/uploads/archive/
+!storage/uploads/archive/.gitkeep

@@ -1,0 +1,665 @@
+@using LabelUp.Editor.Models
+@using LabelUp.Editor.Services
+@inject EditorSession Session
+@inject HistoryService History
+@inject PaperCatalog Papers
+@inject ExternalImportService ExternalImport
+@inject IJSRuntime Js
+@implements IDisposable
+
+<div class="ed-import-fab-wrap" data-ed-import-fab-wrap>
+  <button type="button" class="ed-import-fan-backdrop" data-ed-import-fan-backdrop aria-label="메뉴 닫기" tabindex="-1"></button>
+  <div class="ed-import-fan" id="edImportFan" data-ed-import-fan aria-hidden="true">
+    @for (var i = 0; i < FanItems.Length; i++)
+    {
+      var item = FanItems[i];
+      <button type="button"
+              class="ed-import-fan__item ed-import-fan__item--@item.Id"
+              data-ed-import-fan-item
+              data-tab="@item.Id"
+              data-tut="@($"import-fan-{item.Id}")"
+              style="@FanItemStyle(i)"
+              title="@item.Label"
+              aria-label="@item.Label">
+        <span class="ed-import-fan__bubble">
+          @if (item.Id == "smart")
+          {
+            <img class="ed-import-fan__labi" src="img/labi-icon.png" alt="" width="28" height="28" />
+          }
+          else
+          {
+            <span class="ed-import-fan__glyph" aria-hidden="true">@item.Icon</span>
+          }
+        </span>
+        <span class="ed-import-fan__label">@item.Label</span>
+      </button>
+    }
+  </div>
+  <button type="button"
+          class="ed-import-fab"
+          data-ed-import-fab
+          data-tut="import-fab"
+          title="가져오기"
+          aria-expanded="false"
+          aria-controls="edImportFan"
+          aria-haspopup="true">
+    <span class="ed-import-fab__icon" aria-hidden="true">
+      <span class="ed-import-fab__plus">+</span>
+    </span>
+    <span class="ed-import-fab__text">가져오기</span>
+  </button>
+</div>
+
+<div class="ed-import-overlay" data-ed-import-overlay data-tut="import-overlay" aria-hidden="true" role="dialog" aria-label="가져오기">
+  <div class="ed-import-dialog" data-tut="import-dialog">
+    <header class="ed-import__head" data-tut="import-head">
+      <h3>가져오기</h3>
+      <p>라벨을 선택하고 디자인을 선택하면 편집화면으로 이동합니다.</p>
+      <button type="button" class="ed-import__close" data-ed-import-close aria-label="닫기">×</button>
+    </header>
+
+    <nav class="ed-import__tabs" role="tablist" aria-label="가져오기" data-tut="import-tabs">
+      @foreach (var tab in Tabs)
+      {
+        <button type="button"
+                class="ed-import__tab @(ActiveTab == tab.Id ? "is-active" : null)"
+                role="tab"
+                aria-selected="@(ActiveTab == tab.Id)"
+                data-tut="@($"import-tab-{tab.Id}")"
+                @onclick="() => SetTab(tab.Id)">
+          @if (tab.Id == "smart")
+          {
+            <img class="ed-import__tab-labi" src="img/labi-icon.png" alt="" width="18" height="18" />
+          }
+          else if (!string.IsNullOrEmpty(tab.Icon))
+          {
+            <span class="ed-import__tab-icon" aria-hidden="true">@tab.Icon</span>
+          }
+          <span>@tab.Label</span>
+        </button>
+      }
+    </nav>
+
+    @* ── 라벨 / 태그 카탈로그 ── *@
+    @if (ActiveTab is "label" or "tag")
+    {
+      var cats = ActiveTab == "label" ? ImportCatalog.LabelCategories : ImportCatalog.TagCategories;
+      <div class="ed-import__panel ed-import__panel--catalog" data-tut="@($"import-panel-{ActiveTab}")">
+        <div class="ed-import__cats" data-tut="import-cats">
+          @foreach (var cat in cats)
+          {
+            <button type="button"
+                    class="ed-import__cat @(ActiveCat == cat.Id ? "is-active" : null)"
+                    data-tut="@($"import-cat-{cat.Id}")"
+                    @onclick="() => SetCat(cat.Id)">
+              @cat.Label <em>@cat.Count</em>
+            </button>
+          }
+        </div>
+        <div class="ed-import__toolbar" data-tut="import-toolbar">
+          <div class="ed-import__subtabs">
+            <button type="button"
+                    class="ed-import__subtab @(Subtype == "blank" ? "is-active" : null)"
+                    data-tut="import-subtype-blank"
+                    @onclick='() => SetSubtype("blank")'>
+              빈(Blank) @(ActiveTab == "label" ? "라벨" : "태그")
+            </button>
+            <button type="button"
+                    class="ed-import__subtab @(Subtype == "design" ? "is-active" : null)"
+                    data-tut="import-subtype-design"
+                    @onclick='() => SetSubtype("design")'>
+              @(ActiveTab == "label" ? "디자인 라벨" : "디자인태그")
+            </button>
+          </div>
+          <div class="ed-import__tools" data-tut="import-search">
+            <select class="ed-import__select" @bind="PageSize">
+              <option value="20">20개씩 보기</option>
+              <option value="40">40개씩 보기</option>
+              <option value="60">60개씩 보기</option>
+            </select>
+            <label class="ed-import__search">
+              <span aria-hidden="true">⌕</span>
+              <input type="search"
+                     placeholder="규격코드로 찾아보세요"
+                     @bind="Search"
+                     @bind:event="oninput" />
+            </label>
+            <button type="button" class="ed-import__reset" title="검색 초기화" @onclick="ResetSearch">↺</button>
+            <select class="ed-import__select" @bind="ViewMode">
+              <option value="spec">규격별 보기</option>
+              <option value="size">크기별 보기</option>
+            </select>
+          </div>
+        </div>
+        <div class="ed-import__scroll" data-tut="import-grid">
+          @if (Subtype == "blank")
+          {
+            <div class="ed-import__grid">
+              @foreach (var spec in FilteredSpecs.Take(PageSize))
+              {
+                <button type="button" class="ed-spec-card" @onclick="() => PickSpec(spec)">
+                  <div class="ed-spec-card__thumb ed-spec-card__thumb--sheet ed-spec-card__thumb--@spec.Shape @(ActiveTab == "tag" ? "ed-spec-card__thumb--tag" : null)">
+                    <span class="ed-spec-card__qty">@spec.Qty</span>
+                    <span class="ed-spec-card__brand">Label-UP</span>
+                  </div>
+                  <div class="ed-spec-card__meta">
+                    <span>@spec.Size</span>
+                    <strong>@spec.Code</strong>
+                  </div>
+                </button>
+              }
+            </div>
+          }
+          else
+          {
+            <div class="ed-import__grid">
+              @foreach (var item in FilteredDesigns.Take(PageSize))
+              {
+                <button type="button" class="ed-tpl-card" @onclick="() => PickDesign(item)">
+                  <div class="ed-tpl-card__thumb" style="background:@item.Tone">
+                    <span class="ed-tpl-card__preview">@(item.Title.Length > 8 ? item.Title[..8] : item.Title)</span>
+                  </div>
+                  <div class="ed-tpl-card__title">@item.Title</div>
+                  <div class="ed-tpl-card__tags">@item.Tags</div>
+                </button>
+              }
+            </div>
+          }
+          @if ((Subtype == "blank" && !FilteredSpecs.Any()) || (Subtype == "design" && !FilteredDesigns.Any()))
+          {
+            <p class="ed-import__empty">검색 결과가 없습니다.</p>
+          }
+        </div>
+      </div>
+    }
+
+    @* ── 템플릿 ── *@
+    else if (ActiveTab == "template")
+    {
+      <div class="ed-import__panel ed-import__panel--template" data-tut="import-panel-template">
+        <div class="ed-import__searchbar" data-tut="import-template-search">
+          <label class="ed-import__search ed-import__search--wide">
+            <span aria-hidden="true">⌕</span>
+            <input type="search" placeholder="키워드로 찾아보세요" @bind="TemplateSearch" @bind:event="oninput" />
+          </label>
+        </div>
+        <div class="ed-import__tagbar" data-tut="import-template-tags">
+          @foreach (var tag in ImportCatalog.TemplateTags)
+          {
+            <button type="button"
+                    class="ed-import__htag @(ActiveTemplateTag == tag.Tag ? "is-active" : null)"
+                    @onclick="() => ActiveTemplateTag = tag.Tag">
+              @tag.Tag <em>@tag.Count</em>
+            </button>
+          }
+        </div>
+        <div class="ed-import__scroll">
+          <div class="ed-import__grid">
+            @foreach (var item in FilteredTemplates)
+            {
+              <button type="button" class="ed-tpl-card" @onclick="() => PickDesign(item, 70f, 50f)">
+                <div class="ed-tpl-card__thumb" style="background:@item.Tone">
+                  <span class="ed-tpl-card__preview">@(item.Title.Length > 8 ? item.Title[..8] : item.Title)</span>
+                </div>
+                <div class="ed-tpl-card__title">@item.Title</div>
+                <div class="ed-tpl-card__tags">@item.Tags</div>
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    @* ── 스마트라벨 ── *@
+    else if (ActiveTab == "smart")
+    {
+      <div class="ed-import__panel ed-import__panel--smart" data-tut="import-panel-smart">
+        <div class="ed-import__scroll ed-import__scroll--smart">
+          <div class="ed-import__ai-box" data-tut="import-smart-box">
+            <div class="ed-import__ai-title">
+              <img class="ed-import__ai-labi" src="img/labi-icon.png" alt="" width="28" height="28" />
+              라비 — 어떤 라벨을 디자인할까요?
+            </div>
+            <p class="ed-import__ai-sub">스마트 라벨 AI 라비에게 아이디어나 요구사항을 자유롭게 입력해주세요.</p>
+            <div class="ed-import__ai-input">
+              <textarea rows="4"
+                        maxlength="2000"
+                        placeholder="예) 유기농 꿀 라벨, 70x50mm, 자연 느낌, 밝은 색상, 꿀벌 일러스트"
+                        @bind="SmartPrompt"
+                        @bind:event="oninput"></textarea>
+              <div class="ed-import__ai-input-foot">
+                <span>@(SmartPrompt?.Length ?? 0) / 2000</span>
+                <button type="button" class="ed-import__ai-send" aria-label="전송" @onclick="SendSmartPrompt">➤</button>
+              </div>
+            </div>
+            <div class="ed-import__ai-or">또는</div>
+            <div class="ed-import__ai-cards">
+              <button type="button" class="ed-import__ai-card" @onclick='() => SessionHint("이미지 붙여넣기는 준비 중입니다")'>
+                <span class="ed-import__ai-card-icon">🖼</span>
+                <strong>이미지 붙여넣기</strong>
+                <small>이미지를 붙여넣어 디자인을 생성해보세요.</small>
+              </button>
+              <button type="button" class="ed-import__ai-card" @onclick='() => SessionHint("엑셀 업로드는 준비 중입니다")'>
+                <span class="ed-import__ai-card-icon ed-import__ai-card-icon--green">📊</span>
+                <strong>엑셀 파일 업로드</strong>
+                <small>엑셀(CSV) 파일을 드래그하거나 업로드하세요.</small>
+              </button>
+              <button type="button" class="ed-import__ai-card" @onclick="UseSmartExample">
+                <span class="ed-import__ai-card-icon ed-import__ai-card-icon--purple">T</span>
+                <strong>프롬프트 예시 사용</strong>
+                <small>다양한 예시를 활용하여 시작해보세요.</small>
+              </button>
+              <button type="button" class="ed-import__ai-card" @onclick='() => SessionHint("내 파일에서 시작은 준비 중입니다")'>
+                <span class="ed-import__ai-card-icon ed-import__ai-card-icon--purple">📁</span>
+                <strong>내 파일에서 시작</strong>
+                <small>이전에 업로드한 파일을 불러와 시작하세요.</small>
+              </button>
+            </div>
+            <div class="ed-import__ai-tip">💡 팁! 구체적으로 입력할수록 더 정확한 결과를 얻을 수 있어요.</div>
+            <div class="ed-import__ai-examples">
+              @foreach (var ex in SmartExamples)
+              {
+                <button type="button" class="ed-import__ai-chip" @onclick="() => AppendExample(ex)">@ex</button>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    @* ── 외부라벨포맷 ── *@
+    else if (ActiveTab == "external")
+    {
+      <div class="ed-import__panel" data-tut="import-panel-external">
+        <div class="ed-import__scroll">
+          <p class="ed-import__section-label">타사포맷 — 파일을 열면 확장자로 자동 변환</p>
+          <div class="ed-import__format-list" data-tut="import-external-list">
+            <div class="ed-import__format-block">
+              <div class="ed-import__format-head">
+                <span class="ed-import__format-logo">⇪</span>
+                <div>
+                  <strong>외부 라벨 파일</strong>
+                  <span>애니라벨 · 아이라벨 · 폼텍 — 확장자/시그니처로 자동 판별</span>
+                </div>
+              </div>
+              <label class="ed-import__dropzone">
+                <InputFile OnChange="OnVendorFile" accept=".lbl,.idf,.xml,.dgz,.dgf,.fmt,.fdx,.zip" />
+                <span class="ed-import__drop-icon">📁</span>
+                <span class="ed-import__drop-title">파일을 드래그하거나 클릭하여 선택</span>
+                <span class="ed-import__drop-hint">.lbl · .idf · .dgz · .dgf · .zip</span>
+              </label>
+              <ul class="ed-import__ext-list">
+                <li><b>애니라벨</b> .lbl</li>
+                <li><b>아이라벨</b> .idf · .xml · .zip</li>
+                <li><b>폼텍</b> .dgz · .dgf · .fmt · .fdx</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    @* ── 내 디자인 ── *@
+    else if (ActiveTab == "mydesign")
+    {
+      <div class="ed-import__panel" data-tut="import-panel-mydesign">
+        <div class="ed-import__toolbar ed-import__toolbar--simple" data-tut="import-my-toolbar">
+          <label class="ed-import__search ed-import__search--grow">
+            <span aria-hidden="true">⌕</span>
+            <input type="search" placeholder="제목·규격으로 검색" @bind="MySearch" @bind:event="oninput" />
+          </label>
+          <label class="ed-btn ed-btn--file">
+            로컬 디자인 열기
+            <InputFile OnChange="OnMyDesignFile" accept=".lbu,.json,.labelup.json" />
+          </label>
+        </div>
+        <div class="ed-import__scroll" data-tut="import-my-grid">
+          <p class="ed-import__section-label">내가 작업한 라벨 프로젝트</p>
+          <div class="ed-import__design-grid">
+            @foreach (var item in FilteredMyDesigns)
+            {
+              <button type="button" class="ed-import__design-card" @onclick="() => PickMyDesign(item)">
+                <div class="ed-import__design-thumb" style="background:@item.Tone">
+                  @if (!string.IsNullOrEmpty(item.Badge))
+                  {
+                    <span class="ed-import__design-badge">@item.Badge</span>
+                  }
+                  <span class="ed-import__design-preview">@(item.Title.Length > 6 ? item.Title[..6] : item.Title)</span>
+                </div>
+                <div class="ed-import__design-meta">
+                  <strong>@item.Title</strong>
+                  <span>@item.Spec</span>
+                  <em>@item.Date</em>
+                </div>
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+@code {
+    private static readonly (string Id, string Label, string Icon)[] Tabs =
+    [
+        ("mydesign", "내디자인", "◇"),
+        ("external", "타사포맷", "⇪"),
+        ("template", "템플릿", "▦"),
+        ("label", "라벨", "▣"),
+        ("tag", "태그", "◈"),
+        ("smart", "라비", "")
+    ];
+
+    private static readonly (string Id, string Label, string Icon)[] FanItems =
+    [
+        ("mydesign", "내디자인", "◇"),
+        ("external", "타사포맷", "⇪"),
+        ("template", "템플릿", "▦"),
+        ("label", "라벨", "▣"),
+        ("tag", "태그", "◈"),
+        ("smart", "라비", "")
+    ];
+
+    private static string FanItemStyle(int index)
+    {
+        const int count = 6;
+        const double startDeg = 185;
+        const double endDeg = 95;
+        const double radius = 108;
+        var t = count <= 1 ? 0 : (double)index / (count - 1);
+        var deg = startDeg + (endDeg - startDeg) * t;
+        var rad = deg * Math.PI / 180.0;
+        var x = Math.Cos(rad) * radius;
+        var y = -Math.Sin(rad) * radius;
+        return $"--i:{index};--fan-x:{x:0.##}px;--fan-y:{y:0.##}px";
+    }
+
+    private static readonly string[] SmartExamples =
+    [
+        "유기농 올리브오일 라벨", "빈티지 스타일", "70x50mm", "올리브 일러스트", "녹색 톤"
+    ];
+
+    private string ActiveTab { get; set; } = "label";
+    private string ActiveCat { get; set; } = "a4";
+    private string Subtype { get; set; } = "blank";
+    private string Search { get; set; } = "";
+    private string TemplateSearch { get; set; } = "";
+    private string MySearch { get; set; } = "";
+    private string ActiveTemplateTag { get; set; } = "#전체";
+    private string? SmartPrompt { get; set; } = "";
+    private int PageSize { get; set; } = 20;
+    private string ViewMode { get; set; } = "spec";
+
+    private IEnumerable<ImportSpec> FilteredSpecs
+    {
+        get
+        {
+            var map = ActiveTab == "label" ? ImportCatalog.LabelBlank : ImportCatalog.TagBlank;
+            if (!map.TryGetValue(ActiveCat, out var list)) return Array.Empty<ImportSpec>();
+            var q = Search?.Trim() ?? "";
+            var items = string.IsNullOrEmpty(q)
+                ? list.AsEnumerable()
+                : list.Where(s => s.Code.Contains(q, StringComparison.OrdinalIgnoreCase)
+                               || s.Size.Contains(q, StringComparison.OrdinalIgnoreCase));
+            return ViewMode == "size"
+                ? items.OrderBy(s => s.WidthMm).ThenBy(s => s.HeightMm)
+                : items;
+        }
+    }
+
+    private IEnumerable<ImportDesign> FilteredDesigns
+    {
+        get
+        {
+            var map = ActiveTab == "label" ? ImportCatalog.LabelDesign : ImportCatalog.TagDesign;
+            if (!map.TryGetValue(ActiveCat, out var list)) return Array.Empty<ImportDesign>();
+            var q = Search?.Trim() ?? "";
+            if (string.IsNullOrEmpty(q)) return list;
+            return list.Where(d => d.Title.Contains(q, StringComparison.OrdinalIgnoreCase)
+                                || d.Tags.Contains(q, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    private IEnumerable<ImportDesign> FilteredTemplates
+    {
+        get
+        {
+            IEnumerable<ImportDesign> items = ImportCatalog.TemplateItems;
+            if (ActiveTemplateTag != "#전체")
+            {
+                var key = ActiveTemplateTag.TrimStart('#');
+                items = items.Where(t => t.Tags.Contains(key, StringComparison.OrdinalIgnoreCase));
+            }
+            var q = TemplateSearch?.Trim() ?? "";
+            if (!string.IsNullOrEmpty(q))
+                items = items.Where(t => t.Title.Contains(q, StringComparison.OrdinalIgnoreCase)
+                                      || t.Tags.Contains(q, StringComparison.OrdinalIgnoreCase));
+            return items;
+        }
+    }
+
+    private IEnumerable<ImportMyDesign> FilteredMyDesigns
+    {
+        get
+        {
+            var q = MySearch?.Trim() ?? "";
+            if (string.IsNullOrEmpty(q)) return ImportCatalog.MyDesigns;
+            return ImportCatalog.MyDesigns.Where(d =>
+                d.Title.Contains(q, StringComparison.OrdinalIgnoreCase)
+                || d.Spec.Contains(q, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    protected override void OnInitialized() => Session.Changed += OnChanged;
+    public void Dispose() => Session.Changed -= OnChanged;
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private void SetTab(string tab)
+    {
+        ActiveTab = tab;
+        ActiveCat = "a4";
+        Subtype = "blank";
+        Search = "";
+    }
+
+    private void SetCat(string cat) => ActiveCat = cat;
+    private void SetSubtype(string subtype) => Subtype = subtype;
+
+    private void ResetSearch()
+    {
+        Search = "";
+        PageSize = 20;
+        ViewMode = "spec";
+    }
+
+    private async Task PickSpec(ImportSpec spec)
+    {
+        History.Push(Session.Document);
+        var paper = Papers.Find(spec.Code)
+                    ?? Papers.Papers.FirstOrDefault(p =>
+                           Math.Abs(p.LabelWidthMm - spec.WidthMm) < 0.2f
+                           && Math.Abs(p.LabelHeightMm - spec.HeightMm) < 0.2f)
+                    ?? PaperSpec.CreateDefault();
+        if (Papers.Find(spec.Code) is null)
+        {
+            paper = paper.Clone();
+            paper.PaperNo = spec.Code;
+            paper.Name = $"{spec.Code} {spec.Size}";
+            paper.LabelWidthMm = spec.WidthMm;
+            paper.LabelHeightMm = spec.HeightMm;
+            paper.Shape.Kind = spec.Shape is "circle" or "heart" or "star" or "cloud" or "hex" or "bone" ? "svg" : paper.Shape.Kind;
+            if (spec.Shape == "circle") paper.Shape.Kind = "ellipse";
+            paper.RecalcMarginsFromGaps();
+        }
+        var doc = LabelDocument.CreateBlank(paper);
+        doc.Name = $"규격 {spec.Code}";
+        Session.ReplaceDocument(doc);
+        Session.Status = $"{spec.Code} ({spec.Size}) 규격을 적용했습니다";
+        Session.Notify();
+        await Js.InvokeVoidAsync("labelUpEditor.closeImport");
+    }
+
+    private async Task PickDesign(ImportDesign item, float? width = null, float? height = null)
+    {
+        History.Push(Session.Document);
+        var w = width ?? 70f;
+        var h = height ?? 50f;
+        if (width is null
+            && (ActiveTab is "label" or "tag")
+            && (ActiveTab == "label" ? ImportCatalog.LabelBlank : ImportCatalog.TagBlank)
+                .TryGetValue(ActiveCat, out var specs)
+            && specs.FirstOrDefault() is { } first)
+        {
+            w = first.WidthMm;
+            h = first.HeightMm;
+        }
+        var doc = LabelDocument.CreateBlank(w, h);
+        doc.Name = item.Title;
+        var text = FirstText(doc);
+        if (text is not null)
+        {
+            text.Text = item.Title;
+            Session.ReplaceDocument(doc);
+            Session.Select(text.Id);
+        }
+        else
+        {
+            Session.ReplaceDocument(doc);
+        }
+        Session.Status = $"「{item.Title}」 디자인을 불러왔습니다";
+        Session.Notify();
+        await Js.InvokeVoidAsync("labelUpEditor.closeImport");
+    }
+
+    private async Task PickMyDesign(ImportMyDesign item)
+    {
+        History.Push(Session.Document);
+        ParseSize(item.Spec, out var w, out var h);
+        var doc = LabelDocument.CreateBlank(w, h);
+        doc.Name = item.Title;
+        var text = FirstText(doc);
+        if (text is not null)
+        {
+            text.Text = item.Title;
+            Session.ReplaceDocument(doc);
+            Session.Select(text.Id);
+        }
+        else
+        {
+            Session.ReplaceDocument(doc);
+        }
+        Session.Status = $"「{item.Title}」을(를) 불러왔습니다";
+        Session.Notify();
+        await Js.InvokeVoidAsync("labelUpEditor.closeImport");
+    }
+
+    private async Task SendSmartPrompt()
+    {
+        if (string.IsNullOrWhiteSpace(SmartPrompt))
+        {
+            SessionHint("프롬프트를 입력해 주세요");
+            return;
+        }
+        History.Push(Session.Document);
+        var prompt = SmartPrompt.Trim();
+        var doc = LabelDocument.CreateBlank(70f, 50f);
+        doc.Name = "스마트라벨";
+        var text = FirstText(doc);
+        if (text is not null)
+        {
+            text.Text = prompt.Length > 40 ? prompt[..40] + "…" : prompt;
+            Session.ReplaceDocument(doc);
+            Session.Select(text.Id);
+        }
+        else
+        {
+            Session.ReplaceDocument(doc);
+        }
+        Session.Status = "스마트라벨 초안을 만들었습니다 (AI 연동 예정)";
+        Session.Notify();
+        await Js.InvokeVoidAsync("labelUpEditor.closeImport");
+    }
+
+    private void UseSmartExample()
+    {
+        SmartPrompt = "유기농 올리브오일 라벨, 70x50mm, 자연 느낌, 올리브 일러스트, 녹색 톤";
+    }
+
+    private void AppendExample(string ex)
+    {
+        if (string.IsNullOrWhiteSpace(SmartPrompt))
+            SmartPrompt = ex;
+        else
+            SmartPrompt = SmartPrompt.TrimEnd() + ", " + ex;
+    }
+
+    private async Task OnMyDesignFile(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            await using var stream = e.File.OpenReadStream(20 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var json = System.Text.Encoding.UTF8.GetString(ms.ToArray());
+            var doc = LabelDocumentJson.Parse(json);
+            History.Push(Session.Document);
+            Session.ReplaceDocument(doc);
+            Session.Status = $"「{doc.Name}」 디자인을 불러왔습니다";
+            await Js.InvokeVoidAsync("labelUpEditor.closeImport");
+        }
+        catch (Exception ex)
+        {
+            SessionHint("내 디자인 열기 실패: " + ex.Message);
+        }
+    }
+
+    private async Task OnVendorFile(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            await using var stream = e.File.OpenReadStream(30 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            Session.Status = "타사 포맷 분석 중…";
+            Session.Notify();
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(40);
+            var report = ExternalImport.Analyze(e.File.Name, ms.ToArray());
+            Session.PendingVendorImport = report;
+            await Js.InvokeVoidAsync("labelUpEditor.closeImport");
+            Session.OpenDialog(EditorDialog.VendorImport);
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error("타사 포맷 변환 실패", ex);
+            SessionHint("타사 포맷 변환 실패: " + ex.Message);
+        }
+    }
+
+    private void SessionHint(string msg)
+    {
+        Session.Status = msg;
+        Session.Notify();
+    }
+
+    private static DesignObject? FirstText(LabelDocument doc)
+        => doc.GetCell(0, 0).Objects.FirstOrDefault(o => o.Type == ObjectType.Text);
+
+    private static void ParseSize(string spec, out float w, out float h)
+    {
+        w = 70f;
+        h = 50f;
+        if (string.IsNullOrWhiteSpace(spec)) return;
+        var cleaned = spec.Replace("mm", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("×", "x").Replace("*", "x").Trim();
+        var parts = cleaned.Split('x', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length >= 2
+            && float.TryParse(parts[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var pw)
+            && float.TryParse(parts[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var ph))
+        {
+            w = pw;
+            h = ph;
+        }
+    }
+}

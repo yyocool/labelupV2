@@ -1,0 +1,4006 @@
+{
+  "count": 500,
+  "items": [
+    {
+      "title": "커피콩 · pastel",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0001.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #커피콩 #food #pastel #클립아트 #투명",
+      "description": "식품·카페용 커피콩 클립아트 (pastel)",
+      "sort_order": 1
+    },
+    {
+      "title": "원두 · sticker",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0002.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #원두 #food #sticker #클립아트 #투명",
+      "description": "식품·카페용 원두 클립아트 (sticker)",
+      "sort_order": 2
+    },
+    {
+      "title": "머그컵 · geometric",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0003.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #머그컵 #food #geometric #클립아트 #투명",
+      "description": "식품·카페용 머그컵 클립아트 (geometric)",
+      "sort_order": 3
+    },
+    {
+      "title": "케이크 · stamp",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0004.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #케이크 #food #stamp #클립아트 #투명",
+      "description": "식품·카페용 케이크 클립아트 (stamp)",
+      "sort_order": 4
+    },
+    {
+      "title": "빵 · gradient",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0005.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #빵 #food #gradient #클립아트 #투명",
+      "description": "식품·카페용 빵 클립아트 (gradient)",
+      "sort_order": 5
+    },
+    {
+      "title": "딸기 · silhouette",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0006.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #딸기 #food #silhouette #클립아트 #투명",
+      "description": "식품·카페용 딸기 클립아트 (silhouette)",
+      "sort_order": 6
+    },
+    {
+      "title": "레몬 · minimal",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0007.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #레몬 #food #minimal #클립아트 #투명",
+      "description": "식품·카페용 레몬 클립아트 (minimal)",
+      "sort_order": 7
+    },
+    {
+      "title": "밀크 · stamp",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0008.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #밀크 #food #stamp #클립아트 #투명",
+      "description": "식품·카페용 밀크 클립아트 (stamp)",
+      "sort_order": 8
+    },
+    {
+      "title": "티백 · minimal",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0009.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #티백 #food #minimal #클립아트 #투명",
+      "description": "식품·카페용 티백 클립아트 (minimal)",
+      "sort_order": 9
+    },
+    {
+      "title": "아이스크림 · filled",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0010.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #아이스크림 #food #filled #클립아트 #투명",
+      "description": "식품·카페용 아이스크림 클립아트 (filled)",
+      "sort_order": 10
+    },
+    {
+      "title": "초코 · outline",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0011.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #초코 #food #outline #클립아트 #투명",
+      "description": "식품·카페용 초코 클립아트 (outline)",
+      "sort_order": 11
+    },
+    {
+      "title": "도넛 · sticker",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0012.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #도넛 #food #sticker #클립아트 #투명",
+      "description": "식품·카페용 도넛 클립아트 (sticker)",
+      "sort_order": 12
+    },
+    {
+      "title": "와인 · outline",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0013.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #와인 #food #outline #클립아트 #투명",
+      "description": "식품·카페용 와인 클립아트 (outline)",
+      "sort_order": 13
+    },
+    {
+      "title": "맥주 · doodle",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0014.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #맥주 #food #doodle #클립아트 #투명",
+      "description": "식품·카페용 맥주 클립아트 (doodle)",
+      "sort_order": 14
+    },
+    {
+      "title": "피자 · gradient",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0015.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #피자 #food #gradient #클립아트 #투명",
+      "description": "식품·카페용 피자 클립아트 (gradient)",
+      "sort_order": 15
+    },
+    {
+      "title": "스시 · sticker",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0016.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #스시 #food #sticker #클립아트 #투명",
+      "description": "식품·카페용 스시 클립아트 (sticker)",
+      "sort_order": 16
+    },
+    {
+      "title": "사과 · pastel",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0017.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #사과 #food #pastel #클립아트 #투명",
+      "description": "식품·카페용 사과 클립아트 (pastel)",
+      "sort_order": 17
+    },
+    {
+      "title": "포도 · stamp",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0018.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #포도 #food #stamp #클립아트 #투명",
+      "description": "식품·카페용 포도 클립아트 (stamp)",
+      "sort_order": 18
+    },
+    {
+      "title": "꿀 · geometric",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0019.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #꿀 #food #geometric #클립아트 #투명",
+      "description": "식품·카페용 꿀 클립아트 (geometric)",
+      "sort_order": 19
+    },
+    {
+      "title": "잼 · filled",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0020.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #잼 #food #filled #클립아트 #투명",
+      "description": "식품·카페용 잼 클립아트 (filled)",
+      "sort_order": 20
+    },
+    {
+      "title": "커피콩 2 · outline",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0021.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #커피콩 #food #outline #클립아트 #투명",
+      "description": "식품·카페용 커피콩 클립아트 (outline)",
+      "sort_order": 21
+    },
+    {
+      "title": "원두 2 · doodle",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0022.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #원두 #food #doodle #클립아트 #투명",
+      "description": "식품·카페용 원두 클립아트 (doodle)",
+      "sort_order": 22
+    },
+    {
+      "title": "머그컵 2 · geometric",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0023.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #머그컵 #food #geometric #클립아트 #투명",
+      "description": "식품·카페용 머그컵 클립아트 (geometric)",
+      "sort_order": 23
+    },
+    {
+      "title": "케이크 2 · doodle",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0024.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #케이크 #food #doodle #클립아트 #투명",
+      "description": "식품·카페용 케이크 클립아트 (doodle)",
+      "sort_order": 24
+    },
+    {
+      "title": "빵 2 · gradient",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0025.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #빵 #food #gradient #클립아트 #투명",
+      "description": "식품·카페용 빵 클립아트 (gradient)",
+      "sort_order": 25
+    },
+    {
+      "title": "딸기 2 · silhouette",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0026.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #딸기 #food #silhouette #클립아트 #투명",
+      "description": "식품·카페용 딸기 클립아트 (silhouette)",
+      "sort_order": 26
+    },
+    {
+      "title": "레몬 2 · pastel",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0027.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #레몬 #food #pastel #클립아트 #투명",
+      "description": "식품·카페용 레몬 클립아트 (pastel)",
+      "sort_order": 27
+    },
+    {
+      "title": "밀크 2 · silhouette",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0028.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #밀크 #food #silhouette #클립아트 #투명",
+      "description": "식품·카페용 밀크 클립아트 (silhouette)",
+      "sort_order": 28
+    },
+    {
+      "title": "티백 2 · minimal",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0029.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #티백 #food #minimal #클립아트 #투명",
+      "description": "식품·카페용 티백 클립아트 (minimal)",
+      "sort_order": 29
+    },
+    {
+      "title": "아이스크림 2 · filled",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0030.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #아이스크림 #food #filled #클립아트 #투명",
+      "description": "식품·카페용 아이스크림 클립아트 (filled)",
+      "sort_order": 30
+    },
+    {
+      "title": "초코 2 · pastel",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0031.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #초코 #food #pastel #클립아트 #투명",
+      "description": "식품·카페용 초코 클립아트 (pastel)",
+      "sort_order": 31
+    },
+    {
+      "title": "도넛 2 · sticker",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0032.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #도넛 #food #sticker #클립아트 #투명",
+      "description": "식품·카페용 도넛 클립아트 (sticker)",
+      "sort_order": 32
+    },
+    {
+      "title": "와인 2 · geometric",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0033.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #와인 #food #geometric #클립아트 #투명",
+      "description": "식품·카페용 와인 클립아트 (geometric)",
+      "sort_order": 33
+    },
+    {
+      "title": "맥주 2 · stamp",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0034.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #맥주 #food #stamp #클립아트 #투명",
+      "description": "식품·카페용 맥주 클립아트 (stamp)",
+      "sort_order": 34
+    },
+    {
+      "title": "피자 2 · gradient",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0035.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #피자 #food #gradient #클립아트 #투명",
+      "description": "식품·카페용 피자 클립아트 (gradient)",
+      "sort_order": 35
+    },
+    {
+      "title": "스시 2 · silhouette",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0036.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #스시 #food #silhouette #클립아트 #투명",
+      "description": "식품·카페용 스시 클립아트 (silhouette)",
+      "sort_order": 36
+    },
+    {
+      "title": "사과 2 · minimal",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0037.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #사과 #food #minimal #클립아트 #투명",
+      "description": "식품·카페용 사과 클립아트 (minimal)",
+      "sort_order": 37
+    },
+    {
+      "title": "포도 2 · stamp",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0038.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #포도 #food #stamp #클립아트 #투명",
+      "description": "식품·카페용 포도 클립아트 (stamp)",
+      "sort_order": 38
+    },
+    {
+      "title": "꿀 2 · minimal",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0039.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #꿀 #food #minimal #클립아트 #투명",
+      "description": "식품·카페용 꿀 클립아트 (minimal)",
+      "sort_order": 39
+    },
+    {
+      "title": "잼 2 · filled",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0040.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #잼 #food #filled #클립아트 #투명",
+      "description": "식품·카페용 잼 클립아트 (filled)",
+      "sort_order": 40
+    },
+    {
+      "title": "커피콩 3 · outline",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0041.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #커피콩 #food #outline #클립아트 #투명",
+      "description": "식품·카페용 커피콩 클립아트 (outline)",
+      "sort_order": 41
+    },
+    {
+      "title": "원두 3 · sticker",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0042.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #원두 #food #sticker #클립아트 #투명",
+      "description": "식품·카페용 원두 클립아트 (sticker)",
+      "sort_order": 42
+    },
+    {
+      "title": "머그컵 3 · outline",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0043.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #머그컵 #food #outline #클립아트 #투명",
+      "description": "식품·카페용 머그컵 클립아트 (outline)",
+      "sort_order": 43
+    },
+    {
+      "title": "케이크 3 · doodle",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0044.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #케이크 #food #doodle #클립아트 #투명",
+      "description": "식품·카페용 케이크 클립아트 (doodle)",
+      "sort_order": 44
+    },
+    {
+      "title": "빵 3 · gradient",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0045.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #빵 #food #gradient #클립아트 #투명",
+      "description": "식품·카페용 빵 클립아트 (gradient)",
+      "sort_order": 45
+    },
+    {
+      "title": "딸기 3 · sticker",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0046.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #딸기 #food #sticker #클립아트 #투명",
+      "description": "식품·카페용 딸기 클립아트 (sticker)",
+      "sort_order": 46
+    },
+    {
+      "title": "레몬 3 · pastel",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0047.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #레몬 #food #pastel #클립아트 #투명",
+      "description": "식품·카페용 레몬 클립아트 (pastel)",
+      "sort_order": 47
+    },
+    {
+      "title": "밀크 3 · stamp",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0048.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #밀크 #food #stamp #클립아트 #투명",
+      "description": "식품·카페용 밀크 클립아트 (stamp)",
+      "sort_order": 48
+    },
+    {
+      "title": "티백 3 · geometric",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0049.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #티백 #food #geometric #클립아트 #투명",
+      "description": "식품·카페용 티백 클립아트 (geometric)",
+      "sort_order": 49
+    },
+    {
+      "title": "아이스크림 3 · filled",
+      "category_slug": "food",
+      "image_path": "/assets/cliparts/seed_food_0050.png",
+      "hashtags": "#식품 #카페 #맛집 #디저트 #라벨 #아이스크림 #food #filled #클립아트 #투명",
+      "description": "식품·카페용 아이스크림 클립아트 (filled)",
+      "sort_order": 50
+    },
+    {
+      "title": "립스틱 · pastel",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0051.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #립스틱 #beauty #pastel #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 립스틱 클립아트 (pastel)",
+      "sort_order": 51
+    },
+    {
+      "title": "향수 · gradient",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0052.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #beauty #gradient #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 향수 클립아트 (gradient)",
+      "sort_order": 52
+    },
+    {
+      "title": "크림 · silhouette",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0053.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #크림 #beauty #silhouette #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 크림 클립아트 (silhouette)",
+      "sort_order": 53
+    },
+    {
+      "title": "브러시 · stamp",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0054.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #브러시 #beauty #stamp #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 브러시 클립아트 (stamp)",
+      "sort_order": 54
+    },
+    {
+      "title": "미러 · stamp",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0055.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #미러 #beauty #stamp #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 미러 클립아트 (stamp)",
+      "sort_order": 55
+    },
+    {
+      "title": "네일 · minimal",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0056.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #네일 #beauty #minimal #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 네일 클립아트 (minimal)",
+      "sort_order": 56
+    },
+    {
+      "title": "세럼 · minimal",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0057.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #세럼 #beauty #minimal #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 세럼 클립아트 (minimal)",
+      "sort_order": 57
+    },
+    {
+      "title": "로션 · outline",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0058.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #로션 #beauty #outline #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 로션 클립아트 (outline)",
+      "sort_order": 58
+    },
+    {
+      "title": "파우더 · sticker",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0059.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #파우더 #beauty #sticker #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 파우더 클립아트 (sticker)",
+      "sort_order": 59
+    },
+    {
+      "title": "아이섀도 · filled",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0060.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #아이섀도 #beauty #filled #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 아이섀도 클립아트 (filled)",
+      "sort_order": 60
+    },
+    {
+      "title": "마스크팩 · doodle",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0061.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #마스크팩 #beauty #doodle #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 마스크팩 클립아트 (doodle)",
+      "sort_order": 61
+    },
+    {
+      "title": "토너 · gradient",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0062.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #토너 #beauty #gradient #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 토너 클립아트 (gradient)",
+      "sort_order": 62
+    },
+    {
+      "title": "클렌저 · outline",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0063.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #클렌저 #beauty #outline #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 클렌저 클립아트 (outline)",
+      "sort_order": 63
+    },
+    {
+      "title": "오일 · pastel",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0064.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #오일 #beauty #pastel #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 오일 클립아트 (pastel)",
+      "sort_order": 64
+    },
+    {
+      "title": "스프레이 · stamp",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0065.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #스프레이 #beauty #stamp #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 스프레이 클립아트 (stamp)",
+      "sort_order": 65
+    },
+    {
+      "title": "립스틱 2 · sticker",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0066.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #립스틱 #beauty #sticker #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 립스틱 클립아트 (sticker)",
+      "sort_order": 66
+    },
+    {
+      "title": "향수 2 · filled",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0067.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #beauty #filled #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 향수 클립아트 (filled)",
+      "sort_order": 67
+    },
+    {
+      "title": "크림 2 · outline",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0068.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #크림 #beauty #outline #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 크림 클립아트 (outline)",
+      "sort_order": 68
+    },
+    {
+      "title": "브러시 2 · geometric",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0069.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #브러시 #beauty #geometric #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 브러시 클립아트 (geometric)",
+      "sort_order": 69
+    },
+    {
+      "title": "미러 2 · geometric",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0070.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #미러 #beauty #geometric #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 미러 클립아트 (geometric)",
+      "sort_order": 70
+    },
+    {
+      "title": "네일 2 · doodle",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0071.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #네일 #beauty #doodle #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 네일 클립아트 (doodle)",
+      "sort_order": 71
+    },
+    {
+      "title": "세럼 2 · doodle",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0072.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #세럼 #beauty #doodle #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 세럼 클립아트 (doodle)",
+      "sort_order": 72
+    },
+    {
+      "title": "로션 2 · silhouette",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0073.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #로션 #beauty #silhouette #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 로션 클립아트 (silhouette)",
+      "sort_order": 73
+    },
+    {
+      "title": "파우더 2 · pastel",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0074.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #파우더 #beauty #pastel #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 파우더 클립아트 (pastel)",
+      "sort_order": 74
+    },
+    {
+      "title": "아이섀도 2 · gradient",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0075.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #아이섀도 #beauty #gradient #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 아이섀도 클립아트 (gradient)",
+      "sort_order": 75
+    },
+    {
+      "title": "마스크팩 2 · minimal",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0076.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #마스크팩 #beauty #minimal #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 마스크팩 클립아트 (minimal)",
+      "sort_order": 76
+    },
+    {
+      "title": "토너 2 · filled",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0077.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #토너 #beauty #filled #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 토너 클립아트 (filled)",
+      "sort_order": 77
+    },
+    {
+      "title": "클렌저 2 · silhouette",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0078.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #클렌저 #beauty #silhouette #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 클렌저 클립아트 (silhouette)",
+      "sort_order": 78
+    },
+    {
+      "title": "오일 2 · sticker",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0079.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #오일 #beauty #sticker #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 오일 클립아트 (sticker)",
+      "sort_order": 79
+    },
+    {
+      "title": "스프레이 2 · geometric",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0080.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #스프레이 #beauty #geometric #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 스프레이 클립아트 (geometric)",
+      "sort_order": 80
+    },
+    {
+      "title": "립스틱 3 · pastel",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0081.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #립스틱 #beauty #pastel #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 립스틱 클립아트 (pastel)",
+      "sort_order": 81
+    },
+    {
+      "title": "향수 3 · gradient",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0082.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #beauty #gradient #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 향수 클립아트 (gradient)",
+      "sort_order": 82
+    },
+    {
+      "title": "크림 3 · silhouette",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0083.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #크림 #beauty #silhouette #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 크림 클립아트 (silhouette)",
+      "sort_order": 83
+    },
+    {
+      "title": "브러시 3 · stamp",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0084.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #브러시 #beauty #stamp #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 브러시 클립아트 (stamp)",
+      "sort_order": 84
+    },
+    {
+      "title": "미러 3 · stamp",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0085.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #미러 #beauty #stamp #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 미러 클립아트 (stamp)",
+      "sort_order": 85
+    },
+    {
+      "title": "네일 3 · minimal",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0086.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #네일 #beauty #minimal #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 네일 클립아트 (minimal)",
+      "sort_order": 86
+    },
+    {
+      "title": "세럼 3 · minimal",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0087.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #세럼 #beauty #minimal #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 세럼 클립아트 (minimal)",
+      "sort_order": 87
+    },
+    {
+      "title": "로션 3 · outline",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0088.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #로션 #beauty #outline #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 로션 클립아트 (outline)",
+      "sort_order": 88
+    },
+    {
+      "title": "파우더 3 · sticker",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0089.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #파우더 #beauty #sticker #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 파우더 클립아트 (sticker)",
+      "sort_order": 89
+    },
+    {
+      "title": "아이섀도 3 · filled",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0090.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #아이섀도 #beauty #filled #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 아이섀도 클립아트 (filled)",
+      "sort_order": 90
+    },
+    {
+      "title": "마스크팩 3 · doodle",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0091.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #마스크팩 #beauty #doodle #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 마스크팩 클립아트 (doodle)",
+      "sort_order": 91
+    },
+    {
+      "title": "토너 3 · gradient",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0092.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #토너 #beauty #gradient #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 토너 클립아트 (gradient)",
+      "sort_order": 92
+    },
+    {
+      "title": "클렌저 3 · outline",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0093.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #클렌저 #beauty #outline #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 클렌저 클립아트 (outline)",
+      "sort_order": 93
+    },
+    {
+      "title": "오일 3 · pastel",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0094.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #오일 #beauty #pastel #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 오일 클립아트 (pastel)",
+      "sort_order": 94
+    },
+    {
+      "title": "스프레이 3 · stamp",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0095.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #스프레이 #beauty #stamp #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 스프레이 클립아트 (stamp)",
+      "sort_order": 95
+    },
+    {
+      "title": "립스틱 4 · sticker",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0096.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #립스틱 #beauty #sticker #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 립스틱 클립아트 (sticker)",
+      "sort_order": 96
+    },
+    {
+      "title": "향수 4 · filled",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0097.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #beauty #filled #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 향수 클립아트 (filled)",
+      "sort_order": 97
+    },
+    {
+      "title": "크림 4 · outline",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0098.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #크림 #beauty #outline #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 크림 클립아트 (outline)",
+      "sort_order": 98
+    },
+    {
+      "title": "브러시 4 · geometric",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0099.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #브러시 #beauty #geometric #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 브러시 클립아트 (geometric)",
+      "sort_order": 99
+    },
+    {
+      "title": "미러 4 · geometric",
+      "category_slug": "beauty",
+      "image_path": "/assets/cliparts/seed_beauty_0100.png",
+      "hashtags": "#뷰티 #화장품 #스킨케어 #향수 #미러 #beauty #geometric #클립아트 #라벨 #투명",
+      "description": "뷰티·화장품용 미러 클립아트 (geometric)",
+      "sort_order": 100
+    },
+    {
+      "title": "박스 · pastel",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0101.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #박스 #shipping #pastel #클립아트 #라벨 #투명",
+      "description": "배송·물류용 박스 클립아트 (pastel)",
+      "sort_order": 101
+    },
+    {
+      "title": "택배 · stamp",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0102.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #shipping #stamp #클립아트 #라벨 #투명",
+      "description": "배송·물류용 택배 클립아트 (stamp)",
+      "sort_order": 102
+    },
+    {
+      "title": "트럭 · minimal",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0103.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #트럭 #shipping #minimal #클립아트 #라벨 #투명",
+      "description": "배송·물류용 트럭 클립아트 (minimal)",
+      "sort_order": 103
+    },
+    {
+      "title": "핀 · stamp",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0104.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #핀 #shipping #stamp #클립아트 #라벨 #투명",
+      "description": "배송·물류용 핀 클립아트 (stamp)",
+      "sort_order": 104
+    },
+    {
+      "title": "지도핀 · outline",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0105.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #지도핀 #shipping #outline #클립아트 #라벨 #투명",
+      "description": "배송·물류용 지도핀 클립아트 (outline)",
+      "sort_order": 105
+    },
+    {
+      "title": "주의 · sticker",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0106.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #shipping #sticker #클립아트 #라벨 #투명",
+      "description": "배송·물류용 주의 클립아트 (sticker)",
+      "sort_order": 106
+    },
+    {
+      "title": "깨짐주의 · minimal",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0107.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #깨짐주의 #shipping #minimal #클립아트 #라벨 #투명",
+      "description": "배송·물류용 깨짐주의 클립아트 (minimal)",
+      "sort_order": 107
+    },
+    {
+      "title": "취급주의 · doodle",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0108.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #취급주의 #shipping #doodle #클립아트 #라벨 #투명",
+      "description": "배송·물류용 취급주의 클립아트 (doodle)",
+      "sort_order": 108
+    },
+    {
+      "title": "방수 · gradient",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0109.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #방수 #shipping #gradient #클립아트 #라벨 #투명",
+      "description": "배송·물류용 방수 클립아트 (gradient)",
+      "sort_order": 109
+    },
+    {
+      "title": "냉장 · filled",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0110.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #냉장 #shipping #filled #클립아트 #라벨 #투명",
+      "description": "배송·물류용 냉장 클립아트 (filled)",
+      "sort_order": 110
+    },
+    {
+      "title": "운송 · pastel",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0111.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #운송 #shipping #pastel #클립아트 #라벨 #투명",
+      "description": "배송·물류용 운송 클립아트 (pastel)",
+      "sort_order": 111
+    },
+    {
+      "title": "바코드스캔 · stamp",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0112.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #바코드스캔 #shipping #stamp #클립아트 #라벨 #투명",
+      "description": "배송·물류용 바코드스캔 클립아트 (stamp)",
+      "sort_order": 112
+    },
+    {
+      "title": "체크리스트 · outline",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0113.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #체크리스트 #shipping #outline #클립아트 #라벨 #투명",
+      "description": "배송·물류용 체크리스트 클립아트 (outline)",
+      "sort_order": 113
+    },
+    {
+      "title": "서류 · filled",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0114.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #서류 #shipping #filled #클립아트 #라벨 #투명",
+      "description": "배송·물류용 서류 클립아트 (filled)",
+      "sort_order": 114
+    },
+    {
+      "title": "패킹 · outline",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0115.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #패킹 #shipping #outline #클립아트 #라벨 #투명",
+      "description": "배송·물류용 패킹 클립아트 (outline)",
+      "sort_order": 115
+    },
+    {
+      "title": "박스 2 · sticker",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0116.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #박스 #shipping #sticker #클립아트 #라벨 #투명",
+      "description": "배송·물류용 박스 클립아트 (sticker)",
+      "sort_order": 116
+    },
+    {
+      "title": "택배 2 · geometric",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0117.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #shipping #geometric #클립아트 #라벨 #투명",
+      "description": "배송·물류용 택배 클립아트 (geometric)",
+      "sort_order": 117
+    },
+    {
+      "title": "트럭 2 · doodle",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0118.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #트럭 #shipping #doodle #클립아트 #라벨 #투명",
+      "description": "배송·물류용 트럭 클립아트 (doodle)",
+      "sort_order": 118
+    },
+    {
+      "title": "핀 2 · geometric",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0119.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #핀 #shipping #geometric #클립아트 #라벨 #투명",
+      "description": "배송·물류용 핀 클립아트 (geometric)",
+      "sort_order": 119
+    },
+    {
+      "title": "지도핀 2 · silhouette",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0120.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #지도핀 #shipping #silhouette #클립아트 #라벨 #투명",
+      "description": "배송·물류용 지도핀 클립아트 (silhouette)",
+      "sort_order": 120
+    },
+    {
+      "title": "주의 2 · pastel",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0121.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #shipping #pastel #클립아트 #라벨 #투명",
+      "description": "배송·물류용 주의 클립아트 (pastel)",
+      "sort_order": 121
+    },
+    {
+      "title": "깨짐주의 2 · doodle",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0122.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #깨짐주의 #shipping #doodle #클립아트 #라벨 #투명",
+      "description": "배송·물류용 깨짐주의 클립아트 (doodle)",
+      "sort_order": 122
+    },
+    {
+      "title": "취급주의 2 · minimal",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0123.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #취급주의 #shipping #minimal #클립아트 #라벨 #투명",
+      "description": "배송·물류용 취급주의 클립아트 (minimal)",
+      "sort_order": 123
+    },
+    {
+      "title": "방수 2 · filled",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0124.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #방수 #shipping #filled #클립아트 #라벨 #투명",
+      "description": "배송·물류용 방수 클립아트 (filled)",
+      "sort_order": 124
+    },
+    {
+      "title": "냉장 2 · gradient",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0125.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #냉장 #shipping #gradient #클립아트 #라벨 #투명",
+      "description": "배송·물류용 냉장 클립아트 (gradient)",
+      "sort_order": 125
+    },
+    {
+      "title": "운송 2 · sticker",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0126.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #운송 #shipping #sticker #클립아트 #라벨 #투명",
+      "description": "배송·물류용 운송 클립아트 (sticker)",
+      "sort_order": 126
+    },
+    {
+      "title": "바코드스캔 2 · geometric",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0127.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #바코드스캔 #shipping #geometric #클립아트 #라벨 #투명",
+      "description": "배송·물류용 바코드스캔 클립아트 (geometric)",
+      "sort_order": 127
+    },
+    {
+      "title": "체크리스트 2 · silhouette",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0128.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #체크리스트 #shipping #silhouette #클립아트 #라벨 #투명",
+      "description": "배송·물류용 체크리스트 클립아트 (silhouette)",
+      "sort_order": 128
+    },
+    {
+      "title": "서류 2 · gradient",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0129.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #서류 #shipping #gradient #클립아트 #라벨 #투명",
+      "description": "배송·물류용 서류 클립아트 (gradient)",
+      "sort_order": 129
+    },
+    {
+      "title": "패킹 2 · silhouette",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0130.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #패킹 #shipping #silhouette #클립아트 #라벨 #투명",
+      "description": "배송·물류용 패킹 클립아트 (silhouette)",
+      "sort_order": 130
+    },
+    {
+      "title": "박스 3 · pastel",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0131.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #박스 #shipping #pastel #클립아트 #라벨 #투명",
+      "description": "배송·물류용 박스 클립아트 (pastel)",
+      "sort_order": 131
+    },
+    {
+      "title": "택배 3 · stamp",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0132.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #shipping #stamp #클립아트 #라벨 #투명",
+      "description": "배송·물류용 택배 클립아트 (stamp)",
+      "sort_order": 132
+    },
+    {
+      "title": "트럭 3 · minimal",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0133.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #트럭 #shipping #minimal #클립아트 #라벨 #투명",
+      "description": "배송·물류용 트럭 클립아트 (minimal)",
+      "sort_order": 133
+    },
+    {
+      "title": "핀 3 · stamp",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0134.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #핀 #shipping #stamp #클립아트 #라벨 #투명",
+      "description": "배송·물류용 핀 클립아트 (stamp)",
+      "sort_order": 134
+    },
+    {
+      "title": "지도핀 3 · outline",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0135.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #지도핀 #shipping #outline #클립아트 #라벨 #투명",
+      "description": "배송·물류용 지도핀 클립아트 (outline)",
+      "sort_order": 135
+    },
+    {
+      "title": "주의 3 · sticker",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0136.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #shipping #sticker #클립아트 #라벨 #투명",
+      "description": "배송·물류용 주의 클립아트 (sticker)",
+      "sort_order": 136
+    },
+    {
+      "title": "깨짐주의 3 · minimal",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0137.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #깨짐주의 #shipping #minimal #클립아트 #라벨 #투명",
+      "description": "배송·물류용 깨짐주의 클립아트 (minimal)",
+      "sort_order": 137
+    },
+    {
+      "title": "취급주의 3 · doodle",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0138.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #취급주의 #shipping #doodle #클립아트 #라벨 #투명",
+      "description": "배송·물류용 취급주의 클립아트 (doodle)",
+      "sort_order": 138
+    },
+    {
+      "title": "방수 3 · gradient",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0139.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #방수 #shipping #gradient #클립아트 #라벨 #투명",
+      "description": "배송·물류용 방수 클립아트 (gradient)",
+      "sort_order": 139
+    },
+    {
+      "title": "냉장 3 · filled",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0140.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #냉장 #shipping #filled #클립아트 #라벨 #투명",
+      "description": "배송·물류용 냉장 클립아트 (filled)",
+      "sort_order": 140
+    },
+    {
+      "title": "운송 3 · pastel",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0141.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #운송 #shipping #pastel #클립아트 #라벨 #투명",
+      "description": "배송·물류용 운송 클립아트 (pastel)",
+      "sort_order": 141
+    },
+    {
+      "title": "바코드스캔 3 · stamp",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0142.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #바코드스캔 #shipping #stamp #클립아트 #라벨 #투명",
+      "description": "배송·물류용 바코드스캔 클립아트 (stamp)",
+      "sort_order": 142
+    },
+    {
+      "title": "체크리스트 3 · outline",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0143.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #체크리스트 #shipping #outline #클립아트 #라벨 #투명",
+      "description": "배송·물류용 체크리스트 클립아트 (outline)",
+      "sort_order": 143
+    },
+    {
+      "title": "서류 3 · filled",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0144.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #서류 #shipping #filled #클립아트 #라벨 #투명",
+      "description": "배송·물류용 서류 클립아트 (filled)",
+      "sort_order": 144
+    },
+    {
+      "title": "패킹 3 · outline",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0145.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #패킹 #shipping #outline #클립아트 #라벨 #투명",
+      "description": "배송·물류용 패킹 클립아트 (outline)",
+      "sort_order": 145
+    },
+    {
+      "title": "박스 4 · sticker",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0146.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #박스 #shipping #sticker #클립아트 #라벨 #투명",
+      "description": "배송·물류용 박스 클립아트 (sticker)",
+      "sort_order": 146
+    },
+    {
+      "title": "택배 4 · geometric",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0147.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #shipping #geometric #클립아트 #라벨 #투명",
+      "description": "배송·물류용 택배 클립아트 (geometric)",
+      "sort_order": 147
+    },
+    {
+      "title": "트럭 4 · doodle",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0148.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #트럭 #shipping #doodle #클립아트 #라벨 #투명",
+      "description": "배송·물류용 트럭 클립아트 (doodle)",
+      "sort_order": 148
+    },
+    {
+      "title": "핀 4 · geometric",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0149.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #핀 #shipping #geometric #클립아트 #라벨 #투명",
+      "description": "배송·물류용 핀 클립아트 (geometric)",
+      "sort_order": 149
+    },
+    {
+      "title": "지도핀 4 · silhouette",
+      "category_slug": "shipping",
+      "image_path": "/assets/cliparts/seed_shipping_0150.png",
+      "hashtags": "#배송 #물류 #택배 #주의 #지도핀 #shipping #silhouette #클립아트 #라벨 #투명",
+      "description": "배송·물류용 지도핀 클립아트 (silhouette)",
+      "sort_order": 150
+    },
+    {
+      "title": "별표 · pastel",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0151.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #별표 #kids #pastel #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 별표 클립아트 (pastel)",
+      "sort_order": 151
+    },
+    {
+      "title": "웃는얼굴 · outline",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0152.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #웃는얼굴 #kids #outline #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 웃는얼굴 클립아트 (outline)",
+      "sort_order": 152
+    },
+    {
+      "title": "연필 · sticker",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0153.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #연필 #kids #sticker #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 연필 클립아트 (sticker)",
+      "sort_order": 153
+    },
+    {
+      "title": "가방 · stamp",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0154.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #가방 #kids #stamp #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 가방 클립아트 (stamp)",
+      "sort_order": 154
+    },
+    {
+      "title": "공 · doodle",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0155.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #공 #kids #doodle #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 공 클립아트 (doodle)",
+      "sort_order": 155
+    },
+    {
+      "title": "블록 · gradient",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0156.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #블록 #kids #gradient #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 블록 클립아트 (gradient)",
+      "sort_order": 156
+    },
+    {
+      "title": "리본키즈 · minimal",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0157.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #리본키즈 #kids #minimal #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 리본키즈 클립아트 (minimal)",
+      "sort_order": 157
+    },
+    {
+      "title": "구름 · pastel",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0158.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #구름 #kids #pastel #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 구름 클립아트 (pastel)",
+      "sort_order": 158
+    },
+    {
+      "title": "무지개 · stamp",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0159.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #무지개 #kids #stamp #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 무지개 클립아트 (stamp)",
+      "sort_order": 159
+    },
+    {
+      "title": "사탕 · filled",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0160.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #사탕 #kids #filled #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 사탕 클립아트 (filled)",
+      "sort_order": 160
+    },
+    {
+      "title": "학용품 · filled",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0161.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #kids #filled #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 학용품 클립아트 (filled)",
+      "sort_order": 161
+    },
+    {
+      "title": "이름표 · outline",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0162.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #이름표 #kids #outline #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 이름표 클립아트 (outline)",
+      "sort_order": 162
+    },
+    {
+      "title": "스티커 · outline",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0163.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #스티커 #kids #outline #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 스티커 클립아트 (outline)",
+      "sort_order": 163
+    },
+    {
+      "title": "크레용 · geometric",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0164.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #크레용 #kids #geometric #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 크레용 클립아트 (geometric)",
+      "sort_order": 164
+    },
+    {
+      "title": "책 · doodle",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0165.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #책 #kids #doodle #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 책 클립아트 (doodle)",
+      "sort_order": 165
+    },
+    {
+      "title": "별표 2 · sticker",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0166.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #별표 #kids #sticker #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 별표 클립아트 (sticker)",
+      "sort_order": 166
+    },
+    {
+      "title": "웃는얼굴 2 · silhouette",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0167.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #웃는얼굴 #kids #silhouette #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 웃는얼굴 클립아트 (silhouette)",
+      "sort_order": 167
+    },
+    {
+      "title": "연필 2 · pastel",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0168.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #연필 #kids #pastel #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 연필 클립아트 (pastel)",
+      "sort_order": 168
+    },
+    {
+      "title": "가방 2 · geometric",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0169.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #가방 #kids #geometric #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 가방 클립아트 (geometric)",
+      "sort_order": 169
+    },
+    {
+      "title": "공 2 · minimal",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0170.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #공 #kids #minimal #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 공 클립아트 (minimal)",
+      "sort_order": 170
+    },
+    {
+      "title": "블록 2 · filled",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0171.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #블록 #kids #filled #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 블록 클립아트 (filled)",
+      "sort_order": 171
+    },
+    {
+      "title": "리본키즈 2 · doodle",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0172.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #리본키즈 #kids #doodle #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 리본키즈 클립아트 (doodle)",
+      "sort_order": 172
+    },
+    {
+      "title": "구름 2 · sticker",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0173.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #구름 #kids #sticker #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 구름 클립아트 (sticker)",
+      "sort_order": 173
+    },
+    {
+      "title": "무지개 2 · geometric",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0174.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #무지개 #kids #geometric #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 무지개 클립아트 (geometric)",
+      "sort_order": 174
+    },
+    {
+      "title": "사탕 2 · gradient",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0175.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #사탕 #kids #gradient #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 사탕 클립아트 (gradient)",
+      "sort_order": 175
+    },
+    {
+      "title": "학용품 2 · gradient",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0176.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #kids #gradient #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 학용품 클립아트 (gradient)",
+      "sort_order": 176
+    },
+    {
+      "title": "이름표 2 · silhouette",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0177.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #이름표 #kids #silhouette #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 이름표 클립아트 (silhouette)",
+      "sort_order": 177
+    },
+    {
+      "title": "스티커 2 · silhouette",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0178.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #스티커 #kids #silhouette #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 스티커 클립아트 (silhouette)",
+      "sort_order": 178
+    },
+    {
+      "title": "크레용 2 · stamp",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0179.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #크레용 #kids #stamp #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 크레용 클립아트 (stamp)",
+      "sort_order": 179
+    },
+    {
+      "title": "책 2 · minimal",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0180.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #책 #kids #minimal #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 책 클립아트 (minimal)",
+      "sort_order": 180
+    },
+    {
+      "title": "별표 3 · pastel",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0181.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #별표 #kids #pastel #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 별표 클립아트 (pastel)",
+      "sort_order": 181
+    },
+    {
+      "title": "웃는얼굴 3 · outline",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0182.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #웃는얼굴 #kids #outline #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 웃는얼굴 클립아트 (outline)",
+      "sort_order": 182
+    },
+    {
+      "title": "연필 3 · sticker",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0183.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #연필 #kids #sticker #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 연필 클립아트 (sticker)",
+      "sort_order": 183
+    },
+    {
+      "title": "가방 3 · stamp",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0184.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #가방 #kids #stamp #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 가방 클립아트 (stamp)",
+      "sort_order": 184
+    },
+    {
+      "title": "공 3 · doodle",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0185.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #공 #kids #doodle #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 공 클립아트 (doodle)",
+      "sort_order": 185
+    },
+    {
+      "title": "블록 3 · gradient",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0186.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #블록 #kids #gradient #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 블록 클립아트 (gradient)",
+      "sort_order": 186
+    },
+    {
+      "title": "리본키즈 3 · minimal",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0187.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #리본키즈 #kids #minimal #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 리본키즈 클립아트 (minimal)",
+      "sort_order": 187
+    },
+    {
+      "title": "구름 3 · pastel",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0188.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #구름 #kids #pastel #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 구름 클립아트 (pastel)",
+      "sort_order": 188
+    },
+    {
+      "title": "무지개 3 · stamp",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0189.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #무지개 #kids #stamp #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 무지개 클립아트 (stamp)",
+      "sort_order": 189
+    },
+    {
+      "title": "사탕 3 · filled",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0190.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #사탕 #kids #filled #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 사탕 클립아트 (filled)",
+      "sort_order": 190
+    },
+    {
+      "title": "학용품 3 · filled",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0191.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #kids #filled #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 학용품 클립아트 (filled)",
+      "sort_order": 191
+    },
+    {
+      "title": "이름표 3 · outline",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0192.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #이름표 #kids #outline #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 이름표 클립아트 (outline)",
+      "sort_order": 192
+    },
+    {
+      "title": "스티커 3 · outline",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0193.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #스티커 #kids #outline #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 스티커 클립아트 (outline)",
+      "sort_order": 193
+    },
+    {
+      "title": "크레용 3 · geometric",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0194.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #크레용 #kids #geometric #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 크레용 클립아트 (geometric)",
+      "sort_order": 194
+    },
+    {
+      "title": "책 3 · doodle",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0195.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #책 #kids #doodle #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 책 클립아트 (doodle)",
+      "sort_order": 195
+    },
+    {
+      "title": "별표 4 · sticker",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0196.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #별표 #kids #sticker #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 별표 클립아트 (sticker)",
+      "sort_order": 196
+    },
+    {
+      "title": "웃는얼굴 4 · silhouette",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0197.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #웃는얼굴 #kids #silhouette #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 웃는얼굴 클립아트 (silhouette)",
+      "sort_order": 197
+    },
+    {
+      "title": "연필 4 · pastel",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0198.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #연필 #kids #pastel #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 연필 클립아트 (pastel)",
+      "sort_order": 198
+    },
+    {
+      "title": "가방 4 · geometric",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0199.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #가방 #kids #geometric #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 가방 클립아트 (geometric)",
+      "sort_order": 199
+    },
+    {
+      "title": "공 4 · minimal",
+      "category_slug": "kids",
+      "image_path": "/assets/cliparts/seed_kids_0200.png",
+      "hashtags": "#키즈 #네임 #어린이 #학용품 #공 #kids #minimal #클립아트 #라벨 #투명",
+      "description": "네임·키즈용 공 클립아트 (minimal)",
+      "sort_order": 200
+    },
+    {
+      "title": "하트 · pastel",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0201.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #gift #pastel #클립아트 #라벨 #투명",
+      "description": "하트·선물용 하트 클립아트 (pastel)",
+      "sort_order": 201
+    },
+    {
+      "title": "더블하트 · doodle",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0202.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #더블하트 #gift #doodle #클립아트 #라벨 #투명",
+      "description": "하트·선물용 더블하트 클립아트 (doodle)",
+      "sort_order": 202
+    },
+    {
+      "title": "선물상자 · gradient",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0203.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #선물상자 #gift #gradient #클립아트 #라벨 #투명",
+      "description": "하트·선물용 선물상자 클립아트 (gradient)",
+      "sort_order": 203
+    },
+    {
+      "title": "리본 · stamp",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0204.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #리본 #gift #stamp #클립아트 #라벨 #투명",
+      "description": "하트·선물용 리본 클립아트 (stamp)",
+      "sort_order": 204
+    },
+    {
+      "title": "감사 · pastel",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0205.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #gift #pastel #클립아트 #라벨 #투명",
+      "description": "하트·선물용 감사 클립아트 (pastel)",
+      "sort_order": 205
+    },
+    {
+      "title": "꽃다발 · stamp",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0206.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #꽃다발 #gift #stamp #클립아트 #라벨 #투명",
+      "description": "하트·선물용 꽃다발 클립아트 (stamp)",
+      "sort_order": 206
+    },
+    {
+      "title": "반지 · minimal",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0207.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #반지 #gift #minimal #클립아트 #라벨 #투명",
+      "description": "하트·선물용 반지 클립아트 (minimal)",
+      "sort_order": 207
+    },
+    {
+      "title": "풍선 · filled",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0208.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #풍선 #gift #filled #클립아트 #라벨 #투명",
+      "description": "하트·선물용 풍선 클립아트 (filled)",
+      "sort_order": 208
+    },
+    {
+      "title": "축하 · outline",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0209.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #gift #outline #클립아트 #라벨 #투명",
+      "description": "하트·선물용 축하 클립아트 (outline)",
+      "sort_order": 209
+    },
+    {
+      "title": "편지 · filled",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0210.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #편지 #gift #filled #클립아트 #라벨 #투명",
+      "description": "하트·선물용 편지 클립아트 (filled)",
+      "sort_order": 210
+    },
+    {
+      "title": "다이아 · geometric",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0211.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #다이아 #gift #geometric #클립아트 #라벨 #투명",
+      "description": "하트·선물용 다이아 클립아트 (geometric)",
+      "sort_order": 211
+    },
+    {
+      "title": "스마일하트 · doodle",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0212.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #스마일하트 #gift #doodle #클립아트 #라벨 #투명",
+      "description": "하트·선물용 스마일하트 클립아트 (doodle)",
+      "sort_order": 212
+    },
+    {
+      "title": "기프트카드 · outline",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0213.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #기프트카드 #gift #outline #클립아트 #라벨 #투명",
+      "description": "하트·선물용 기프트카드 클립아트 (outline)",
+      "sort_order": 213
+    },
+    {
+      "title": "파티 · silhouette",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0214.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #파티 #gift #silhouette #클립아트 #라벨 #투명",
+      "description": "하트·선물용 파티 클립아트 (silhouette)",
+      "sort_order": 214
+    },
+    {
+      "title": "케이크초 · pastel",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0215.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #케이크초 #gift #pastel #클립아트 #라벨 #투명",
+      "description": "하트·선물용 케이크초 클립아트 (pastel)",
+      "sort_order": 215
+    },
+    {
+      "title": "하트 2 · sticker",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0216.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #gift #sticker #클립아트 #라벨 #투명",
+      "description": "하트·선물용 하트 클립아트 (sticker)",
+      "sort_order": 216
+    },
+    {
+      "title": "더블하트 2 · minimal",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0217.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #더블하트 #gift #minimal #클립아트 #라벨 #투명",
+      "description": "하트·선물용 더블하트 클립아트 (minimal)",
+      "sort_order": 217
+    },
+    {
+      "title": "선물상자 2 · filled",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0218.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #선물상자 #gift #filled #클립아트 #라벨 #투명",
+      "description": "하트·선물용 선물상자 클립아트 (filled)",
+      "sort_order": 218
+    },
+    {
+      "title": "리본 2 · geometric",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0219.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #리본 #gift #geometric #클립아트 #라벨 #투명",
+      "description": "하트·선물용 리본 클립아트 (geometric)",
+      "sort_order": 219
+    },
+    {
+      "title": "감사 2 · sticker",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0220.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #gift #sticker #클립아트 #라벨 #투명",
+      "description": "하트·선물용 감사 클립아트 (sticker)",
+      "sort_order": 220
+    },
+    {
+      "title": "꽃다발 2 · geometric",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0221.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #꽃다발 #gift #geometric #클립아트 #라벨 #투명",
+      "description": "하트·선물용 꽃다발 클립아트 (geometric)",
+      "sort_order": 221
+    },
+    {
+      "title": "반지 2 · doodle",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0222.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #반지 #gift #doodle #클립아트 #라벨 #투명",
+      "description": "하트·선물용 반지 클립아트 (doodle)",
+      "sort_order": 222
+    },
+    {
+      "title": "풍선 2 · gradient",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0223.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #풍선 #gift #gradient #클립아트 #라벨 #투명",
+      "description": "하트·선물용 풍선 클립아트 (gradient)",
+      "sort_order": 223
+    },
+    {
+      "title": "축하 2 · silhouette",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0224.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #gift #silhouette #클립아트 #라벨 #투명",
+      "description": "하트·선물용 축하 클립아트 (silhouette)",
+      "sort_order": 224
+    },
+    {
+      "title": "편지 2 · gradient",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0225.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #편지 #gift #gradient #클립아트 #라벨 #투명",
+      "description": "하트·선물용 편지 클립아트 (gradient)",
+      "sort_order": 225
+    },
+    {
+      "title": "다이아 2 · stamp",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0226.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #다이아 #gift #stamp #클립아트 #라벨 #투명",
+      "description": "하트·선물용 다이아 클립아트 (stamp)",
+      "sort_order": 226
+    },
+    {
+      "title": "스마일하트 2 · minimal",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0227.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #스마일하트 #gift #minimal #클립아트 #라벨 #투명",
+      "description": "하트·선물용 스마일하트 클립아트 (minimal)",
+      "sort_order": 227
+    },
+    {
+      "title": "기프트카드 2 · silhouette",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0228.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #기프트카드 #gift #silhouette #클립아트 #라벨 #투명",
+      "description": "하트·선물용 기프트카드 클립아트 (silhouette)",
+      "sort_order": 228
+    },
+    {
+      "title": "파티 2 · outline",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0229.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #파티 #gift #outline #클립아트 #라벨 #투명",
+      "description": "하트·선물용 파티 클립아트 (outline)",
+      "sort_order": 229
+    },
+    {
+      "title": "케이크초 2 · sticker",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0230.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #케이크초 #gift #sticker #클립아트 #라벨 #투명",
+      "description": "하트·선물용 케이크초 클립아트 (sticker)",
+      "sort_order": 230
+    },
+    {
+      "title": "하트 3 · pastel",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0231.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #gift #pastel #클립아트 #라벨 #투명",
+      "description": "하트·선물용 하트 클립아트 (pastel)",
+      "sort_order": 231
+    },
+    {
+      "title": "더블하트 3 · doodle",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0232.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #더블하트 #gift #doodle #클립아트 #라벨 #투명",
+      "description": "하트·선물용 더블하트 클립아트 (doodle)",
+      "sort_order": 232
+    },
+    {
+      "title": "선물상자 3 · gradient",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0233.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #선물상자 #gift #gradient #클립아트 #라벨 #투명",
+      "description": "하트·선물용 선물상자 클립아트 (gradient)",
+      "sort_order": 233
+    },
+    {
+      "title": "리본 3 · stamp",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0234.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #리본 #gift #stamp #클립아트 #라벨 #투명",
+      "description": "하트·선물용 리본 클립아트 (stamp)",
+      "sort_order": 234
+    },
+    {
+      "title": "감사 3 · pastel",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0235.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #gift #pastel #클립아트 #라벨 #투명",
+      "description": "하트·선물용 감사 클립아트 (pastel)",
+      "sort_order": 235
+    },
+    {
+      "title": "꽃다발 3 · stamp",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0236.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #꽃다발 #gift #stamp #클립아트 #라벨 #투명",
+      "description": "하트·선물용 꽃다발 클립아트 (stamp)",
+      "sort_order": 236
+    },
+    {
+      "title": "반지 3 · minimal",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0237.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #반지 #gift #minimal #클립아트 #라벨 #투명",
+      "description": "하트·선물용 반지 클립아트 (minimal)",
+      "sort_order": 237
+    },
+    {
+      "title": "풍선 3 · filled",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0238.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #풍선 #gift #filled #클립아트 #라벨 #투명",
+      "description": "하트·선물용 풍선 클립아트 (filled)",
+      "sort_order": 238
+    },
+    {
+      "title": "축하 3 · outline",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0239.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #gift #outline #클립아트 #라벨 #투명",
+      "description": "하트·선물용 축하 클립아트 (outline)",
+      "sort_order": 239
+    },
+    {
+      "title": "편지 3 · filled",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0240.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #편지 #gift #filled #클립아트 #라벨 #투명",
+      "description": "하트·선물용 편지 클립아트 (filled)",
+      "sort_order": 240
+    },
+    {
+      "title": "다이아 3 · geometric",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0241.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #다이아 #gift #geometric #클립아트 #라벨 #투명",
+      "description": "하트·선물용 다이아 클립아트 (geometric)",
+      "sort_order": 241
+    },
+    {
+      "title": "스마일하트 3 · doodle",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0242.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #스마일하트 #gift #doodle #클립아트 #라벨 #투명",
+      "description": "하트·선물용 스마일하트 클립아트 (doodle)",
+      "sort_order": 242
+    },
+    {
+      "title": "기프트카드 3 · outline",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0243.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #기프트카드 #gift #outline #클립아트 #라벨 #투명",
+      "description": "하트·선물용 기프트카드 클립아트 (outline)",
+      "sort_order": 243
+    },
+    {
+      "title": "파티 3 · silhouette",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0244.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #파티 #gift #silhouette #클립아트 #라벨 #투명",
+      "description": "하트·선물용 파티 클립아트 (silhouette)",
+      "sort_order": 244
+    },
+    {
+      "title": "케이크초 3 · pastel",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0245.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #케이크초 #gift #pastel #클립아트 #라벨 #투명",
+      "description": "하트·선물용 케이크초 클립아트 (pastel)",
+      "sort_order": 245
+    },
+    {
+      "title": "하트 4 · sticker",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0246.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #gift #sticker #클립아트 #라벨 #투명",
+      "description": "하트·선물용 하트 클립아트 (sticker)",
+      "sort_order": 246
+    },
+    {
+      "title": "더블하트 4 · minimal",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0247.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #더블하트 #gift #minimal #클립아트 #라벨 #투명",
+      "description": "하트·선물용 더블하트 클립아트 (minimal)",
+      "sort_order": 247
+    },
+    {
+      "title": "선물상자 4 · filled",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0248.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #선물상자 #gift #filled #클립아트 #라벨 #투명",
+      "description": "하트·선물용 선물상자 클립아트 (filled)",
+      "sort_order": 248
+    },
+    {
+      "title": "리본 4 · geometric",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0249.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #리본 #gift #geometric #클립아트 #라벨 #투명",
+      "description": "하트·선물용 리본 클립아트 (geometric)",
+      "sort_order": 249
+    },
+    {
+      "title": "감사 4 · sticker",
+      "category_slug": "gift",
+      "image_path": "/assets/cliparts/seed_gift_0250.png",
+      "hashtags": "#선물 #하트 #감사 #축하 #gift #sticker #클립아트 #라벨 #투명",
+      "description": "하트·선물용 감사 클립아트 (sticker)",
+      "sort_order": 250
+    },
+    {
+      "title": "바코드 · pastel",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0251.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #business #pastel #클립아트 #라벨 #투명",
+      "description": "비즈니스용 바코드 클립아트 (pastel)",
+      "sort_order": 251
+    },
+    {
+      "title": "가격표 · pastel",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0252.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #가격표 #business #pastel #클립아트 #라벨 #투명",
+      "description": "비즈니스용 가격표 클립아트 (pastel)",
+      "sort_order": 252
+    },
+    {
+      "title": "체크 · stamp",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0253.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #체크 #business #stamp #클립아트 #라벨 #투명",
+      "description": "비즈니스용 체크 클립아트 (stamp)",
+      "sort_order": 253
+    },
+    {
+      "title": "클립보드 · stamp",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0254.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #클립보드 #business #stamp #클립아트 #라벨 #투명",
+      "description": "비즈니스용 클립보드 클립아트 (stamp)",
+      "sort_order": 254
+    },
+    {
+      "title": "달력 · filled",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0255.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #달력 #business #filled #클립아트 #라벨 #투명",
+      "description": "비즈니스용 달력 클립아트 (filled)",
+      "sort_order": 255
+    },
+    {
+      "title": "시계 · outline",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0256.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #시계 #business #outline #클립아트 #라벨 #투명",
+      "description": "비즈니스용 시계 클립아트 (outline)",
+      "sort_order": 256
+    },
+    {
+      "title": "서류철 · minimal",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0257.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #서류철 #business #minimal #클립아트 #라벨 #투명",
+      "description": "비즈니스용 서류철 클립아트 (minimal)",
+      "sort_order": 257
+    },
+    {
+      "title": "그래프 · geometric",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0258.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #그래프 #business #geometric #클립아트 #라벨 #투명",
+      "description": "비즈니스용 그래프 클립아트 (geometric)",
+      "sort_order": 258
+    },
+    {
+      "title": "영수증 · doodle",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0259.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #영수증 #business #doodle #클립아트 #라벨 #투명",
+      "description": "비즈니스용 영수증 클립아트 (doodle)",
+      "sort_order": 259
+    },
+    {
+      "title": "QR · filled",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0260.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #QR #business #filled #클립아트 #라벨 #투명",
+      "description": "비즈니스용 QR 클립아트 (filled)",
+      "sort_order": 260
+    },
+    {
+      "title": "사무실 · silhouette",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0261.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #사무실 #business #silhouette #클립아트 #라벨 #투명",
+      "description": "비즈니스용 사무실 클립아트 (silhouette)",
+      "sort_order": 261
+    },
+    {
+      "title": "태그 · pastel",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0262.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #태그 #business #pastel #클립아트 #라벨 #투명",
+      "description": "비즈니스용 태그 클립아트 (pastel)",
+      "sort_order": 262
+    },
+    {
+      "title": "스탬프 · outline",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0263.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #스탬프 #business #outline #클립아트 #라벨 #투명",
+      "description": "비즈니스용 스탬프 클립아트 (outline)",
+      "sort_order": 263
+    },
+    {
+      "title": "펜 · minimal",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0264.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #펜 #business #minimal #클립아트 #라벨 #투명",
+      "description": "비즈니스용 펜 클립아트 (minimal)",
+      "sort_order": 264
+    },
+    {
+      "title": "노트북 · filled",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0265.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #노트북 #business #filled #클립아트 #라벨 #투명",
+      "description": "비즈니스용 노트북 클립아트 (filled)",
+      "sort_order": 265
+    },
+    {
+      "title": "바코드 2 · sticker",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0266.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #business #sticker #클립아트 #라벨 #투명",
+      "description": "비즈니스용 바코드 클립아트 (sticker)",
+      "sort_order": 266
+    },
+    {
+      "title": "가격표 2 · sticker",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0267.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #가격표 #business #sticker #클립아트 #라벨 #투명",
+      "description": "비즈니스용 가격표 클립아트 (sticker)",
+      "sort_order": 267
+    },
+    {
+      "title": "체크 2 · geometric",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0268.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #체크 #business #geometric #클립아트 #라벨 #투명",
+      "description": "비즈니스용 체크 클립아트 (geometric)",
+      "sort_order": 268
+    },
+    {
+      "title": "클립보드 2 · geometric",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0269.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #클립보드 #business #geometric #클립아트 #라벨 #투명",
+      "description": "비즈니스용 클립보드 클립아트 (geometric)",
+      "sort_order": 269
+    },
+    {
+      "title": "달력 2 · gradient",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0270.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #달력 #business #gradient #클립아트 #라벨 #투명",
+      "description": "비즈니스용 달력 클립아트 (gradient)",
+      "sort_order": 270
+    },
+    {
+      "title": "시계 2 · silhouette",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0271.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #시계 #business #silhouette #클립아트 #라벨 #투명",
+      "description": "비즈니스용 시계 클립아트 (silhouette)",
+      "sort_order": 271
+    },
+    {
+      "title": "서류철 2 · doodle",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0272.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #서류철 #business #doodle #클립아트 #라벨 #투명",
+      "description": "비즈니스용 서류철 클립아트 (doodle)",
+      "sort_order": 272
+    },
+    {
+      "title": "그래프 2 · stamp",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0273.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #그래프 #business #stamp #클립아트 #라벨 #투명",
+      "description": "비즈니스용 그래프 클립아트 (stamp)",
+      "sort_order": 273
+    },
+    {
+      "title": "영수증 2 · minimal",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0274.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #영수증 #business #minimal #클립아트 #라벨 #투명",
+      "description": "비즈니스용 영수증 클립아트 (minimal)",
+      "sort_order": 274
+    },
+    {
+      "title": "QR 2 · gradient",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0275.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #QR #business #gradient #클립아트 #라벨 #투명",
+      "description": "비즈니스용 QR 클립아트 (gradient)",
+      "sort_order": 275
+    },
+    {
+      "title": "사무실 2 · outline",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0276.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #사무실 #business #outline #클립아트 #라벨 #투명",
+      "description": "비즈니스용 사무실 클립아트 (outline)",
+      "sort_order": 276
+    },
+    {
+      "title": "태그 2 · sticker",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0277.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #태그 #business #sticker #클립아트 #라벨 #투명",
+      "description": "비즈니스용 태그 클립아트 (sticker)",
+      "sort_order": 277
+    },
+    {
+      "title": "스탬프 2 · silhouette",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0278.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #스탬프 #business #silhouette #클립아트 #라벨 #투명",
+      "description": "비즈니스용 스탬프 클립아트 (silhouette)",
+      "sort_order": 278
+    },
+    {
+      "title": "펜 2 · doodle",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0279.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #펜 #business #doodle #클립아트 #라벨 #투명",
+      "description": "비즈니스용 펜 클립아트 (doodle)",
+      "sort_order": 279
+    },
+    {
+      "title": "노트북 2 · gradient",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0280.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #노트북 #business #gradient #클립아트 #라벨 #투명",
+      "description": "비즈니스용 노트북 클립아트 (gradient)",
+      "sort_order": 280
+    },
+    {
+      "title": "바코드 3 · pastel",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0281.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #business #pastel #클립아트 #라벨 #투명",
+      "description": "비즈니스용 바코드 클립아트 (pastel)",
+      "sort_order": 281
+    },
+    {
+      "title": "가격표 3 · pastel",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0282.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #가격표 #business #pastel #클립아트 #라벨 #투명",
+      "description": "비즈니스용 가격표 클립아트 (pastel)",
+      "sort_order": 282
+    },
+    {
+      "title": "체크 3 · stamp",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0283.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #체크 #business #stamp #클립아트 #라벨 #투명",
+      "description": "비즈니스용 체크 클립아트 (stamp)",
+      "sort_order": 283
+    },
+    {
+      "title": "클립보드 3 · stamp",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0284.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #클립보드 #business #stamp #클립아트 #라벨 #투명",
+      "description": "비즈니스용 클립보드 클립아트 (stamp)",
+      "sort_order": 284
+    },
+    {
+      "title": "달력 3 · filled",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0285.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #달력 #business #filled #클립아트 #라벨 #투명",
+      "description": "비즈니스용 달력 클립아트 (filled)",
+      "sort_order": 285
+    },
+    {
+      "title": "시계 3 · outline",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0286.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #시계 #business #outline #클립아트 #라벨 #투명",
+      "description": "비즈니스용 시계 클립아트 (outline)",
+      "sort_order": 286
+    },
+    {
+      "title": "서류철 3 · minimal",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0287.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #서류철 #business #minimal #클립아트 #라벨 #투명",
+      "description": "비즈니스용 서류철 클립아트 (minimal)",
+      "sort_order": 287
+    },
+    {
+      "title": "그래프 3 · geometric",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0288.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #그래프 #business #geometric #클립아트 #라벨 #투명",
+      "description": "비즈니스용 그래프 클립아트 (geometric)",
+      "sort_order": 288
+    },
+    {
+      "title": "영수증 3 · doodle",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0289.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #영수증 #business #doodle #클립아트 #라벨 #투명",
+      "description": "비즈니스용 영수증 클립아트 (doodle)",
+      "sort_order": 289
+    },
+    {
+      "title": "QR 3 · filled",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0290.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #QR #business #filled #클립아트 #라벨 #투명",
+      "description": "비즈니스용 QR 클립아트 (filled)",
+      "sort_order": 290
+    },
+    {
+      "title": "사무실 3 · silhouette",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0291.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #사무실 #business #silhouette #클립아트 #라벨 #투명",
+      "description": "비즈니스용 사무실 클립아트 (silhouette)",
+      "sort_order": 291
+    },
+    {
+      "title": "태그 3 · pastel",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0292.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #태그 #business #pastel #클립아트 #라벨 #투명",
+      "description": "비즈니스용 태그 클립아트 (pastel)",
+      "sort_order": 292
+    },
+    {
+      "title": "스탬프 3 · outline",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0293.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #스탬프 #business #outline #클립아트 #라벨 #투명",
+      "description": "비즈니스용 스탬프 클립아트 (outline)",
+      "sort_order": 293
+    },
+    {
+      "title": "펜 3 · minimal",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0294.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #펜 #business #minimal #클립아트 #라벨 #투명",
+      "description": "비즈니스용 펜 클립아트 (minimal)",
+      "sort_order": 294
+    },
+    {
+      "title": "노트북 3 · filled",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0295.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #노트북 #business #filled #클립아트 #라벨 #투명",
+      "description": "비즈니스용 노트북 클립아트 (filled)",
+      "sort_order": 295
+    },
+    {
+      "title": "바코드 4 · sticker",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0296.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #business #sticker #클립아트 #라벨 #투명",
+      "description": "비즈니스용 바코드 클립아트 (sticker)",
+      "sort_order": 296
+    },
+    {
+      "title": "가격표 4 · sticker",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0297.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #가격표 #business #sticker #클립아트 #라벨 #투명",
+      "description": "비즈니스용 가격표 클립아트 (sticker)",
+      "sort_order": 297
+    },
+    {
+      "title": "체크 4 · geometric",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0298.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #체크 #business #geometric #클립아트 #라벨 #투명",
+      "description": "비즈니스용 체크 클립아트 (geometric)",
+      "sort_order": 298
+    },
+    {
+      "title": "클립보드 4 · geometric",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0299.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #클립보드 #business #geometric #클립아트 #라벨 #투명",
+      "description": "비즈니스용 클립보드 클립아트 (geometric)",
+      "sort_order": 299
+    },
+    {
+      "title": "달력 4 · gradient",
+      "category_slug": "business",
+      "image_path": "/assets/cliparts/seed_business_0300.png",
+      "hashtags": "#비즈니스 #오피스 #바코드 #가격 #달력 #business #gradient #클립아트 #라벨 #투명",
+      "description": "비즈니스용 달력 클립아트 (gradient)",
+      "sort_order": 300
+    },
+    {
+      "title": "잎사귀 · pastel",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0301.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #잎사귀 #nature #pastel #클립아트 #라벨 #투명",
+      "description": "자연·식물용 잎사귀 클립아트 (pastel)",
+      "sort_order": 301
+    },
+    {
+      "title": "꽃 · filled",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0302.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #nature #filled #클립아트 #라벨 #투명",
+      "description": "자연·식물용 꽃 클립아트 (filled)",
+      "sort_order": 302
+    },
+    {
+      "title": "해바라기 · outline",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0303.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #해바라기 #nature #outline #클립아트 #라벨 #투명",
+      "description": "자연·식물용 해바라기 클립아트 (outline)",
+      "sort_order": 303
+    },
+    {
+      "title": "나무 · stamp",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0304.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #나무 #nature #stamp #클립아트 #라벨 #투명",
+      "description": "자연·식물용 나무 클립아트 (stamp)",
+      "sort_order": 304
+    },
+    {
+      "title": "새싹 · geometric",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0305.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #새싹 #nature #geometric #클립아트 #라벨 #투명",
+      "description": "자연·식물용 새싹 클립아트 (geometric)",
+      "sort_order": 305
+    },
+    {
+      "title": "클로버 · doodle",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0306.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #클로버 #nature #doodle #클립아트 #라벨 #투명",
+      "description": "자연·식물용 클로버 클립아트 (doodle)",
+      "sort_order": 306
+    },
+    {
+      "title": "버섯 · minimal",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0307.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #버섯 #nature #minimal #클립아트 #라벨 #투명",
+      "description": "자연·식물용 버섯 클립아트 (minimal)",
+      "sort_order": 307
+    },
+    {
+      "title": "산 · silhouette",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0308.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #산 #nature #silhouette #클립아트 #라벨 #투명",
+      "description": "자연·식물용 산 클립아트 (silhouette)",
+      "sort_order": 308
+    },
+    {
+      "title": "물결 · pastel",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0309.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #물결 #nature #pastel #클립아트 #라벨 #투명",
+      "description": "자연·식물용 물결 클립아트 (pastel)",
+      "sort_order": 309
+    },
+    {
+      "title": "태양 · filled",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0310.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #태양 #nature #filled #클립아트 #라벨 #투명",
+      "description": "자연·식물용 태양 클립아트 (filled)",
+      "sort_order": 310
+    },
+    {
+      "title": "달 · minimal",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0311.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #달 #nature #minimal #클립아트 #라벨 #투명",
+      "description": "자연·식물용 달 클립아트 (minimal)",
+      "sort_order": 311
+    },
+    {
+      "title": "별똥별 · filled",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0312.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #별똥별 #nature #filled #클립아트 #라벨 #투명",
+      "description": "자연·식물용 별똥별 클립아트 (filled)",
+      "sort_order": 312
+    },
+    {
+      "title": "허브 · outline",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0313.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #허브 #nature #outline #클립아트 #라벨 #투명",
+      "description": "자연·식물용 허브 클립아트 (outline)",
+      "sort_order": 313
+    },
+    {
+      "title": "올리브 · sticker",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0314.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #올리브 #nature #sticker #클립아트 #라벨 #투명",
+      "description": "자연·식물용 올리브 클립아트 (sticker)",
+      "sort_order": 314
+    },
+    {
+      "title": "파인 · geometric",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0315.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #파인 #nature #geometric #클립아트 #라벨 #투명",
+      "description": "자연·식물용 파인 클립아트 (geometric)",
+      "sort_order": 315
+    },
+    {
+      "title": "잎사귀 2 · sticker",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0316.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #잎사귀 #nature #sticker #클립아트 #라벨 #투명",
+      "description": "자연·식물용 잎사귀 클립아트 (sticker)",
+      "sort_order": 316
+    },
+    {
+      "title": "꽃 2 · gradient",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0317.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #nature #gradient #클립아트 #라벨 #투명",
+      "description": "자연·식물용 꽃 클립아트 (gradient)",
+      "sort_order": 317
+    },
+    {
+      "title": "해바라기 2 · silhouette",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0318.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #해바라기 #nature #silhouette #클립아트 #라벨 #투명",
+      "description": "자연·식물용 해바라기 클립아트 (silhouette)",
+      "sort_order": 318
+    },
+    {
+      "title": "나무 2 · geometric",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0319.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #나무 #nature #geometric #클립아트 #라벨 #투명",
+      "description": "자연·식물용 나무 클립아트 (geometric)",
+      "sort_order": 319
+    },
+    {
+      "title": "새싹 2 · stamp",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0320.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #새싹 #nature #stamp #클립아트 #라벨 #투명",
+      "description": "자연·식물용 새싹 클립아트 (stamp)",
+      "sort_order": 320
+    },
+    {
+      "title": "클로버 2 · minimal",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0321.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #클로버 #nature #minimal #클립아트 #라벨 #투명",
+      "description": "자연·식물용 클로버 클립아트 (minimal)",
+      "sort_order": 321
+    },
+    {
+      "title": "버섯 2 · doodle",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0322.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #버섯 #nature #doodle #클립아트 #라벨 #투명",
+      "description": "자연·식물용 버섯 클립아트 (doodle)",
+      "sort_order": 322
+    },
+    {
+      "title": "산 2 · outline",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0323.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #산 #nature #outline #클립아트 #라벨 #투명",
+      "description": "자연·식물용 산 클립아트 (outline)",
+      "sort_order": 323
+    },
+    {
+      "title": "물결 2 · sticker",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0324.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #물결 #nature #sticker #클립아트 #라벨 #투명",
+      "description": "자연·식물용 물결 클립아트 (sticker)",
+      "sort_order": 324
+    },
+    {
+      "title": "태양 2 · gradient",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0325.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #태양 #nature #gradient #클립아트 #라벨 #투명",
+      "description": "자연·식물용 태양 클립아트 (gradient)",
+      "sort_order": 325
+    },
+    {
+      "title": "달 2 · doodle",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0326.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #달 #nature #doodle #클립아트 #라벨 #투명",
+      "description": "자연·식물용 달 클립아트 (doodle)",
+      "sort_order": 326
+    },
+    {
+      "title": "별똥별 2 · gradient",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0327.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #별똥별 #nature #gradient #클립아트 #라벨 #투명",
+      "description": "자연·식물용 별똥별 클립아트 (gradient)",
+      "sort_order": 327
+    },
+    {
+      "title": "허브 2 · silhouette",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0328.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #허브 #nature #silhouette #클립아트 #라벨 #투명",
+      "description": "자연·식물용 허브 클립아트 (silhouette)",
+      "sort_order": 328
+    },
+    {
+      "title": "올리브 2 · pastel",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0329.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #올리브 #nature #pastel #클립아트 #라벨 #투명",
+      "description": "자연·식물용 올리브 클립아트 (pastel)",
+      "sort_order": 329
+    },
+    {
+      "title": "파인 2 · stamp",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0330.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #파인 #nature #stamp #클립아트 #라벨 #투명",
+      "description": "자연·식물용 파인 클립아트 (stamp)",
+      "sort_order": 330
+    },
+    {
+      "title": "잎사귀 3 · pastel",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0331.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #잎사귀 #nature #pastel #클립아트 #라벨 #투명",
+      "description": "자연·식물용 잎사귀 클립아트 (pastel)",
+      "sort_order": 331
+    },
+    {
+      "title": "꽃 3 · filled",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0332.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #nature #filled #클립아트 #라벨 #투명",
+      "description": "자연·식물용 꽃 클립아트 (filled)",
+      "sort_order": 332
+    },
+    {
+      "title": "해바라기 3 · outline",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0333.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #해바라기 #nature #outline #클립아트 #라벨 #투명",
+      "description": "자연·식물용 해바라기 클립아트 (outline)",
+      "sort_order": 333
+    },
+    {
+      "title": "나무 3 · stamp",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0334.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #나무 #nature #stamp #클립아트 #라벨 #투명",
+      "description": "자연·식물용 나무 클립아트 (stamp)",
+      "sort_order": 334
+    },
+    {
+      "title": "새싹 3 · geometric",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0335.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #새싹 #nature #geometric #클립아트 #라벨 #투명",
+      "description": "자연·식물용 새싹 클립아트 (geometric)",
+      "sort_order": 335
+    },
+    {
+      "title": "클로버 3 · doodle",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0336.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #클로버 #nature #doodle #클립아트 #라벨 #투명",
+      "description": "자연·식물용 클로버 클립아트 (doodle)",
+      "sort_order": 336
+    },
+    {
+      "title": "버섯 3 · minimal",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0337.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #버섯 #nature #minimal #클립아트 #라벨 #투명",
+      "description": "자연·식물용 버섯 클립아트 (minimal)",
+      "sort_order": 337
+    },
+    {
+      "title": "산 3 · silhouette",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0338.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #산 #nature #silhouette #클립아트 #라벨 #투명",
+      "description": "자연·식물용 산 클립아트 (silhouette)",
+      "sort_order": 338
+    },
+    {
+      "title": "물결 3 · pastel",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0339.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #물결 #nature #pastel #클립아트 #라벨 #투명",
+      "description": "자연·식물용 물결 클립아트 (pastel)",
+      "sort_order": 339
+    },
+    {
+      "title": "태양 3 · filled",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0340.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #태양 #nature #filled #클립아트 #라벨 #투명",
+      "description": "자연·식물용 태양 클립아트 (filled)",
+      "sort_order": 340
+    },
+    {
+      "title": "달 3 · minimal",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0341.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #달 #nature #minimal #클립아트 #라벨 #투명",
+      "description": "자연·식물용 달 클립아트 (minimal)",
+      "sort_order": 341
+    },
+    {
+      "title": "별똥별 3 · filled",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0342.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #별똥별 #nature #filled #클립아트 #라벨 #투명",
+      "description": "자연·식물용 별똥별 클립아트 (filled)",
+      "sort_order": 342
+    },
+    {
+      "title": "허브 3 · outline",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0343.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #허브 #nature #outline #클립아트 #라벨 #투명",
+      "description": "자연·식물용 허브 클립아트 (outline)",
+      "sort_order": 343
+    },
+    {
+      "title": "올리브 3 · sticker",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0344.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #올리브 #nature #sticker #클립아트 #라벨 #투명",
+      "description": "자연·식물용 올리브 클립아트 (sticker)",
+      "sort_order": 344
+    },
+    {
+      "title": "파인 3 · geometric",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0345.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #파인 #nature #geometric #클립아트 #라벨 #투명",
+      "description": "자연·식물용 파인 클립아트 (geometric)",
+      "sort_order": 345
+    },
+    {
+      "title": "잎사귀 4 · sticker",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0346.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #잎사귀 #nature #sticker #클립아트 #라벨 #투명",
+      "description": "자연·식물용 잎사귀 클립아트 (sticker)",
+      "sort_order": 346
+    },
+    {
+      "title": "꽃 4 · gradient",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0347.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #nature #gradient #클립아트 #라벨 #투명",
+      "description": "자연·식물용 꽃 클립아트 (gradient)",
+      "sort_order": 347
+    },
+    {
+      "title": "해바라기 4 · silhouette",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0348.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #해바라기 #nature #silhouette #클립아트 #라벨 #투명",
+      "description": "자연·식물용 해바라기 클립아트 (silhouette)",
+      "sort_order": 348
+    },
+    {
+      "title": "나무 4 · geometric",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0349.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #나무 #nature #geometric #클립아트 #라벨 #투명",
+      "description": "자연·식물용 나무 클립아트 (geometric)",
+      "sort_order": 349
+    },
+    {
+      "title": "새싹 4 · stamp",
+      "category_slug": "nature",
+      "image_path": "/assets/cliparts/seed_nature_0350.png",
+      "hashtags": "#자연 #식물 #친환경 #꽃 #새싹 #nature #stamp #클립아트 #라벨 #투명",
+      "description": "자연·식물용 새싹 클립아트 (stamp)",
+      "sort_order": 350
+    },
+    {
+      "title": "고양이 · pastel",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0351.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #고양이 #animal #pastel #클립아트 #라벨 #투명",
+      "description": "동물용 고양이 클립아트 (pastel)",
+      "sort_order": 351
+    },
+    {
+      "title": "강아지 · geometric",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0352.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #강아지 #animal #geometric #클립아트 #라벨 #투명",
+      "description": "동물용 강아지 클립아트 (geometric)",
+      "sort_order": 352
+    },
+    {
+      "title": "토끼 · doodle",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0353.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #토끼 #animal #doodle #클립아트 #라벨 #투명",
+      "description": "동물용 토끼 클립아트 (doodle)",
+      "sort_order": 353
+    },
+    {
+      "title": "곰 · stamp",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0354.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #곰 #animal #stamp #클립아트 #라벨 #투명",
+      "description": "동물용 곰 클립아트 (stamp)",
+      "sort_order": 354
+    },
+    {
+      "title": "새 · silhouette",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0355.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #새 #animal #silhouette #클립아트 #라벨 #투명",
+      "description": "동물용 새 클립아트 (silhouette)",
+      "sort_order": 355
+    },
+    {
+      "title": "물고기 · pastel",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0356.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #물고기 #animal #pastel #클립아트 #라벨 #투명",
+      "description": "동물용 물고기 클립아트 (pastel)",
+      "sort_order": 356
+    },
+    {
+      "title": "나비 · minimal",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0357.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #나비 #animal #minimal #클립아트 #라벨 #투명",
+      "description": "동물용 나비 클립아트 (minimal)",
+      "sort_order": 357
+    },
+    {
+      "title": "벌 · minimal",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0358.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #벌 #animal #minimal #클립아트 #라벨 #투명",
+      "description": "동물용 벌 클립아트 (minimal)",
+      "sort_order": 358
+    },
+    {
+      "title": "펭귄 · filled",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0359.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #펭귄 #animal #filled #클립아트 #라벨 #투명",
+      "description": "동물용 펭귄 클립아트 (filled)",
+      "sort_order": 359
+    },
+    {
+      "title": "판다 · filled",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0360.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #판다 #animal #filled #클립아트 #라벨 #투명",
+      "description": "동물용 판다 클립아트 (filled)",
+      "sort_order": 360
+    },
+    {
+      "title": "여우 · sticker",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0361.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #여우 #animal #sticker #클립아트 #라벨 #투명",
+      "description": "동물용 여우 클립아트 (sticker)",
+      "sort_order": 361
+    },
+    {
+      "title": "오리 · geometric",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0362.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #오리 #animal #geometric #클립아트 #라벨 #투명",
+      "description": "동물용 오리 클립아트 (geometric)",
+      "sort_order": 362
+    },
+    {
+      "title": "햄스터 · outline",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0363.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #햄스터 #animal #outline #클립아트 #라벨 #투명",
+      "description": "동물용 햄스터 클립아트 (outline)",
+      "sort_order": 363
+    },
+    {
+      "title": "공룡 · gradient",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0364.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #공룡 #animal #gradient #클립아트 #라벨 #투명",
+      "description": "동물용 공룡 클립아트 (gradient)",
+      "sort_order": 364
+    },
+    {
+      "title": "유니콘 · silhouette",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0365.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #유니콘 #animal #silhouette #클립아트 #라벨 #투명",
+      "description": "동물용 유니콘 클립아트 (silhouette)",
+      "sort_order": 365
+    },
+    {
+      "title": "고양이 2 · sticker",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0366.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #고양이 #animal #sticker #클립아트 #라벨 #투명",
+      "description": "동물용 고양이 클립아트 (sticker)",
+      "sort_order": 366
+    },
+    {
+      "title": "강아지 2 · stamp",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0367.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #강아지 #animal #stamp #클립아트 #라벨 #투명",
+      "description": "동물용 강아지 클립아트 (stamp)",
+      "sort_order": 367
+    },
+    {
+      "title": "토끼 2 · minimal",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0368.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #토끼 #animal #minimal #클립아트 #라벨 #투명",
+      "description": "동물용 토끼 클립아트 (minimal)",
+      "sort_order": 368
+    },
+    {
+      "title": "곰 2 · geometric",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0369.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #곰 #animal #geometric #클립아트 #라벨 #투명",
+      "description": "동물용 곰 클립아트 (geometric)",
+      "sort_order": 369
+    },
+    {
+      "title": "새 2 · outline",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0370.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #새 #animal #outline #클립아트 #라벨 #투명",
+      "description": "동물용 새 클립아트 (outline)",
+      "sort_order": 370
+    },
+    {
+      "title": "물고기 2 · sticker",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0371.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #물고기 #animal #sticker #클립아트 #라벨 #투명",
+      "description": "동물용 물고기 클립아트 (sticker)",
+      "sort_order": 371
+    },
+    {
+      "title": "나비 2 · doodle",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0372.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #나비 #animal #doodle #클립아트 #라벨 #투명",
+      "description": "동물용 나비 클립아트 (doodle)",
+      "sort_order": 372
+    },
+    {
+      "title": "벌 2 · doodle",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0373.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #벌 #animal #doodle #클립아트 #라벨 #투명",
+      "description": "동물용 벌 클립아트 (doodle)",
+      "sort_order": 373
+    },
+    {
+      "title": "펭귄 2 · gradient",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0374.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #펭귄 #animal #gradient #클립아트 #라벨 #투명",
+      "description": "동물용 펭귄 클립아트 (gradient)",
+      "sort_order": 374
+    },
+    {
+      "title": "판다 2 · gradient",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0375.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #판다 #animal #gradient #클립아트 #라벨 #투명",
+      "description": "동물용 판다 클립아트 (gradient)",
+      "sort_order": 375
+    },
+    {
+      "title": "여우 2 · pastel",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0376.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #여우 #animal #pastel #클립아트 #라벨 #투명",
+      "description": "동물용 여우 클립아트 (pastel)",
+      "sort_order": 376
+    },
+    {
+      "title": "오리 2 · stamp",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0377.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #오리 #animal #stamp #클립아트 #라벨 #투명",
+      "description": "동물용 오리 클립아트 (stamp)",
+      "sort_order": 377
+    },
+    {
+      "title": "햄스터 2 · silhouette",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0378.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #햄스터 #animal #silhouette #클립아트 #라벨 #투명",
+      "description": "동물용 햄스터 클립아트 (silhouette)",
+      "sort_order": 378
+    },
+    {
+      "title": "공룡 2 · filled",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0379.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #공룡 #animal #filled #클립아트 #라벨 #투명",
+      "description": "동물용 공룡 클립아트 (filled)",
+      "sort_order": 379
+    },
+    {
+      "title": "유니콘 2 · outline",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0380.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #유니콘 #animal #outline #클립아트 #라벨 #투명",
+      "description": "동물용 유니콘 클립아트 (outline)",
+      "sort_order": 380
+    },
+    {
+      "title": "고양이 3 · pastel",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0381.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #고양이 #animal #pastel #클립아트 #라벨 #투명",
+      "description": "동물용 고양이 클립아트 (pastel)",
+      "sort_order": 381
+    },
+    {
+      "title": "강아지 3 · geometric",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0382.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #강아지 #animal #geometric #클립아트 #라벨 #투명",
+      "description": "동물용 강아지 클립아트 (geometric)",
+      "sort_order": 382
+    },
+    {
+      "title": "토끼 3 · doodle",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0383.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #토끼 #animal #doodle #클립아트 #라벨 #투명",
+      "description": "동물용 토끼 클립아트 (doodle)",
+      "sort_order": 383
+    },
+    {
+      "title": "곰 3 · stamp",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0384.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #곰 #animal #stamp #클립아트 #라벨 #투명",
+      "description": "동물용 곰 클립아트 (stamp)",
+      "sort_order": 384
+    },
+    {
+      "title": "새 3 · silhouette",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0385.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #새 #animal #silhouette #클립아트 #라벨 #투명",
+      "description": "동물용 새 클립아트 (silhouette)",
+      "sort_order": 385
+    },
+    {
+      "title": "물고기 3 · pastel",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0386.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #물고기 #animal #pastel #클립아트 #라벨 #투명",
+      "description": "동물용 물고기 클립아트 (pastel)",
+      "sort_order": 386
+    },
+    {
+      "title": "나비 3 · minimal",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0387.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #나비 #animal #minimal #클립아트 #라벨 #투명",
+      "description": "동물용 나비 클립아트 (minimal)",
+      "sort_order": 387
+    },
+    {
+      "title": "벌 3 · minimal",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0388.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #벌 #animal #minimal #클립아트 #라벨 #투명",
+      "description": "동물용 벌 클립아트 (minimal)",
+      "sort_order": 388
+    },
+    {
+      "title": "펭귄 3 · filled",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0389.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #펭귄 #animal #filled #클립아트 #라벨 #투명",
+      "description": "동물용 펭귄 클립아트 (filled)",
+      "sort_order": 389
+    },
+    {
+      "title": "판다 3 · filled",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0390.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #판다 #animal #filled #클립아트 #라벨 #투명",
+      "description": "동물용 판다 클립아트 (filled)",
+      "sort_order": 390
+    },
+    {
+      "title": "여우 3 · sticker",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0391.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #여우 #animal #sticker #클립아트 #라벨 #투명",
+      "description": "동물용 여우 클립아트 (sticker)",
+      "sort_order": 391
+    },
+    {
+      "title": "오리 3 · geometric",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0392.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #오리 #animal #geometric #클립아트 #라벨 #투명",
+      "description": "동물용 오리 클립아트 (geometric)",
+      "sort_order": 392
+    },
+    {
+      "title": "햄스터 3 · outline",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0393.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #햄스터 #animal #outline #클립아트 #라벨 #투명",
+      "description": "동물용 햄스터 클립아트 (outline)",
+      "sort_order": 393
+    },
+    {
+      "title": "공룡 3 · gradient",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0394.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #공룡 #animal #gradient #클립아트 #라벨 #투명",
+      "description": "동물용 공룡 클립아트 (gradient)",
+      "sort_order": 394
+    },
+    {
+      "title": "유니콘 3 · silhouette",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0395.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #유니콘 #animal #silhouette #클립아트 #라벨 #투명",
+      "description": "동물용 유니콘 클립아트 (silhouette)",
+      "sort_order": 395
+    },
+    {
+      "title": "고양이 4 · sticker",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0396.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #고양이 #animal #sticker #클립아트 #라벨 #투명",
+      "description": "동물용 고양이 클립아트 (sticker)",
+      "sort_order": 396
+    },
+    {
+      "title": "강아지 4 · stamp",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0397.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #강아지 #animal #stamp #클립아트 #라벨 #투명",
+      "description": "동물용 강아지 클립아트 (stamp)",
+      "sort_order": 397
+    },
+    {
+      "title": "토끼 4 · minimal",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0398.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #토끼 #animal #minimal #클립아트 #라벨 #투명",
+      "description": "동물용 토끼 클립아트 (minimal)",
+      "sort_order": 398
+    },
+    {
+      "title": "곰 4 · geometric",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0399.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #곰 #animal #geometric #클립아트 #라벨 #투명",
+      "description": "동물용 곰 클립아트 (geometric)",
+      "sort_order": 399
+    },
+    {
+      "title": "새 4 · outline",
+      "category_slug": "animal",
+      "image_path": "/assets/cliparts/seed_animal_0400.png",
+      "hashtags": "#동물 #귀여움 #캐릭터 #새 #animal #outline #클립아트 #라벨 #투명",
+      "description": "동물용 새 클립아트 (outline)",
+      "sort_order": 400
+    },
+    {
+      "title": "눈꽃 · pastel",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0401.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #눈꽃 #season #pastel #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 눈꽃 클립아트 (pastel)",
+      "sort_order": 401
+    },
+    {
+      "title": "크리스마스 · silhouette",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0402.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #크리스마스 #season #silhouette #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 크리스마스 클립아트 (silhouette)",
+      "sort_order": 402
+    },
+    {
+      "title": "할로윈 · pastel",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0403.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #할로윈 #season #pastel #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 할로윈 클립아트 (pastel)",
+      "sort_order": 403
+    },
+    {
+      "title": "벚꽃 · stamp",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0404.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #벚꽃 #season #stamp #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 벚꽃 클립아트 (stamp)",
+      "sort_order": 404
+    },
+    {
+      "title": "단풍 · minimal",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0405.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #단풍 #season #minimal #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 단풍 클립아트 (minimal)",
+      "sort_order": 405
+    },
+    {
+      "title": "불꽃 · filled",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0406.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #불꽃 #season #filled #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 불꽃 클립아트 (filled)",
+      "sort_order": 406
+    },
+    {
+      "title": "폭죽 · minimal",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0407.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #폭죽 #season #minimal #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 폭죽 클립아트 (minimal)",
+      "sort_order": 407
+    },
+    {
+      "title": "달력기념 · sticker",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0408.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #달력기념 #season #sticker #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 달력기념 클립아트 (sticker)",
+      "sort_order": 408
+    },
+    {
+      "title": "생일모자 · geometric",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0409.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #생일모자 #season #geometric #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 생일모자 클립아트 (geometric)",
+      "sort_order": 409
+    },
+    {
+      "title": "종소리 · filled",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0410.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #종소리 #season #filled #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 종소리 클립아트 (filled)",
+      "sort_order": 410
+    },
+    {
+      "title": "발렌타인 · gradient",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0411.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #발렌타인 #season #gradient #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 발렌타인 클립아트 (gradient)",
+      "sort_order": 411
+    },
+    {
+      "title": "화이트데이 · silhouette",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0412.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #화이트데이 #season #silhouette #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 화이트데이 클립아트 (silhouette)",
+      "sort_order": 412
+    },
+    {
+      "title": "추석 · outline",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0413.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #추석 #season #outline #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 추석 클립아트 (outline)",
+      "sort_order": 413
+    },
+    {
+      "title": "설날 · stamp",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0414.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #설날 #season #stamp #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 설날 클립아트 (stamp)",
+      "sort_order": 414
+    },
+    {
+      "title": "여름 · minimal",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0415.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #여름 #season #minimal #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 여름 클립아트 (minimal)",
+      "sort_order": 415
+    },
+    {
+      "title": "눈꽃 2 · sticker",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0416.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #눈꽃 #season #sticker #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 눈꽃 클립아트 (sticker)",
+      "sort_order": 416
+    },
+    {
+      "title": "크리스마스 2 · outline",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0417.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #크리스마스 #season #outline #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 크리스마스 클립아트 (outline)",
+      "sort_order": 417
+    },
+    {
+      "title": "할로윈 2 · sticker",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0418.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #할로윈 #season #sticker #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 할로윈 클립아트 (sticker)",
+      "sort_order": 418
+    },
+    {
+      "title": "벚꽃 2 · geometric",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0419.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #벚꽃 #season #geometric #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 벚꽃 클립아트 (geometric)",
+      "sort_order": 419
+    },
+    {
+      "title": "단풍 2 · doodle",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0420.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #단풍 #season #doodle #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 단풍 클립아트 (doodle)",
+      "sort_order": 420
+    },
+    {
+      "title": "불꽃 2 · gradient",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0421.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #불꽃 #season #gradient #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 불꽃 클립아트 (gradient)",
+      "sort_order": 421
+    },
+    {
+      "title": "폭죽 2 · doodle",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0422.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #폭죽 #season #doodle #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 폭죽 클립아트 (doodle)",
+      "sort_order": 422
+    },
+    {
+      "title": "달력기념 2 · pastel",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0423.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #달력기념 #season #pastel #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 달력기념 클립아트 (pastel)",
+      "sort_order": 423
+    },
+    {
+      "title": "생일모자 2 · stamp",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0424.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #생일모자 #season #stamp #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 생일모자 클립아트 (stamp)",
+      "sort_order": 424
+    },
+    {
+      "title": "종소리 2 · gradient",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0425.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #종소리 #season #gradient #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 종소리 클립아트 (gradient)",
+      "sort_order": 425
+    },
+    {
+      "title": "발렌타인 2 · filled",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0426.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #발렌타인 #season #filled #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 발렌타인 클립아트 (filled)",
+      "sort_order": 426
+    },
+    {
+      "title": "화이트데이 2 · outline",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0427.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #화이트데이 #season #outline #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 화이트데이 클립아트 (outline)",
+      "sort_order": 427
+    },
+    {
+      "title": "추석 2 · silhouette",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0428.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #추석 #season #silhouette #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 추석 클립아트 (silhouette)",
+      "sort_order": 428
+    },
+    {
+      "title": "설날 2 · geometric",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0429.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #설날 #season #geometric #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 설날 클립아트 (geometric)",
+      "sort_order": 429
+    },
+    {
+      "title": "여름 2 · doodle",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0430.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #여름 #season #doodle #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 여름 클립아트 (doodle)",
+      "sort_order": 430
+    },
+    {
+      "title": "눈꽃 3 · pastel",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0431.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #눈꽃 #season #pastel #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 눈꽃 클립아트 (pastel)",
+      "sort_order": 431
+    },
+    {
+      "title": "크리스마스 3 · silhouette",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0432.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #크리스마스 #season #silhouette #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 크리스마스 클립아트 (silhouette)",
+      "sort_order": 432
+    },
+    {
+      "title": "할로윈 3 · pastel",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0433.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #할로윈 #season #pastel #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 할로윈 클립아트 (pastel)",
+      "sort_order": 433
+    },
+    {
+      "title": "벚꽃 3 · stamp",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0434.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #벚꽃 #season #stamp #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 벚꽃 클립아트 (stamp)",
+      "sort_order": 434
+    },
+    {
+      "title": "단풍 3 · minimal",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0435.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #단풍 #season #minimal #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 단풍 클립아트 (minimal)",
+      "sort_order": 435
+    },
+    {
+      "title": "불꽃 3 · filled",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0436.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #불꽃 #season #filled #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 불꽃 클립아트 (filled)",
+      "sort_order": 436
+    },
+    {
+      "title": "폭죽 3 · minimal",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0437.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #폭죽 #season #minimal #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 폭죽 클립아트 (minimal)",
+      "sort_order": 437
+    },
+    {
+      "title": "달력기념 3 · sticker",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0438.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #달력기념 #season #sticker #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 달력기념 클립아트 (sticker)",
+      "sort_order": 438
+    },
+    {
+      "title": "생일모자 3 · geometric",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0439.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #생일모자 #season #geometric #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 생일모자 클립아트 (geometric)",
+      "sort_order": 439
+    },
+    {
+      "title": "종소리 3 · filled",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0440.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #종소리 #season #filled #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 종소리 클립아트 (filled)",
+      "sort_order": 440
+    },
+    {
+      "title": "발렌타인 3 · gradient",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0441.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #발렌타인 #season #gradient #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 발렌타인 클립아트 (gradient)",
+      "sort_order": 441
+    },
+    {
+      "title": "화이트데이 3 · silhouette",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0442.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #화이트데이 #season #silhouette #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 화이트데이 클립아트 (silhouette)",
+      "sort_order": 442
+    },
+    {
+      "title": "추석 3 · outline",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0443.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #추석 #season #outline #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 추석 클립아트 (outline)",
+      "sort_order": 443
+    },
+    {
+      "title": "설날 3 · stamp",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0444.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #설날 #season #stamp #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 설날 클립아트 (stamp)",
+      "sort_order": 444
+    },
+    {
+      "title": "여름 3 · minimal",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0445.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #여름 #season #minimal #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 여름 클립아트 (minimal)",
+      "sort_order": 445
+    },
+    {
+      "title": "눈꽃 4 · sticker",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0446.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #눈꽃 #season #sticker #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 눈꽃 클립아트 (sticker)",
+      "sort_order": 446
+    },
+    {
+      "title": "크리스마스 4 · outline",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0447.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #크리스마스 #season #outline #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 크리스마스 클립아트 (outline)",
+      "sort_order": 447
+    },
+    {
+      "title": "할로윈 4 · sticker",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0448.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #할로윈 #season #sticker #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 할로윈 클립아트 (sticker)",
+      "sort_order": 448
+    },
+    {
+      "title": "벚꽃 4 · geometric",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0449.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #벚꽃 #season #geometric #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 벚꽃 클립아트 (geometric)",
+      "sort_order": 449
+    },
+    {
+      "title": "단풍 4 · doodle",
+      "category_slug": "season",
+      "image_path": "/assets/cliparts/seed_season_0450.png",
+      "hashtags": "#시즌 #기념일 #이벤트 #단풍 #season #doodle #클립아트 #라벨 #투명",
+      "description": "시즌·기념일용 단풍 클립아트 (doodle)",
+      "sort_order": 450
+    },
+    {
+      "title": "원형 · pastel",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0451.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #원형 #shape #pastel #클립아트 #라벨 #투명",
+      "description": "기본 도형용 원형 클립아트 (pastel)",
+      "sort_order": 451
+    },
+    {
+      "title": "사각형 · minimal",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0452.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #사각형 #shape #minimal #클립아트 #라벨 #투명",
+      "description": "기본 도형용 사각형 클립아트 (minimal)",
+      "sort_order": 452
+    },
+    {
+      "title": "삼각형 · filled",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0453.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #삼각형 #shape #filled #클립아트 #라벨 #투명",
+      "description": "기본 도형용 삼각형 클립아트 (filled)",
+      "sort_order": 453
+    },
+    {
+      "title": "별 · stamp",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0454.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #별 #shape #stamp #클립아트 #라벨 #투명",
+      "description": "기본 도형용 별 클립아트 (stamp)",
+      "sort_order": 454
+    },
+    {
+      "title": "다이아몬드 · sticker",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0455.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #다이아몬드 #shape #sticker #클립아트 #라벨 #투명",
+      "description": "기본 도형용 다이아몬드 클립아트 (sticker)",
+      "sort_order": 455
+    },
+    {
+      "title": "육각형 · geometric",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0456.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #육각형 #shape #geometric #클립아트 #라벨 #투명",
+      "description": "기본 도형용 육각형 클립아트 (geometric)",
+      "sort_order": 456
+    },
+    {
+      "title": "타원 · minimal",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0457.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #타원 #shape #minimal #클립아트 #라벨 #투명",
+      "description": "기본 도형용 타원 클립아트 (minimal)",
+      "sort_order": 457
+    },
+    {
+      "title": "라운드사각 · gradient",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0458.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #라운드사각 #shape #gradient #클립아트 #라벨 #투명",
+      "description": "기본 도형용 라운드사각 클립아트 (gradient)",
+      "sort_order": 458
+    },
+    {
+      "title": "포인트 · silhouette",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0459.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #포인트 #shape #silhouette #클립아트 #라벨 #투명",
+      "description": "기본 도형용 포인트 클립아트 (silhouette)",
+      "sort_order": 459
+    },
+    {
+      "title": "도트 · filled",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0460.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #도트 #shape #filled #클립아트 #라벨 #투명",
+      "description": "기본 도형용 도트 클립아트 (filled)",
+      "sort_order": 460
+    },
+    {
+      "title": "라인 · stamp",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0461.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #라인 #shape #stamp #클립아트 #라벨 #투명",
+      "description": "기본 도형용 라인 클립아트 (stamp)",
+      "sort_order": 461
+    },
+    {
+      "title": "프레임 · minimal",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0462.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #shape #minimal #클립아트 #라벨 #투명",
+      "description": "기본 도형용 프레임 클립아트 (minimal)",
+      "sort_order": 462
+    },
+    {
+      "title": "배지 · outline",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0463.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #배지 #shape #outline #클립아트 #라벨 #투명",
+      "description": "기본 도형용 배지 클립아트 (outline)",
+      "sort_order": 463
+    },
+    {
+      "title": "스탬프원 · outline",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0464.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #스탬프원 #shape #outline #클립아트 #라벨 #투명",
+      "description": "기본 도형용 스탬프원 클립아트 (outline)",
+      "sort_order": 464
+    },
+    {
+      "title": "체크마크 · sticker",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0465.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #체크마크 #shape #sticker #클립아트 #라벨 #투명",
+      "description": "기본 도형용 체크마크 클립아트 (sticker)",
+      "sort_order": 465
+    },
+    {
+      "title": "원형 2 · sticker",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0466.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #원형 #shape #sticker #클립아트 #라벨 #투명",
+      "description": "기본 도형용 원형 클립아트 (sticker)",
+      "sort_order": 466
+    },
+    {
+      "title": "사각형 2 · doodle",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0467.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #사각형 #shape #doodle #클립아트 #라벨 #투명",
+      "description": "기본 도형용 사각형 클립아트 (doodle)",
+      "sort_order": 467
+    },
+    {
+      "title": "삼각형 2 · gradient",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0468.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #삼각형 #shape #gradient #클립아트 #라벨 #투명",
+      "description": "기본 도형용 삼각형 클립아트 (gradient)",
+      "sort_order": 468
+    },
+    {
+      "title": "별 2 · geometric",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0469.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #별 #shape #geometric #클립아트 #라벨 #투명",
+      "description": "기본 도형용 별 클립아트 (geometric)",
+      "sort_order": 469
+    },
+    {
+      "title": "다이아몬드 2 · pastel",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0470.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #다이아몬드 #shape #pastel #클립아트 #라벨 #투명",
+      "description": "기본 도형용 다이아몬드 클립아트 (pastel)",
+      "sort_order": 470
+    },
+    {
+      "title": "육각형 2 · stamp",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0471.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #육각형 #shape #stamp #클립아트 #라벨 #투명",
+      "description": "기본 도형용 육각형 클립아트 (stamp)",
+      "sort_order": 471
+    },
+    {
+      "title": "타원 2 · doodle",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0472.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #타원 #shape #doodle #클립아트 #라벨 #투명",
+      "description": "기본 도형용 타원 클립아트 (doodle)",
+      "sort_order": 472
+    },
+    {
+      "title": "라운드사각 2 · filled",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0473.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #라운드사각 #shape #filled #클립아트 #라벨 #투명",
+      "description": "기본 도형용 라운드사각 클립아트 (filled)",
+      "sort_order": 473
+    },
+    {
+      "title": "포인트 2 · outline",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0474.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #포인트 #shape #outline #클립아트 #라벨 #투명",
+      "description": "기본 도형용 포인트 클립아트 (outline)",
+      "sort_order": 474
+    },
+    {
+      "title": "도트 2 · gradient",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0475.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #도트 #shape #gradient #클립아트 #라벨 #투명",
+      "description": "기본 도형용 도트 클립아트 (gradient)",
+      "sort_order": 475
+    },
+    {
+      "title": "라인 2 · geometric",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0476.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #라인 #shape #geometric #클립아트 #라벨 #투명",
+      "description": "기본 도형용 라인 클립아트 (geometric)",
+      "sort_order": 476
+    },
+    {
+      "title": "프레임 2 · doodle",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0477.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #shape #doodle #클립아트 #라벨 #투명",
+      "description": "기본 도형용 프레임 클립아트 (doodle)",
+      "sort_order": 477
+    },
+    {
+      "title": "배지 2 · silhouette",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0478.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #배지 #shape #silhouette #클립아트 #라벨 #투명",
+      "description": "기본 도형용 배지 클립아트 (silhouette)",
+      "sort_order": 478
+    },
+    {
+      "title": "스탬프원 2 · silhouette",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0479.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #스탬프원 #shape #silhouette #클립아트 #라벨 #투명",
+      "description": "기본 도형용 스탬프원 클립아트 (silhouette)",
+      "sort_order": 479
+    },
+    {
+      "title": "체크마크 2 · pastel",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0480.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #체크마크 #shape #pastel #클립아트 #라벨 #투명",
+      "description": "기본 도형용 체크마크 클립아트 (pastel)",
+      "sort_order": 480
+    },
+    {
+      "title": "원형 3 · pastel",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0481.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #원형 #shape #pastel #클립아트 #라벨 #투명",
+      "description": "기본 도형용 원형 클립아트 (pastel)",
+      "sort_order": 481
+    },
+    {
+      "title": "사각형 3 · minimal",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0482.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #사각형 #shape #minimal #클립아트 #라벨 #투명",
+      "description": "기본 도형용 사각형 클립아트 (minimal)",
+      "sort_order": 482
+    },
+    {
+      "title": "삼각형 3 · filled",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0483.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #삼각형 #shape #filled #클립아트 #라벨 #투명",
+      "description": "기본 도형용 삼각형 클립아트 (filled)",
+      "sort_order": 483
+    },
+    {
+      "title": "별 3 · stamp",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0484.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #별 #shape #stamp #클립아트 #라벨 #투명",
+      "description": "기본 도형용 별 클립아트 (stamp)",
+      "sort_order": 484
+    },
+    {
+      "title": "다이아몬드 3 · sticker",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0485.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #다이아몬드 #shape #sticker #클립아트 #라벨 #투명",
+      "description": "기본 도형용 다이아몬드 클립아트 (sticker)",
+      "sort_order": 485
+    },
+    {
+      "title": "육각형 3 · geometric",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0486.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #육각형 #shape #geometric #클립아트 #라벨 #투명",
+      "description": "기본 도형용 육각형 클립아트 (geometric)",
+      "sort_order": 486
+    },
+    {
+      "title": "타원 3 · minimal",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0487.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #타원 #shape #minimal #클립아트 #라벨 #투명",
+      "description": "기본 도형용 타원 클립아트 (minimal)",
+      "sort_order": 487
+    },
+    {
+      "title": "라운드사각 3 · gradient",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0488.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #라운드사각 #shape #gradient #클립아트 #라벨 #투명",
+      "description": "기본 도형용 라운드사각 클립아트 (gradient)",
+      "sort_order": 488
+    },
+    {
+      "title": "포인트 3 · silhouette",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0489.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #포인트 #shape #silhouette #클립아트 #라벨 #투명",
+      "description": "기본 도형용 포인트 클립아트 (silhouette)",
+      "sort_order": 489
+    },
+    {
+      "title": "도트 3 · filled",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0490.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #도트 #shape #filled #클립아트 #라벨 #투명",
+      "description": "기본 도형용 도트 클립아트 (filled)",
+      "sort_order": 490
+    },
+    {
+      "title": "라인 3 · stamp",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0491.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #라인 #shape #stamp #클립아트 #라벨 #투명",
+      "description": "기본 도형용 라인 클립아트 (stamp)",
+      "sort_order": 491
+    },
+    {
+      "title": "프레임 3 · minimal",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0492.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #shape #minimal #클립아트 #라벨 #투명",
+      "description": "기본 도형용 프레임 클립아트 (minimal)",
+      "sort_order": 492
+    },
+    {
+      "title": "배지 3 · outline",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0493.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #배지 #shape #outline #클립아트 #라벨 #투명",
+      "description": "기본 도형용 배지 클립아트 (outline)",
+      "sort_order": 493
+    },
+    {
+      "title": "스탬프원 3 · outline",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0494.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #스탬프원 #shape #outline #클립아트 #라벨 #투명",
+      "description": "기본 도형용 스탬프원 클립아트 (outline)",
+      "sort_order": 494
+    },
+    {
+      "title": "체크마크 3 · sticker",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0495.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #체크마크 #shape #sticker #클립아트 #라벨 #투명",
+      "description": "기본 도형용 체크마크 클립아트 (sticker)",
+      "sort_order": 495
+    },
+    {
+      "title": "원형 4 · sticker",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0496.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #원형 #shape #sticker #클립아트 #라벨 #투명",
+      "description": "기본 도형용 원형 클립아트 (sticker)",
+      "sort_order": 496
+    },
+    {
+      "title": "사각형 4 · doodle",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0497.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #사각형 #shape #doodle #클립아트 #라벨 #투명",
+      "description": "기본 도형용 사각형 클립아트 (doodle)",
+      "sort_order": 497
+    },
+    {
+      "title": "삼각형 4 · gradient",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0498.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #삼각형 #shape #gradient #클립아트 #라벨 #투명",
+      "description": "기본 도형용 삼각형 클립아트 (gradient)",
+      "sort_order": 498
+    },
+    {
+      "title": "별 4 · geometric",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0499.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #별 #shape #geometric #클립아트 #라벨 #투명",
+      "description": "기본 도형용 별 클립아트 (geometric)",
+      "sort_order": 499
+    },
+    {
+      "title": "다이아몬드 4 · pastel",
+      "category_slug": "shape",
+      "image_path": "/assets/cliparts/seed_shape_0500.png",
+      "hashtags": "#도형 #기본 #아이콘 #프레임 #다이아몬드 #shape #pastel #클립아트 #라벨 #투명",
+      "description": "기본 도형용 다이아몬드 클립아트 (pastel)",
+      "sort_order": 500
+    }
+  ],
+  "regenerated_retries": 0
+}

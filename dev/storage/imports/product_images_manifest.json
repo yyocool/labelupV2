@@ -1,0 +1,662 @@
+[
+  {
+    "row": 4,
+    "sku": "A101-20",
+    "image_path": "/assets/products/spec_A101-20.png"
+  },
+  {
+    "row": 5,
+    "sku": "A101F-20",
+    "image_path": "/assets/products/spec_A101F-20.png"
+  },
+  {
+    "row": 6,
+    "sku": "A102-20",
+    "image_path": "/assets/products/spec_A102-20.png"
+  },
+  {
+    "row": 7,
+    "sku": "A103-20",
+    "image_path": "/assets/products/spec_A103-20.png"
+  },
+  {
+    "row": 8,
+    "sku": "A202-20",
+    "image_path": "/assets/products/spec_A202-20.png"
+  },
+  {
+    "row": 9,
+    "sku": "A203-20",
+    "image_path": "/assets/products/spec_A203-20.png"
+  },
+  {
+    "row": 10,
+    "sku": "A304-20",
+    "image_path": "/assets/products/spec_A304-20.png"
+  },
+  {
+    "row": 11,
+    "sku": "A101-100",
+    "image_path": "/assets/products/spec_A101-100.png"
+  },
+  {
+    "row": 12,
+    "sku": "A101-200",
+    "image_path": "/assets/products/spec_A101-200.png"
+  },
+  {
+    "row": 13,
+    "sku": "A101F-100",
+    "image_path": "/assets/products/spec_A101F-100.png"
+  },
+  {
+    "row": 14,
+    "sku": "A102-100",
+    "image_path": "/assets/products/spec_A102-100.png"
+  },
+  {
+    "row": 15,
+    "sku": "A102-200",
+    "image_path": "/assets/products/spec_A102-200.png"
+  },
+  {
+    "row": 16,
+    "sku": "A103-100",
+    "image_path": "/assets/products/spec_A103-100.png"
+  },
+  {
+    "row": 17,
+    "sku": "A202-100",
+    "image_path": "/assets/products/spec_A202-100.png"
+  },
+  {
+    "row": 18,
+    "sku": "A203-100",
+    "image_path": "/assets/products/spec_A203-100.png"
+  },
+  {
+    "row": 19,
+    "sku": "A304-100",
+    "image_path": "/assets/products/spec_A304-100.png"
+  },
+  {
+    "row": 20,
+    "sku": "A106-20",
+    "image_path": "/assets/products/spec_A106-20.png"
+  },
+  {
+    "row": 21,
+    "sku": "A204-20",
+    "image_path": "/assets/products/spec_A204-20.png"
+  },
+  {
+    "row": 22,
+    "sku": "A205-20",
+    "image_path": "/assets/products/spec_A205-20.png"
+  },
+  {
+    "row": 23,
+    "sku": "A206-20",
+    "image_path": "/assets/products/spec_A206-20.png"
+  },
+  {
+    "row": 24,
+    "sku": "A207-20",
+    "image_path": "/assets/products/spec_A207-20.png"
+  },
+  {
+    "row": 25,
+    "sku": "A208-20",
+    "image_path": "/assets/products/spec_A208-20.png"
+  },
+  {
+    "row": 25,
+    "sku": "A208-20",
+    "image_path": "/assets/products/spec_A208-20.png"
+  },
+  {
+    "row": 26,
+    "sku": "A209-20",
+    "image_path": "/assets/products/spec_A209-20.png"
+  },
+  {
+    "row": 27,
+    "sku": "A306-20",
+    "image_path": "/assets/products/spec_A306-20.png"
+  },
+  {
+    "row": 28,
+    "sku": "A307-20",
+    "image_path": "/assets/products/spec_A307-20.png"
+  },
+  {
+    "row": 29,
+    "sku": "A308-20",
+    "image_path": "/assets/products/spec_A308-20.png"
+  },
+  {
+    "row": 30,
+    "sku": "A106-100",
+    "image_path": "/assets/products/spec_A106-100.png"
+  },
+  {
+    "row": 31,
+    "sku": "A204-100",
+    "image_path": "/assets/products/spec_A204-100.png"
+  },
+  {
+    "row": 32,
+    "sku": "A204-200",
+    "image_path": "/assets/products/spec_A204-200.png"
+  },
+  {
+    "row": 33,
+    "sku": "A205-100",
+    "image_path": "/assets/products/spec_A205-100.png"
+  },
+  {
+    "row": 34,
+    "sku": "A206-100",
+    "image_path": "/assets/products/spec_A206-100.png"
+  },
+  {
+    "row": 35,
+    "sku": "A207-100",
+    "image_path": "/assets/products/spec_A207-100.png"
+  },
+  {
+    "row": 36,
+    "sku": "A208-100",
+    "image_path": "/assets/products/spec_A208-100.png"
+  },
+  {
+    "row": 37,
+    "sku": "A208-200",
+    "image_path": "/assets/products/spec_A208-200.png"
+  },
+  {
+    "row": 38,
+    "sku": "A209-100",
+    "image_path": "/assets/products/spec_A209-100.png"
+  },
+  {
+    "row": 39,
+    "sku": "A306-100",
+    "image_path": "/assets/products/spec_A306-100.png"
+  },
+  {
+    "row": 40,
+    "sku": "A307-100",
+    "image_path": "/assets/products/spec_A307-100.png"
+  },
+  {
+    "row": 41,
+    "sku": "A308-100",
+    "image_path": "/assets/products/spec_A308-100.png"
+  },
+  {
+    "row": 42,
+    "sku": "A309-20",
+    "image_path": "/assets/products/spec_A309-20.png"
+  },
+  {
+    "row": 43,
+    "sku": "A410-20",
+    "image_path": "/assets/products/spec_A410-20.png"
+  },
+  {
+    "row": 44,
+    "sku": "A412-20",
+    "image_path": "/assets/products/spec_A412-20.png"
+  },
+  {
+    "row": 45,
+    "sku": "A609-20",
+    "image_path": "/assets/products/spec_A609-20.png"
+  },
+  {
+    "row": 46,
+    "sku": "A512-20",
+    "image_path": "/assets/products/spec_A512-20.png"
+  },
+  {
+    "row": 47,
+    "sku": "A513-20",
+    "image_path": "/assets/products/spec_A513-20.png"
+  },
+  {
+    "row": 48,
+    "sku": "A309-100",
+    "image_path": "/assets/products/spec_A309-100.png"
+  },
+  {
+    "row": 49,
+    "sku": "A410-100",
+    "image_path": "/assets/products/spec_A410-100.png"
+  },
+  {
+    "row": 50,
+    "sku": "A412-100",
+    "image_path": "/assets/products/spec_A412-100.png"
+  },
+  {
+    "row": 51,
+    "sku": "A609-100",
+    "image_path": "/assets/products/spec_A609-100.png"
+  },
+  {
+    "row": 52,
+    "sku": "A512-100",
+    "image_path": "/assets/products/spec_A512-100.png"
+  },
+  {
+    "row": 53,
+    "sku": "A513-100",
+    "image_path": "/assets/products/spec_A513-100.png"
+  },
+  {
+    "row": 54,
+    "sku": "A105-20",
+    "image_path": "/assets/products/spec_A105-20.png"
+  },
+  {
+    "row": 55,
+    "sku": "A402-20",
+    "image_path": "/assets/products/spec_A402-20.png"
+  },
+  {
+    "row": 56,
+    "sku": "A109-20",
+    "image_path": "/assets/products/spec_A109-20.png"
+  },
+  {
+    "row": 57,
+    "sku": "A304R-20",
+    "image_path": "/assets/products/spec_A304R-20.png"
+  },
+  {
+    "row": 58,
+    "sku": "A210-20",
+    "image_path": "/assets/products/spec_A210-20.png"
+  },
+  {
+    "row": 59,
+    "sku": "A406R-20",
+    "image_path": "/assets/products/spec_A406R-20.png"
+  },
+  {
+    "row": 60,
+    "sku": "A311-20",
+    "image_path": "/assets/products/spec_A311-20.png"
+  },
+  {
+    "row": 61,
+    "sku": "A218-20",
+    "image_path": "/assets/products/spec_A218-20.png"
+  },
+  {
+    "row": 62,
+    "sku": "A318-20",
+    "image_path": "/assets/products/spec_A318-20.png"
+  },
+  {
+    "row": 63,
+    "sku": "A421-20",
+    "image_path": "/assets/products/spec_A421-20.png"
+  },
+  {
+    "row": 64,
+    "sku": "A616-20",
+    "image_path": "/assets/products/spec_A616-20.png"
+  },
+  {
+    "row": 65,
+    "sku": "A524-20",
+    "image_path": "/assets/products/spec_A524-20.png"
+  },
+  {
+    "row": 66,
+    "sku": "A529-20",
+    "image_path": "/assets/products/spec_A529-20.png"
+  },
+  {
+    "row": 67,
+    "sku": "A827-20",
+    "image_path": "/assets/products/spec_A827-20.png"
+  },
+  {
+    "row": 68,
+    "sku": "A105-100",
+    "image_path": "/assets/products/spec_A105-100.png"
+  },
+  {
+    "row": 69,
+    "sku": "A402-100",
+    "image_path": "/assets/products/spec_A402-100.png"
+  },
+  {
+    "row": 70,
+    "sku": "A109-100",
+    "image_path": "/assets/products/spec_A109-100.png"
+  },
+  {
+    "row": 71,
+    "sku": "A304R-100",
+    "image_path": "/assets/products/spec_A304R-100.png"
+  },
+  {
+    "row": 72,
+    "sku": "A210-100",
+    "image_path": "/assets/products/spec_A210-100.png"
+  },
+  {
+    "row": 73,
+    "sku": "A406R-100",
+    "image_path": "/assets/products/spec_A406R-100.png"
+  },
+  {
+    "row": 74,
+    "sku": "A311-100",
+    "image_path": "/assets/products/spec_A311-100.png"
+  },
+  {
+    "row": 75,
+    "sku": "A218-100",
+    "image_path": "/assets/products/spec_A218-100.png"
+  },
+  {
+    "row": 76,
+    "sku": "A318-100",
+    "image_path": "/assets/products/spec_A318-100.png"
+  },
+  {
+    "row": 77,
+    "sku": "A421-100",
+    "image_path": "/assets/products/spec_A421-100.png"
+  },
+  {
+    "row": 78,
+    "sku": "A616-100",
+    "image_path": "/assets/products/spec_A616-100.png"
+  },
+  {
+    "row": 79,
+    "sku": "A524-100",
+    "image_path": "/assets/products/spec_A524-100.png"
+  },
+  {
+    "row": 80,
+    "sku": "A529-100",
+    "image_path": "/assets/products/spec_A529-100.png"
+  },
+  {
+    "row": 81,
+    "sku": "A827-100",
+    "image_path": "/assets/products/spec_A827-100.png"
+  },
+  {
+    "row": 82,
+    "sku": "AD104-20",
+    "image_path": "/assets/products/spec_AD104-20.png"
+  },
+  {
+    "row": 83,
+    "sku": "AD104-50",
+    "image_path": "/assets/products/spec_AD104-50.png"
+  },
+  {
+    "row": 84,
+    "sku": "AD102-20",
+    "image_path": "/assets/products/spec_AD102-20.png"
+  },
+  {
+    "row": 85,
+    "sku": "AD102-50",
+    "image_path": "/assets/products/spec_AD102-50.png"
+  },
+  {
+    "row": 86,
+    "sku": "LG101-100",
+    "image_path": "/assets/products/spec_LG101-100.png"
+  },
+  {
+    "row": 87,
+    "sku": "LG102-100",
+    "image_path": "/assets/products/spec_LG102-100.png"
+  },
+  {
+    "row": 88,
+    "sku": "LG204-100",
+    "image_path": "/assets/products/spec_LG204-100.png"
+  },
+  {
+    "row": 89,
+    "sku": "LG205-100",
+    "image_path": "/assets/products/spec_LG205-100.png"
+  },
+  {
+    "row": 90,
+    "sku": "LG208-100",
+    "image_path": "/assets/products/spec_LG208-100.png"
+  },
+  {
+    "row": 91,
+    "sku": "LG307-100",
+    "image_path": "/assets/products/spec_LG307-100.png"
+  },
+  {
+    "row": 92,
+    "sku": "LW101-10",
+    "image_path": "/assets/products/spec_LW101-10.png"
+  },
+  {
+    "row": 93,
+    "sku": "LW101-50",
+    "image_path": "/assets/products/spec_LW101-50.png"
+  },
+  {
+    "row": 94,
+    "sku": "LW102-10",
+    "image_path": "/assets/products/spec_LW102-10.png"
+  },
+  {
+    "row": 95,
+    "sku": "LW202-10",
+    "image_path": "/assets/products/spec_LW202-10.png"
+  },
+  {
+    "row": 96,
+    "sku": "LW204-10",
+    "image_path": "/assets/products/spec_LW204-10.png"
+  },
+  {
+    "row": 97,
+    "sku": "LW208-10",
+    "image_path": "/assets/products/spec_LW208-10.png"
+  },
+  {
+    "row": 98,
+    "sku": "LW307-10",
+    "image_path": "/assets/products/spec_LW307-10.png"
+  },
+  {
+    "row": 99,
+    "sku": "LW410-10",
+    "image_path": "/assets/products/spec_LW410-10.png"
+  },
+  {
+    "row": 100,
+    "sku": "LW512-10",
+    "image_path": "/assets/products/spec_LW512-10.png"
+  },
+  {
+    "row": 101,
+    "sku": "LT101-10",
+    "image_path": "/assets/products/spec_LT101-10.png"
+  },
+  {
+    "row": 102,
+    "sku": "LT101-50",
+    "image_path": "/assets/products/spec_LT101-50.png"
+  },
+  {
+    "row": 103,
+    "sku": "LT102-10",
+    "image_path": "/assets/products/spec_LT102-10.png"
+  },
+  {
+    "row": 104,
+    "sku": "LT204-10",
+    "image_path": "/assets/products/spec_LT204-10.png"
+  },
+  {
+    "row": 105,
+    "sku": "LT208-10",
+    "image_path": "/assets/products/spec_LT208-10.png"
+  },
+  {
+    "row": 106,
+    "sku": "LT307-10",
+    "image_path": "/assets/products/spec_LT307-10.png"
+  },
+  {
+    "row": 107,
+    "sku": "IC101F-5",
+    "image_path": "/assets/products/spec_IC101F-5.png"
+  },
+  {
+    "row": 108,
+    "sku": "IC101F-50",
+    "image_path": "/assets/products/spec_IC101F-50.png"
+  },
+  {
+    "row": 109,
+    "sku": "IC102-5",
+    "image_path": "/assets/products/spec_IC102-5.png"
+  },
+  {
+    "row": 110,
+    "sku": "IC204-5",
+    "image_path": "/assets/products/spec_IC204-5.png"
+  },
+  {
+    "row": 111,
+    "sku": "IC208-5",
+    "image_path": "/assets/products/spec_IC208-5.png"
+  },
+  {
+    "row": 112,
+    "sku": "IC307-5",
+    "image_path": "/assets/products/spec_IC307-5.png"
+  },
+  {
+    "row": 113,
+    "sku": "LC101-10",
+    "image_path": "/assets/products/spec_LC101-10.png"
+  },
+  {
+    "row": 114,
+    "sku": "LC101-50",
+    "image_path": "/assets/products/spec_LC101-50.png"
+  },
+  {
+    "row": 115,
+    "sku": "LC102-10",
+    "image_path": "/assets/products/spec_LC102-10.png"
+  },
+  {
+    "row": 116,
+    "sku": "LC204-10",
+    "image_path": "/assets/products/spec_LC204-10.png"
+  },
+  {
+    "row": 117,
+    "sku": "LC208-10",
+    "image_path": "/assets/products/spec_LC208-10.png"
+  },
+  {
+    "row": 118,
+    "sku": "LC307-10",
+    "image_path": "/assets/products/spec_LC307-10.png"
+  },
+  {
+    "row": 119,
+    "sku": "PC101-10",
+    "image_path": "/assets/products/spec_PC101-10.png"
+  },
+  {
+    "row": 120,
+    "sku": "PC303-10",
+    "image_path": "/assets/products/spec_PC303-10.png"
+  },
+  {
+    "row": 121,
+    "sku": "PC404-10",
+    "image_path": "/assets/products/spec_PC404-10.png"
+  },
+  {
+    "row": 122,
+    "sku": "PC505-10",
+    "image_path": "/assets/products/spec_PC505-10.png"
+  },
+  {
+    "row": 123,
+    "sku": "LN101R-10",
+    "image_path": "/assets/products/spec_LN101R-10.png"
+  },
+  {
+    "row": 124,
+    "sku": "LN101G-10",
+    "image_path": "/assets/products/spec_LN101G-10.png"
+  },
+  {
+    "row": 125,
+    "sku": "LN101Y-10",
+    "image_path": "/assets/products/spec_LN101Y-10.png"
+  },
+  {
+    "row": 126,
+    "sku": "AP101Y-20",
+    "image_path": "/assets/products/spec_AP101Y-20.png"
+  },
+  {
+    "row": 127,
+    "sku": "AP101G-20",
+    "image_path": "/assets/products/spec_AP101G-20.png"
+  },
+  {
+    "row": 128,
+    "sku": "AP101P-20",
+    "image_path": "/assets/products/spec_AP101P-20.png"
+  },
+  {
+    "row": 129,
+    "sku": "AP101B-20",
+    "image_path": "/assets/products/spec_AP101B-20.png"
+  },
+  {
+    "row": 130,
+    "sku": "AK101-10",
+    "image_path": "/assets/products/spec_AK101-10.png"
+  },
+  {
+    "row": 131,
+    "sku": "AK101-100",
+    "image_path": "/assets/products/spec_AK101-100.png"
+  },
+  {
+    "row": 132,
+    "sku": "AK102-10",
+    "image_path": "/assets/products/spec_AK102-10.png"
+  },
+  {
+    "row": 133,
+    "sku": "AK207-10",
+    "image_path": "/assets/products/spec_AK207-10.png"
+  },
+  {
+    "row": 134,
+    "sku": "AK307-10",
+    "image_path": "/assets/products/spec_AK307-10.png"
+  }
+]

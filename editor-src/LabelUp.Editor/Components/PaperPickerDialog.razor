@@ -1,0 +1,54 @@
+@using LabelUp.Editor.Models
+@using LabelUp.Editor.Services
+@inject EditorSession Session
+@inject PaperCatalog Papers
+@inject HistoryService History
+@implements IDisposable
+
+@if (Session.Dialog == EditorDialog.PaperPicker)
+{
+  <div class="ed-modal" role="dialog" aria-label="라벨용지선택" @onclick="Session.CloseDialog">
+    <div class="ed-modal__card ed-modal__card--wide" @onclick:stopPropagation="true">
+      <header class="ed-modal__head">
+        <div>
+          <h3>라벨용지선택</h3>
+          <p>paperData 폴더의 용지 규격을 미리보고 선택합니다.</p>
+        </div>
+        <button type="button" class="ed-modal__close" @onclick="Session.CloseDialog">×</button>
+      </header>
+      <div class="ed-modal__body ed-paper-grid">
+        @foreach (var paper in Papers.Papers)
+        {
+          <button type="button" class="ed-paper-card @(Session.Document.Paper.PaperNo == paper.PaperNo ? "is-active" : null)" @onclick="() => Apply(paper)">
+            <div class="ed-paper-card__preview">@((MarkupString)paper.ToSheetSvg(168))</div>
+            <div class="ed-paper-card__meta">
+              <strong>@paper.PaperNo</strong>
+              <span>@paper.Name</span>
+              <ul>
+                <li>용지 @paper.PaperWidthMm.ToString("0.#")×@paper.PaperHeightMm.ToString("0.#") mm</li>
+                <li>라벨 @paper.LabelWidthMm.ToString("0.#")×@paper.LabelHeightMm.ToString("0.#") mm</li>
+                <li>배열 @paper.Columns 열 × @paper.Rows 행 (@paper.LabelsPerPage 칸)</li>
+                <li>여백 L @paper.LeftMarginMm.ToString("0.#") / T @paper.TopMarginMm.ToString("0.#") / R @paper.RightMarginMm.ToString("0.#") / B @paper.BottomMarginMm.ToString("0.#")</li>
+                <li>간격 가로 @paper.HGapMm.ToString("0.#") / 세로 @paper.VGapMm.ToString("0.#") mm</li>
+                <li>모양 @paper.Shape.Kind@(paper.Shape.Hole is null ? "" : " · 타공")</li>
+              </ul>
+            </div>
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+@code {
+    protected override void OnInitialized() => Session.Changed += OnChanged;
+    public void Dispose() => Session.Changed -= OnChanged;
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private void Apply(PaperSpec paper)
+    {
+        History.Push(Session.Document);
+        Session.ApplyPaper(paper);
+        Session.CloseDialog();
+    }
+}

@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "entries": [
+    { "vendor": "anylabel", "vendorPaperNo": "V3230", "ourPaperNo": "LU-3230", "note": "70×36 2×7" },
+    { "vendor": "anylabel", "vendorPaperNo": "V3630", "ourPaperNo": "LU-3630", "note": "원형 40mm 4×6" },
+    { "vendor": "anylabel", "vendorPaperNo": "V3775", "ourPaperNo": "LU-3775", "note": "84×58 타공 2×4" },
+    { "vendor": "anylabel", "vendorPaperNo": "V3774", "ourPaperNo": "LU-3630", "note": "도넛형 → 원형 계열" },
+    { "vendor": "formtec", "vendorPaperNo": "3102", "ourPaperNo": "LU-3102", "note": "100×50 계열" },
+    { "vendor": "formtec", "vendorPaperNo": "3230", "ourPaperNo": "LU-3230", "note": "70×36 계열" },
+    { "vendor": "formtec", "vendorPaperNo": "3659", "ourPaperNo": "LU-3659", "note": "50×30 계열" },
+    { "vendor": "ilabel", "vendorPaperNo": "100", "ourPaperNo": "LU-H100", "note": "하트 25×20" },
+    { "vendor": "ilabel", "vendorPaperNo": "114", "ourPaperNo": "LU-3630", "note": "원형" }
+  ]
+}

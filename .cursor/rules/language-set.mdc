@@ -1,0 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+- 테이블의 schema가 변경될때는 항상  .dbSchema\latestSQL_YYMMDD.sql 파일에 최신의 전체 테이블 구조를 생성 할 수 있도록 Create table SQL 쿼리를 따로 저장해줘.
+  직전의 DB에서 변경되는 부분은 .dbSchema\updateSQL_YYMMDD_n.sql 파일에 DB의 변경 부분을 적용할 SQL 문을 넣어줘. n은 오늘 날짜의 1부터 증가. 
+

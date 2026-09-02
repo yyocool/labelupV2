@@ -1,0 +1,33 @@
+---
+description: dev/ 작업 완료 후 labelupdev 원격 서버에 즉시 배포
+alwaysApply: true
+---
+
+# dev 원격 자동 배포
+
+`dev/` 폴더(LabelUp 실서비스)에서 코드·뷰·정적 파일을 변경한 작업은 **커밋/PR 여부와 관계없이** 완료 직후 원격 서버에 반영한다.
+
+## 배포 대상
+
+- URL: http://labelupdev.gagamkorea.kr
+- 서버 경로: `/home/labelupdev`
+- 배포 스크립트: `dev/scripts/deploy.py`
+
+## 실행 방법
+
+```powershell
+$env:LABELUP_SSH_PASSWORD = '<SSH 비밀번호>'
+python dev/scripts/deploy.py
+```
+
+환경 변수 `LABELUP_SSH_PASSWORD`가 설정되어 있으면 그대로 사용한다.
+
+## DB 변경 시
+
+- 스키마 변경: `.dbSchema/latestSQL_YYMMDD.sql`, `updateSQL_YYMMDD_n.sql` 저장 (기존 규칙)
+- 배포 후 필요 시 원격에서 `POST /api/system/migrate` 실행 또는 `dev/scripts/test_remote.py`로 확인
+
+## 예외
+
+- 사용자가 명시적으로 로컬만 테스트하라고 한 경우
+- 비밀번호/SSH 접속 불가로 배포가 실패한 경우 — 실패 원인을 보고하고 로컬 변경은 유지

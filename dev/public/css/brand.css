@@ -1,0 +1,25 @@
+:root{
+  /* LabelUp Brand — PANTONE 696C Burgundy palette */
+  --burgundy:#7B2840;
+  --burgundy-dark:#5E1F30;
+  --burgundy-light:#9A3A55;
+  --ivory:#F7F3ED;
+  --beige:#E8DFD0;
+  --beige-dark:#D9CFC0;
+  --charcoal:#2E2A27;
+  --muted:#6B6560;
+  --line:#E5DDD3;
+
+  --bg:var(--ivory);
+  --card:#fff;
+  --ink:var(--charcoal);
+  --accent:var(--burgundy);
+  --accent-2:var(--burgundy-dark);
+  --accent-3:var(--burgundy-light);
+  --accent-soft:#F3E8EC;
+  --accent-soft-2:#E8D4DB;
+  --accent-glow:rgba(123,40,64,.10);
+  --accent-shadow:rgba(123,40,64,.22);
+  --highlight:#C4A574;
+  --shadow:0 14px 36px rgba(46,42,39,.08);
+}

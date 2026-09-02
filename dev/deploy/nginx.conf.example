@@ -1,0 +1,22 @@
+types {
+    application/wasm wasm;
+}
+
+location /editor/ {
+    try_files $uri $uri/ /editor/index.html;
+}
+
+location / {
+    try_files $uri $uri/ /index.php?$query_string;
+}
+
+location ~ \.(css|js|png|jpg|jpeg|gif|webp|svg|woff2?|wasm|dll|dat)$ {
+    expires 7d;
+    access_log off;
+}
+
+location ~ \.php$ {
+    include fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    fastcgi_pass unix:/run/php/php-fpm.sock;
+}

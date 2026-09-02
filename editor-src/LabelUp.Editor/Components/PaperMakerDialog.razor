@@ -1,0 +1,107 @@
+@using System.Text.Json
+@using LabelUp.Editor.Models
+@using LabelUp.Editor.Services
+@inject EditorSession Session
+@inject PaperCatalog Papers
+@inject ExportService Export
+@implements IDisposable
+
+@if (Session.Dialog == EditorDialog.PaperMaker)
+{
+  <div class="ed-modal" role="dialog" aria-label="용지 데이터 만들기" @onclick="Session.CloseDialog">
+    <div class="ed-modal__card ed-modal__card--form" @onclick:stopPropagation="true">
+      <header class="ed-modal__head">
+        <div>
+          <h3>용지 데이터 만들기</h3>
+          <p>만든 JSON을 내려받아 paperData 폴더에 넣으면 라벨용지선택에 나타납니다.</p>
+        </div>
+        <button type="button" class="ed-modal__close" @onclick="Session.CloseDialog">×</button>
+      </header>
+      <div class="ed-modal__body">
+        <div class="ed-form-grid">
+          <label>용지번호 <input @bind="_draft.PaperNo" /></label>
+          <label>이름 <input @bind="_draft.Name" /></label>
+          <label>분류 <input @bind="_draft.Category" /></label>
+          <label>용지 폭 mm <input type="number" step="0.1" @bind="_draft.PaperWidthMm" /></label>
+          <label>용지 높이 mm <input type="number" step="0.1" @bind="_draft.PaperHeightMm" /></label>
+          <label>라벨 폭 mm <input type="number" step="0.1" @bind="_draft.LabelWidthMm" /></label>
+          <label>라벨 높이 mm <input type="number" step="0.1" @bind="_draft.LabelHeightMm" /></label>
+          <label>열 <input type="number" min="1" @bind="_draft.Columns" /></label>
+          <label>행 <input type="number" min="1" @bind="_draft.Rows" /></label>
+          <label>왼쪽 여백 <input type="number" step="0.1" @bind="_draft.LeftMarginMm" /></label>
+          <label>위 여백 <input type="number" step="0.1" @bind="_draft.TopMarginMm" /></label>
+          <label>오른쪽 여백 <input type="number" step="0.1" @bind="_draft.RightMarginMm" /></label>
+          <label>아래 여백 <input type="number" step="0.1" @bind="_draft.BottomMarginMm" /></label>
+          <label>가로 간격 <input type="number" step="0.1" @bind="_draft.HGapMm" /></label>
+          <label>세로 간격 <input type="number" step="0.1" @bind="_draft.VGapMm" /></label>
+          <label>라벨 색 <input type="color" @bind="_draft.LabelColor" /></label>
+          <label>모양
+            <select @bind="_draft.Shape.Kind">
+              <option value="rect">사각형</option>
+              <option value="roundrect">둥근사각형</option>
+              <option value="ellipse">원/타원</option>
+              <option value="svg">SVG</option>
+            </select>
+          </label>
+          <label>모서리 반경 <input type="number" step="0.1" @bind="_draft.Shape.CornerRadiusMm" /></label>
+          <label class="ed-form-grid__full">SVG path 또는 SVG 마크업
+            <textarea rows="3" @bind="_draft.Shape.Svg"></textarea>
+          </label>
+          <label>타공 X <input type="number" step="0.1" @bind="_holeX" /></label>
+          <label>타공 Y <input type="number" step="0.1" @bind="_holeY" /></label>
+          <label>타공 폭 <input type="number" step="0.1" @bind="_holeW" /></label>
+          <label>타공 높이 <input type="number" step="0.1" @bind="_holeH" /></label>
+        </div>
+        <div class="ed-paper-maker__preview">@((MarkupString)_draft.ToSheetSvg(200))</div>
+      </div>
+      <footer class="ed-modal__foot">
+        <button type="button" class="ed-btn" @onclick="CenterMargins">여백 자동 맞춤</button>
+        <button type="button" class="ed-btn ed-btn--primary" @onclick="Download">JSON 내려받기</button>
+      </footer>
+    </div>
+  </div>
+}
+
+@code {
+    private PaperSpec _draft = PaperSpec.CreateDefault();
+    private float _holeX, _holeY, _holeW, _holeH;
+
+    private bool _opened;
+
+    protected override void OnInitialized() => Session.Changed += OnChanged;
+    public void Dispose() => Session.Changed -= OnChanged;
+
+    private void OnChanged()
+    {
+        if (Session.Dialog == EditorDialog.PaperMaker && !_opened)
+        {
+            _opened = true;
+            _draft = Session.Document.Paper.Clone();
+            if (_draft.Shape.Hole is { } hole)
+            {
+                _holeX = hole.X; _holeY = hole.Y; _holeW = hole.Width; _holeH = hole.Height;
+            }
+            else { _holeX = _holeY = _holeW = _holeH = 0; }
+        }
+        if (Session.Dialog != EditorDialog.PaperMaker) _opened = false;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void CenterMargins()
+    {
+        _draft.RecalcMarginsFromGaps();
+    }
+
+    private async Task Download()
+    {
+        if (_holeW > 0 && _holeH > 0)
+            _draft.Shape.Hole = new PaperHole { X = _holeX, Y = _holeY, Width = _holeW, Height = _holeH };
+        else
+            _draft.Shape.Hole = null;
+        Papers.Upsert(_draft);
+        var json = JsonSerializer.Serialize(_draft, LabelDocumentJson.Options);
+        await Export.DownloadTextAsync(json, _draft.PaperNo + ".json", "application/json");
+        Session.Status = $"{_draft.PaperNo}.json 을 내려받았습니다. paperData 폴더에 넣으세요.";
+        Session.CloseDialog();
+    }
+}

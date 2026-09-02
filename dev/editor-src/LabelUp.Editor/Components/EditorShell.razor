@@ -1,0 +1,120 @@
+@using LabelUp.Editor.Rendering
+@using LabelUp.Editor.Services
+@using Microsoft.JSInterop
+@inject EditorSession Session
+@inject DraftStorage Drafts
+@inject HistoryService History
+@inject FontCatalog Fonts
+@inject PaperCatalog Papers
+@inject IJSRuntime Js
+@implements IDisposable
+
+<div class="ed" data-ed-root>
+  <TopBar />
+  <div class="ed__body" data-ed-body>
+    <div class="ed__workspace" data-ed-workspace>
+      <FloatingTools />
+      <div class="ed__canvas-wrap @(Session.ShowGrid ? "is-grid-on" : null)" data-tut="canvas">
+        <div class="ed__artboard-frame">
+          <CanvasHost @ref="_canvas" />
+        </div>
+      </div>
+      <DataPanel />
+      <FloatBar />
+    </div>
+    <InspectorPanel />
+    <PreviewPanel />
+  </div>
+  <ImportFab />
+  <PaperPickerDialog />
+  <PaperMakerDialog />
+  <PaperMapDialog />
+  <DataManagerDialog />
+  <PrintPreviewDialog />
+  <InsertDialog />
+  <VendorImportDialog />
+  <ShapePickerDialog />
+  <TutorialHost />
+</div>
+
+@code {
+    private CanvasHost? _canvas;
+    private bool _panelsReady;
+    private DotNetObjectReference<EditorShell>? _self;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await Fonts.EnsureLoadedAsync();
+            DocumentRenderer.SetFontCatalog(Fonts);
+            await Papers.EnsureLoadedAsync();
+
+            var savedMap = await Drafts.LoadMapAsync();
+            if (savedMap is { Entries.Count: > 0 })
+                Papers.ReplaceMap(savedMap);
+
+            var draft = await Drafts.LoadAsync();
+            if (draft is not null)
+            {
+                Session.ReplaceDocument(draft);
+                Session.Dirty = false;
+                Session.Status = "저장된 초안을 불러왔습니다";
+                Session.DataPanelVisible = draft.Data is { RowCount: > 0 };
+            }
+
+            Session.Notify();
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error("편집기 초기화 실패", ex);
+            Session.Status = "초기화 경고: " + ex.Message;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _self = DotNetObjectReference.Create(this);
+            try { await Js.InvokeVoidAsync("labelUpEditor.bindHotkeys", _self); } catch { }
+            try { await Js.InvokeVoidAsync("labelUpEditor.hideErrorUi"); } catch { }
+        }
+
+        if (_panelsReady) return;
+        for (var i = 0; i < 8 && !_panelsReady; i++)
+        {
+            try
+            {
+                await Js.InvokeVoidAsync("labelUpEditor.initPanels", "[data-ed-root]");
+                _panelsReady = true;
+            }
+            catch
+            {
+                await Task.Delay(120);
+            }
+        }
+
+        try { await Js.InvokeVoidAsync("labelUpEditor.hideErrorUi"); } catch { }
+    }
+
+    [JSInvokable]
+    public void OnEditorCopy() => Session.CopySelection();
+
+    [JSInvokable]
+    public void OnEditorPaste()
+    {
+        History.Push(Session.Document);
+        Session.PasteClipboard();
+    }
+
+    [JSInvokable]
+    public void OnEditorDelete()
+    {
+        if (Session.SelectedIds.Count == 0) return;
+        History.Push(Session.Document);
+        Session.DeleteSelection();
+    }
+
+    public void Dispose() => _self?.Dispose();
+}

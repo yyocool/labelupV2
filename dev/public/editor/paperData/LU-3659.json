@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "paperNo": "LU-3659",
+  "name": "A4 50×30 mm 21칸",
+  "category": "A4",
+  "brand": "LabelUp",
+  "paperWidthMm": 210,
+  "paperHeightMm": 297,
+  "labelWidthMm": 50,
+  "labelHeightMm": 30,
+  "columns": 3,
+  "rows": 7,
+  "leftMarginMm": 25,
+  "topMarginMm": 22.5,
+  "rightMarginMm": 25,
+  "bottomMarginMm": 22.5,
+  "hGapMm": 5,
+  "vGapMm": 4,
+  "labelColor": "#FFFFFF",
+  "shape": {
+    "kind": "roundrect",
+    "cornerRadiusMm": 1.2
+  }
+}

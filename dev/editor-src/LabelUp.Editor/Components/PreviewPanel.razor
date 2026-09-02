@@ -1,0 +1,166 @@
+@using LabelUp.Editor.Models
+@using LabelUp.Editor.Rendering
+@using LabelUp.Editor.Services
+@inject EditorSession Session
+@inject FontCatalog Fonts
+@inject HistoryService History
+@implements IDisposable
+
+<aside class="ed-preview @(Session.PreviewMinimized ? "is-minimized" : null)" data-ed-preview-panel data-ed-snap-id="stack-props" data-tut="preview" aria-label="미리보기">
+  <div class="ed-props__chrome" data-ed-preview-handle>
+    <span class="ed-props__grip" aria-hidden="true">⋮⋮</span>
+    <span class="ed-props__title">미리보기</span>
+    <button type="button" class="ed-props__min" title="접기" @onclick="ToggleMin">—</button>
+  </div>
+
+  @if (!Session.PreviewMinimized)
+  {
+    <div class="ed-preview__inner">
+      <p class="ed-preview__spec">
+        <strong>@Session.Document.Paper.PaperNo</strong>
+        <span class="ed-preview__sheet-meta">@Session.Document.Paper.Columns×@Session.Document.Paper.Rows · @Session.Document.Paper.LabelWidthMm.ToString("0.#")×@Session.Document.Paper.LabelHeightMm.ToString("0.#") mm</span>
+      </p>
+
+      <div class="ed-preview__actions">
+        <button type="button" class="ed-preview__apply" @onclick="ApplyPage">현재 디자인을 현재 페이지에 적용</button>
+        <button type="button" class="ed-preview__apply" @onclick="ApplyAll">현재 디자인을 전체 라벨에 적용</button>
+      </div>
+
+      <div class="ed-preview__page-wrap">
+        <div class="ed-preview__page" style="@($"--page-ar: {_pageAspect};")">
+          <div class="ed-preview__sheet"
+               style="@($"grid-template-columns: repeat({Session.Document.Paper.Columns}, minmax(0, 1fr)); --label-ar: {_aspect};")">
+            @for (var i = 0; i < Session.Document.Paper.LabelsPerPage; i++)
+            {
+              var idx = i;
+              var url = ThumbAt(idx);
+              <button type="button"
+                      class="ed-preview__cell @(idx == Session.LabelIndex ? "is-selected" : null)"
+                      @onclick="() => SelectCell(idx)">
+                @if (!string.IsNullOrEmpty(url))
+                {
+                  <img class="ed-preview__thumb" src="@url" alt="라벨 @(idx + 1)" draggable="false" />
+                }
+                else
+                {
+                  <span class="ed-preview__hint">@((idx + 1).ToString())</span>
+                }
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="ed-preview__pager">
+        <button type="button" @onclick="FirstPage">«</button>
+        <button type="button" @onclick="PrevPage">‹</button>
+        <span>페이지 @(Session.PageIndex + 1) / @Session.Document.Pages.Count</span>
+        <button type="button" @onclick="NextPage">›</button>
+        <button type="button" @onclick="LastPage">»</button>
+        <button type="button" class="ed-preview__add" @onclick="AddPage">페이지 추가</button>
+      </div>
+    </div>
+  }
+</aside>
+
+@code {
+    private readonly Dictionary<string, string> _thumbs = new();
+    private string _thumbGen = "";
+    private string _aspect = "5 / 3";
+    private string _pageAspect = "210 / 297";
+
+    protected override async Task OnInitializedAsync()
+    {
+        Session.Changed += OnChanged;
+        await Fonts.EnsureLoadedAsync();
+        DocumentRenderer.SetFontCatalog(Fonts);
+        RebuildThumbs(force: true);
+    }
+
+    public void Dispose() => Session.Changed -= OnChanged;
+
+    private void OnChanged()
+    {
+        RebuildThumbs(force: false);
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private string? ThumbAt(int idx) => _thumbs.TryGetValue(Key(Session.PageIndex, idx), out var u) ? u : null;
+
+    private static string Key(int page, int cell) => $"{page}:{cell}";
+
+    private void RebuildThumbs(bool force)
+    {
+        var doc = Session.Document;
+        doc.EnsureStructure();
+        var w = Math.Max(1f, doc.WidthMm);
+        var h = Math.Max(1f, doc.HeightMm);
+        _aspect = $"{w:0.###} / {h:0.###}";
+        var pw = Math.Max(1f, doc.Paper.PaperWidthMm);
+        var ph = Math.Max(1f, doc.Paper.PaperHeightMm);
+        _pageAspect = $"{pw:0.###} / {ph:0.###}";
+        if (!Fonts.IsReady) return;
+
+        var gen = $"{doc.Paper.PaperNo}|{doc.Pages.Count}|{doc.ObjectsFingerprint()}|{Session.PageIndex}|{doc.Data?.RowCount}";
+        if (!force && gen == _thumbGen && _thumbs.Count > 0) return;
+        _thumbGen = gen;
+        _thumbs.Clear();
+
+        var page = doc.Pages[Math.Clamp(Session.PageIndex, 0, doc.Pages.Count - 1)];
+        var per = doc.Paper.LabelsPerPage;
+        for (var i = 0; i < page.Cells.Count; i++)
+        {
+            try
+            {
+                var global = Session.PageIndex * per + i;
+                var bytes = DocumentRenderer.ExportPng(doc, page.Cells[i], 90f, o => Session.ResolveObjectText(o, global));
+                _thumbs[Key(Session.PageIndex, i)] = "data:image/png;base64," + Convert.ToBase64String(bytes);
+            }
+            catch (Exception ex)
+            {
+                EditorLog.Warn("미리보기 썸네일 실패: " + ex.Message);
+            }
+        }
+    }
+
+    private void ToggleMin()
+    {
+        Session.PreviewMinimized = !Session.PreviewMinimized;
+        Session.Notify();
+    }
+
+    private void SelectCell(int idx) => Session.SelectCell(Session.PageIndex, idx);
+
+    private void FirstPage() => Session.SelectCell(0, Session.LabelIndex);
+    private void LastPage() => Session.SelectCell(Session.Document.Pages.Count - 1, Session.LabelIndex);
+    private void PrevPage() => Session.SelectCell(Math.Max(0, Session.PageIndex - 1), Session.LabelIndex);
+    private void NextPage() => Session.SelectCell(Math.Min(Session.Document.Pages.Count - 1, Session.PageIndex + 1), Session.LabelIndex);
+
+    private void AddPage()
+    {
+        History.Push(Session.Document);
+        Session.Document.AddPage();
+        Session.SelectCell(Session.Document.Pages.Count - 1, 0);
+        Session.Status = "페이지 추가됨";
+        Session.Dirty = true;
+        Session.Notify();
+    }
+
+    private void ApplyPage()
+    {
+        History.Push(Session.Document);
+        Session.Document.ApplyDesignToPage(Session.PageIndex, Session.CurrentCell.Objects);
+        Session.Status = "현재 페이지 전체에 적용";
+        Session.Dirty = true;
+        Session.Notify();
+    }
+
+    private void ApplyAll()
+    {
+        History.Push(Session.Document);
+        Session.Document.ApplyDesignToAll(Session.CurrentCell.Objects);
+        Session.Status = "전체 라벨에 적용";
+        Session.Dirty = true;
+        Session.Notify();
+    }
+}

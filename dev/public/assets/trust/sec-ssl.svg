@@ -1,0 +1,8 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="100" height="36" viewBox="0 0 100 36" role="img" aria-label="SSL 보안서버">
+  <rect width="100" height="36" rx="8" fill="#eef8f1" stroke="#c8e6d1"/>
+  <path d="M18 14v-1.5a4 4 0 0 1 8 0V14" fill="none" stroke="#1a9e4a" stroke-width="1.6"/>
+  <rect x="16" y="14" width="12" height="10" rx="2" fill="#1a9e4a"/>
+  <circle cx="22" cy="19" r="1.4" fill="#fff"/>
+  <text x="34" y="17" font-family="Malgun Gothic, Apple SD Gothic Neo, sans-serif" font-size="8" font-weight="800" fill="#166534">SSL</text>
+  <text x="34" y="27" font-family="Malgun Gothic, Apple SD Gothic Neo, sans-serif" font-size="8" fill="#3f7a52">보안서버</text>
+</svg>
