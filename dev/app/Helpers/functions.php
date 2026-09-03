@@ -254,6 +254,26 @@ function admin_filter_menu_items(array $items): array
 }
 
 /**
+ * 사이드바와 동일한 카탈로그를 그룹 순서로 묶는다.
+ * @return array<string, array<int, array{key:string,label:string,href:string,group:string,ic:string}>>
+ */
+function admin_menu_groups(bool $excludeDashboard = true): array
+{
+    $groups = [];
+    foreach (admin_menu_catalog() as $item) {
+        if ($excludeDashboard && ($item['key'] ?? '') === 'dashboard') {
+            continue;
+        }
+        if (!admin_can_menu((string) ($item['key'] ?? ''))) {
+            continue;
+        }
+        $group = (string) ($item['group'] ?? '기타');
+        $groups[$group][] = $item;
+    }
+    return $groups;
+}
+
+/**
  * @param array<string, mixed> $override
  */
 function seo_render_head(?string $pageKey = null, array $override = []): void
