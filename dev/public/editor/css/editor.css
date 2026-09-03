@@ -488,20 +488,24 @@ html, body {
 }
 .ed-guides__tick {
   position: absolute;
+  display: block;
   bottom: 0;
   width: 1px;
   height: 6px;
   background: #2e2a27;
+  font-style: normal;
 }
 .ed-guides__tick.is-5 { height: 10px; }
 .ed-guides__tick.is-10 { height: 14px; }
-.ed-guides__tick--v {
+.ed-guides__tick--v,
+.ed-guides__tick--v.is-5,
+.ed-guides__tick--v.is-10 {
   left: auto;
   right: 0;
   top: auto;
   bottom: auto;
-  width: 6px;
   height: 1px;
+  width: 6px;
 }
 .ed-guides__tick--v.is-5 { width: 10px; }
 .ed-guides__tick--v.is-10 { width: 14px; }
