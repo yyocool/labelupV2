@@ -36,11 +36,16 @@ public sealed class DesignObject
     public bool Italic { get; set; }
     public bool Underline { get; set; }
     public bool Strikeout { get; set; }
+    public bool Outline { get; set; }
+    public bool Shadow { get; set; }
+    public bool FlipHorizontal { get; set; }
     public string TextAlign { get; set; } = "center";
     public string VerticalAlign { get; set; } = "middle";
     public float LineHeight { get; set; } = 1.2f;
     public float LetterSpacing { get; set; }
     public string TextDirection { get; set; } = "horizontal";
+    /// <summary>박스 폭을 넘기면 줄바꿈. char=글자 단위, word=단어 단위, none=없음.</summary>
+    public string TextWrap { get; set; } = "char";
     public string? BackgroundFill { get; set; }
     public bool BackgroundTransparent { get; set; } = true;
     public TextMode TextMode { get; set; } = TextMode.Normal;
@@ -109,11 +114,15 @@ public sealed class DesignObject
             Italic = Italic,
             Underline = Underline,
             Strikeout = Strikeout,
+            Outline = Outline,
+            Shadow = Shadow,
+            FlipHorizontal = FlipHorizontal,
             TextAlign = TextAlign,
             VerticalAlign = VerticalAlign,
             LineHeight = LineHeight,
             LetterSpacing = LetterSpacing,
             TextDirection = TextDirection,
+            TextWrap = TextWrap,
             BackgroundFill = BackgroundFill,
             BackgroundTransparent = BackgroundTransparent,
             TextMode = TextMode,

@@ -1,5 +1,5 @@
 using LabelUp.Editor.Models;
-using SkiaSharp;
+using LabelUp.Editor.Rendering;
 
 namespace LabelUp.Editor.Services;
 
@@ -44,6 +44,16 @@ public sealed class EditorSession
     public int? CurrentShopProductId { get; set; }
     public bool PendingShopBuyNow { get; set; }
     public string? PendingShopPaperNo { get; set; }
+    /// <summary>저장 확인 후 이어서 실행할 작업(새 파일 열기·타사 변환).</summary>
+    public Func<Task>? PendingContinueAsync { get; set; }
+    public bool ConversionBusy { get; private set; }
+    public string ConversionFileName { get; private set; } = "";
+    public string ConversionDetail { get; private set; } = "";
+    public int ConversionPercent { get; private set; }
+    public string ErrorTitle { get; set; } = "오류";
+    public string ErrorMessage { get; set; } = "";
+    /// <summary>문서가 통째로 바뀔 때마다 증가. 미리보기 캐시 무효화용.</summary>
+    public int DocumentEpoch { get; private set; }
 
     /// <summary>Pixels per mm at zoom 1 (screen preview density).</summary>
     public float PxPerMm { get; set; } = 4.2f;
@@ -89,7 +99,84 @@ public sealed class EditorSession
 
     public int GlobalLabelIndex => Document.GlobalIndex(PageIndex, LabelIndex);
 
-    public void Notify() => Changed?.Invoke();
+    public void Notify()
+    {
+        var handlers = Changed;
+        if (handlers is null) return;
+        foreach (var d in handlers.GetInvocationList())
+        {
+            try
+            {
+                ((Action)d).Invoke();
+            }
+            catch (Exception ex)
+            {
+                EditorLog.Error("화면 갱신 실패", ex);
+            }
+        }
+    }
+
+    public void BeginConversion(string fileName)
+    {
+        ConversionBusy = true;
+        ConversionFileName = string.IsNullOrWhiteSpace(fileName) ? "파일" : Path.GetFileName(fileName);
+        ConversionDetail = "파일을 준비하는 중…";
+        ConversionPercent = 0;
+        Status = "변환 중…";
+        Notify();
+    }
+
+    public void UpdateConversion(string detail, int percent)
+    {
+        ConversionBusy = true;
+        if (!string.IsNullOrWhiteSpace(detail))
+            ConversionDetail = detail;
+        ConversionPercent = Math.Clamp(percent, 0, 100);
+        Status = $"변환 중… {ConversionPercent}%";
+        Notify();
+    }
+
+    public void EndConversion()
+    {
+        if (!ConversionBusy && ConversionPercent == 0 && string.IsNullOrEmpty(ConversionDetail))
+            return;
+        ConversionBusy = false;
+        ConversionDetail = "";
+        ConversionPercent = 0;
+        Notify();
+    }
+
+    public void ShowError(string title, string message)
+    {
+        ConversionBusy = false;
+        ConversionDetail = "";
+        ConversionPercent = 0;
+        ErrorTitle = string.IsNullOrWhiteSpace(title) ? "오류" : title;
+        ErrorMessage = string.IsNullOrWhiteSpace(message) ? "알 수 없는 오류가 발생했습니다." : message;
+        PendingVendorImport = null;
+        Status = $"{ErrorTitle} · {ErrorMessage}";
+        EditorLog.Error($"{ErrorTitle}: {ErrorMessage}");
+        OpenDialog(EditorDialog.Error);
+    }
+
+    public void ShowConversionError(Exception ex) =>
+        ShowError("변환 에러", FriendlyError(ex));
+
+    public void ShowConversionError(string? message) =>
+        ShowError("변환 에러", string.IsNullOrWhiteSpace(message) ? "파일을 변환하지 못했습니다." : message);
+
+    public static string FriendlyError(Exception ex)
+    {
+        while (ex.InnerException is { } inner && string.IsNullOrWhiteSpace(ex.Message))
+            ex = inner;
+        return ex switch
+        {
+            InvalidDataException or NotSupportedException or InvalidOperationException => ex.Message,
+            TimeoutException => string.IsNullOrWhiteSpace(ex.Message) ? "변환이 너무 오래 걸립니다. 파일이 너무 큽니다." : ex.Message,
+            OutOfMemoryException => "메모리가 부족합니다. 파일이 너무 큽니다.",
+            _ => string.IsNullOrWhiteSpace(ex.Message) ? "내부 오류가 발생했습니다." : ex.Message
+        };
+    }
 
     public void OpenDialog(EditorDialog dialog)
     {
@@ -107,12 +194,45 @@ public sealed class EditorSession
     {
         doc.EnsureStructure();
         Document = doc;
-        PageIndex = Math.Clamp(PageIndex, 0, doc.Pages.Count - 1);
-        LabelIndex = Math.Clamp(LabelIndex, 0, doc.Pages[PageIndex].Cells.Count - 1);
-        if (!keepSelection || SelectedIds.Count == 0 || CurrentCell.Objects.All(o => !SelectedIds.Contains(o.Id)))
+        DocumentEpoch++;
+        DocumentRenderer.ClearImageCache();
+        if (keepSelection)
+        {
+            PageIndex = Math.Clamp(PageIndex, 0, doc.Pages.Count - 1);
+            LabelIndex = Math.Clamp(LabelIndex, 0, doc.Pages[PageIndex].Cells.Count - 1);
+            if (SelectedIds.Count == 0 || CurrentCell.Objects.All(o => !SelectedIds.Contains(o.Id)))
+                ClearSelection();
+        }
+        else
+        {
+            PageIndex = 0;
+            LabelIndex = 0;
             ClearSelection();
+        }
         Dirty = true;
         Notify();
+    }
+
+    public async Task ConfirmIfDirtyAsync(Func<Task> continueAsync)
+    {
+        ArgumentNullException.ThrowIfNull(continueAsync);
+        if (!Dirty)
+        {
+            await continueAsync();
+            return;
+        }
+
+        PendingContinueAsync = continueAsync;
+        OpenDialog(EditorDialog.UnsavedChanges);
+    }
+
+    public void CancelPendingContinue()
+    {
+        PendingContinueAsync = null;
+        if (Dialog == EditorDialog.UnsavedChanges)
+            CloseDialog();
+        else
+            Notify();
     }
 
     public void SelectCell(int pageIndex, int labelIndex)

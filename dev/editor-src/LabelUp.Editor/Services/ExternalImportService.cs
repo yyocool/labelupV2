@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.IO.Compression;
 using System.Net;
@@ -25,13 +26,16 @@ public sealed class ExternalImportService(PaperCatalog papers)
 
     public LabelDocument Import(string fileName, byte[] bytes)
     {
-        var result = Analyze(fileName, bytes);
+        var result = AnalyzeAsync(fileName, bytes).GetAwaiter().GetResult();
         if (!result.Ok || result.Document is null)
             throw new InvalidDataException(string.IsNullOrWhiteSpace(result.Error) ? "타사 포맷을 변환하지 못했습니다." : result.Error);
         return result.Document;
     }
 
     public VendorImportResult Analyze(string fileName, byte[] bytes)
+        => AnalyzeAsync(fileName, bytes).GetAwaiter().GetResult();
+
+    public async Task<VendorImportResult> AnalyzeAsync(string fileName, byte[] bytes, Func<string, int, Task>? progress = null)
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         var result = new VendorImportResult { FileName = fileName };
@@ -40,21 +44,29 @@ public sealed class ExternalImportService(PaperCatalog papers)
             if (bytes is not { Length: > 16 })
                 throw new InvalidDataException("파일이 비어 있거나 너무 짧습니다.");
 
+            if (progress is not null)
+                await progress("파일을 확인하는 중…", 4);
+
             var ext = Path.GetExtension(fileName).ToLowerInvariant();
             var payload = UnwrapContainer(bytes, out var innerName);
-            var name = Path.GetFileNameWithoutExtension(string.IsNullOrWhiteSpace(innerName) ? fileName : innerName);
+            var name = DisplayTitle(fileName, innerName);
             var vendor = DetectVendor(payload, ext, innerName);
             result.VendorId = vendor;
             result.VendorName = VendorTitle(vendor);
             EditorLog.Info($"타사 포맷 분석: {fileName} → {vendor} ({payload.Length} bytes)");
 
+            if (progress is not null)
+                await progress($"{VendorTitle(vendor)} 파일을 변환하는 중…", 8);
+
             var doc = vendor switch
             {
                 "ilabel" => ILabelImporter.Import(payload, name, papers),
-                "anylabel" => AniLabelImporter.Import(payload, name, papers),
+                "anylabel" => await AniLabelImporter.ImportAsync(payload, name, papers, progress),
                 "formtec" => FormtecImporter.Import(payload, name, papers),
                 _ => throw new NotSupportedException("지원 포맷: 애니라벨 .lbl, 폼텍 .dgz/.dgf, 아이라벨 .idf")
             };
+            if (progress is not null)
+                await progress("변환 결과를 정리하는 중…", 96);
             doc.EnsureStructure();
             FillReport(result, doc);
             result.Ok = true;
@@ -65,7 +77,7 @@ public sealed class ExternalImportService(PaperCatalog papers)
         {
             EditorLog.Error("타사 포맷 분석 실패", ex);
             result.Ok = false;
-            result.Error = ex.Message;
+            result.Error = string.IsNullOrWhiteSpace(ex.Message) ? "변환 중 내부 오류가 발생했습니다." : ex.Message;
             if (string.IsNullOrWhiteSpace(result.VendorName) && !string.IsNullOrWhiteSpace(result.VendorId))
                 result.VendorName = VendorTitle(result.VendorId);
             return result;
@@ -192,7 +204,7 @@ public sealed class ExternalImportService(PaperCatalog papers)
         try
         {
             using var ms = new MemoryStream(bytes);
-            using var zip = new ZipArchive(ms, ZipArchiveMode.Read, leaveOpen: false);
+            using var zip = new ZipArchive(ms, ZipArchiveMode.Read, leaveOpen: false, ZipEntryEncoding());
             ZipArchiveEntry? best = null;
             best = zip.Entries.FirstOrDefault(e =>
                        e.FullName.Replace('\\', '/').Contains("Design/", StringComparison.OrdinalIgnoreCase)
@@ -216,6 +228,20 @@ public sealed class ExternalImportService(PaperCatalog papers)
             EditorLog.Warn("압축 해제 실패: " + ex.Message);
             return bytes;
         }
+    }
+
+    private static string DisplayTitle(string fileName, string innerName)
+    {
+        var outer = Path.GetFileNameWithoutExtension(fileName ?? "");
+        if (!string.IsNullOrWhiteSpace(outer)) return outer;
+        var inner = Path.GetFileNameWithoutExtension(innerName ?? "");
+        return string.IsNullOrWhiteSpace(inner) ? "가져온 디자인" : inner;
+    }
+
+    private static Encoding ZipEntryEncoding()
+    {
+        try { return Encoding.GetEncoding(949); }
+        catch { return Encoding.UTF8; }
     }
 
     internal static int FindMagic(byte[] data, byte a, byte b, int maxScan = 0)
@@ -423,7 +449,9 @@ public sealed class ExternalImportService(PaperCatalog papers)
             var yd = Extended80.ReadStandard(data.AsSpan(pos + 11, 10));
             var wd = Extended80.ReadStandard(data.AsSpan(pos + 21, 10));
             var hd = Extended80.ReadStandard(data.AsSpan(pos + 31, 10));
-            if (double.IsNaN(xd) || double.IsInfinity(wd) || wd is < 0.05 or > 400 || hd is < 0.05 or > 400
+            if (double.IsNaN(xd) || double.IsNaN(yd) || double.IsNaN(wd) || double.IsNaN(hd)
+                || double.IsInfinity(xd) || double.IsInfinity(yd) || double.IsInfinity(wd) || double.IsInfinity(hd)
+                || wd is < 0.05 or > 400 || hd is < 0.05 or > 400
                 || xd is < -8 or > 500 || yd is < -8 or > 500)
                 return false;
             x = (float)xd; y = (float)yd; w = (float)wd; h = (float)hd;
@@ -470,12 +498,20 @@ internal static class AniLabelImporter
     private static readonly byte[] Footer = [0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
     private static readonly byte[] RtfTable = Encoding.Unicode.GetBytes("RTF TABLE");
 
+    public static Task<LabelDocument> ImportAsync(byte[] fileBytes, string name, PaperCatalog papers, Func<string, int, Task>? progress)
+        => ImportCoreAsync(fileBytes, name, papers, progress);
+
     public static LabelDocument Import(byte[] fileBytes, string name, PaperCatalog papers)
+        => ImportCoreAsync(fileBytes, name, papers, null).GetAwaiter().GetResult();
+
+    private static async Task<LabelDocument> ImportCoreAsync(byte[] fileBytes, string name, PaperCatalog papers, Func<string, int, Task>? progress)
     {
         if (!ExternalImportService.LooksLikeLbl(fileBytes))
             throw new InvalidDataException("애니라벨 LBL 시그니처(Printec Label Maker)가 아닙니다.");
 
-        var design = Inflate(fileBytes);
+        var design = await InflateAsync(fileBytes, progress);
+        if (progress is not null)
+            await progress("라벨을 읽는 중…", 72);
         var pos = 0;
         var strings = ReadHeaderStrings(design, ref pos);
         var paperNo = strings.FirstOrDefault(s => s.StartsWith('V') && s.Length is >= 4 and <= 8);
@@ -501,26 +537,39 @@ internal static class AniLabelImporter
         var per = Math.Max(1, paper.LabelsPerPage);
         var linked = new List<(int Global, string Field, string Value)>();
         var z = 0;
-        while (TryReadSection(design, ref pos, per, out var globalIdx, out var sectionEnd))
+        var sections = 0;
+        var parseWatch = Stopwatch.StartNew();
+        while (TryReadSection(design, ref pos, per, out var globalIdx, out var sectionEnd) && z < 400)
         {
+            if (parseWatch.Elapsed.TotalSeconds > 45)
+                throw new TimeoutException("변환이 너무 오래 걸립니다. 파일이 너무 큽니다.");
+            sections++;
+            if (progress is not null && sections % 2 == 0)
+                await progress($"라벨을 읽는 중… {sections}칸", 72 + Math.Min(24, sections / 2));
             var cursor = pos;
             if (cursor + 2 <= sectionEnd && design[cursor] == 0x2D && design[cursor + 1] == 0x01)
                 cursor += 2;
-            while (cursor + 41 <= sectionEnd)
+            var miss = 0;
+            var inSection = 0;
+            while (cursor + 41 <= sectionEnd && z < 400 && inSection < 8)
             {
                 if (!ExternalImportService.TryGeom(design, cursor, sectionEnd, out var type, out var x, out var y, out var w, out var h)
                     || !IsType(type))
                 {
-                    cursor++;
+                    cursor += ++miss > 80 ? 64 : 1;
                     continue;
                 }
 
+                miss = 0;
                 var payloadStart = cursor + 41;
-                var payloadEnd = NextObject(design, payloadStart, sectionEnd) ?? sectionEnd;
+                var payloadEnd = ResolvePayloadEnd(design, type, payloadStart, sectionEnd);
+                if (payloadEnd <= cursor)
+                    payloadEnd = Math.Min(sectionEnd, cursor + 41);
                 var obj = Map(design, cursor, payloadStart, payloadEnd, type, x, y, w, h, ref linked, globalIdx);
                 if (obj is not null)
                 {
                     obj.ZIndex = ++z;
+                    inSection++;
                     ExternalImportService.Place(doc, obj, (int)globalIdx, per);
                 }
                 cursor = payloadEnd;
@@ -528,7 +577,7 @@ internal static class AniLabelImporter
             pos = sectionEnd;
         }
 
-        if (doc.Pages.All(p => p.Cells.All(c => c.Objects.Count == 0)))
+        if (design.Length < 2_000_000 && doc.Pages.All(p => p.Cells.All(c => c.Objects.Count == 0)))
             ScanLoose(design, doc, per, ref linked, ref z);
 
         if (linked.Count > 0)
@@ -602,16 +651,7 @@ internal static class AniLabelImporter
             case TypeBarcode:
             case TypeBarcode1D:
             case TypeBarcode2D:
-                var strings = ExternalImportService.ExtractPrintable(data, start, end, 1);
-                var value = ReadLengthPrefixedAscii(data, start, end) ?? strings.LastOrDefault(s => s.Any(char.IsLetterOrDigit)) ?? "12345678";
-                var format = ExternalImportService.MapBarcode(strings.FirstOrDefault(s => s.Length < 28 && !s.Equals(value, StringComparison.Ordinal)));
-                if (type == TypeBarcode2D) format = strings.Any(s => s.Contains("QR", StringComparison.OrdinalIgnoreCase)) ? "QR_CODE" : format;
-                var is2d = type == TypeBarcode2D || ExternalImportService.Is2dBarcode(format);
-                var bar = DesignObject.CreateDefault(is2d ? ObjectType.Qr : ObjectType.Barcode, x, y);
-                bar.Width = w; bar.Height = h;
-                bar.BarcodeValue = value;
-                bar.BarcodeFormat = format;
-                return bar;
+                return MapBarcode(data, start, end, type, x, y, w, h);
             case TypeData:
                 var rec = ReadLinked(data, start, end);
                 var field = rec.Field;
@@ -620,8 +660,14 @@ internal static class AniLabelImporter
                 linked.Add(((int)globalIdx, field, text));
                 return ExternalImportService.TextAt(x, y, w, h, string.IsNullOrWhiteSpace(text) ? field : text, true, field);
             case TypeText:
-                var hasDigits = TryTableDigits(data, start, end, out var tc, out var tr);
-                if (hasDigits || ContainsRtfTable(data, start, end))
+                if (TryCollectText(data, start, end, out var body, out var fontSize))
+                {
+                    var textObj = ExternalImportService.TextAt(x, y, w, h, body);
+                    if (fontSize is > 1 and < 80)
+                        textObj.FontSize = Math.Clamp(fontSize * 0.35f, 2.2f, 14f);
+                    return textObj;
+                }
+                if (TryTableDigits(data, start, end, out var tc, out var tr))
                 {
                     var table = DesignObject.CreateDefault(ObjectType.Table, x, y);
                     table.Width = w; table.Height = h;
@@ -630,12 +676,58 @@ internal static class AniLabelImporter
                     table.EnsureTableSize();
                     return table;
                 }
-                var body = CollectText(data, start, end);
-                if (string.IsNullOrWhiteSpace(body)) return null;
-                return ExternalImportService.TextAt(x, y, w, h, body);
+                return null;
             default:
                 return null;
         }
+    }
+
+    private static DesignObject? MapBarcode(byte[] data, int start, int end, byte type, float x, float y, float w, float h)
+    {
+        string value;
+        string format;
+        var is2d = type == TypeBarcode2D;
+        var afterBmp = start;
+        if (is2d && AniLabelBarcodes.TryRead2D(data, start, end, out _, out var v2, out var f2, out afterBmp))
+        {
+            value = v2;
+            format = f2;
+            is2d = ExternalImportService.Is2dBarcode(format);
+        }
+        else if (type == TypeBarcode1D && AniLabelBarcodes.TryRead1D(data, start, end, out _, out var v1, out var f1))
+        {
+            value = v1;
+            format = f1;
+            is2d = false;
+        }
+        else if (type == TypeBarcode && AniLabelBarcodes.TryRead1DLegacy(data, start, end, out var v0, out var f0))
+        {
+            value = v0;
+            format = f0;
+            is2d = false;
+        }
+        else if (type == TypeBarcode)
+        {
+            var strings = ExternalImportService.ExtractPrintable(data, start, Math.Min(end, start + 2048), 1);
+            value = ReadLengthPrefixedAscii(data, start, Math.Min(end, start + 400)) ?? strings.LastOrDefault(s => s.Any(char.IsLetterOrDigit)) ?? "";
+            if (string.IsNullOrWhiteSpace(value)) return null;
+            format = ExternalImportService.MapBarcode(strings.FirstOrDefault(s => s.Length < 28 && !s.Equals(value, StringComparison.Ordinal)));
+        }
+        else
+        {
+            return null;
+        }
+
+        var bar = DesignObject.CreateDefault(is2d ? ObjectType.Qr : ObjectType.Barcode, x, y);
+        bar.Width = w;
+        bar.Height = h;
+        bar.BarcodeValue = value;
+        bar.BarcodeFormat = format;
+        if (type == TypeBarcode2D && afterBmp > start)
+            AniLabelBarcodes.Apply2DStyle(bar, data, afterBmp, end);
+        else if (type != TypeBarcode2D)
+            AniLabelBarcodes.Apply1DStyle(bar, data, start, end);
+        return bar;
     }
 
     private static bool ContainsRtfTable(byte[] data, int start, int end)
@@ -666,39 +758,83 @@ internal static class AniLabelImporter
         return true;
     }
 
-    private static string CollectText(byte[] data, int start, int end)
+    /// <summary>
+    /// 문자 레코드: UTF-16LE + 크기 + 폰트태그, 약 320바이트 간격. 문서 확정값.
+    /// </summary>
+    private static bool TryCollectText(byte[] data, int start, int end, out string text, out float fontSize)
     {
-        var chars = new List<(int Off, char Ch)>();
-        for (var i = start; i + 13 < end && i < start + 8000; i++)
+        text = "";
+        fontSize = 0;
+        end = Math.Min(end, data.Length);
+        end = Math.Min(end, start + 128_000);
+        var chars = new List<(int Off, char Ch, uint Size)>();
+        for (var i = start; i + 14 < end; i++)
         {
             var code = BitConverter.ToUInt16(data, i);
-            if (code is not (9 or 10 or 13 or (>= 0x20 and <= 0x7E) or (>= 0xAC00 and <= 0xD7A3) or (>= 0x3130 and <= 0x318F) or (>= 0x4E00 and <= 0x9FFF)))
+            if (!IsTextChar(code))
                 continue;
             var size = BitConverter.ToUInt32(data, i + 4);
             var zero = BitConverter.ToUInt32(data, i + 8);
-            if (zero > 16 || size is < 1 or > 200) continue;
-            chars.Add((i, (char)code));
+            if (zero > 16 || size is < 1 or > 200)
+                continue;
+            var slen = data[i + 12];
+            if (slen is < 1 or > 64 || i + 13 + slen > end)
+                continue;
+            if (!IsPrintableTag(data.AsSpan(i + 13, slen)))
+                continue;
+            chars.Add((i, (char)code, size));
             i += 12;
         }
-        if (chars.Count == 0) return "";
-        if (chars.Count == 1) return chars[0].Ch.ToString();
-        var best = new List<char>();
-        for (var s = 0; s < chars.Count; s++)
+        if (chars.Count == 0)
+            return false;
+
+        List<(int Off, char Ch, uint Size)> best = chars.Count == 1 ? chars : [];
+        for (var s = 0; s < chars.Count && chars.Count > 1; s++)
         {
-            var run = new List<char> { chars[s].Ch };
+            var run = new List<(int Off, char Ch, uint Size)> { chars[s] };
             var last = chars[s].Off;
             for (var i = s + 1; i < chars.Count; i++)
             {
                 var delta = chars[i].Off - last;
                 if (delta is >= 200 and <= 400)
                 {
-                    run.Add(chars[i].Ch);
+                    run.Add(chars[i]);
                     last = chars[i].Off;
                 }
             }
-            if (run.Count > best.Count) best = run;
+            if (run.Count > best.Count)
+                best = run;
         }
-        return new string(best.Count > 0 ? best.ToArray() : chars.Select(c => c.Ch).ToArray()).Trim();
+        if (best.Count == 0)
+            best = chars;
+
+        var sb = new StringBuilder(best.Count);
+        foreach (var c in best)
+            sb.Append(c.Ch == '\r' ? '\n' : c.Ch);
+        text = sb.ToString().Trim();
+        fontSize = best[0].Size;
+        return text.Length > 0;
+    }
+
+    private static bool IsTextChar(ushort code)
+        => code is 9 or 10 or 13
+           or (>= 0x20 and <= 0x7E)
+           or (>= 0xA0 and <= 0x024F)
+           or (>= 0x1100 and <= 0x11FF)
+           or (>= 0x3130 and <= 0x318F)
+           or (>= 0xAC00 and <= 0xD7A3)
+           or (>= 0x4E00 and <= 0x9FFF);
+
+    private static bool IsPrintableTag(ReadOnlySpan<byte> tag)
+    {
+        if (tag.Length == 0) return false;
+        var ok = 0;
+        foreach (var b in tag)
+        {
+            if (b is >= 32 and <= 126 or >= 160)
+                ok++;
+        }
+        return ok * 2 >= tag.Length;
     }
 
     private static (string Field, string Value) ReadLinked(byte[] data, int start, int end)
@@ -739,18 +875,103 @@ internal static class AniLabelImporter
         return null;
     }
 
-    private static int? NextObject(byte[] data, int from, int sectionEnd)
+    private static int ResolvePayloadEnd(byte[] data, byte type, int payloadStart, int sectionEnd)
     {
-        var last = sectionEnd - 41;
-        for (var i = from + 8; i <= last; i++)
+        if (type == TypeBarcode2D && AniLabelBarcodes.TryBmpEnd(data, payloadStart, sectionEnd, out var bmpEnd))
         {
-            if (i >= 8 && !data.AsSpan(i - 8, 8).SequenceEqual(Footer))
+            var logical = AniLabelBarcodes.LogicalEndAfterBmp(data, bmpEnd, sectionEnd);
+            var next = NextTypedObject(data, logical, sectionEnd);
+            return next ?? logical;
+        }
+
+        if (type is TypeBarcode or TypeBarcode1D
+            && TryBarcodePayloadEnd(data, payloadStart, sectionEnd) is int barEnd)
+            return barEnd;
+
+        if (type == TypeImage && TryImagePayloadEnd(data, payloadStart, sectionEnd) is int imgEnd)
+            return imgEnd;
+
+        return NextObject(data, payloadStart, sectionEnd) ?? sectionEnd;
+    }
+
+    private static int? TryBarcodePayloadEnd(byte[] data, int payloadStart, int sectionEnd)
+    {
+        var marker = ExternalImportService.FindU32(data, payloadStart, Math.Min(sectionEnd, payloadStart + 8192), 0x00002711);
+        var from = marker >= 0 ? marker : payloadStart;
+        if (TryReadEmfRange(data, from, sectionEnd, out var emfStart, out var emfLen))
+            return Math.Min(sectionEnd, emfStart + emfLen);
+        if (marker >= 0)
+            return NextObject(data, marker + 8, sectionEnd);
+        return null;
+    }
+
+    private static int? TryImagePayloadEnd(byte[] data, int payloadStart, int sectionEnd)
+    {
+        var last = Math.Min(sectionEnd, payloadStart + 4096);
+        for (var i = payloadStart; i + 8 < last; i++)
+        {
+            if (data[i] == (byte)'B' && data[i + 1] == (byte)'M' && i + 6 < sectionEnd)
+            {
+                var len = BitConverter.ToInt32(data, i + 2);
+                if (len is > 54 and < 8_000_000 && i + len <= sectionEnd)
+                    return i + len;
+            }
+            if (data[i] == 0x89 && data[i + 1] == 0x50 && data[i + 2] == 0x4E)
+            {
+                var take = Math.Min(sectionEnd, i + 8_000_000);
+                return take;
+            }
+        }
+        return null;
+    }
+
+    private static bool TryReadEmfRange(byte[] data, int from, int end, out int start, out int length)
+    {
+        start = 0;
+        length = 0;
+        ReadOnlySpan<byte> sig = " EMF"u8;
+        var last = Math.Min(end, from + 8192) - 48;
+        for (var i = Math.Max(0, from); i <= last; i++)
+        {
+            if (!data.AsSpan(i, 4).SequenceEqual(sig))
+                continue;
+            var header = i - 40;
+            if (header < 0 || header + 52 > data.Length)
+                continue;
+            if (BitConverter.ToUInt32(data, header) != 1)
+                continue;
+            var nBytes = (int)BitConverter.ToUInt32(data, header + 48);
+            if (nBytes is < 80 or > 8_000_000 || header + nBytes > data.Length)
+                continue;
+            start = header;
+            length = Math.Min(nBytes, Math.Max(0, end - header));
+            return length >= 80;
+        }
+        return false;
+    }
+
+    /// <summary>Footer 없이 바로 이어지는 텍스트 등. 패딩 0x00(자료연결)은 건너뛴다.</summary>
+    private static int? NextTypedObject(byte[] data, int from, int sectionEnd)
+    {
+        var last = Math.Min(sectionEnd - 41, from + 8192);
+        for (var i = Math.Max(0, from); i <= last; i++)
+        {
+            var t = data[i];
+            if (t is not (TypeText or TypeBarcode or TypeBarcode1D or TypeBarcode2D or TypeImage or TypeRect or TypeEllipse))
                 continue;
             if (ExternalImportService.TryGeom(data, i, sectionEnd, out var type, out _, out _, out _, out _) && IsType(type))
                 return i;
         }
+        return null;
+    }
+
+    private static int? NextObject(byte[] data, int from, int sectionEnd)
+    {
+        var last = Math.Min(sectionEnd - 41, from + 131_072);
         for (var i = from + 8; i <= last; i++)
         {
+            if (i >= 8 && !data.AsSpan(i - 8, 8).SequenceEqual(Footer))
+                continue;
             if (ExternalImportService.TryGeom(data, i, sectionEnd, out var type, out _, out _, out _, out _) && IsType(type))
                 return i;
         }
@@ -762,7 +983,7 @@ internal static class AniLabelImporter
         globalIdx = 0;
         sectionEnd = pos;
         var max = (uint)Math.Max(64, per * 256);
-        var limit = Math.Min(data.Length - 11, pos + 1_500_000);
+        var limit = Math.Min(data.Length - 11, pos + 32_768);
         for (var i = pos; i <= limit; i++)
         {
             var idx = BitConverter.ToUInt32(data, i);
@@ -826,10 +1047,11 @@ internal static class AniLabelImporter
         return true;
     }
 
-    private static byte[] Inflate(byte[] fileBytes)
+    private static async Task<byte[]> InflateAsync(byte[] fileBytes, Func<string, int, Task>? progress)
     {
         var jpeg = -1;
-        for (var i = 0; i + 3 < fileBytes.Length; i++)
+        var search = Math.Min(fileBytes.Length - 3, 2_000_000);
+        for (var i = 0; i < search; i++)
         {
             if (fileBytes[i] == 0xFF && fileBytes[i + 1] == 0xD8 && fileBytes[i + 2] == 0xFF)
             { jpeg = i; break; }
@@ -844,15 +1066,38 @@ internal static class AniLabelImporter
         if (rest + 6 > fileBytes.Length)
             throw new InvalidDataException("LBL zlib 설계 블록이 없습니다.");
         var uncompressed = BitConverter.ToInt32(fileBytes, rest + 1);
+        if (uncompressed > 80_000_000)
+            throw new InvalidDataException("설계 데이터가 너무 큽니다 (80MB 초과).");
         var zlib = fileBytes.AsSpan(rest + 5).ToArray();
         if (zlib.Length < 2 || zlib[0] != 0x78)
             throw new InvalidDataException("LBL zlib 시그니처가 없습니다.");
         using var input = new MemoryStream(zlib);
         using var zs = new ZLibStream(input, CompressionMode.Decompress);
-        using var output = new MemoryStream(uncompressed > 0 ? uncompressed : 4096);
-        zs.CopyTo(output);
+        using var output = new MemoryStream(uncompressed > 0 && uncompressed < 80_000_000 ? uncompressed : 4096);
+        var buffer = new byte[256 * 1024];
+        var total = 0;
+        var sw = Stopwatch.StartNew();
+        int read;
+        while ((read = zs.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            total += read;
+            if (total > 80_000_000)
+                throw new InvalidDataException("설계 데이터가 너무 큽니다 (80MB 초과).");
+            if (sw.Elapsed.TotalSeconds > 45)
+                throw new TimeoutException("변환이 너무 오래 걸립니다. 파일이 너무 큽니다.");
+            output.Write(buffer, 0, read);
+            if (progress is not null && (total <= buffer.Length || total % (1024 * 1024) < buffer.Length))
+            {
+                var target = uncompressed > 0 ? uncompressed : Math.Max(total, 1);
+                var pct = 8 + (int)(64.0 * total / target);
+                await progress($"설계 압축을 푸는 중… {Mb(total)} / {Mb(target)}", Math.Min(72, pct));
+            }
+        }
         return output.ToArray();
     }
+
+    private static string Mb(int bytes)
+        => $"{bytes / (1024.0 * 1024.0):0.#}MB";
 }
 
 internal static class FormtecImporter
@@ -867,6 +1112,7 @@ internal static class FormtecImporter
         if (!TryLabelsBlock(dgf, out pw, out ph, out cols, out rows, out lw, out lh, out left, out top, out right, out bottom, out hg, out vg))
             TryPaper(dgf, out pw, out ph, out cols, out rows, out lw, out lh);
         var paper = ExternalImportService.ResolvePaper(papers, "formtec", paperNo, lw, lh, cols, rows, pw, ph, left, top, right, bottom, hg, vg);
+        ApplyFormtecWmfShape(dgf, header, paperNo, paper, papers.FormtecWmf);
         var doc = LabelDocument.CreateBlank(paper);
         doc.Name = name;
         foreach (var cell in doc.Pages[0].Cells)
@@ -874,10 +1120,11 @@ internal static class FormtecImporter
 
         var per = Math.Max(1, paper.LabelsPerPage);
         var z = 0;
-        if (!ReadLegacySections(dgf, doc, per, ref z))
+        if (!ReadByPageTable(dgf, doc, per, ref z)
+            && !ReadLegacySections(dgf, doc, per, ref z))
             ScanLoose(dgf, doc, ref z);
 
-        if (doc.Pages[0].Cells[0].Objects.Count == 0)
+        if (doc.Pages[0].Cells[0].Objects.Count == 0 && !paper.Shape.HasGuides)
         {
             var t = DesignObject.CreateDefault(ObjectType.Text, paper.LabelWidthMm * 0.1f, paper.LabelHeightMm * 0.3f);
             t.Text = name;
@@ -885,6 +1132,56 @@ internal static class FormtecImporter
         }
 
         return doc;
+    }
+
+    private const int DgfPageAreaStart = 0x41;
+    private const int DgfEmptyPageSize = 362;
+    private const int DgfFooterSize = 260;
+
+    private static bool ReadByPageTable(byte[] data, LabelDocument doc, int per, ref int z)
+    {
+        // md_formtec/폼텍_DGZ_DGF_페이지_구조_최종분석.md
+        // 후미 260바이트 "offset,length/" 순서 = 화면 페이지. 빈 페이지=362.
+        if (data.Length < DgfFooterSize + DgfPageAreaStart) return false;
+        var footer = Encoding.ASCII.GetString(data, data.Length - DgfFooterSize, DgfFooterSize);
+        var matches = Regex.Matches(footer, @"(\d+),(\d+)/");
+        if (matches.Count == 0) return false;
+
+        var declared = data.Length >= 0x41 ? (int)BitConverter.ToUInt32(data, 0x3D) : 0;
+        var pageLimit = declared is >= 1 and <= 24 ? declared : matches.Count;
+        var found = false;
+        var expectedOff = DgfPageAreaStart;
+        for (var pi = 0; pi < matches.Count && pi < pageLimit; pi++)
+        {
+            if (!int.TryParse(matches[pi].Groups[1].Value, out var off)
+                || !int.TryParse(matches[pi].Groups[2].Value, out var len))
+                break;
+            if (off < 0 || len < DgfEmptyPageSize || off + len > data.Length)
+                break;
+            if (pi == 0 && off != DgfPageAreaStart)
+                expectedOff = off;
+            else if (pi > 0 && off != expectedOff && Math.Abs(off - expectedOff) > 8)
+                break;
+
+            var pos = off + DgfEmptyPageSize;
+            var end = off + len;
+            while (pos + 8 <= end)
+            {
+                var key = (int)BitConverter.ToUInt32(data, pos);
+                var plen = (int)BitConverter.ToUInt32(data, pos + 4);
+                if (plen < 2 || pos + 8 + plen > end) break;
+                var payload = pos + 8;
+                if (data[payload] != 0xB8 || data[payload + 1] != 0x01) break;
+                var global = pi * per + Math.Max(1, key);
+                if (ReadObjectRun(data, payload + 2, payload + plen, doc, per, global, ref z) > 0)
+                    found = true;
+                pos = payload + plen;
+            }
+            expectedOff = off + len;
+        }
+        if (found)
+            EditorLog.Info($"폼텍 페이지 테이블: 청크={Math.Min(matches.Count, pageLimit)} 객체={z}");
+        return found;
     }
 
     private static bool ReadLegacySections(byte[] data, LabelDocument doc, int per, ref int z)
@@ -901,7 +1198,9 @@ internal static class FormtecImporter
             if (i + 8L + blockLen > data.Length) continue;
             var start = i + 10;
             var end = (int)(i + 8L + blockLen);
-            var added = ReadObjectRun(data, start, end, doc, per, 1, ref z);
+            var labelKey = (int)BitConverter.ToUInt32(data, i);
+            if (labelKey is < 1 or > 500) labelKey = 1;
+            var added = ReadObjectRun(data, start, end, doc, per, labelKey, ref z);
             if (added > 0)
             {
                 found = true;
@@ -973,7 +1272,7 @@ internal static class FormtecImporter
             if (obj is not null)
             {
                 obj.ZIndex = ++z;
-                ExternalImportService.Place(doc, obj, Math.Clamp(labelKey, 1, per), per);
+                ExternalImportService.Place(doc, obj, Math.Max(1, labelKey), per);
                 added++;
             }
             pos = payloadEnd > pos + 41 ? payloadEnd : pos + 41;
@@ -1019,7 +1318,7 @@ internal static class FormtecImporter
     }
 
     private static bool IsType(byte type) => type is
-        0x00 or 0x04 or 0x05 or 0x06 or 0x07 or 0x08 or 0x09 or 0x0A or 0x0B
+        0x00 or 0x02 or 0x04 or 0x05 or 0x06 or 0x07 or 0x08 or 0x09 or 0x0A or 0x0B
         or 0x0E or 0x0F or 0x10 or 0x16 or 0x18;
 
     private static long GuessLength(byte[] data, int start, long pageEnd, byte type)
@@ -1029,6 +1328,7 @@ internal static class FormtecImporter
             return exact;
         switch (type)
         {
+            case 0x02: return available >= 79 ? Math.Min(100, available) : 41;
             case 0x04: return 95 <= available ? 95 : 41;
             case 0x05: return 75 <= available ? 75 : 41;
             case 0x0E: return Math.Min(120, available);
@@ -1059,9 +1359,20 @@ internal static class FormtecImporter
         var strings = ExternalImportService.ExtractPrintable(data, start, Math.Min(end, start + 4000), 1);
         switch (type)
         {
-            case 0x04: return ExternalImportService.Shape(ShapeKind.Rect, x, y, w, h);
-            case 0x05: return ExternalImportService.Shape(ShapeKind.Ellipse, x, y, w, h);
-            case 0x0E: return ExternalImportService.Shape(ShapeKind.RoundRect, x, y, w, h);
+            case 0x02:
+                var line = ExternalImportService.Shape(
+                    FormtecRecords.IsPlainLine(data, geom, end) ? ShapeKind.Line : ShapeKind.Arrow, x, y, w, h);
+                FormtecRecords.Apply(line, data, geom, end, type);
+                FormtecRecords.FitDiagonal(line, x, y, w, h);
+                return line;
+            case 0x04:
+            case 0x05:
+            case 0x0E:
+                var closed = ExternalImportService.Shape(
+                    type == 0x05 ? ShapeKind.Ellipse : type == 0x0E ? ShapeKind.RoundRect : ShapeKind.Rect,
+                    x, y, w, h);
+                FormtecRecords.Apply(closed, data, geom, end, type);
+                return closed;
             case 0x09:
             case 0x18:
                 var img = DesignObject.CreateDefault(type == 0x18 ? ObjectType.Clipart : ObjectType.Image, x, y);
@@ -1079,8 +1390,7 @@ internal static class FormtecImporter
                 bar.Width = w; bar.Height = h;
                 bar.BarcodeValue = ReadAsciiPrefixed(data, start, end) ?? strings.LastOrDefault(s => s.Length is >= 1 and <= 80) ?? "12345678";
                 bar.BarcodeFormat = format;
-                if (type == 0x10)
-                    FormtecRecords.Apply(bar, data, geom, end, type);
+                FormtecRecords.Apply(bar, data, geom, end, type);
                 return bar;
             case 0x0F:
                 var table = DesignObject.CreateDefault(ObjectType.Table, x, y);
@@ -1145,6 +1455,44 @@ internal static class FormtecImporter
             if (p + n * 2 > data.Length) continue;
             return Encoding.Unicode.GetString(data, p, (int)n * 2).Trim('\0', ' ');
         }
+        return null;
+    }
+
+    private static void ApplyFormtecWmfShape(
+        byte[] dgf, List<string> header, string? paperNo, PaperSpec paper, FormtecWmfCatalog wmf)
+    {
+        var name = FindWmfName(dgf, header, paperNo);
+        if (string.IsNullOrWhiteSpace(name)) return;
+        if (!wmf.TryConvert(name, paper.LabelWidthMm, paper.LabelHeightMm, out var outer, out var guides))
+        {
+            EditorLog.Warn($"폼텍 WMF 형상을 적용하지 못함: {name}");
+            return;
+        }
+
+        paper.Shape.Kind = "svg";
+        paper.Shape.Svg = outer;
+        paper.Shape.Guides = guides.Count == 0 ? null : guides;
+        paper.Shape.GuideSvg = null;
+        paper.Shape.SvgIsLabelMm = true;
+        EditorLog.Info($"폼텍 용지 형상: {name} → {paper.LabelWidthMm:0.#}×{paper.LabelHeightMm:0.#} mm (가이드 {guides.Count})");
+    }
+
+    private static string? FindWmfName(byte[] dgf, List<string> header, string? paperNo)
+    {
+        foreach (var s in header)
+        {
+            var file = Path.GetFileName(s.Trim());
+            if (file.EndsWith(".wmf", StringComparison.OrdinalIgnoreCase))
+                return file;
+        }
+
+        var scan = Math.Min(dgf.Length, 4096);
+        var text = ExternalImportService.DecodeAnsi(dgf.AsSpan(0, scan));
+        var m = Regex.Match(text, @"([A-Za-z0-9_\-]+\.wmf)", RegexOptions.IgnoreCase);
+        if (m.Success) return m.Groups[1].Value;
+
+        if (!string.IsNullOrWhiteSpace(paperNo) && Regex.IsMatch(paperNo, @"^\d{3,5}$"))
+            return paperNo + ".wmf";
         return null;
     }
 
@@ -1245,6 +1593,7 @@ internal static class ILabelImporter
         var per = Math.Max(1, paper.LabelsPerPage);
         var z = 0;
         var commons = new List<DesignObject>();
+        var unique = new Dictionary<string, (DesignObject Obj, int LabelId)>(StringComparer.Ordinal);
         foreach (var row in factors.Rows)
         {
             var obj = MapFactor(row, z++);
@@ -1257,8 +1606,11 @@ internal static class ILabelImporter
             }
             if (labelId < 0 || labelId >= per * ExternalImportService.MaxImportPages)
                 labelId = 0;
-            ExternalImportService.Place(doc, obj, labelId + 1, per);
+            var key = $"{labelId}|{(int)obj.Type}|{(int)obj.TextMode}|{obj.X:0.0}|{obj.Y:0.0}";
+            unique[key] = (obj, labelId);
         }
+        foreach (var (obj, labelId) in unique.Values)
+            ExternalImportService.Place(doc, obj, labelId + 1, per);
 
         if (commons.Count > 0)
         {
@@ -1332,6 +1684,7 @@ internal static class ILabelImporter
             1 => MakeText(x, y, w, h, cont),
             2 => MakeImage(x, y, w, h, row.GetBytes("Image")),
             3 => MakeBarcode(x, y, w, h, cont),
+            4 => MakeWordArt(x, y, w, h, cont, row.GetInt("Attribute")),
             5 => DesignObject.CreateShape(ShapeKind.Rect, x, y),
             6 => DesignObject.CreateShape(ShapeKind.RoundRect, x, y),
             7 => DesignObject.CreateShape(ShapeKind.Triangle, x, y),
@@ -1358,9 +1711,61 @@ internal static class ILabelImporter
         else if (obj.Type == ObjectType.Text)
         {
             obj.Fill = ArgbToCss(fore == 0 ? -16777216 : fore);
+            if (obj.TextMode == TextMode.WordArt)
+            {
+                var transparent = !fillOn || back == -1 || back == 16777215;
+                obj.BackgroundFill = transparent ? "transparent" : ArgbToCss(back);
+                obj.BackgroundTransparent = transparent;
+            }
         }
         return obj;
     }
+
+    /// <summary>아이라벨 Type=4. Cont=글꼴,크기,굵게,이탤릭,밑줄,외곽선,세로,그림자,좌우반전:텍스트</summary>
+    private static DesignObject MakeWordArt(float x, float y, float w, float h, string cont, int attribute)
+    {
+        var o = DesignObject.CreateDefault(ObjectType.Text, x, y);
+        o.Width = w;
+        o.Height = h;
+        o.TextMode = TextMode.WordArt;
+        o.TextAlign = "center";
+        o.VerticalAlign = "middle";
+        o.TextWrap = "none";
+        o.WordArtStyle = attribute switch
+        {
+            11 => WordArtStyle.Stretch,
+            16 => WordArtStyle.Rounded,
+            _ => WordArtStyle.None
+        };
+        o.WordArtBend = attribute == 16 ? 28f : 30f;
+
+        var raw = cont ?? "";
+        var colon = raw.IndexOf(':');
+        var head = colon >= 0 ? raw[..colon] : raw;
+        o.Text = colon >= 0 ? raw[(colon + 1)..] : StripCont(raw);
+        var parts = head.Split(',');
+        if (parts.Length >= 2)
+        {
+            o.FontFamily = parts[0].Trim();
+            if (float.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var fs) && fs > 0)
+                o.FontSize = fs;
+        }
+        if (parts.Length >= 9)
+        {
+            o.Bold = IsTrue(parts[2]);
+            o.Italic = IsTrue(parts[3]);
+            o.Underline = IsTrue(parts[4]);
+            o.Outline = IsTrue(parts[5]);
+            if (IsTrue(parts[6]))
+                o.TextDirection = "vertical";
+            o.Shadow = IsTrue(parts[7]);
+            o.FlipHorizontal = IsTrue(parts[8]);
+        }
+        return o;
+    }
+
+    private static bool IsTrue(string? raw)
+        => raw is not null && (raw.Equals("True", StringComparison.OrdinalIgnoreCase) || raw == "1");
 
     private static DesignObject MakeText(float x, float y, float w, float h, string cont)
     {
@@ -1478,7 +1883,7 @@ internal static class ILabelImporter
     {
         if (argb == -1) return "transparent";
         var u = unchecked((uint)argb);
-        return $"#{u & 0xFF:X2}{(u >> 8) & 0xFF:X2}{(u >> 16) & 0xFF:X2}";
+        return $"#{(u >> 16) & 0xFF:X2}{(u >> 8) & 0xFF:X2}{u & 0xFF:X2}";
     }
 
     private static LabelDocument FromXml(byte[] bytes, string name, PaperCatalog papers)

@@ -4,11 +4,11 @@
 @using Microsoft.JSInterop
 @inject EditorSession Session
 @inject HistoryService History
-@inject DraftStorage Drafts
-@inject ExportService Export
 @inject DataImportService DataImport
 @inject EditorCloudStorage Cloud
 @inject IJSRuntime Js
+@inject DesignSaveService Save
+@inject DraftStorage Drafts
 @implements IDisposable
 
 <div class="ed-topbar-dock @(Session.TopBarPinned ? "is-pinned" : "is-auto")" data-ed-topbar-dock>

@@ -18,5 +18,6 @@ builder.Services.AddScoped<TemplateCatalog>();
 builder.Services.AddScoped<DataImportService>();
 builder.Services.AddScoped<ExternalImportService>();
 builder.Services.AddScoped<EditorCloudStorage>();
+builder.Services.AddScoped<DesignSaveService>();
 
 await builder.Build().RunAsync();

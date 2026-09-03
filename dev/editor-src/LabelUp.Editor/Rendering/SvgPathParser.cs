@@ -5,7 +5,7 @@ namespace LabelUp.Editor.Rendering;
 
 public static class SvgPathParser
 {
-    public static SKPath Parse(string pathData, float destW, float destH, float src = 100f)
+    public static SKPath Parse(string pathData, float destW, float destH, float src = 100f, bool fitToBounds = true)
     {
         var path = new SKPath();
         if (string.IsNullOrWhiteSpace(pathData)) return path;
@@ -75,22 +75,25 @@ public static class SvgPathParser
             lastCy = cy;
         }
 
-        var bounds = path.Bounds;
-        if (bounds.Width > 0.01f && bounds.Height > 0.01f)
+        if (fitToBounds)
         {
-            var matrix = SKMatrix.CreateIdentity();
-            matrix = matrix.PostConcat(SKMatrix.CreateTranslation(-bounds.Left, -bounds.Top));
-            var scale = Math.Min(destW / bounds.Width, destH / bounds.Height);
-            matrix = matrix.PostConcat(SKMatrix.CreateScale(scale, scale));
-            var ox = (destW - bounds.Width * scale) / 2f;
-            var oy = (destH - bounds.Height * scale) / 2f;
-            matrix = matrix.PostConcat(SKMatrix.CreateTranslation(ox, oy));
-            path.Transform(matrix);
-        }
-        else
-        {
-            var scale = Math.Min(destW / src, destH / src);
-            path.Transform(SKMatrix.CreateScale(scale, scale));
+            var bounds = path.Bounds;
+            if (bounds.Width > 0.01f && bounds.Height > 0.01f)
+            {
+                var matrix = SKMatrix.CreateIdentity();
+                matrix = matrix.PostConcat(SKMatrix.CreateTranslation(-bounds.Left, -bounds.Top));
+                var scale = Math.Min(destW / bounds.Width, destH / bounds.Height);
+                matrix = matrix.PostConcat(SKMatrix.CreateScale(scale, scale));
+                var ox = (destW - bounds.Width * scale) / 2f;
+                var oy = (destH - bounds.Height * scale) / 2f;
+                matrix = matrix.PostConcat(SKMatrix.CreateTranslation(ox, oy));
+                path.Transform(matrix);
+            }
+            else
+            {
+                var scale = Math.Min(destW / src, destH / src);
+                path.Transform(SKMatrix.CreateScale(scale, scale));
+            }
         }
 
         return path;

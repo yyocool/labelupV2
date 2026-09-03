@@ -319,6 +319,8 @@ window.labelUpEditor = {
         return dotnet.invokeMethodAsync('OnVendorFileDropped', file.name, new Uint8Array(buf));
       }).catch(function (err) {
         console.error('[LabelUp] vendor drop', err);
+        var msg = (err && (err.message || String(err))) || '파일을 읽지 못했습니다.';
+        dotnet.invokeMethodAsync('OnVendorConvertFailed', String(msg));
       });
     }, true);
   },

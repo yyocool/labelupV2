@@ -2,6 +2,7 @@
 @using System.Text.Json
 @using LabelUp.Editor.Rendering
 @using LabelUp.Editor.Services
+@using Microsoft.AspNetCore.Components.Web
 @using Microsoft.JSInterop
 @inject EditorSession Session
 @inject DraftStorage Drafts
@@ -16,6 +17,8 @@
 @inject IJSRuntime Js
 @implements IDisposable
 
+<ErrorBoundary @ref="_errorBoundary">
+  <ChildContent>
 <div class="ed @(Session.TopBarPinned ? "is-topbar-pinned" : "is-topbar-auto")" data-ed-root>
   <TopBar />
   <div class="ed__body" data-ed-body>
@@ -47,14 +50,38 @@
   <InsertDialog />
   <VendorImportDialog />
   <VendorPickerDialog />
+  <UnsavedChangesDialog />
+  <ConversionProgressDialog />
+  <ErrorDialog />
   <ShapePickerDialog />
   <LabiAiDialog />
   <LabelShopDialog />
   <ProjectPickerDialog />
   <TutorialHost />
 </div>
+  </ChildContent>
+  <ErrorContent Context="ex">
+    <div class="ed-modal" role="alertdialog" aria-label="변환 에러">
+      <div class="ed-modal__card ed-modal__card--confirm">
+        <header class="ed-modal__head">
+          <div>
+            <h3>변환 에러</h3>
+            <p>내부 오류로 화면이 멈췄습니다. 닫으면 이어서 작업할 수 있습니다.</p>
+          </div>
+        </header>
+        <div class="ed-modal__body">
+          <p class="ed-error-dialog__msg">@EditorSession.FriendlyError(ex)</p>
+        </div>
+        <footer class="ed-modal__foot">
+          <button type="button" class="ed-btn ed-btn--primary" @onclick="RecoverError">확인</button>
+        </footer>
+      </div>
+    </div>
+  </ErrorContent>
+</ErrorBoundary>
 
 @code {
+    private ErrorBoundary? _errorBoundary;
     private CanvasHost? _canvas;
     private bool _panelsReady;
     private DotNetObjectReference<EditorShell>? _self;
@@ -612,28 +639,41 @@
     {
         try
         {
-            Session.Status = "타사 포맷 분석 중…";
-            Session.Notify();
-            await InvokeAsync(StateHasChanged);
-            await Task.Delay(40);
-            var report = ExternalImport.Analyze(fileName, bytes);
-            Session.PendingVendorImport = report;
-            Session.OpenDialog(EditorDialog.VendorImport);
+            await Session.ConfirmIfDirtyAsync(() => AnalyzeVendorAsync(fileName, bytes));
         }
         catch (Exception ex)
         {
-            EditorLog.Error("타사 포맷 변환 실패", ex);
-            Session.Status = "타사 포맷 변환 실패: " + ex.Message;
-            Session.Notify();
+            Session.ShowConversionError(ex);
         }
     }
+
+    private Task AnalyzeVendorAsync(string fileName, byte[] bytes)
+        => VendorImportActions.AnalyzeAsync(
+            Session, ExternalImport, fileName, bytes,
+            async () =>
+            {
+                await InvokeAsync(StateHasChanged);
+                await Task.Delay(40);
+            });
 
     [JSInvokable]
     public void OnVendorDropRejected(string fileName)
     {
-        Session.Status = ExternalImportService.IsVendorFileName(fileName)
-            ? "파일이 너무 큽니다 (최대 30MB)"
-            : $"타사 포맷이 아닙니다: {fileName}";
+        Session.ShowConversionError(ExternalImportService.IsVendorFileName(fileName)
+            ? "파일이 너무 큽니다 (최대 30MB)."
+            : $"타사 포맷이 아닙니다: {fileName}");
+    }
+
+    [JSInvokable]
+    public void OnVendorConvertFailed(string message)
+        => Session.ShowConversionError(message);
+
+    private void RecoverError()
+    {
+        _errorBoundary?.Recover();
+        Session.PendingVendorImport = null;
+        Session.EndConversion();
+        Session.Status = "오류 후 계속합니다";
         Session.Notify();
     }
 

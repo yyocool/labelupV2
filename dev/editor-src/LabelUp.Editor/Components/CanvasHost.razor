@@ -82,6 +82,7 @@
 
     private bool _dragging;
     private bool _marquee;
+    private bool _paintFailed;
     private HandleKind _handle = HandleKind.None;
     private float _lastX, _lastY;
     private float _startDocX, _startDocY;
@@ -167,13 +168,16 @@
 
     private void OnSessionChanged()
     {
-        if (Session.PendingFit && _viewW >= 360 && _viewH >= 220)
+        _ = InvokeAsync(() =>
         {
-            Session.FitToView(_viewW, _viewH);
-            return;
-        }
-        _view?.Invalidate();
-        InvokeAsync(StateHasChanged);
+            if (Session.PendingFit && _viewW >= 360 && _viewH >= 220)
+            {
+                Session.FitToView(_viewW, _viewH);
+                return;
+            }
+            _view?.Invalidate();
+            StateHasChanged();
+        });
     }
 
     public void Invalidate() => _view?.Invalidate();
@@ -219,11 +223,21 @@
         try
         {
             PaintSurfaceCore(canvas, info);
+            _paintFailed = false;
         }
         catch (Exception ex)
         {
             EditorLog.Error("캔버스 그리기 실패", ex);
-            canvas.Clear(new SKColor(0xF4, 0xF1, 0xEE));
+            try
+            {
+                canvas.Clear(new SKColor(0xF4, 0xF1, 0xEE));
+            }
+            catch { /* ignore */ }
+            if (!_paintFailed)
+            {
+                _paintFailed = true;
+                Session.ShowConversionError(ex);
+            }
         }
     }
 

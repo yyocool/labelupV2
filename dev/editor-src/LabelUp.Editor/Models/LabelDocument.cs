@@ -185,14 +185,28 @@ public sealed class LabelDocument
         EnsureStructure();
         var sum = 0f;
         var count = 0;
+        var style = 0;
         foreach (var page in Pages)
         foreach (var cell in page.Cells)
         foreach (var o in cell.Objects)
         {
-            sum += o.X + o.Y + o.Width + o.Height + o.Rotation + o.ZIndex + (o.Text?.Length ?? 0);
+            sum += o.X + o.Y + o.Width + o.Height + o.Rotation + o.ZIndex + o.StrokeWidth + o.Opacity
+                   + (o.Text?.Length ?? 0) + (o.BarcodeValue?.Length ?? 0) + (o.ImageData?.Length ?? 0);
+            style = HashCode.Combine(style, o.Fill, o.Stroke, o.Visible, o.ShapeKind, o.Locked, o.TextWrap);
+            style = HashCode.Combine(style, o.Text, o.BarcodeValue, o.FontFamily);
             count++;
         }
-        return $"{count}|{sum:0.##}|{Background}|{Data?.RowCount ?? 0}";
+
+        var shape = Paper.Shape;
+        var shapeKey = HashCode.Combine(
+            shape.Kind,
+            shape.Svg,
+            shape.GuideSvg,
+            shape.Guides?.Count ?? 0,
+            shape.SvgIsLabelMm,
+            Paper.PaperNo);
+        shapeKey = HashCode.Combine(shapeKey, Paper.LabelWidthMm, Paper.LabelHeightMm, Name);
+        return $"{count}|{sum:0.##}|{style:X8}|{Background}|{Data?.RowCount ?? 0}|{shapeKey:X8}";
     }
 
     public void EnsurePagesForData()

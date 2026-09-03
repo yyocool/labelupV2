@@ -13,7 +13,13 @@ public sealed class PaperCatalog
     private bool _loaded;
     private bool _shopLoaded;
 
-    public PaperCatalog(HttpClient http) => _http = http;
+    public PaperCatalog(HttpClient http)
+    {
+        _http = http;
+        FormtecWmf = new FormtecWmfCatalog(http);
+    }
+
+    public FormtecWmfCatalog FormtecWmf { get; }
 
     public IReadOnlyList<PaperSpec> Papers => _papers;
     public IReadOnlyList<ShopPaperItem> ShopPapers => _shopPapers;
@@ -64,6 +70,7 @@ public sealed class PaperCatalog
         if (_map.Entries.Count == 0)
             _map.Entries.AddRange(DefaultMap());
 
+        await FormtecWmf.EnsureLoadedAsync();
         _loaded = true;
         EditorLog.Info($"용지 카탈로그 {_papers.Count}종 로드");
     }

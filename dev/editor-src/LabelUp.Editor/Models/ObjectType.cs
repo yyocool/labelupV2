@@ -74,7 +74,9 @@ public enum EditorDialog
     VendorPicker,
     LabiAi,
     LabelShop,
-    ProjectPicker
+    ProjectPicker,
+    UnsavedChanges,
+    Error
 }
 
 public enum TextMode
@@ -91,5 +93,7 @@ public enum WordArtStyle
     ArcUp,
     ArcDown,
     Wave,
-    Circle
+    Circle,
+    Stretch,
+    Rounded
 }

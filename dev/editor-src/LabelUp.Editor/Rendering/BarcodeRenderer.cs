@@ -10,48 +10,36 @@ public static class BarcodeRenderer
 {
     public static void Draw(SKCanvas canvas, DesignObject obj, string value, byte alpha)
     {
+        try
+        {
+            DrawCore(canvas, obj, value, alpha);
+        }
+        catch
+        {
+            DrawPlaceholder(canvas, obj, "바코드 오류", alpha);
+        }
+    }
+
+    private static void DrawCore(SKCanvas canvas, DesignObject obj, string value, byte alpha)
+    {
         if (string.IsNullOrWhiteSpace(value))
         {
             DrawPlaceholder(canvas, obj, "값 없음", alpha);
             return;
         }
 
-            var format = ResolveFormat(obj);
-        var textH = obj.BarcodeShowText && format != BarcodeFormat.QR_CODE && format != BarcodeFormat.DATA_MATRIX
+        var format = ResolveFormat(obj);
+        var isMatrix = format is BarcodeFormat.QR_CODE or BarcodeFormat.DATA_MATRIX or BarcodeFormat.PDF_417
+            or BarcodeFormat.AZTEC or BarcodeFormat.RSS_14 or BarcodeFormat.RSS_EXPANDED;
+        var textH = obj.BarcodeShowText && !isMatrix
             ? Math.Min(obj.Height * 0.22f, obj.FontSize > 0 ? obj.FontSize : 2.4f)
             : 0f;
         var barH = Math.Max(1f, obj.Height - textH);
 
-        BitMatrix? matrix = null;
-        try
-        {
-            var pxW = Math.Clamp((int)(obj.Width * 24), 32, 1200);
-            var pxH = Math.Clamp((int)(barH * 24), 32, 1200);
-            EncodingOptions options = format switch
-            {
-                BarcodeFormat.QR_CODE => new QrCodeEncodingOptions
-                {
-                    Width = pxW,
-                    Height = pxH,
-                    Margin = 0,
-                    CharacterSet = "UTF-8",
-                    ErrorCorrection = ParseEcc(obj.QrEcc)
-                },
-                BarcodeFormat.DATA_MATRIX => new EncodingOptions { Width = pxW, Height = pxH, Margin = 0, PureBarcode = true },
-                BarcodeFormat.PDF_417 => new EncodingOptions { Width = pxW, Height = pxH, Margin = 0, PureBarcode = true },
-                _ => new EncodingOptions { Width = pxW, Height = pxH, Margin = 0, PureBarcode = true }
-            };
-
-            var writer = new BarcodeWriterGeneric { Format = format, Options = options };
-            matrix = writer.Encode(value);
-        }
-        catch
-        {
-            DrawPlaceholder(canvas, obj, "바코드 오류", alpha);
-            return;
-        }
-
-        if (matrix is null)
+        var pxW = Math.Clamp((int)(obj.Width * 24), 32, isMatrix ? 600 : 800);
+        var pxH = isMatrix ? Math.Clamp((int)(barH * 24), 32, 600) : 2;
+        var matrix = EncodeBest(obj.BarcodeFormat, format, value, pxW, pxH, obj.QrEcc);
+        if (matrix is null || matrix.Width < 1 || matrix.Height < 1)
         {
             DrawPlaceholder(canvas, obj, "바코드 오류", alpha);
             return;
@@ -77,14 +65,28 @@ public static class BarcodeRenderer
             Style = SKPaintStyle.Fill
         };
 
-        var cellW = obj.Width / matrix.Width;
-        var cellH = barH / matrix.Height;
-        for (var y = 0; y < matrix.Height; y++)
+        if (!isMatrix)
         {
+            var cellW = obj.Width / matrix.Width;
             for (var x = 0; x < matrix.Width; x++)
             {
-                if (!matrix[x, y]) continue;
-                canvas.DrawRect(x * cellW, y * cellH, cellW + 0.02f, cellH + 0.02f, paint);
+                if (!matrix[x, 0]) continue;
+                canvas.DrawRect(x * cellW, 0, cellW + 0.02f, barH, paint);
+            }
+        }
+        else
+        {
+            var rows = Math.Min(matrix.Height, 256);
+            var cols = Math.Min(matrix.Width, 256);
+            var cellW = obj.Width / cols;
+            var cellH = barH / rows;
+            for (var y = 0; y < rows; y++)
+            {
+                for (var x = 0; x < cols; x++)
+                {
+                    if (!matrix[x, y]) continue;
+                    canvas.DrawRect(x * cellW, y * cellH, cellW + 0.02f, cellH + 0.02f, paint);
+                }
             }
         }
 
@@ -129,7 +131,8 @@ public static class BarcodeRenderer
         {
             "CODE_39" or "CODE39" or "CODE_39_EXT" => BarcodeFormat.CODE_39,
             "CODE_93" or "CODE93" or "CODE_93_EXT" => BarcodeFormat.CODE_93,
-            "EAN_13" or "EAN13" or "JAN_13" or "ISBN" or "ISSN" or "ISMN" or "EAN_5" or "EAN_2" => BarcodeFormat.EAN_13,
+            "EAN_13" or "EAN13" or "JAN_13" or "ISBN" or "ISSN" or "ISMN" => BarcodeFormat.EAN_13,
+            "EAN_5" or "EAN_2" => BarcodeFormat.CODE_128,
             "EAN_8" or "EAN8" or "JAN_8" => BarcodeFormat.EAN_8,
             "UPC_A" or "UPCA" => BarcodeFormat.UPC_A,
             "UPC_E" or "UPCE" or "UPC_E0" or "UPC_E1" => BarcodeFormat.UPC_E,
@@ -148,6 +151,185 @@ public static class BarcodeRenderer
             "ONECODE" => BarcodeFormat.IMB,
             _ => BarcodeFormat.CODE_128
         };
+    }
+
+    private static BitMatrix? EncodeBest(string? catalogId, BarcodeFormat format, string value, int pxW, int pxH, string? ecc)
+    {
+        foreach (var (fmt, payload) in EncodeCandidates(catalogId, format, value))
+        {
+            var matrix = TryEncode(fmt, payload, pxW, pxH, ecc);
+            if (matrix is { Width: > 0, Height: > 0 })
+                return matrix;
+        }
+        return TryEncode(BarcodeFormat.CODE_128, value, pxW, 2, ecc);
+    }
+
+    private static IEnumerable<(BarcodeFormat Format, string Value)> EncodeCandidates(string? catalogId, BarcodeFormat format, string value)
+    {
+        var id = (catalogId ?? "").ToUpperInvariant();
+        var digits = DigitsOnly(value);
+
+        if (id is "EAN_2" or "EAN_5" or "FIM" or "PATCH_CODE" or "FLATTERMARKEN"
+            or "CHANNEL_CODE" or "BC309" or "BC412" or "CLOCKED_35" or "ONECODE"
+            or "POSTNET" or "PLANET" or "KIX" or "JAPAN_POST" or "RM4SCC" or "UPU"
+            or "TELEPEN")
+        {
+            yield return (BarcodeFormat.CODE_128, value);
+            yield break;
+        }
+
+        if (format == BarcodeFormat.CODABAR)
+        {
+            yield return (BarcodeFormat.CODABAR, EnsureCodabar(value));
+            yield return (BarcodeFormat.CODE_128, value);
+            yield break;
+        }
+
+        if (format == BarcodeFormat.EAN_13)
+        {
+            if (digits.Length is 12 or 13)
+                yield return (BarcodeFormat.EAN_13, digits.Length == 13 ? digits : digits);
+            else if (digits.Length >= 12)
+                yield return (BarcodeFormat.EAN_13, digits[..13]);
+            yield return (BarcodeFormat.CODE_128, value);
+            yield break;
+        }
+
+        if (format == BarcodeFormat.EAN_8)
+        {
+            if (digits.Length is 7 or 8)
+                yield return (BarcodeFormat.EAN_8, digits);
+            yield return (BarcodeFormat.CODE_128, value);
+            yield break;
+        }
+
+        if (format == BarcodeFormat.UPC_A)
+        {
+            if (digits.Length is 11 or 12)
+                yield return (BarcodeFormat.UPC_A, digits);
+            yield return (BarcodeFormat.CODE_128, value);
+            yield break;
+        }
+
+        if (format == BarcodeFormat.UPC_E)
+        {
+            if (digits.Length is >= 6 and <= 8)
+                yield return (BarcodeFormat.UPC_E, digits);
+            yield return (BarcodeFormat.CODE_128, value);
+            yield break;
+        }
+
+        if (format == BarcodeFormat.ITF)
+        {
+            var itf = digits.Length % 2 == 1 ? "0" + digits : digits;
+            if (itf.Length >= 2)
+                yield return (BarcodeFormat.ITF, itf);
+            yield return (BarcodeFormat.CODE_128, value);
+            yield break;
+        }
+
+        if (format == BarcodeFormat.CODE_39)
+        {
+            yield return (BarcodeFormat.CODE_39, value.ToUpperInvariant());
+            yield return (BarcodeFormat.CODE_128, value);
+            yield break;
+        }
+
+        if (format == BarcodeFormat.CODE_93)
+        {
+            yield return (BarcodeFormat.CODE_93, value.ToUpperInvariant());
+            yield return (BarcodeFormat.CODE_128, value);
+            yield break;
+        }
+
+        if (format == BarcodeFormat.PLESSEY)
+        {
+            yield return (BarcodeFormat.PLESSEY, value.ToUpperInvariant());
+            yield return (BarcodeFormat.CODE_128, value);
+            yield break;
+        }
+
+        if (format == BarcodeFormat.MSI)
+        {
+            if (digits.Length > 0)
+                yield return (BarcodeFormat.MSI, digits);
+            yield return (BarcodeFormat.CODE_128, value);
+            yield break;
+        }
+
+        if (format == BarcodeFormat.PHARMA_CODE)
+        {
+            if (digits.Length > 0)
+                yield return (BarcodeFormat.PHARMA_CODE, digits);
+            yield return (BarcodeFormat.CODE_128, value);
+            yield break;
+        }
+
+        if (format == BarcodeFormat.IMB)
+        {
+            if (digits.Length is 20 or 25 or 29 or 31)
+                yield return (BarcodeFormat.IMB, digits);
+            yield return (BarcodeFormat.CODE_128, value);
+            yield break;
+        }
+
+        if (format == BarcodeFormat.RSS_14 && digits.Length > 0)
+        {
+            yield return (BarcodeFormat.RSS_14, digits.PadLeft(14, '0'));
+            yield return (BarcodeFormat.CODE_128, value);
+            yield break;
+        }
+
+        yield return (format, value);
+        if (format != BarcodeFormat.CODE_128)
+            yield return (BarcodeFormat.CODE_128, value);
+    }
+
+    private static BitMatrix? TryEncode(BarcodeFormat format, string value, int pxW, int pxH, string? ecc)
+    {
+        try
+        {
+            EncodingOptions options = format switch
+            {
+                BarcodeFormat.QR_CODE => new QrCodeEncodingOptions
+                {
+                    Width = pxW,
+                    Height = pxH,
+                    Margin = 0,
+                    CharacterSet = "UTF-8",
+                    ErrorCorrection = ParseEcc(ecc)
+                },
+                BarcodeFormat.DATA_MATRIX or BarcodeFormat.PDF_417 or BarcodeFormat.AZTEC
+                    => new EncodingOptions { Width = pxW, Height = pxH, Margin = 0, PureBarcode = true },
+                _ => new EncodingOptions { Width = pxW, Height = format is BarcodeFormat.QR_CODE ? pxH : 2, Margin = 0, PureBarcode = true }
+            };
+            return new BarcodeWriterGeneric { Format = format, Options = options }.Encode(value);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string DigitsOnly(string value)
+    {
+        var sb = new System.Text.StringBuilder(value.Length);
+        foreach (var ch in value)
+        {
+            if (char.IsAsciiDigit(ch))
+                sb.Append(ch);
+        }
+        return sb.ToString();
+    }
+
+    private static string EnsureCodabar(string value)
+    {
+        var s = value.Trim();
+        if (s.Length == 0) return "A0A";
+        static bool Guard(char c) => c is 'A' or 'B' or 'C' or 'D' or 'a' or 'b' or 'c' or 'd';
+        if (s.Length >= 2 && Guard(s[0]) && Guard(s[^1]))
+            return s.ToUpperInvariant();
+        return "A" + s + "A";
     }
 
     private static ZXing.QrCode.Internal.ErrorCorrectionLevel ParseEcc(string? raw) => (raw ?? "M").ToUpperInvariant() switch

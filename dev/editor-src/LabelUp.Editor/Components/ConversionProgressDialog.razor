@@ -1,0 +1,31 @@
+@inject EditorSession Session
+@implements IDisposable
+
+@if (Session.ConversionBusy)
+{
+  <div class="ed-modal ed-convert" role="status" aria-live="polite" aria-busy="true" aria-label="변환 중">
+    <div class="ed-modal__card ed-modal__card--confirm ed-convert__card">
+      <header class="ed-modal__head">
+        <div>
+          <h3>변환 중</h3>
+          <p>@Session.ConversionFileName</p>
+        </div>
+      </header>
+      <div class="ed-modal__body ed-convert__body">
+        <div class="ed-convert__spinner" aria-hidden="true"></div>
+        <p class="ed-convert__detail">@Session.ConversionDetail</p>
+        <div class="ed-convert__bar" aria-hidden="true">
+          <i style="@($"width:{Session.ConversionPercent}%")"></i>
+        </div>
+        <p class="ed-convert__pct">@Session.ConversionPercent%</p>
+        <p class="ed-convert__hint">화면이 잠시 느려져도 변환이 진행 중입니다. 큰 파일은 1~2분 걸릴 수 있습니다.</p>
+      </div>
+    </div>
+  </div>
+}
+
+@code {
+    protected override void OnInitialized() => Session.Changed += OnChanged;
+    public void Dispose() => Session.Changed -= OnChanged;
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+}

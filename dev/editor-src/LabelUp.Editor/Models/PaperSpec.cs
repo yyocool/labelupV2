@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -119,13 +120,26 @@ public sealed class PaperShape
     public string Kind { get; set; } = "rect";
     public float CornerRadiusMm { get; set; } = 1.2f;
     public string? Svg { get; set; }
+    /// <summary>구버전: 가이드를 한 path 문자열로 둔 경우(선만).</summary>
+    public string? GuideSvg { get; set; }
+    /// <summary>WMF 가이드(채운 글자·그림자·내부 선). 좌표는 라벨 mm.</summary>
+    public List<PaperGuidePath>? Guides { get; set; }
+    /// <summary>Svg/GuideSvg 좌표가 이미 라벨 mm이면 true. 하트 등 0–100 path는 false.</summary>
+    public bool SvgIsLabelMm { get; set; }
     public PaperHole? Hole { get; set; }
+
+    [JsonIgnore]
+    public bool HasGuides =>
+        Guides is { Count: > 0 } || !string.IsNullOrWhiteSpace(GuideSvg);
 
     public PaperShape Clone() => new()
     {
         Kind = Kind,
         CornerRadiusMm = CornerRadiusMm,
         Svg = Svg,
+        GuideSvg = GuideSvg,
+        Guides = Guides?.Select(g => g.Clone()).ToList(),
+        SvgIsLabelMm = SvgIsLabelMm,
         Hole = Hole is null ? null : new PaperHole
         {
             X = Hole.X,
@@ -146,7 +160,7 @@ public sealed class PaperShape
             "roundrect" =>
                 $"<rect x='{x}' y='{y}' width='{w}' height='{h}' rx='{CornerRadiusMm}' ry='{CornerRadiusMm}' fill='{fillEsc}' stroke='{stroke}' stroke-width='0.25'/>",
             "svg" when !string.IsNullOrWhiteSpace(Svg) =>
-                $"<g transform='translate({x.ToString("0.###", CultureInfo.InvariantCulture)},{y.ToString("0.###", CultureInfo.InvariantCulture)})'>{WrapShapeSvg(Svg!, w, h, fillEsc)}</g>",
+                $"<g transform='translate({x.ToString("0.###", CultureInfo.InvariantCulture)},{y.ToString("0.###", CultureInfo.InvariantCulture)})'>{WrapShapeSvg(Svg!, w, h, fillEsc)}{WrapGuides(this, w, h)}</g>",
             _ =>
                 $"<rect x='{x}' y='{y}' width='{w}' height='{h}' rx='0.6' ry='0.6' fill='{fillEsc}' stroke='{stroke}' stroke-width='0.25'/>"
         };
@@ -156,8 +170,54 @@ public sealed class PaperShape
     {
         if (svg.Contains("<svg", StringComparison.OrdinalIgnoreCase))
             return svg;
-        return $"<svg viewBox='0 0 {w.ToString("0.###", CultureInfo.InvariantCulture)} {h.ToString("0.###", CultureInfo.InvariantCulture)}' width='{w.ToString("0.###", CultureInfo.InvariantCulture)}' height='{h.ToString("0.###", CultureInfo.InvariantCulture)}'><path d='{svg}' fill='{fill}' stroke='#c4b8aa' stroke-width='0.25'/></svg>";
+        return $"<svg viewBox='0 0 {w.ToString("0.###", CultureInfo.InvariantCulture)} {h.ToString("0.###", CultureInfo.InvariantCulture)}' width='{w.ToString("0.###", CultureInfo.InvariantCulture)}' height='{h.ToString("0.###", CultureInfo.InvariantCulture)}'><path d='{svg}' fill='{fill}' stroke='#2E2A27' stroke-width='0.25'/></svg>";
     }
+
+    private static string WrapGuides(PaperShape shape, float w, float h)
+    {
+        var inv = CultureInfo.InvariantCulture;
+        var inner = new StringBuilder();
+        if (shape.Guides is { Count: > 0 })
+        {
+            foreach (var g in shape.Guides)
+            {
+                if (string.IsNullOrWhiteSpace(g.D)) continue;
+                var fill = string.IsNullOrWhiteSpace(g.Fill) ? "none" : g.Fill;
+                var stroke = string.IsNullOrWhiteSpace(g.Stroke) ? "none" : g.Stroke;
+                var sw = g.StrokeWidthMm.ToString("0.###", inv);
+                var rule = g.EvenOdd ? " fill-rule='evenodd'" : "";
+                inner.Append(inv,
+                    $"<path d='{g.D}' fill='{fill}' stroke='{stroke}' stroke-width='{sw}' stroke-linejoin='round'{rule}/>");
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(shape.GuideSvg))
+        {
+            inner.Append(inv,
+                $"<path d='{shape.GuideSvg}' fill='none' stroke='#2E2A27' stroke-width='0.28' stroke-linejoin='round'/>");
+        }
+
+        if (inner.Length == 0) return "";
+        return string.Create(inv,
+            $"<svg viewBox='0 0 {w:0.###} {h:0.###}' width='{w:0.###}' height='{h:0.###}'>{inner}</svg>");
+    }
+}
+
+public sealed class PaperGuidePath
+{
+    public string D { get; set; } = "";
+    public string? Fill { get; set; }
+    public string? Stroke { get; set; }
+    public float StrokeWidthMm { get; set; } = 0.28f;
+    public bool EvenOdd { get; set; }
+
+    public PaperGuidePath Clone() => new()
+    {
+        D = D,
+        Fill = Fill,
+        Stroke = Stroke,
+        StrokeWidthMm = StrokeWidthMm,
+        EvenOdd = EvenOdd
+    };
 }
 
 public sealed class PaperHole

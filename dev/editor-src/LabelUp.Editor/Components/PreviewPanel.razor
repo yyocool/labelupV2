@@ -82,7 +82,8 @@
 
     private void OnChanged()
     {
-        RebuildThumbs(force: false);
+        if (!Session.ConversionBusy)
+            RebuildThumbs(force: false);
         _ = InvokeAsync(StateHasChanged);
     }
 
@@ -92,35 +93,44 @@
 
     private void RebuildThumbs(bool force)
     {
-        var doc = Session.Document;
-        doc.EnsureStructure();
-        var w = Math.Max(1f, doc.WidthMm);
-        var h = Math.Max(1f, doc.HeightMm);
-        _aspect = $"{w:0.###} / {h:0.###}";
-        var pw = Math.Max(1f, doc.Paper.PaperWidthMm);
-        var ph = Math.Max(1f, doc.Paper.PaperHeightMm);
-        _pageAspect = $"{pw:0.###} / {ph:0.###}";
-        if (!Fonts.IsReady) return;
-
-        var gen = $"{doc.Paper.PaperNo}|{doc.Pages.Count}|{doc.ObjectsFingerprint()}|{Session.PageIndex}|{doc.Data?.RowCount}";
-        if (!force && gen == _thumbGen && _thumbs.Count > 0) return;
-        _thumbGen = gen;
-        _thumbs.Clear();
-
-        var page = doc.Pages[Math.Clamp(Session.PageIndex, 0, doc.Pages.Count - 1)];
-        var per = doc.Paper.LabelsPerPage;
-        for (var i = 0; i < page.Cells.Count; i++)
+        try
         {
-            try
+            var doc = Session.Document;
+            doc.EnsureStructure();
+            var w = Math.Max(1f, doc.WidthMm);
+            var h = Math.Max(1f, doc.HeightMm);
+            _aspect = $"{w:0.###} / {h:0.###}";
+            var pw = Math.Max(1f, doc.Paper.PaperWidthMm);
+            var ph = Math.Max(1f, doc.Paper.PaperHeightMm);
+            _pageAspect = $"{pw:0.###} / {ph:0.###}";
+            if (!Fonts.IsReady) return;
+
+            var gen = $"{Session.DocumentEpoch}|{doc.Paper.PaperNo}|{doc.Pages.Count}|{doc.ObjectsFingerprint()}|{Session.PageIndex}|{doc.Data?.RowCount}";
+            if (!force && gen == _thumbGen && _thumbs.Count > 0) return;
+            _thumbGen = gen;
+            _thumbs.Clear();
+
+            var page = doc.Pages[Math.Clamp(Session.PageIndex, 0, doc.Pages.Count - 1)];
+            var per = doc.Paper.LabelsPerPage;
+            for (var i = 0; i < page.Cells.Count; i++)
             {
-                var global = Session.PageIndex * per + i;
-                var bytes = DocumentRenderer.ExportPng(doc, page.Cells[i], 90f, o => Session.ResolveObjectText(o, global));
-                _thumbs[Key(Session.PageIndex, i)] = "data:image/png;base64," + Convert.ToBase64String(bytes);
+                try
+                {
+                    var global = Session.PageIndex * per + i;
+                    var bytes = DocumentRenderer.ExportPng(doc, page.Cells[i], 90f, o => Session.ResolveObjectText(o, global));
+                    _thumbs[Key(Session.PageIndex, i)] = "data:image/png;base64," + Convert.ToBase64String(bytes);
+                }
+                catch (Exception ex)
+                {
+                    EditorLog.Warn("미리보기 썸네일 실패: " + ex.Message);
+                }
             }
-            catch (Exception ex)
-            {
-                EditorLog.Warn("미리보기 썸네일 실패: " + ex.Message);
-            }
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error("미리보기 갱신 실패", ex);
+            _thumbs.Clear();
+            _thumbGen = "";
         }
     }
 

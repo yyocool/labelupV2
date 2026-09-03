@@ -99,6 +99,10 @@
                   <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.Bold" @onchange="e => SetBool(v => o.Bold = v, e)" /> <span>굵게</span></label>
                   <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.Italic" @onchange="e => SetBool(v => o.Italic = v, e)" /> <span>기울임</span></label>
                   <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.Underline" @onchange="e => SetBool(v => o.Underline = v, e)" /> <span>밑줄</span></label>
+                  <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.Outline" @onchange="e => SetBool(v => o.Outline = v, e)" /> <span>외곽선</span></label>
+                  <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.Shadow" @onchange="e => SetBool(v => o.Shadow = v, e)" /> <span>그림자</span></label>
+                  <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.FlipHorizontal" @onchange="e => SetBool(v => o.FlipHorizontal = v, e)" /> <span>좌우 반전</span></label>
+                  <label class="ed-field ed-field--check"><input type="checkbox" checked="@IsVertical(o)" @onchange="e => SetVertical(o, e)" /> <span>세로 텍스트</span></label>
                 </div>
                 <div class="ed-field-row">
                   <label class="ed-field">가로정렬
@@ -125,6 +129,9 @@
                   <label class="ed-field ed-field--full">
                     워드아트 모양
                     <select value="@o.WordArtStyle" @onchange="OnWordArt">
+                      <option value="@WordArtStyle.None">보통</option>
+                      <option value="@WordArtStyle.Stretch">늘리기</option>
+                      <option value="@WordArtStyle.Rounded">둥글게</option>
                       <option value="@WordArtStyle.ArcUp">위로 호</option>
                       <option value="@WordArtStyle.ArcDown">아래로 호</option>
                       <option value="@WordArtStyle.Wave">물결</option>
@@ -274,17 +281,29 @@
 
             <div class="ed-field-group">
               <div class="ed-field-label">채우기</div>
-              <label class="ed-field ed-field--full">
-                <input type="color" value="@NormalizeHex(o.Fill)" @onchange="e => SetColor(v => o.Fill = v, e)" />
-              </label>
+              <div class="ed-checks">
+                <label class="ed-field ed-field--check">
+                  <input type="checkbox" checked="@ColorUtil.IsTransparent(o.Fill)" @onchange="OnFillTransparent" />
+                  <span>투명</span>
+                </label>
+              </div>
+              @if (!ColorUtil.IsTransparent(o.Fill))
+              {
+                <div class="ed-color">
+                  <input type="color" value="@ColorUtil.ToHtmlColor(o.Fill, "#7b2840")" @oninput="e => LiveFill(e)" @onchange="e => CommitFill(e)" />
+                  <input class="ed-color__hex" value="@ColorUtil.ToHtmlColor(o.Fill, "#7b2840")" @onchange="e => CommitFill(e)" spellcheck="false" />
+                </div>
+              }
             </div>
 
             <div class="ed-field-group">
               <div class="ed-field-label">선</div>
-              <div class="ed-field-row">
-                <label class="ed-field">색 <input type="color" value="@NormalizeHex(o.Stroke)" @onchange="e => SetColor(v => o.Stroke = v, e)" /></label>
-                <label class="ed-field">굵기 <input type="number" step="0.05" min="0" value="@o.StrokeWidth.ToString("0.##")" @onchange="e => SetFloat(v => o.StrokeWidth = Math.Max(0, v), e)" /></label>
+              <label class="ed-field ed-field--full">색</label>
+              <div class="ed-color">
+                <input type="color" value="@ColorUtil.ToHtmlColor(o.Stroke)" @oninput="e => LiveStroke(e)" @onchange="e => CommitStroke(e)" />
+                <input class="ed-color__hex" value="@ColorUtil.ToHtmlColor(o.Stroke)" @onchange="e => CommitStroke(e)" spellcheck="false" />
               </div>
+              <label class="ed-field ed-field--full">굵기 <input type="number" step="0.05" min="0" value="@o.StrokeWidth.ToString("0.##")" @onchange="e => SetFloat(v => ApplySelected(o => o.StrokeWidth = Math.Max(0, v)), e)" /></label>
             </div>
 
             @if (o.Type == ObjectType.Image)
@@ -380,16 +399,63 @@
         _ => o.Type.ToString()
     };
 
-    private static string NormalizeHex(string? c)
-    {
-        if (string.IsNullOrWhiteSpace(c) || c is "transparent" or "none") return "#7B2840";
-        return c.StartsWith('#') ? c : "#" + c;
-    }
-
     private void Touch()
     {
         Session.Dirty = true;
         Session.Notify();
+    }
+
+    private bool _styleHistoryPushed;
+
+    private void ApplySelected(Action<DesignObject> apply)
+    {
+        foreach (var obj in Session.SelectedObjects)
+            apply(obj);
+    }
+
+    private void BeginStyleHistory()
+    {
+        if (_styleHistoryPushed) return;
+        History.Push(Session.Document);
+        _styleHistoryPushed = true;
+    }
+
+    private void LiveFill(ChangeEventArgs e)
+    {
+        var v = ColorUtil.ToHtmlColor(e.Value?.ToString(), "");
+        if (v.Length != 7) return;
+        BeginStyleHistory();
+        ApplySelected(obj => obj.Fill = v);
+        Touch();
+    }
+
+    private void CommitFill(ChangeEventArgs e)
+    {
+        LiveFill(e);
+        _styleHistoryPushed = false;
+    }
+
+    private void LiveStroke(ChangeEventArgs e)
+    {
+        var v = ColorUtil.ToHtmlColor(e.Value?.ToString(), "");
+        if (v.Length != 7) return;
+        BeginStyleHistory();
+        ApplySelected(obj => obj.Stroke = v);
+        Touch();
+    }
+
+    private void CommitStroke(ChangeEventArgs e)
+    {
+        LiveStroke(e);
+        _styleHistoryPushed = false;
+    }
+
+    private void OnFillTransparent(ChangeEventArgs e)
+    {
+        var on = e.Value is bool b ? b : string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
+        History.Push(Session.Document);
+        ApplySelected(obj => obj.Fill = on ? "transparent" : ColorUtil.ToHtmlColor(obj.Fill, "#7b2840"));
+        Touch();
     }
 
     private void SetFloat(Action<float> apply, ChangeEventArgs e)
@@ -415,14 +481,11 @@
         Touch();
     }
 
-    private void SetColor(Action<string> apply, ChangeEventArgs e)
-    {
-        var v = e.Value?.ToString();
-        if (string.IsNullOrEmpty(v)) return;
-        History.Push(Session.Document);
-        apply(v);
-        Touch();
-    }
+    private static bool IsVertical(DesignObject o)
+        => string.Equals(o.TextDirection, "vertical", StringComparison.OrdinalIgnoreCase);
+
+    private void SetVertical(DesignObject o, ChangeEventArgs e)
+        => SetBool(v => o.TextDirection = v ? "vertical" : "horizontal", e);
 
     private void SetString(Action<string> apply, ChangeEventArgs e)
     {

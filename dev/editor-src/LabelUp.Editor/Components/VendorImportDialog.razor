@@ -118,16 +118,23 @@
     private void Apply()
     {
         var r = Session.PendingVendorImport;
-        if (r?.Document is null)
+        if (r?.Document is null || !r.Ok)
         {
-            Session.Status = "변환할 문서가 없습니다";
-            Session.Notify();
+            Session.ShowConversionError("변환할 문서가 없습니다.");
             return;
         }
-        History.Push(Session.Document);
-        Session.ReplaceDocument(r.Document);
-        Session.PendingVendorImport = null;
-        Session.Status = $"{r.VendorName} 변환 완료 · {r.PaperNo} · 항목 {r.ObjectCount}개";
-        Session.CloseDialog();
+
+        try
+        {
+            History.Push(Session.Document);
+            Session.ReplaceDocument(r.Document);
+            Session.PendingVendorImport = null;
+            Session.Status = $"{r.VendorName} 변환 완료 · {r.PaperNo} · 항목 {r.ObjectCount}개";
+            Session.CloseDialog();
+        }
+        catch (Exception ex)
+        {
+            Session.ShowConversionError(ex);
+        }
     }
 }

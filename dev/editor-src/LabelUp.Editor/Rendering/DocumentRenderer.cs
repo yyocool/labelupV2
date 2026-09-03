@@ -6,12 +6,30 @@ namespace LabelUp.Editor.Rendering;
 
 public static class ColorUtil
 {
+    public static bool IsTransparent(string? hex)
+        => string.IsNullOrWhiteSpace(hex) || hex is "transparent" or "none";
+
+    /// <summary>HTML &lt;input type="color"&gt;는 #rrggbb 소문자만 유효하다.</summary>
+    public static string ToHtmlColor(string? hex, string fallback = "#000000")
+    {
+        if (IsTransparent(hex)) return fallback;
+        var s = hex!.Trim();
+        if (s.StartsWith('#')) s = s[1..];
+        if (s.Length == 8) s = s[2..];
+        if (s.Length != 6) return fallback;
+        foreach (var ch in s)
+        {
+            if (!char.IsAsciiHexDigit(ch)) return fallback;
+        }
+        return "#" + s.ToLowerInvariant();
+    }
+
     public static SKColor Parse(string? hex, byte alpha = 255)
     {
-        if (string.IsNullOrWhiteSpace(hex) || hex is "transparent" or "none")
+        if (IsTransparent(hex))
             return SKColors.Transparent;
 
-        hex = hex.Trim();
+        hex = hex!.Trim();
         if (hex.StartsWith('#')) hex = hex[1..];
         try
         {
@@ -114,6 +132,8 @@ public static class DocumentRenderer
             canvas.DrawPath(clip, border);
         }
 
+        DrawGuides(canvas, doc.Paper.Shape, w, h);
+
         foreach (var obj in cell.OrderedObjects())
             DrawObject(canvas, obj, resolve);
 
@@ -139,7 +159,7 @@ public static class DocumentRenderer
                 path.AddRoundRect(new SKRoundRect(new SKRect(0, 0, w, h), shape.CornerRadiusMm, shape.CornerRadiusMm));
                 break;
             case "svg" when !string.IsNullOrWhiteSpace(shape.Svg):
-                using (var parsed = SvgPathParser.Parse(ExtractPath(shape.Svg!), w, h))
+                using (var parsed = SvgPathParser.Parse(ExtractPath(shape.Svg!), w, h, fitToBounds: !shape.SvgIsLabelMm))
                     path.AddPath(parsed);
                 if (path.IsEmpty) path.AddRect(new SKRect(0, 0, w, h));
                 break;
@@ -148,6 +168,58 @@ public static class DocumentRenderer
                 break;
         }
         return path;
+    }
+
+    private static void DrawGuides(SKCanvas canvas, PaperShape shape, float w, float h)
+    {
+        var fit = !shape.SvgIsLabelMm;
+        if (shape.Guides is { Count: > 0 })
+        {
+            foreach (var g in shape.Guides)
+            {
+                if (string.IsNullOrWhiteSpace(g.D)) continue;
+                using var path = SvgPathParser.Parse(g.D, w, h, fitToBounds: fit);
+                path.FillType = g.EvenOdd ? SKPathFillType.EvenOdd : SKPathFillType.Winding;
+                if (!string.IsNullOrWhiteSpace(g.Fill))
+                {
+                    using var fill = new SKPaint
+                    {
+                        Color = ColorUtil.Parse(g.Fill),
+                        IsAntialias = true,
+                        Style = SKPaintStyle.Fill
+                    };
+                    canvas.DrawPath(path, fill);
+                }
+
+                if (!string.IsNullOrWhiteSpace(g.Stroke))
+                {
+                    using var stroke = new SKPaint
+                    {
+                        Color = ColorUtil.Parse(g.Stroke),
+                        IsAntialias = true,
+                        Style = SKPaintStyle.Stroke,
+                        StrokeWidth = g.StrokeWidthMm > 0 ? g.StrokeWidthMm : 0.28f,
+                        StrokeJoin = SKStrokeJoin.Round,
+                        StrokeCap = SKStrokeCap.Round
+                    };
+                    canvas.DrawPath(path, stroke);
+                }
+            }
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(shape.GuideSvg)) return;
+        using var guide = SvgPathParser.Parse(ExtractPath(shape.GuideSvg!), w, h, fitToBounds: fit);
+        using var guidePaint = new SKPaint
+        {
+            Color = new SKColor(0x2E, 0x2A, 0x27),
+            IsAntialias = true,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = 0.28f,
+            StrokeJoin = SKStrokeJoin.Round,
+            StrokeCap = SKStrokeCap.Round
+        };
+        canvas.DrawPath(guide, guidePaint);
     }
 
     private static string ExtractPath(string svg)
@@ -330,46 +402,67 @@ public static class DocumentRenderer
         }
 
         text = string.IsNullOrEmpty(text) ? " " : text;
-        var style = obj.TextMode == TextMode.WordArt ? obj.WordArtStyle : WordArtStyle.None;
-        if (style is WordArtStyle.ArcUp or WordArtStyle.ArcDown or WordArtStyle.Circle or WordArtStyle.Wave)
+        canvas.Save();
+        if (obj.FlipHorizontal)
         {
-            DrawWordArt(canvas, obj, text, alpha, style);
+            canvas.Translate(obj.Width, 0);
+            canvas.Scale(-1, 1);
+        }
+
+        if (obj.Italic)
+            canvas.Skew(-0.25f, 0);
+
+        var style = obj.TextMode == TextMode.WordArt ? obj.WordArtStyle : WordArtStyle.None;
+        if (style is WordArtStyle.ArcUp or WordArtStyle.ArcDown or WordArtStyle.Circle or WordArtStyle.Wave or WordArtStyle.Rounded)
+        {
+            DrawWordArt(canvas, obj, text, alpha, style == WordArtStyle.Rounded ? WordArtStyle.ArcUp : style);
+            canvas.Restore();
             return;
         }
 
         using var paint = new SKPaint { Color = ColorUtil.Parse(obj.Fill, alpha), IsAntialias = true };
         using var font = new SKFont(ResolveTypeface(obj.Bold), obj.FontSize);
-        if (obj.Italic)
-            canvas.Skew(-0.25f, 0);
 
         if (obj.TextDirection == "vertical")
         {
-            DrawVerticalText(canvas, obj, text, font, paint);
+            DrawVerticalText(canvas, obj, text, font, paint, alpha);
+            canvas.Restore();
             return;
         }
 
-        var lines = text.Replace("\r\n", "\n").Split('\n');
+        if (style == WordArtStyle.Stretch)
+        {
+            DrawStretchedText(canvas, obj, text, font, paint, alpha);
+            canvas.Restore();
+            return;
+        }
+
+        var inset = 1f;
+        var maxW = Math.Max(obj.FontSize * 0.6f, obj.Width - inset * 2f);
+        var lines = WrapText(text, font, maxW, obj.TextWrap);
         var lineH = obj.FontSize * Math.Max(0.8f, obj.LineHeight);
-        var totalH = lineH * lines.Length;
+        var totalH = lineH * lines.Count;
         float startY = obj.VerticalAlign switch
         {
             "top" => lineH,
-            "bottom" => obj.Height - (lines.Length - 1) * lineH - 0.4f,
+            "bottom" => obj.Height - (lines.Count - 1) * lineH - 0.4f,
             _ => (obj.Height - totalH) / 2f + lineH * 0.78f
         };
 
-        for (var i = 0; i < lines.Length; i++)
+        canvas.Save();
+        canvas.ClipRect(new SKRect(0, 0, obj.Width, obj.Height));
+        for (var i = 0; i < lines.Count; i++)
         {
             var line = lines[i];
             var tw = font.MeasureText(line);
             float x = obj.TextAlign switch
             {
-                "left" => 1f,
-                "right" => obj.Width - tw - 1f,
+                "left" => inset,
+                "right" => obj.Width - tw - inset,
                 _ => (obj.Width - tw) / 2f
             };
             var y = startY + i * lineH;
-            canvas.DrawText(line, x, y, SKTextAlign.Left, font, paint);
+            DrawGlyph(canvas, obj, line, x, y, SKTextAlign.Left, font, paint, alpha);
             if (obj.Underline || obj.Strikeout)
             {
                 using var lp = new SKPaint
@@ -382,9 +475,102 @@ public static class DocumentRenderer
                 if (obj.Strikeout) canvas.DrawLine(x, y - obj.FontSize * 0.35f, x + tw, y - obj.FontSize * 0.35f, lp);
             }
         }
+        canvas.Restore();
+        canvas.Restore();
     }
 
-    private static void DrawVerticalText(SKCanvas canvas, DesignObject obj, string text, SKFont font, SKPaint paint)
+    private static List<string> WrapText(string text, SKFont font, float maxWidth, string? mode)
+    {
+        var hard = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        if (string.Equals(mode, "none", StringComparison.OrdinalIgnoreCase))
+            return [.. hard];
+
+        var word = string.Equals(mode, "word", StringComparison.OrdinalIgnoreCase);
+        var lines = new List<string>();
+        foreach (var para in hard)
+        {
+            if (para.Length == 0)
+            {
+                lines.Add("");
+                continue;
+            }
+
+            var current = "";
+            foreach (var ch in para)
+            {
+                var test = current + ch;
+                if (font.MeasureText(test) <= maxWidth || current.Length == 0)
+                {
+                    current = test;
+                    continue;
+                }
+
+                if (word)
+                {
+                    var cut = LastBreak(current);
+                    if (cut > 0)
+                    {
+                        lines.Add(current[..cut].TrimEnd());
+                        current = current[cut..].TrimStart() + ch;
+                        continue;
+                    }
+                }
+
+                lines.Add(current);
+                current = ch.ToString();
+            }
+
+            if (current.Length > 0)
+                lines.Add(current);
+        }
+        return lines.Count == 0 ? [""] : lines;
+    }
+
+    private static int LastBreak(string s)
+    {
+        for (var i = s.Length - 1; i > 0; i--)
+        {
+            if (char.IsWhiteSpace(s[i])) return i;
+        }
+        return -1;
+    }
+
+    private static void DrawStretchedText(SKCanvas canvas, DesignObject obj, string text, SKFont font, SKPaint paint, byte alpha)
+    {
+        var line = text.Replace("\r\n", " ").Replace('\n', ' ');
+        var tw = Math.Max(0.2f, font.MeasureText(line));
+        var scaleX = obj.Width / tw;
+        var scaleY = obj.Height / Math.Max(0.4f, obj.FontSize * 1.15f);
+        canvas.Save();
+        canvas.Scale(scaleX, scaleY);
+        DrawGlyph(canvas, obj, line, 0, obj.FontSize * 0.92f, SKTextAlign.Left, font, paint, alpha);
+        canvas.Restore();
+    }
+
+    private static void DrawGlyph(SKCanvas canvas, DesignObject obj, string text, float x, float y, SKTextAlign align, SKFont font, SKPaint paint, byte alpha)
+    {
+        if (obj.Shadow)
+        {
+            using var shade = new SKPaint { Color = new SKColor(0x40, 0x3A, 0x36, (byte)(alpha * 0.45f)), IsAntialias = true };
+            canvas.DrawText(text, x + obj.FontSize * 0.12f, y + obj.FontSize * 0.12f, align, font, shade);
+        }
+        if (obj.Outline)
+        {
+            using var stroke = new SKPaint
+            {
+                Color = ColorUtil.Parse(obj.Fill, alpha),
+                IsAntialias = true,
+                Style = SKPaintStyle.Stroke,
+                StrokeWidth = Math.Max(0.18f, obj.FontSize * 0.1f),
+                StrokeJoin = SKStrokeJoin.Round
+            };
+            canvas.DrawText(text, x, y, align, font, stroke);
+            return;
+        }
+        canvas.DrawText(text, x, y, align, font, paint);
+    }
+
+    private static void DrawVerticalText(SKCanvas canvas, DesignObject obj, string text, SKFont font, SKPaint paint, byte alpha)
     {
         var chars = text.Replace("\r\n", "").Replace("\n", "").ToCharArray();
         if (chars.Length == 0) return;
@@ -414,7 +600,7 @@ public static class DocumentRenderer
             var y = obj.VerticalAlign == "top"
                 ? lineH + row * lineH
                 : startY - (Math.Min(rows, chars.Length) - 1 - row) * lineH;
-            canvas.DrawText(chars[i].ToString(), x, y, SKTextAlign.Center, font, paint);
+            DrawGlyph(canvas, obj, chars[i].ToString(), x, y, SKTextAlign.Center, font, paint, alpha);
         }
     }
 
@@ -447,7 +633,7 @@ public static class DocumentRenderer
                 var s = chars[i].ToString();
                 var cw = font.MeasureText(s);
                 var wave = MathF.Sin(i / (float)Math.Max(1, chars.Length - 1) * MathF.PI * 2f) * (obj.Height * 0.18f);
-                canvas.DrawText(s, x, obj.Height * 0.62f + wave, SKTextAlign.Left, font, paint);
+                DrawGlyph(canvas, obj, s, x, obj.Height * 0.62f + wave, SKTextAlign.Left, font, paint, alpha);
                 x += cw + obj.LetterSpacing;
             }
             return;
@@ -485,7 +671,7 @@ public static class DocumentRenderer
             canvas.Save();
             canvas.Translate(x, y);
             canvas.RotateDegrees(deg + 90);
-            canvas.DrawText(chars[i].ToString(), 0, 0, SKTextAlign.Center, font, paint);
+            DrawGlyph(canvas, obj, chars[i].ToString(), 0, 0, SKTextAlign.Center, font, paint, alpha);
             canvas.Restore();
         }
     }

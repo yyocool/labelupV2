@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using LabelUp.Editor.Models;
+using LabelUp.Editor.Vendor;
 
 namespace LabelUp.Editor.Services;
 
@@ -23,6 +24,20 @@ internal static class FormtecRecords
 
         switch (type)
         {
+            case 0x02:
+                // 페이지 블록 길이 100은 B8 01(2)을 포함하므로 객체는 보통 98바이트.
+                // +0x47의 0x2711+종류(선=1, 화살=0)까지는 최소 79바이트 필요.
+                length = Math.Min(100, available);
+                return length >= 79;
+            case 0x07:
+            case 0x08:
+                return TryBarcode1DLength(data, start, pageEnd, out length);
+            case 0x04:
+                length = 95;
+                return length <= available;
+            case 0x05:
+                length = 75;
+                return length <= available;
             case 0x09 or 0x18:
                 return TryImageLength(data, start, available, type, out length);
             case 0x0A:
@@ -45,9 +60,21 @@ internal static class FormtecRecords
         end = Math.Min(end, data.Length);
         switch (type)
         {
+            case 0x02:
+                ApplyLineOrArrow(obj, data, start, end);
+                break;
+            case 0x04:
+            case 0x05:
+            case 0x0E:
+                ApplyClosedShape(obj, data, start, end);
+                break;
             case 0x09:
             case 0x18:
                 ApplyImage(obj, data, start, end, type == 0x18);
+                break;
+            case 0x07:
+            case 0x08:
+                ApplyBarcode1D(obj, data, start, end);
                 break;
             case 0x10:
                 ApplyBarcode2D(obj, data, start, end);
@@ -132,6 +159,61 @@ internal static class FormtecRecords
         return length > 0 && length <= pageEnd - start;
     }
 
+    /// <summary>
+    /// DGF_바코드_객체_분석_Rev2026-08-05.md + WPF DgfBarcodeRecordParser.
+    /// 문서 +0x52/+0x53 은 타입 1바이트 기준과 2바이트 차이.
+    /// 확정: Subtype +0x50, TextLength +0x51, Text +0x55. 길이 = Style 직후 + 45.
+    /// </summary>
+    private static bool TryBarcode1DLength(byte[] data, int start, int pageEnd, out int length)
+    {
+        length = 0;
+        var shift = FieldNameShift(data, start, pageEnd);
+        if (!TryReadBarcode1DCore(data, start, pageEnd, shift, out _, out _, out var afterStyle)
+            && (shift == 0 || !TryReadBarcode1DCore(data, start, pageEnd, 0, out _, out _, out afterStyle)))
+            return false;
+
+        var available = pageEnd - start;
+        var pos = afterStyle + 27;
+        var hadCaption = false;
+        while (pos + 4 <= pageEnd)
+        {
+            var sl = (int)BitConverter.ToUInt32(data, pos);
+            if (sl is < 2 or > 40 || pos + 4 + sl > pageEnd) break;
+            if (!LooksLikeCaptionBytes(data.AsSpan(pos + 4, sl))) break;
+            pos += 4 + sl;
+            hadCaption = true;
+        }
+
+        length = hadCaption ? pos + 10 - start : afterStyle + 45 - start;
+        return length > 41 && length <= available;
+    }
+
+    private static bool TryReadBarcode1DCore(
+        byte[] data, int start, int pageEnd, int shift,
+        out int textLen, out int fontNameLen, out int afterStyle)
+    {
+        textLen = 0;
+        fontNameLen = 0;
+        afterStyle = 0;
+        if (pageEnd - start < 0x55 + shift + 14) return false;
+        textLen = (int)BitConverter.ToUInt32(data, start + 0x51 + shift);
+        if (textLen is < 0 or > 80) return false;
+        var textEnd = start + 0x55 + shift + textLen;
+        if (textEnd + 14 > pageEnd) return false;
+        fontNameLen = (int)BitConverter.ToUInt32(data, textEnd + 10);
+        if (fontNameLen is < 0 or > 80) return false;
+        afterStyle = textEnd + 14 + fontNameLen + 12;
+        return afterStyle + 45 <= pageEnd;
+    }
+
+    private static bool LooksLikeCaptionBytes(ReadOnlySpan<byte> bytes)
+    {
+        if (bytes.Length == 0) return false;
+        foreach (var b in bytes)
+            if (b < 0x20) return false;
+        return true;
+    }
+
     private static bool TryBarcode2DLength(byte[] data, int start, int available, out int length)
     {
         length = 0;
@@ -167,10 +249,18 @@ internal static class FormtecRecords
                && data[rtf + 4] == (byte)'f';
     }
 
+    /// <summary>
+    /// DGZ_텍스트_항목_최종_확정_2026-08-10.md + WPF DgfTextRecordParser.
+    /// 117+2N+F 와 48+2N+F 는 표식 R(0x2711) 기준. 객체 앞머리 0x47은 별도.
+    /// trailing 69바이트는 다음 객체 좌표이므로, 바코드 등이 이어지면 생략한다.
+    /// </summary>
     private static bool TryTextLength(byte[] data, int start, int pageEnd, out int length)
     {
+        const int outerHeader = 0x47;
+        const int fixedWithTrailing = 117;
+        const int fixedWithoutTrailing = 48;
         length = 0;
-        var marker = start + 0x47;
+        var marker = start + outerHeader;
         if (!Is2711(data, marker) || marker + 8 > pageEnd) return false;
         var n = BitConverter.ToUInt32(data, marker + 4);
         if (n > 100_000) return false;
@@ -179,11 +269,140 @@ internal static class FormtecRecords
         if (data[p + 2] > 2 || data[p + 8] > 2) return false;
         var f = BitConverter.ToUInt32(data, (int)p + 24);
         if (f > 200) return false;
-        var full = 0x47 + 117 + (int)n * 2 + (int)f;
-        var shortLen = 0x47 + 48 + (int)n * 2 + (int)f;
-        if (start + full <= pageEnd) { length = full; return true; }
-        if (start + shortLen <= pageEnd) { length = shortLen; return true; }
+
+        var n2f = (int)n * 2 + (int)f;
+        var fullFromR = fixedWithTrailing + n2f;
+        var shortFromR = fixedWithoutTrailing + n2f;
+
+        // 본문을 훑지 않는다. Q+11/Q+12(문서 1바이트 차이) 후보만 다음 객체로 본다.
+        foreach (var cand in new[] { marker + n2f + 46, marker + n2f + 48 })
+        {
+            if (cand <= start + 41 || cand + 41 > pageEnd) continue;
+            if (!ExternalImportService.TryGeom(data, cand, pageEnd, out var nextType, out _, out _, out _, out _)
+                || !IsObjectType(nextType))
+                continue;
+            length = cand - start;
+            return length > 41;
+        }
+
+        if (marker + fullFromR <= pageEnd && IsValidTextRecord(data, marker + fullFromR, pageEnd))
+        {
+            length = outerHeader + fullFromR;
+            return length > 41 && start + length <= pageEnd;
+        }
+
+        length = outerHeader + shortFromR;
+        return length > 41 && start + length <= pageEnd;
+    }
+
+    private static bool IsValidTextRecord(byte[] data, int recordStart, int pageEnd)
+    {
+        if (!Is2711(data, recordStart) || recordStart + 8 > pageEnd) return false;
+        var n = BitConverter.ToUInt32(data, recordStart + 4);
+        if (n is 0 or > 100_000) return false;
+        var p = recordStart + 8 + n * 2L;
+        if (p + 28 > pageEnd) return false;
+        if (data[p + 2] > 2 || data[p + 8] > 2) return false;
+        var f = BitConverter.ToUInt32(data, (int)p + 24);
+        return f <= 200;
+    }
+
+    private static bool IsObjectType(byte type) => type is
+        0x00 or 0x02 or 0x04 or 0x05 or 0x06 or 0x07 or 0x08 or 0x09 or 0x0A or 0x0B
+        or 0x0E or 0x0F or 0x10 or 0x16 or 0x18;
+
+    internal static bool IsPlainLine(byte[] data, int start, int end)
+        => TryReadLineKind(data, start, end, out var kind) && kind == 1;
+
+    private static bool TryReadLineKind(byte[] data, int start, int end, out uint kind)
+    {
+        kind = 0;
+        var marker = start + 0x47;
+        if (marker + 8 <= end && Is2711(data, marker))
+        {
+            kind = BitConverter.ToUInt32(data, marker + 4);
+            return true;
+        }
+
+        var scanTo = Math.Min(end, start + 100) - 8;
+        for (var i = start + 0x40; i <= scanTo; i++)
+        {
+            if (!Is2711(data, i)) continue;
+            kind = BitConverter.ToUInt32(data, i + 4);
+            return true;
+        }
         return false;
+    }
+
+    /// <summary>
+    /// 닫힌 도형(사각/원/둥근사각). geometry 41바이트 다음:
+    /// +0x29 COLORREF 채우기, +0x2D 채우기 사용, +0x2E COLORREF 선색, +0x33 Extended80 선굵기.
+    /// </summary>
+    private static void ApplyClosedShape(DesignObject obj, byte[] data, int start, int end)
+    {
+        obj.Fill = "transparent";
+        obj.Stroke = "#000000";
+        obj.StrokeWidth = 0.35f;
+        obj.BackgroundTransparent = true;
+
+        if (start + 0x2D < end && data[start + 0x2D] != 0 && start + 0x29 + 4 <= end)
+        {
+            obj.Fill = ColorRefCss(BitConverter.ToUInt32(data, start + 0x29));
+            obj.BackgroundFill = obj.Fill;
+            obj.BackgroundTransparent = false;
+        }
+
+        if (start + 0x32 <= end)
+            obj.Stroke = ColorRefCss(BitConverter.ToUInt32(data, start + 0x2E));
+
+        if (start + 0x33 + 10 <= end)
+        {
+            var thick = Extended80.ReadStandard(data.AsSpan(start + 0x33, 10));
+            if (thick is > 0 and < 20)
+                obj.StrokeWidth = (float)Math.Clamp(thick, 0.15, 8);
+        }
+    }
+
+    private static void ApplyLineOrArrow(DesignObject obj, byte[] data, int start, int end)
+    {
+        obj.BackgroundTransparent = true;
+        obj.Stroke = "#000000";
+        obj.StrokeWidth = 0.35f;
+
+        if (start + 0x32 <= end)
+            obj.Stroke = ColorRefCss(BitConverter.ToUInt32(data, start + 0x2E));
+
+        if (start + 0x33 + 10 <= end)
+        {
+            var thick = Extended80.ReadStandard(data.AsSpan(start + 0x33, 10));
+            if (thick is > 0 and < 20)
+                obj.StrokeWidth = (float)Math.Clamp(thick, 0.15, 8);
+        }
+
+        obj.Fill = obj.Stroke;
+        if (IsPlainLine(data, start, end))
+        {
+            obj.ShapeKind = ShapeKind.Line;
+            obj.ArrowHeads = ArrowHeads.End;
+        }
+        else
+        {
+            obj.ShapeKind = ShapeKind.Arrow;
+            obj.ArrowHeads = ArrowHeads.End;
+        }
+    }
+
+    internal static void FitDiagonal(DesignObject obj, float x, float y, float w, float h)
+    {
+        var len = MathF.Sqrt(w * w + h * h);
+        if (len < 0.4f) len = 0.4f;
+        var angle = MathF.Atan2(h, w) * (180f / MathF.PI);
+        var thick = Math.Max(obj.StrokeWidth * 6f, obj.ShapeKind == ShapeKind.Arrow ? 3.2f : 1.2f);
+        obj.Width = len;
+        obj.Height = thick;
+        obj.X = x + w / 2f - obj.Width / 2f;
+        obj.Y = y + h / 2f - obj.Height / 2f;
+        obj.Rotation = angle;
     }
 
     private static void ApplyImage(DesignObject obj, byte[] data, int start, int end, bool clipart)
@@ -222,6 +441,75 @@ internal static class FormtecRecords
         obj.Fill = "transparent";
         obj.StrokeWidth = 0;
         obj.BackgroundTransparent = true;
+    }
+
+    private static readonly string[] Barcode1DFormats =
+    [
+        "EAN_8", "EAN_13", "CODABAR", "CODE_39", "CODE_39_EXT",
+        "CODE_93", "CODE_93_EXT", "CODE_128", "ABC_CODABAR",
+        "I25_DATALOGIC", "ITF", "I25_MATRIX", "I25_INDUSTRIAL",
+        "I25_IATA", "I25_INVERT", "ITF", "ISBN", "ISSN", "ISMN",
+        "UPC_A", "UPC_E0", "UPC_E1", "UPC_A", "JAN_8", "JAN_13",
+        "MSI", "POSTNET", "OPC", "EAN_128", "COOP25",
+        "CODE_11", "PZN"
+    ];
+
+    private static void ApplyBarcode1D(DesignObject obj, byte[] data, int start, int end)
+    {
+        var shift = FieldNameShift(data, start, end);
+        if (!TryReadBarcode1DCore(data, start, end, shift, out var textLen, out var fontNameLen, out var afterStyle))
+        {
+            if (shift == 0 || !TryReadBarcode1DCore(data, start, end, 0, out textLen, out fontNameLen, out afterStyle))
+                return;
+            shift = 0;
+        }
+
+        var subtype = data[start + 0x50 + shift];
+        obj.BarcodeFormat = subtype < Barcode1DFormats.Length
+            ? Barcode1DFormats[subtype]
+            : "CODE_128";
+        obj.Type = ObjectType.Barcode;
+        if (start + 0x55 + shift + textLen <= end)
+            obj.BarcodeValue = Encoding.ASCII.GetString(data, start + 0x55 + shift, textLen);
+
+        var p = start + 0x55 + shift + textLen;
+        if (p + 14 > end) return;
+        obj.BarcodeShowText = data[p] != 0;
+        obj.BackgroundTransparent = data[p + 1] != 0;
+        obj.BackgroundFill = ColorRefCss(BitConverter.ToUInt32(data, p + 2));
+        obj.Fill = ColorRefCss(BitConverter.ToUInt32(data, p + 6));
+        obj.Stroke = obj.Fill;
+
+        if (fontNameLen > 0 && p + 14 + fontNameLen <= end)
+            obj.FontFamily = ExternalImportService.DecodeAnsi(data.AsSpan(p + 14, fontNameLen));
+        var q = p + 14 + fontNameLen;
+        if (q + 4 <= end)
+            obj.FontSize = PtToMm(BitConverter.ToUInt32(data, q));
+        if (q + 9 <= end)
+            ApplyStyleFlags(obj, data[q + 8]);
+
+        var pos = afterStyle + 27;
+        while (pos + 4 <= end)
+        {
+            var sl = (int)BitConverter.ToUInt32(data, pos);
+            if (sl is < 2 or > 40 || pos + 4 + sl > end) break;
+            var slice = data.AsSpan(pos + 4, sl);
+            if (!LooksLikeCaptionBytes(slice)) break;
+            var caption = ExternalImportService.DecodeAnsi(slice);
+            if (caption is "머리말" or "꼬리말")
+                obj.BarcodeShowStartEnd = true;
+            pos += 4 + sl;
+        }
+
+        for (var i = afterStyle; i + 4 <= end; i++)
+        {
+            var rot = BitConverter.ToInt32(data, i);
+            if (rot is 90 or 180 or 270)
+            {
+                obj.Rotation = rot;
+                break;
+            }
+        }
     }
 
     private static void ApplyBarcode2D(DesignObject obj, byte[] data, int start, int end)
@@ -326,6 +614,7 @@ internal static class FormtecRecords
         if (n < 0 || textPos + textBytes > data.Length) return;
         var raw = Encoding.Unicode.GetString(data, textPos, textBytes);
         obj.Text = raw;
+        obj.TextWrap = "char";
 
         var paramPos = textPos + textBytes;
         if (paramPos + 16 <= data.Length)
@@ -347,6 +636,7 @@ internal static class FormtecRecords
         if (rtfLen < 6 || rtfOff + rtfLen > data.Length) return;
         var rtf = Encoding.ASCII.GetString(data, rtfOff, rtfLen);
         obj.Text = ExtractRtfPlain(rtf);
+        obj.TextWrap = "char";
         if (Regex.IsMatch(rtf, @"\\fs(\d+)"))
         {
             var fs = Regex.Match(rtf, @"\\fs(\d+)");
@@ -389,6 +679,11 @@ internal static class FormtecRecords
         var vAlign = data[p + 8];
         if ((hAlign == 2 && vAlign == 1) || obj.Height > obj.Width * 1.15f)
             obj.TextDirection = "vertical";
+        // 본문에 CR/LF가 없어도 박스 폭에서 자동 줄바꿈. P+9: 0=글자, 1=단어.
+        if (p + 9 < data.Length)
+            obj.TextWrap = data[p + 9] == 1 ? "word" : "char";
+        else
+            obj.TextWrap = "char";
     }
 
     private static void ApplyTextStyleHead(DesignObject obj, byte[] data, int p)
@@ -664,7 +959,7 @@ internal static class FormtecRecords
 
     private static string AlignH(byte v) => v switch { 1 => "right", 2 => "center", _ => "left" };
     private static float PtToMm(uint pt) => Math.Clamp(pt * 0.3528f, 1.4f, 28f);
-    private static string RgbCss(byte r, byte g, byte b) => $"#{r:X2}{g:X2}{b:X2}";
+    private static string RgbCss(byte r, byte g, byte b) => $"#{r:x2}{g:x2}{b:x2}";
     private static string ColorRefCss(uint c)
-        => $"#{c & 0xFF:X2}{(c >> 8) & 0xFF:X2}{(c >> 16) & 0xFF:X2}";
+        => $"#{c & 0xFF:x2}{(c >> 8) & 0xFF:x2}{(c >> 16) & 0xFF:x2}";
 }

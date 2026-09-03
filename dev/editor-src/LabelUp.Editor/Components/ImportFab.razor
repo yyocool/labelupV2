@@ -427,7 +427,19 @@
         ViewMode = "spec";
     }
 
+    private async Task ConfirmIfDirtyThenAsync(Func<Task> next)
+    {
+        if (Session.Dirty)
+            await Js.InvokeVoidAsync("labelUpEditor.closeImport");
+        await Session.ConfirmIfDirtyAsync(next);
+    }
+
     private async Task PickSpec(ImportSpec spec)
+    {
+        await ConfirmIfDirtyThenAsync(() => ApplySpecAsync(spec));
+    }
+
+    private async Task ApplySpecAsync(ImportSpec spec)
     {
         History.Push(Session.Document);
         var paper = Papers.Find(spec.Code)
@@ -455,6 +467,11 @@
     }
 
     private async Task PickDesign(ImportDesign item, float? width = null, float? height = null)
+    {
+        await ConfirmIfDirtyThenAsync(() => ApplyDesignAsync(item, width, height));
+    }
+
+    private async Task ApplyDesignAsync(ImportDesign item, float? width, float? height)
     {
         History.Push(Session.Document);
         var w = width ?? 70f;
@@ -488,6 +505,11 @@
 
     private async Task PickMyDesign(ImportMyDesign item)
     {
+        await ConfirmIfDirtyThenAsync(() => ApplyMyDesignAsync(item));
+    }
+
+    private async Task ApplyMyDesignAsync(ImportMyDesign item)
+    {
         History.Push(Session.Document);
         ParseSize(item.Spec, out var w, out var h);
         var doc = LabelDocument.CreateBlank(w, h);
@@ -515,8 +537,13 @@
             SessionHint("프롬프트를 입력해 주세요");
             return;
         }
-        History.Push(Session.Document);
         var prompt = SmartPrompt.Trim();
+        await ConfirmIfDirtyThenAsync(() => ApplySmartPromptAsync(prompt));
+    }
+
+    private async Task ApplySmartPromptAsync(string prompt)
+    {
+        History.Push(Session.Document);
         var doc = LabelDocument.CreateBlank(70f, 50f);
         doc.Name = "스마트라벨";
         var text = FirstText(doc);
@@ -557,10 +584,7 @@
             await stream.CopyToAsync(ms);
             var json = System.Text.Encoding.UTF8.GetString(ms.ToArray());
             var doc = LabelDocumentJson.Parse(json);
-            History.Push(Session.Document);
-            Session.ReplaceDocument(doc);
-            Session.Status = $"「{doc.Name}」 디자인을 불러왔습니다";
-            await Js.InvokeVoidAsync("labelUpEditor.closeImport");
+            await ConfirmIfDirtyThenAsync(() => OpenMyDesignAsync(doc));
         }
         catch (Exception ex)
         {
@@ -568,32 +592,46 @@
         }
     }
 
+    private async Task OpenMyDesignAsync(LabelDocument doc)
+    {
+        History.Push(Session.Document);
+        Session.ReplaceDocument(doc);
+        Session.Status = $"「{doc.Name}」 디자인을 불러왔습니다";
+        await Js.InvokeVoidAsync("labelUpEditor.closeImport");
+    }
+
     private async Task OnVendorFile(InputFileChangeEventArgs e)
     {
         try
         {
+            var name = e.File.Name;
             await using var stream = e.File.OpenReadStream(30 * 1024 * 1024);
             using var ms = new MemoryStream();
             await stream.CopyToAsync(ms);
-            Session.Status = "타사 포맷 분석 중…";
-            Session.Notify();
-            await InvokeAsync(StateHasChanged);
-            await Task.Delay(40);
-            var report = ExternalImport.Analyze(e.File.Name, ms.ToArray());
-            Session.PendingVendorImport = report;
-            await Js.InvokeVoidAsync("labelUpEditor.closeImport");
-            Session.OpenDialog(EditorDialog.VendorImport);
+            var bytes = ms.ToArray();
+            await ConfirmIfDirtyThenAsync(() => AnalyzeVendorAsync(name, bytes));
         }
         catch (Exception ex)
         {
-            EditorLog.Error("타사 포맷 변환 실패", ex);
-            SessionHint("타사 포맷 변환 실패: " + ex.Message);
+            Session.ShowConversionError(ex);
         }
     }
 
     private void OpenVendorImport()
     {
         Session.OpenDialog(EditorDialog.VendorPicker);
+    }
+
+    private async Task AnalyzeVendorAsync(string fileName, byte[] bytes)
+    {
+        await Js.InvokeVoidAsync("labelUpEditor.closeImport");
+        await VendorImportActions.AnalyzeAsync(
+            Session, ExternalImport, fileName, bytes,
+            async () =>
+            {
+                await InvokeAsync(StateHasChanged);
+                await Task.Delay(40);
+            });
     }
 
     private void SessionHint(string msg)
