@@ -19,6 +19,7 @@ public sealed class EditorSession
     public bool Dirty { get; set; }
     public bool ShowGrid { get; set; } = true;
     public bool TopBarPinned { get; set; } = true;
+    public bool AutoSaveEnabled { get; set; }
     public string Status { get; set; } = "준비됨";
     public string PropsTab { get; set; } = "props";
     public bool PropsMinimized { get; set; } = false;
@@ -262,10 +263,10 @@ public sealed class EditorSession
     {
         var wMm = Math.Max(1f, Document.WidthMm);
         var hMm = Math.Max(1f, Document.HeightMm);
-        var chrome = RulerPx + RulerGapPx + 28f;
-        var availW = Math.Max(80f, viewW - VisibleLeft - VisibleRight - chrome);
-        var availH = Math.Max(80f, viewH - VisibleTop - VisibleBottom - chrome);
-        var zoom = Math.Min(availW / (wMm * PxPerMm), availH / (hMm * PxPerMm));
+        var pad = (RulerPx + RulerGapPx + 24f) * 2f;
+        var availW = Math.Max(80f, viewW - pad);
+        var availH = Math.Max(80f, viewH - pad);
+        var zoom = Math.Min(availW / (wMm * PxPerMm), availH / (hMm * PxPerMm)) * 0.9f;
         return Math.Clamp(zoom, MinZoom, MaxZoom);
     }
 

@@ -19,7 +19,7 @@
     "assembly": {
       "ExcelDataReader.DataSet.wasm": "sha256-eM/Vt4GxUiQsxVwPh3KKAke/LL9EnUPuS5ajIFktgqQ=",
       "ExcelDataReader.wasm": "sha256-p2z9GHuyV5pTFXT+GKmexXTO4ltRggPcT9q47Kjwzvg=",
-      "LabelUp.Editor.wasm": "sha256-9pWkIvYOwk9F9S8WjpweQ+9kDpRWSMhdOYv/1SrRsA8=",
+      "LabelUp.Editor.wasm": "sha256-WFLT+IFoL1ZRyODnKF3nZGdn/R6BypBF6jxmg0+3pqQ=",
       "Microsoft.AspNetCore.Components.wasm": "sha256-SiHWtHabxBHJsGjDSDPIEjlIXadQcURL1rbPnfvUIx8=",
       "Microsoft.AspNetCore.Components.Web.wasm": "sha256-tBZe0S3eL9L1K2RwcDpBXinSDZGGH6euWQReL2uJKu4=",
       "Microsoft.AspNetCore.Components.WebAssembly.wasm": "sha256-LaRHxGip4JnNCHIMbeWZDqCTegV56E6JLRbhbcDG0LY=",

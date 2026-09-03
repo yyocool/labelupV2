@@ -22,7 +22,13 @@
       <img src="/assets/labi-icon.png" alt="라비" />
     </a>
     <div class="ed-topbar__file-meta">
-      <input class="ed-topbar__name" data-tut="doc-name" value="@Session.Document.Name" @onchange="OnRename" maxlength="80" aria-label="디자인 제목" />
+      <div class="ed-topbar__title-row">
+        <input class="ed-topbar__name" data-tut="doc-name" value="@Session.Document.Name" @onchange="OnRename" maxlength="80" aria-label="디자인 제목" />
+        <label class="ed-autosave @(Session.AutoSaveEnabled ? "is-on" : null)" title="체크하면 5분마다 자동 저장합니다" @onclick="ToggleAutoSave" @onclick:preventDefault="true">
+          <input type="checkbox" checked="@Session.AutoSaveEnabled" @key="@(Session.AutoSaveEnabled ? "on" : "off")" tabindex="-1" />
+          <span>자동저장</span>
+        </label>
+      </div>
       <div class="ed-topbar__saved @(Session.Dirty ? "is-unsaved" : "is-saved")">
         @(Session.Dirty ? "● 수정됨" : "● 저장됨")
         <span class="ed-topbar__status">@Session.Status</span>
@@ -96,9 +102,15 @@
 @code {
     private string ZoomPercent => $"{Session.Zoom * 100:0}";
     private bool _pinLoaded;
+    private bool _autoSaveLoop;
+    private bool _autoSaving;
 
     protected override void OnInitialized() => Session.Changed += OnChanged;
-    public void Dispose() => Session.Changed -= OnChanged;
+    public void Dispose()
+    {
+        Session.Changed -= OnChanged;
+        StopAutoSave();
+    }
     private void OnChanged() => InvokeAsync(StateHasChanged);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -108,6 +120,9 @@
         try
         {
             Session.TopBarPinned = await Js.InvokeAsync<bool>("labelUpEditor.getTopBarPinned");
+            Session.AutoSaveEnabled = await Js.InvokeAsync<bool>("labelUpEditor.getAutoSave");
+            if (Session.AutoSaveEnabled)
+                StartAutoSave();
             Session.Notify();
         }
         catch { }
@@ -128,6 +143,54 @@
         Session.Document.Name = e.Value?.ToString()?.Trim() is { Length: > 0 } n ? n : "새 라벨 디자인";
         Session.Dirty = true;
         Session.Notify();
+    }
+
+    private async Task ToggleAutoSave()
+    {
+        try
+        {
+            Session.AutoSaveEnabled = !Session.AutoSaveEnabled;
+            try { await Js.InvokeVoidAsync("labelUpEditor.setAutoSave", Session.AutoSaveEnabled); } catch { }
+            if (Session.AutoSaveEnabled)
+            {
+                StartAutoSave();
+                Session.Status = "자동저장 켜짐 · 5분마다 저장합니다";
+            }
+            else
+            {
+                StopAutoSave();
+                Session.Status = "자동저장 꺼짐";
+            }
+            Session.Notify();
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error("자동저장 설정 실패", ex);
+        }
+    }
+
+    private void StartAutoSave()
+    {
+        if (_autoSaveLoop) return;
+        _autoSaveLoop = true;
+        _ = RunAutoSaveAsync();
+    }
+
+    private void StopAutoSave()
+    {
+        _autoSaveLoop = false;
+    }
+
+    private async Task RunAutoSaveAsync()
+    {
+        while (_autoSaveLoop)
+        {
+            try { await Task.Delay(300000); }
+            catch { break; }
+            if (!_autoSaveLoop) break;
+            try { await SaveDesign(auto: true); }
+            catch { }
+        }
     }
 
     private void ToggleGrid()
@@ -172,55 +235,79 @@
 
     private void ResetView()
     {
+        Session.PanX = 0;
+        Session.PanY = 0;
         Session.PendingFit = true;
         Session.Notify();
     }
 
-    private async Task SaveDesign()
+    private Task SaveDesign() => SaveDesign(auto: false);
+
+    private async Task SaveDesign(bool auto)
     {
+        if (_autoSaving) return;
+        if (auto && !Session.Dirty) return;
         try
         {
-            var loggedIn = await Cloud.EnsureLoggedInForSaveAsync();
-            if (!loggedIn)
+            _autoSaving = true;
+            var cloudOk = !auto;
+            if (!auto)
             {
-                Session.Status = "로그인하면 작업 내역을 저장할 수 있어요";
-                Session.Notify();
-                return;
+                cloudOk = await Cloud.EnsureLoggedInForSaveAsync();
+                if (!cloudOk)
+                {
+                    Session.Status = "로그인하면 작업 내역을 저장할 수 있어요";
+                    Session.Notify();
+                    return;
+                }
+            }
+            else
+            {
+                cloudOk = await Cloud.IsLoggedInAsync();
             }
 
             await Drafts.SaveAsync(Session.Document);
-
-            var layout = await Cloud.GetUiLayoutAsync();
-            var ui = new
+            if (cloudOk)
             {
-                layout,
-                zoom = Session.Zoom,
-                panX = Session.PanX,
-                panY = Session.PanY,
-                showGrid = Session.ShowGrid,
-                topBarPinned = Session.TopBarPinned,
-                propsTab = Session.PropsTab,
-                propsMinimized = Session.PropsMinimized,
-                previewMinimized = Session.PreviewMinimized,
-                dataPanelVisible = Session.DataPanelVisible,
-                dataPanelExpanded = Session.DataPanelExpanded,
-                pageIndex = Session.PageIndex,
-                labelIndex = Session.LabelIndex
-            };
-            var preview = CapturePreview();
-            var savedId = await Cloud.SaveWorkspaceAsync(Session.Document, ui, preview, Session.WorkspaceId);
-            if (savedId > 0)
-                Session.WorkspaceId = savedId;
+                var layout = await Cloud.GetUiLayoutAsync();
+                var ui = new
+                {
+                    layout,
+                    zoom = Session.Zoom,
+                    panX = Session.PanX,
+                    panY = Session.PanY,
+                    showGrid = Session.ShowGrid,
+                    topBarPinned = Session.TopBarPinned,
+                    autoSave = Session.AutoSaveEnabled,
+                    propsTab = Session.PropsTab,
+                    propsMinimized = Session.PropsMinimized,
+                    previewMinimized = Session.PreviewMinimized,
+                    dataPanelVisible = Session.DataPanelVisible,
+                    dataPanelExpanded = Session.DataPanelExpanded,
+                    pageIndex = Session.PageIndex,
+                    labelIndex = Session.LabelIndex
+                };
+                var preview = CapturePreview();
+                var savedId = await Cloud.SaveWorkspaceAsync(Session.Document, ui, preview, Session.WorkspaceId);
+                if (savedId > 0)
+                    Session.WorkspaceId = savedId;
+            }
 
             Session.Dirty = false;
-            Session.Status = "저장됨 · 계정에 작업과 미리보기를 보관했습니다";
+            Session.Status = auto
+                ? (cloudOk ? "자동저장됨 · 계정에 보관했습니다" : "자동저장됨 · 로컬 초안")
+                : "저장됨 · 계정에 작업과 미리보기를 보관했습니다";
             Session.Notify();
         }
         catch (Exception ex)
         {
-            EditorLog.Error("저장 실패", ex);
-            Session.Status = "저장 실패: " + ex.Message;
+            EditorLog.Error(auto ? "자동저장 실패" : "저장 실패", ex);
+            Session.Status = (auto ? "자동저장 실패: " : "저장 실패: ") + ex.Message;
             Session.Notify();
+        }
+        finally
+        {
+            _autoSaving = false;
         }
     }
 

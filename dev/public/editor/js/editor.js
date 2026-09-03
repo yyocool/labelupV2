@@ -5,15 +5,28 @@ window.labelUpEditor = {
     return window.location.search || '';
   },
   measureStage: function (el) {
-    if (!el) return [0, 0];
-    var w = Math.round(el.clientWidth || 0);
-    var h = Math.round(el.clientHeight || 0);
-    var canvas = el.querySelector ? el.querySelector('canvas') : null;
-    if (canvas && w > 0 && h > 0) {
-      canvas.style.width = w + 'px';
-      canvas.style.height = h + 'px';
-    }
-    return { w: w, h: h };
+    if (!el) return { w: 0, h: 0, x: 0, y: 0 };
+    var r = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+    var w = Math.round((r && r.width) || el.clientWidth || 0);
+    var h = Math.round((r && r.height) || el.clientHeight || 0);
+    var x = r ? r.left : 0;
+    var y = r ? r.top : 0;
+    return { w: w, h: h, x: x, y: y };
+  },
+  bindCanvasStage: function (el, dotnet) {
+    if (!el || el._luStageBound) return;
+    el._luStageBound = true;
+    var apply = function () {
+      var size = window.labelUpEditor.measureStage(el);
+      if (dotnet && size.w >= 80 && size.h >= 80) {
+        dotnet.invokeMethodAsync('OnStageSize', size.w, size.h, size.x, size.y);
+      }
+    };
+    try {
+      new ResizeObserver(function () { apply(); }).observe(el);
+    } catch (e) { /* ignore */ }
+    window.addEventListener('resize', apply);
+    requestAnimationFrame(function () { requestAnimationFrame(apply); });
   },
   takePendingClipart: function () {
     try {
@@ -501,6 +514,12 @@ window.labelUpEditor = {
   },
   setTopBarPinned: function (pinned) {
     try { localStorage.setItem('labelup.topbar.pinned', pinned ? '1' : '0'); } catch (e) { /* ignore */ }
+  },
+  getAutoSave: function () {
+    try { return localStorage.getItem('labelup.autosave') === '1'; } catch (e) { return false; }
+  },
+  setAutoSave: function (on) {
+    try { localStorage.setItem('labelup.autosave', on ? '1' : '0'); } catch (e) { /* ignore */ }
   },
 
   setProjectId: function (id) {

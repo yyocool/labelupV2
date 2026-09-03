@@ -211,8 +211,35 @@ html, body {
   align-items: center;
   gap: 8px;
   min-width: 200px;
-  max-width: 380px;
+  max-width: 460px;
 }
+.ed-topbar__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.ed-autosave {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin: 0 0 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ed-muted);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.ed-autosave input {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  accent-color: var(--burgundy);
+  cursor: pointer;
+}
+.ed-autosave.is-on { color: var(--burgundy); }
 .ed-topbar__logo {
   width: 32px;
   height: 32px;
@@ -373,8 +400,6 @@ html, body {
 .ed__artboard-frame {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
   z-index: 3;
 }
 .ed__vendor-drop {
@@ -414,14 +439,94 @@ html, body {
   height: 100%;
   touch-action: none;
 }
-.skia-view, .skia-view canvas {
+.canvas-stage__skia {
   position: absolute;
-  inset: 0;
+  z-index: 1;
+  box-sizing: border-box;
+  background: #fff;
+  border: 1.6px solid rgba(123, 40, 64, 0.82);
+  border-radius: 4px;
+  box-shadow: 0 10px 22px rgba(46, 42, 39, 0.12);
+  overflow: hidden;
+  pointer-events: none;
+}
+.skia-view,
+.canvas-stage__skia .skia-view,
+.canvas-stage__skia canvas {
+  position: absolute !important;
+  inset: 0 !important;
   width: 100% !important;
   height: 100% !important;
-  min-width: 100%;
-  min-height: 100%;
+  max-width: none !important;
+  max-height: none !important;
   display: block;
+}
+.ed-guides {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+.ed-guides__h,
+.ed-guides__v,
+.ed-guides__corner {
+  position: absolute;
+  box-sizing: border-box;
+  background: #fff;
+  border: 1px solid #7b2840;
+}
+.ed-guides__h {
+  height: 28px;
+}
+.ed-guides__v {
+  width: 28px;
+}
+.ed-guides__corner {
+  width: 28px;
+  height: 28px;
+  background: #f3e8ec;
+}
+.ed-guides__tick {
+  position: absolute;
+  bottom: 0;
+  width: 1px;
+  height: 6px;
+  background: #2e2a27;
+}
+.ed-guides__tick.is-5 { height: 10px; }
+.ed-guides__tick.is-10 { height: 14px; }
+.ed-guides__tick--v {
+  left: auto;
+  right: 0;
+  top: auto;
+  bottom: auto;
+  width: 6px;
+  height: 1px;
+}
+.ed-guides__tick--v.is-5 { width: 10px; }
+.ed-guides__tick--v.is-10 { width: 14px; }
+.ed-guides__num {
+  position: absolute;
+  top: 2px;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 700;
+  color: #2e2a27;
+  line-height: 1;
+}
+.ed-guides__num--v {
+  top: auto;
+  left: 3px;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+.ed-guides__size {
+  position: absolute;
+  left: 8px;
+  top: 15px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #7b2840;
 }
 
 /* —— Floating tools (M-03) —— */

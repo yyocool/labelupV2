@@ -1,8 +1,8 @@
-@using System.Text.Json
 @using LabelUp.Editor.Models
 @using LabelUp.Editor.Rendering
 @using LabelUp.Editor.Services
 @using Microsoft.AspNetCore.Components.Web
+@using Microsoft.JSInterop
 @using SkiaSharp
 @using SkiaSharp.Views.Blazor
 @inject EditorSession Session
@@ -23,10 +23,42 @@
      @oncontextmenu="OnContextMenu"
      @oncontextmenu:preventDefault="true"
      @oncontextmenu:stopPropagation="true">
-  <SKCanvasView @ref="_view"
-                class="skia-view"
-                IgnorePixelScaling="true"
-                OnPaintSurface="OnPaintSurface" />
+  @{
+    var frame = LabelFrame();
+    var rTop = frame.Oy - Gap - Ruler;
+    var rLeft = frame.Ox - Gap - Ruler;
+  }
+  <div class="canvas-stage__skia"
+       style="@($"left:{frame.Ox:0.##}px;top:{frame.Oy:0.##}px;width:{Math.Max(8, frame.LabelW):0.##}px;height:{Math.Max(8, frame.LabelH):0.##}px")">
+    <SKCanvasView @ref="_view"
+                  class="skia-view"
+                  IgnorePixelScaling="true"
+                  OnPaintSurface="OnPaintSurface" />
+  </div>
+  <div class="ed-guides" aria-hidden="true">
+    <div class="ed-guides__h" style="@($"left:{frame.Ox:0.##}px;top:{rTop:0.##}px;width:{frame.LabelW:0.##}px")">
+      @foreach (var mark in RulerMarks(Session.Document.WidthMm, frame.Scale))
+      {
+        <i class="ed-guides__tick @(mark.Is10 ? "is-10" : mark.Is5 ? "is-5" : null)" style="@($"left:{mark.Pos:0.##}px")"></i>
+        @if (mark.Is10)
+        {
+          <em class="ed-guides__num" style="@($"left:{mark.Pos + 2:0.##}px")">@($"{mark.Mm:0}")</em>
+        }
+      }
+      <strong class="ed-guides__size">@($"{Session.Document.WidthMm:0.#}×{Session.Document.HeightMm:0.#} mm")</strong>
+    </div>
+    <div class="ed-guides__v" style="@($"left:{rLeft:0.##}px;top:{frame.Oy:0.##}px;height:{frame.LabelH:0.##}px")">
+      @foreach (var mark in RulerMarks(Session.Document.HeightMm, frame.Scale))
+      {
+        <i class="ed-guides__tick ed-guides__tick--v @(mark.Is10 ? "is-10" : mark.Is5 ? "is-5" : null)" style="@($"top:{mark.Pos:0.##}px")"></i>
+        @if (mark.Is10)
+        {
+          <em class="ed-guides__num ed-guides__num--v" style="@($"top:{mark.Pos + 2:0.##}px")">@($"{mark.Mm:0}")</em>
+        }
+      }
+    </div>
+    <div class="ed-guides__corner" style="@($"left:{rLeft:0.##}px;top:{rTop:0.##}px")"></div>
+  </div>
   @if (_ctxOpen)
   {
     var hasSel = Session.SelectedIds.Count > 0;
@@ -45,6 +77,8 @@
     private ElementReference _stageRef;
     private float _viewW = 800;
     private float _viewH = 600;
+    private float _stageX;
+    private float _stageY;
 
     private bool _dragging;
     private bool _marquee;
@@ -60,102 +94,128 @@
     private const float Gap = EditorSession.RulerGapPx;
 
     private bool _ctxBlocked;
-    private bool _ignoreInvalidate;
+    private bool _skipRender;
+    private DotNetObjectReference<CanvasHost>? _self;
+
+    protected override bool ShouldRender()
+    {
+        if (!_skipRender) return true;
+        _skipRender = false;
+        return false;
+    }
 
     protected override void OnInitialized() => Session.Changed += OnSessionChanged;
-    public void Dispose() => Session.Changed -= OnSessionChanged;
+    public void Dispose()
+    {
+        Session.Changed -= OnSessionChanged;
+        _self?.Dispose();
+        _self = null;
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!_ctxBlocked)
+        if (firstRender)
         {
-            try
-            {
-                await Js.InvokeVoidAsync("labelUpEditor.blockContextMenu", ".canvas-stage");
-                _ctxBlocked = true;
-            }
-            catch
-            {
-                // JS가 아직 없으면 다음 렌더에서 재시도
-            }
+            _self = DotNetObjectReference.Create(this);
+            try { await Js.InvokeVoidAsync("labelUpEditor.bindCanvasStage", _stageRef, _self); }
+            catch { }
         }
-
+        if (_ctxBlocked) return;
         try
         {
-            var size = await Js.InvokeAsync<JsonElement>("labelUpEditor.measureStage", _stageRef);
-            var sw = ReadSize(size, 0, "w");
-            var sh = ReadSize(size, 1, "h");
-            if (sw > 80 && sh > 80)
-            {
-                var grew = sw > _viewW + 16 || sh > _viewH + 16;
-                if (grew && (_viewW < 480 || Session.PendingFit))
-                    Session.PendingFit = true;
-                _viewW = sw;
-                _viewH = sh;
-                if (Session.PendingFit || grew)
-                    _view?.Invalidate();
-            }
+            await Js.InvokeVoidAsync("labelUpEditor.blockContextMenu", ".canvas-stage");
+            _ctxBlocked = true;
         }
         catch
         {
-            // 측정 실패는 페인트 크기만 사용
+            // JS가 아직 없으면 다음 렌더에서 재시도
         }
     }
 
+    [JSInvokable]
+    public void OnStageSize(int w, int h, double x = 0, double y = 0)
+    {
+        if (w < 80 || h < 80) return;
+        _stageX = (float)x;
+        _stageY = (float)y;
+        var changed = Math.Abs(w - _viewW) >= 2 || Math.Abs(h - _viewH) >= 2;
+        _viewW = w;
+        _viewH = h;
+        if (Session.PendingFit && _viewW >= 360 && _viewH >= 220)
+        {
+            Session.FitToView(_viewW, _viewH);
+            return;
+        }
+        if (!changed) return;
+        _view?.Invalidate();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private (float X, float Y) StagePoint(MouseEventArgs e)
+        => ((float)e.OffsetX, (float)e.OffsetY);
+
+    private (float X, float Y) StagePoint(DragEventArgs e)
+        => ((float)e.OffsetX, (float)e.OffsetY);
+
     private void OnContextMenu(MouseEventArgs e)
     {
-        _ctxX = (float)e.OffsetX;
-        _ctxY = (float)e.OffsetY;
+        var p = StagePoint(e);
+        _ctxX = p.X;
+        _ctxY = p.Y;
         _ctxOpen = true;
     }
 
     private void OnSessionChanged()
     {
-        if (!_ignoreInvalidate)
-            _view?.Invalidate();
+        if (Session.PendingFit && _viewW >= 360 && _viewH >= 220)
+        {
+            Session.FitToView(_viewW, _viewH);
+            return;
+        }
+        _view?.Invalidate();
         InvokeAsync(StateHasChanged);
     }
 
     public void Invalidate() => _view?.Invalidate();
-
-    private static float ReadSize(JsonElement el, int index, string name)
-    {
-        if (el.ValueKind == JsonValueKind.Array && el.GetArrayLength() > index && el[index].TryGetSingle(out var n))
-            return n;
-        if (el.ValueKind == JsonValueKind.Object && el.TryGetProperty(name, out var prop) && prop.TryGetSingle(out var v))
-            return v;
-        return 0;
-    }
 
     private (float Ox, float Oy, float Scale, float LabelW, float LabelH) LabelFrame()
     {
         var scale = Session.PxPerMm * Session.Zoom;
         var labelW = Session.Document.WidthMm * scale;
         var labelH = Session.Document.HeightMm * scale;
-        var left = EditorSession.VisibleLeft;
-        var top = EditorSession.VisibleTop;
-        var availW = Math.Max(80f, _viewW - left - EditorSession.VisibleRight);
-        var availH = Math.Max(80f, _viewH - top - EditorSession.VisibleBottom);
-        var ox = left + (availW - labelW) / 2f;
-        var oy = top + (availH - labelH) / 2f;
+        var pad = Ruler + Gap + 8f;
+        var ox = Math.Max(pad, (_viewW - labelW) / 2f);
+        var oy = Math.Max(pad, (_viewH - labelH) / 2f);
         return (ox, oy, scale, labelW, labelH);
+    }
+
+    private sealed class RulerMark
+    {
+        public float Mm;
+        public float Pos;
+        public bool Is10;
+        public bool Is5;
+    }
+
+    private IEnumerable<RulerMark> RulerMarks(float mmMax, float scale)
+    {
+        var step = RulerStep(Session.Zoom);
+        for (var mm = 0f; mm <= mmMax + 0.01f; mm += step)
+        {
+            yield return new RulerMark
+            {
+                Mm = mm,
+                Pos = mm * scale,
+                Is10 = Math.Abs(mm % 10f) < 0.01f,
+                Is5 = Math.Abs(mm % 5f) < 0.01f
+            };
+        }
     }
 
     private void OnPaintSurface(SKPaintSurfaceEventArgs e)
     {
         var canvas = e.Surface.Canvas;
         var info = e.Info;
-        if (info.Width >= 80 && info.Height >= 80)
-        {
-            _viewW = info.Width;
-            _viewH = info.Height;
-        }
-        if (Session.PendingFit && _viewW >= 480 && _viewH >= 280)
-        {
-            _ignoreInvalidate = true;
-            Session.FitToView(_viewW, _viewH);
-            _ignoreInvalidate = false;
-        }
         try
         {
             PaintSurfaceCore(canvas, info);
@@ -169,33 +229,16 @@
 
     private void PaintSurfaceCore(SKCanvas canvas, SKImageInfo info)
     {
-        canvas.Clear(new SKColor(0xF4, 0xF1, 0xEE));
+        canvas.Clear(SKColors.White);
 
         var doc = Session.Document;
-        var (ox, oy, scale, labelW, labelH) = LabelFrame();
-
-        using (var shadow = new SKPaint
-        {
-            Color = new SKColor(0x2E, 0x2A, 0x27, 46),
-            IsAntialias = true,
-            MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 14)
-        })
-        {
-            canvas.DrawRoundRect(ox + 6, oy + 10, labelW, labelH, 5, 5, shadow);
-        }
-        using (var frame = new SKPaint
-        {
-            Color = new SKColor(0x7B, 0x28, 0x40, 210),
-            IsAntialias = true,
-            Style = SKPaintStyle.Stroke,
-            StrokeWidth = 1.6f
-        })
-        {
-            canvas.DrawRoundRect(ox - 0.8f, oy - 0.8f, labelW + 1.6f, labelH + 1.6f, 4, 4, frame);
-        }
+        var scale = Session.PxPerMm * Session.Zoom;
+        if (info.Width > 8 && doc.WidthMm > 0.01f)
+            scale = info.Width / doc.WidthMm;
+        var labelW = doc.WidthMm * scale;
+        var labelH = doc.HeightMm * scale;
 
         canvas.Save();
-        canvas.Translate(ox, oy);
         canvas.Scale(scale);
         DocumentRenderer.DrawCell(
             canvas,
@@ -206,26 +249,49 @@
             {
                 if (!Session.ShowGrid)
                     return;
-                canvas.Save();
-                canvas.ResetMatrix();
-                DrawLabelGrid(canvas, ox, oy, scale, labelW, labelH, doc.WidthMm, doc.HeightMm);
-                canvas.Restore();
+                DrawLabelGridMm(canvas, doc.WidthMm, doc.HeightMm);
             });
         foreach (var sel in Session.SelectedObjects)
             DocumentRenderer.DrawSelection(canvas, sel, Session.PxPerMm, Session.Zoom);
         canvas.Restore();
 
-        DrawRulers(canvas, ox, oy, scale, labelW, labelH, doc.WidthMm, doc.HeightMm);
-
         if (_marquee)
-            DrawMarquee(canvas, ox, oy, scale);
-
-        if (Session.CursorOverLabel)
-            DrawGuides(canvas, ox, oy, scale, labelW, labelH);
+            DrawMarquee(canvas, 0, 0, scale);
     }
 
     private static float RulerStep(float zoom)
         => zoom >= 1.4f ? 1f : zoom >= 0.7f ? 2f : 5f;
+
+    private void DrawLabelGridMm(SKCanvas canvas, float mmW, float mmH)
+    {
+        var step = RulerStep(Session.Zoom);
+        var stroke = Math.Max(0.08f, 1f / Math.Max(0.5f, Session.PxPerMm * Session.Zoom));
+        using var minor = new SKPaint
+        {
+            Color = new SKColor(0x7B, 0x28, 0x40, 55),
+            StrokeWidth = stroke,
+            IsAntialias = false,
+            Style = SKPaintStyle.Stroke
+        };
+        using var mid = new SKPaint
+        {
+            Color = new SKColor(0x7B, 0x28, 0x40, 90),
+            StrokeWidth = stroke,
+            IsAntialias = false,
+            Style = SKPaintStyle.Stroke
+        };
+        using var major = new SKPaint
+        {
+            Color = new SKColor(0x7B, 0x28, 0x40, 140),
+            StrokeWidth = stroke * 1.25f,
+            IsAntialias = false,
+            Style = SKPaintStyle.Stroke
+        };
+        for (var mm = 0f; mm <= mmW + 0.01f; mm += step)
+            canvas.DrawLine(mm, 0, mm, mmH, GridPaint(mm, minor, mid, major));
+        for (var mm = 0f; mm <= mmH + 0.01f; mm += step)
+            canvas.DrawLine(0, mm, mmW, mm, GridPaint(mm, minor, mid, major));
+    }
 
     private void DrawLabelGrid(SKCanvas canvas, float ox, float oy, float scale, float labelW, float labelH, float mmW, float mmH)
     {
@@ -234,22 +300,22 @@
         canvas.ClipRect(new SKRect(ox, oy, ox + labelW, oy + labelH));
         using var minor = new SKPaint
         {
-            Color = new SKColor(0x7B, 0x28, 0x40, 36),
+            Color = new SKColor(0x7B, 0x28, 0x40, 55),
             StrokeWidth = 1f,
             IsAntialias = false,
             Style = SKPaintStyle.Stroke
         };
         using var mid = new SKPaint
         {
-            Color = new SKColor(0x7B, 0x28, 0x40, 58),
+            Color = new SKColor(0x7B, 0x28, 0x40, 90),
             StrokeWidth = 1f,
             IsAntialias = false,
             Style = SKPaintStyle.Stroke
         };
         using var major = new SKPaint
         {
-            Color = new SKColor(0x7B, 0x28, 0x40, 92),
-            StrokeWidth = 1.2f,
+            Color = new SKColor(0x7B, 0x28, 0x40, 140),
+            StrokeWidth = 1.25f,
             IsAntialias = false,
             Style = SKPaintStyle.Stroke
         };
@@ -280,19 +346,40 @@
         var rulerTop = rulerBottom - Ruler;
         var rulerLeft = rulerRight - Ruler;
 
-        using var bg = new SKPaint { Color = new SKColor(0xFF, 0xFC, 0xFA), IsAntialias = true };
+        using (var desk = new SKPaint { Color = new SKColor(0xFF, 0xFF, 0xFF, 230), IsAntialias = true })
+            canvas.DrawRoundRect(rulerLeft - 6, rulerTop - 6, labelW + Ruler + Gap + 12, labelH + Ruler + Gap + 12, 8, 8, desk);
+        using (var deskLine = new SKPaint
+        {
+            Color = new SKColor(0xC9, 0xB8, 0xB0),
+            IsAntialias = true,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = 1
+        })
+            canvas.DrawRoundRect(rulerLeft - 6, rulerTop - 6, labelW + Ruler + Gap + 12, labelH + Ruler + Gap + 12, 8, 8, deskLine);
+
+        using var bg = new SKPaint { Color = new SKColor(0xFF, 0xFF, 0xFF), IsAntialias = true };
         canvas.DrawRect(ox, rulerTop, labelW, Ruler, bg);
         canvas.DrawRect(rulerLeft, oy, Ruler, labelH, bg);
         using var corner = new SKPaint { Color = new SKColor(0xF3, 0xE8, 0xEC), IsAntialias = true };
         canvas.DrawRect(rulerLeft, rulerTop, Ruler, Ruler, corner);
-        using var edge = new SKPaint { Color = new SKColor(0xE5, 0xDD, 0xD3), StrokeWidth = 1 };
+        using var frame = new SKPaint
+        {
+            Color = new SKColor(0x7B, 0x28, 0x40, 160),
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = 1.2f,
+            IsAntialias = true
+        };
+        canvas.DrawRect(ox, rulerTop, labelW, Ruler, frame);
+        canvas.DrawRect(rulerLeft, oy, Ruler, labelH, frame);
+        canvas.DrawRect(rulerLeft, rulerTop, Ruler, Ruler, frame);
+        using var edge = new SKPaint { Color = new SKColor(0x7B, 0x28, 0x40, 90), StrokeWidth = 1 };
         canvas.DrawLine(ox, rulerBottom, ox + labelW, rulerBottom, edge);
         canvas.DrawLine(rulerRight, oy, rulerRight, oy + labelH, edge);
 
-        using var tick = new SKPaint { Color = new SKColor(0x6B, 0x65, 0x60), StrokeWidth = 1, IsAntialias = false };
-        using var major = new SKPaint { Color = new SKColor(0x2E, 0x2A, 0x27), StrokeWidth = 1.2f, IsAntialias = false };
-        using var font = new SKFont(DocumentRenderer.ResolveTypeface(false), 9);
-        using var text = new SKPaint { Color = new SKColor(0x6B, 0x65, 0x60), IsAntialias = true };
+        using var tick = new SKPaint { Color = new SKColor(0x4A, 0x44, 0x40), StrokeWidth = 1, IsAntialias = false };
+        using var major = new SKPaint { Color = new SKColor(0x2E, 0x2A, 0x27), StrokeWidth = 1.4f, IsAntialias = false };
+        using var font = new SKFont(DocumentRenderer.ResolveTypeface(false), 10);
+        using var text = new SKPaint { Color = new SKColor(0x2E, 0x2A, 0x27), IsAntialias = true };
 
         var step = RulerStep(Session.Zoom);
         for (var mm = 0f; mm <= mmW + 0.01f; mm += step)
@@ -388,8 +475,9 @@
     private void OnPointerDown(PointerEventArgs e)
     {
         _ctxOpen = false;
-        _lastX = (float)e.OffsetX;
-        _lastY = (float)e.OffsetY;
+        var p = StagePoint(e);
+        _lastX = p.X;
+        _lastY = p.Y;
         var (dx, dy) = ScreenToDoc(_lastX, _lastY);
         _startDocX = dx;
         _startDocY = dy;
@@ -447,7 +535,8 @@
         var col = Session.DragColumn;
         Session.DragColumn = null;
         if (string.IsNullOrWhiteSpace(col)) return;
-        var (dx, dy) = ScreenToDoc((float)e.OffsetX, (float)e.OffsetY);
+        var p = StagePoint(e);
+        var (dx, dy) = ScreenToDoc(p.X, p.Y);
         History.Push(Session.Document);
         Session.PlaceBoundText(col, dx, dy);
         Session.Notify();
@@ -455,8 +544,10 @@
 
     private void OnPointerMove(PointerEventArgs e)
     {
-        var x = (float)e.OffsetX;
-        var y = (float)e.OffsetY;
+        _skipRender = true;
+        var p = StagePoint(e);
+        var x = p.X;
+        var y = p.Y;
         var (dx, dy) = ScreenToDoc(x, y);
         Session.CursorMmX = dx;
         Session.CursorMmY = dy;
@@ -471,10 +562,7 @@
         }
 
         if (!_dragging || _dragStarts.Count == 0)
-        {
-            _view?.Invalidate();
             return;
-        }
 
         if (!_historyPushed)
         {
