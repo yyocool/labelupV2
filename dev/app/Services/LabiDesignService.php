@@ -29,7 +29,7 @@ final class LabiDesignService
      *   clipart: ?array{url:string, prompt:string, title:string},
      *   template: ?array<string, mixed>,
      *   choices: ?array<int, array{id:string, title:string, desc:string}>,
-     *   usage: ?array{model:?string,prompt_tokens:?int,completion_tokens:?int,total_tokens:?int},
+     *   usage: ?array<string, mixed>,
      *   clipart_id: ?int
      * }
      */
@@ -49,12 +49,16 @@ final class LabiDesignService
             }
         }
 
+        $hasOffice = $officeSheet !== null;
+        $difficulty = AiCostService::assessDifficulty($messages, $forced, $hasImage, $hasOffice);
+        $this->openai->setChatModel(AiCostService::modelForDifficulty($difficulty));
+
         if (
             $officeSheet !== null
             && $forced !== 'generate_clipart'
             && $forced !== 'ask_image_mode'
         ) {
-            return $this->handleOfficeTemplate($messages, $officeSheet, $userId, $surface);
+            return $this->handleOfficeTemplate($messages, $officeSheet, $userId, $surface, $difficulty);
         }
 
         $skipAssist = $forced === 'ask_image_mode'
@@ -141,14 +145,15 @@ final class LabiDesignService
         }
 
         $usage = $this->openai->lastUsage();
+        $usageView = AiCostService::present($usage, $intent, $difficulty);
         (new AiUsageService())->log([
             'user_id' => $userId ?? 0,
             'surface' => $surface,
             'intent' => $intent,
-            'model' => $usage['model'] ?? null,
-            'prompt_tokens' => $usage['prompt_tokens'] ?? null,
-            'completion_tokens' => $usage['completion_tokens'] ?? null,
-            'total_tokens' => $usage['total_tokens'] ?? null,
+            'model' => $usageView['model'] ?? ($usage['model'] ?? null),
+            'prompt_tokens' => $usageView['prompt_tokens'] ?? ($usage['prompt_tokens'] ?? null),
+            'completion_tokens' => $usageView['completion_tokens'] ?? ($usage['completion_tokens'] ?? null),
+            'total_tokens' => $usageView['total_tokens'] ?? ($usage['total_tokens'] ?? null),
             'has_image' => self::messagesHaveImage($messages),
             'clipart_id' => $clipartId,
             'status' => 'ok',
@@ -161,7 +166,7 @@ final class LabiDesignService
             'clipart' => $clipart,
             'template' => $template,
             'choices' => $choices,
-            'usage' => $usage,
+            'usage' => $usageView,
             'clipart_id' => $clipartId,
         ];
     }
@@ -188,7 +193,7 @@ final class LabiDesignService
      * @param array{source_name:string, source_kind:string, columns:array<int,string>, rows:array<int,array<int,string>>, summary:string} $sheet
      * @return array<string, mixed>
      */
-    private function handleOfficeTemplate(array $messages, array $sheet, ?int $userId, string $surface): array
+    private function handleOfficeTemplate(array $messages, array $sheet, ?int $userId, string $surface, string $difficulty = 'hard'): array
     {
         $ai = null;
         try {
@@ -208,14 +213,15 @@ final class LabiDesignService
         $reply = (string) $built['message'];
 
         $usage = $this->openai->lastUsage();
+        $usageView = AiCostService::present($usage, 'generate_data_template', $difficulty);
         (new AiUsageService())->log([
             'user_id' => $userId ?? 0,
             'surface' => $surface,
             'intent' => 'generate_data_template',
-            'model' => $usage['model'] ?? null,
-            'prompt_tokens' => $usage['prompt_tokens'] ?? null,
-            'completion_tokens' => $usage['completion_tokens'] ?? null,
-            'total_tokens' => $usage['total_tokens'] ?? null,
+            'model' => $usageView['model'] ?? ($usage['model'] ?? null),
+            'prompt_tokens' => $usageView['prompt_tokens'] ?? ($usage['prompt_tokens'] ?? null),
+            'completion_tokens' => $usageView['completion_tokens'] ?? ($usage['completion_tokens'] ?? null),
+            'total_tokens' => $usageView['total_tokens'] ?? ($usage['total_tokens'] ?? null),
             'has_image' => false,
             'clipart_id' => null,
             'status' => 'ok',
@@ -228,7 +234,7 @@ final class LabiDesignService
             'clipart' => null,
             'template' => $template,
             'choices' => null,
-            'usage' => $usage,
+            'usage' => $usageView,
             'clipart_id' => null,
         ];
     }

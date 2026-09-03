@@ -11,13 +11,21 @@ final class OpenAIService
     private const CHAT_URL = 'https://api.openai.com/v1/chat/completions';
     private const IMAGE_URL = 'https://api.openai.com/v1/images/generations';
 
-    /** @var array{model:?string,prompt_tokens:?int,completion_tokens:?int,total_tokens:?int}|null */
+    /** @var array{model:?string,prompt_tokens:?int,completion_tokens:?int,total_tokens:?int,image_count:int,image_model:?string,image_quality:?string,models:array<int,string>,steps:array<int,array<string,mixed>>}|null */
     private ?array $lastUsage = null;
 
-    /** @return array{model:?string,prompt_tokens:?int,completion_tokens:?int,total_tokens:?int}|null */
+    private ?string $chatModelOverride = null;
+
+    /** @return array{model:?string,prompt_tokens:?int,completion_tokens:?int,total_tokens:?int,image_count:int,image_model:?string,image_quality:?string,models:array<int,string>,steps:array<int,array<string,mixed>>}|null */
     public function lastUsage(): ?array
     {
         return $this->lastUsage;
+    }
+
+    public function setChatModel(?string $model): void
+    {
+        $model = $model !== null ? trim($model) : '';
+        $this->chatModelOverride = $model !== '' ? $model : null;
     }
 
     public function chat(array $messages): string
@@ -207,6 +215,7 @@ PROMPT;
             $cleanPrompt = mb_substr($cleanPrompt, 0, 900);
         }
 
+        $quality = trim((string) env('OPENAI_IMAGE_QUALITY', 'medium')) ?: 'medium';
         try {
             $response = $this->request($apiKey, self::IMAGE_URL, $this->imagePayload($model, $cleanPrompt), 180);
         } catch (RuntimeException $e) {
@@ -225,6 +234,8 @@ PROMPT;
                 throw $e;
             }
         }
+
+        $this->recordImageUsage($model, $quality, 1);
 
         $item = $response['data'][0] ?? null;
         if (!is_array($item)) {
@@ -279,7 +290,8 @@ PROMPT;
     private function chatRequest(array $messages, array $overrides = []): array
     {
         $apiKey = $this->apiKey();
-        $model = trim((string) env('OPENAI_MODEL', 'gpt-4o-mini'));
+        $model = $this->chatModelOverride
+            ?? trim((string) env('OPENAI_MODEL', 'gpt-4o-mini'));
         if ($model === '') {
             $model = 'gpt-4o-mini';
         }
@@ -372,15 +384,82 @@ PROMPT;
             throw new RuntimeException($message);
         }
 
-        $usage = is_array($decoded['usage'] ?? null) ? $decoded['usage'] : [];
-        $this->lastUsage = [
-            'model' => isset($decoded['model']) ? (string) $decoded['model'] : (isset($payload['model']) ? (string) $payload['model'] : null),
-            'prompt_tokens' => isset($usage['prompt_tokens']) ? (int) $usage['prompt_tokens'] : null,
-            'completion_tokens' => isset($usage['completion_tokens']) ? (int) $usage['completion_tokens'] : null,
-            'total_tokens' => isset($usage['total_tokens']) ? (int) $usage['total_tokens'] : null,
-        ];
+        $isImage = str_contains($url, '/images/');
+        if (!$isImage) {
+            $usage = is_array($decoded['usage'] ?? null) ? $decoded['usage'] : [];
+            $modelName = isset($decoded['model'])
+                ? (string) $decoded['model']
+                : (isset($payload['model']) ? (string) $payload['model'] : null);
+            $this->recordChatUsage(
+                $modelName,
+                isset($usage['prompt_tokens']) ? (int) $usage['prompt_tokens'] : 0,
+                isset($usage['completion_tokens']) ? (int) $usage['completion_tokens'] : 0,
+                isset($usage['total_tokens']) ? (int) $usage['total_tokens'] : null
+            );
+        }
 
         return $decoded;
+    }
+
+    private function ensureUsageBag(): void
+    {
+        if ($this->lastUsage !== null) {
+            return;
+        }
+        $this->lastUsage = [
+            'model' => null,
+            'prompt_tokens' => 0,
+            'completion_tokens' => 0,
+            'total_tokens' => 0,
+            'image_count' => 0,
+            'image_model' => null,
+            'image_quality' => null,
+            'models' => [],
+            'steps' => [],
+        ];
+    }
+
+    private function recordChatUsage(?string $model, int $promptTokens, int $completionTokens, ?int $totalTokens): void
+    {
+        $this->ensureUsageBag();
+        $total = $totalTokens ?? ($promptTokens + $completionTokens);
+        $this->lastUsage['prompt_tokens'] = (int) $this->lastUsage['prompt_tokens'] + $promptTokens;
+        $this->lastUsage['completion_tokens'] = (int) $this->lastUsage['completion_tokens'] + $completionTokens;
+        $this->lastUsage['total_tokens'] = (int) $this->lastUsage['total_tokens'] + $total;
+        if ($model) {
+            $this->lastUsage['model'] = $model;
+            if (!in_array($model, $this->lastUsage['models'], true)) {
+                $this->lastUsage['models'][] = $model;
+            }
+        }
+        $this->lastUsage['steps'][] = [
+            'kind' => 'chat',
+            'model' => $model,
+            'prompt_tokens' => $promptTokens,
+            'completion_tokens' => $completionTokens,
+            'total_tokens' => $total,
+        ];
+    }
+
+    private function recordImageUsage(string $model, string $quality, int $count = 1): void
+    {
+        $this->ensureUsageBag();
+        $count = max(1, $count);
+        $this->lastUsage['image_count'] = (int) $this->lastUsage['image_count'] + $count;
+        $this->lastUsage['image_model'] = $model;
+        $this->lastUsage['image_quality'] = $quality;
+        if ($model !== '' && !in_array($model, $this->lastUsage['models'], true)) {
+            $this->lastUsage['models'][] = $model;
+        }
+        if (empty($this->lastUsage['model'])) {
+            $this->lastUsage['model'] = $model;
+        }
+        $this->lastUsage['steps'][] = [
+            'kind' => 'image',
+            'model' => $model,
+            'quality' => $quality,
+            'image_count' => $count,
+        ];
     }
 
     private function storeClipartFromBase64(string $b64): string

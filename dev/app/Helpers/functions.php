@@ -208,6 +208,7 @@ function admin_menu_catalog(): array
         ['key' => 'settings-member-grades', 'label' => '회원등급 설정', 'href' => 'admin/settings/member-grades', 'group' => '설정', 'ic' => '◇'],
         ['key' => 'settings-seo', 'label' => 'SEO 설정', 'href' => 'admin/settings/seo', 'group' => '설정', 'ic' => '◎'],
         ['key' => 'settings-tracking', 'label' => '광고 스크립트', 'href' => 'admin/settings/tracking', 'group' => '설정', 'ic' => '◈'],
+        ['key' => 'qr-coupons', 'label' => 'QR쿠폰관리', 'href' => 'admin/qr-coupons', 'group' => 'QR쿠폰', 'ic' => '▦'],
     ];
 }
 

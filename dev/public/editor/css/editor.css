@@ -3134,6 +3134,13 @@ html, body {
 .ed-labi .ai-chat-msg--assistant .ai-chat-bubble {
   background: #f4f6fb; border: 1px solid #ececf2; border-bottom-left-radius: 6px;
 }
+.ed-labi .ai-chat-meta {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 0;
+  margin-top: 6px; padding: 0 2px; font-size: 11px; line-height: 1.45; color: #8b8fa0;
+}
+.ed-labi .ai-chat-meta__agent { font-weight: 700; color: #6a6f82; }
+.ed-labi .ai-chat-meta__cost { font-weight: 700; color: var(--accent); }
+.ed-labi .ai-chat-meta__sep { margin: 0 6px; opacity: .55; }
 .ed-labi .ai-chat-media { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
 .ed-labi .ai-chat-media img { width: 72px; height: 72px; border-radius: 10px; object-fit: cover; border: 1px solid #ececf2; }
 .ed-labi .ai-chat-file-tag {

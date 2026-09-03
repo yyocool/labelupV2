@@ -44,6 +44,7 @@ use App\Controllers\SeoPublicController;
 use App\Controllers\Api\SeoAdminApiController;
 use App\Controllers\MemberGradeAdminController;
 use App\Controllers\Api\MemberGradeAdminApiController;
+use App\Controllers\QrCouponAdminController;
 
 final class Router
 {
@@ -142,6 +143,7 @@ final class Router
         $seoPublic = new SeoPublicController();
         $memberGradeAdmin = new MemberGradeAdminController();
         $memberGradeAdminApi = new MemberGradeAdminApiController();
+        $qrCouponAdmin = new QrCouponAdminController();
 
         $router->get('/', [$home, 'index']);
         $router->get('/faq', [$faqPublic, 'index']);
@@ -179,6 +181,7 @@ final class Router
         $router->get('/admin/ops/event-popups', [$eventPopupAdmin, 'index']);
         $router->get('/admin/ops/faq', [$faqAdmin, 'index']);
         $router->get('/admin/ops/inquiries', [$inquiryAdmin, 'index']);
+        $router->get('/admin/qr-coupons', [$qrCouponAdmin, 'index']);
         $router->get('/admin/ai/example-prompts', [$aiAdmin, 'examplePrompts']);
         $router->get('/admin/ai/usage', [$aiAdmin, 'usage']);
         $router->get('/admin/content/cliparts', [$contentAdmin, 'cliparts']);

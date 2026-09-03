@@ -31,6 +31,11 @@
       <?php require view_path('admin/partials/ai-menu.php'); ?>
       <?php require view_path('admin/partials/ops-menu.php'); ?>
       <?php require view_path('admin/partials/settings-menu.php'); ?>
+      <?php if (admin_can_menu('qr-coupons')): ?>
+      <a class="admin-lnb-item<?= ($activeMenu ?? '') === 'qr-coupons' ? ' is-active' : '' ?>" href="<?= url('admin/qr-coupons') ?>" title="QR쿠폰관리">
+        <span class="ic">▦</span><span class="label">QR쿠폰관리</span>
+      </a>
+      <?php endif; ?>
     </nav>
     <div class="admin-lnb-foot">LabelUp Admin v1.0</div>
   </aside>
@@ -97,6 +102,7 @@
               'settings-member-grades' => '설정 › 회원등급 설정',
               'settings-seo' => '설정 › SEO 설정',
               'settings-tracking' => '설정 › 광고 스크립트',
+              'qr-coupons' => 'QR쿠폰관리',
               default => '대시보드',
           };
         ?>

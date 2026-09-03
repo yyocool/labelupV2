@@ -46,6 +46,7 @@ final class AiChatApiController extends BaseController
                 'clipart' => $result['clipart'],
                 'template' => $result['template'] ?? null,
                 'choices' => $result['choices'] ?? null,
+                'usage' => $result['usage'] ?? null,
             ]);
         } catch (RuntimeException $e) {
             (new AiUsageService())->log([

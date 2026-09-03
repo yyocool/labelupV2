@@ -725,11 +725,40 @@ window.LabelUpLabiChat = {
     if (extras.vendor) {
       body.appendChild(buildVendorCard(extras.vendor));
     }
+    if (extras.usage) {
+      const meta = buildUsageMeta(extras.usage);
+      if (meta) body.appendChild(meta);
+    }
 
     item.appendChild(avatar);
     item.appendChild(body);
     chatLog.appendChild(item);
     chatLog.scrollTop = chatLog.scrollHeight;
+  }
+
+  function buildUsageMeta(usage) {
+    if (!usage || typeof usage !== 'object') return null;
+    const tokens = Number(usage.total_tokens || 0);
+    const krw = Number(usage.krw || 0);
+    const agent = String(usage.agent_label || usage.agent || '').trim();
+    const model = String(usage.model || (Array.isArray(usage.models) ? usage.models[0] : '') || '').trim();
+    const images = Number(usage.image_count || 0);
+    const diff = String(usage.difficulty_label || '').trim();
+    if (tokens <= 0 && images <= 0 && krw <= 0 && !agent && !model) return null;
+
+    const el = document.createElement('div');
+    el.className = 'ai-chat-meta';
+    el.setAttribute('title', usage.currency_note || '추정 비용');
+
+    const bits = [];
+    if (agent) bits.push(`<span class="ai-chat-meta__agent">${escapeHtml(agent)}</span>`);
+    if (model) bits.push(`<span>${escapeHtml(model)}</span>`);
+    if (diff) bits.push(`<span>난이도 ${escapeHtml(diff)}</span>`);
+    if (tokens > 0) bits.push(`<span>토큰 ${tokens.toLocaleString('ko-KR')}</span>`);
+    if (images > 0) bits.push(`<span>이미지 ${images}</span>`);
+    bits.push(`<span class="ai-chat-meta__cost">약 ${krw.toLocaleString('ko-KR')}원</span>`);
+    el.innerHTML = bits.join('<span class="ai-chat-meta__sep" aria-hidden="true">·</span>');
+    return el;
   }
 
   function isClipartRequest(text) {
@@ -1038,6 +1067,7 @@ window.LabelUpLabiChat = {
         clipart: payload.clipart || null,
         template: payload.template || null,
         choices: payload.choices || null,
+        usage: payload.usage || null,
       });
       history.push({ role: 'assistant', content: reply });
       if (payload.template && payload.template.dataset) {
