@@ -76,6 +76,10 @@ function view(string $template, array $data = []): void
 
 function redirect(string $path): never
 {
+    if (preg_match('#^https?://#i', $path)) {
+        header('Location: ' . $path);
+        exit;
+    }
     header('Location: ' . url($path));
     exit;
 }

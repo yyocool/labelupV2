@@ -158,6 +158,8 @@ final class Router
         $router->get('/reset-password', [$auth, 'resetPasswordForm']);
         $router->get('/account', [$auth, 'account']);
         $router->get('/logout', [$auth, 'logout']);
+        $router->get('/auth/{provider}', [$auth, 'oauthRedirect']);
+        $router->get('/auth/{provider}/callback', [$auth, 'oauthCallback']);
 
         $router->get('/admin/login', [$admin, 'loginForm']);
         $router->get('/admin/logout', [$admin, 'logout']);

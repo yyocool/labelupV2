@@ -9,7 +9,7 @@ use SimpleXMLElement;
 
 final class OfficeDocumentParser
 {
-    public const MAX_ROWS = 200;
+    public const MAX_ROWS = 1000;
     public const MAX_COLS = 20;
     public const MAX_BYTES = 3_500_000;
 
@@ -182,23 +182,55 @@ final class OfficeDocumentParser
     {
         $zip = $this->openZip($bin, '엑셀');
         $strings = $this->xlsxSharedStrings($zip);
-        $sheetPath = $this->xlsxFirstSheetPath($zip);
-        $xml = $zip->get($sheetPath);
-        $zip->close();
-        if (!is_string($xml) || $xml === '') {
-            throw new RuntimeException('엑셀 시트를 읽지 못했습니다.');
+        $candidates = $this->xlsxSheetCandidates($zip);
+        if ($candidates === []) {
+            $zip->close();
+            throw new RuntimeException('엑셀 시트를 찾지 못했습니다.');
         }
 
-        $sheet = @simplexml_load_string($xml);
-        if (!$sheet instanceof SimpleXMLElement) {
-            throw new RuntimeException('엑셀 시트 XML을 해석하지 못했습니다.');
+        $best = null;
+        $bestScore = PHP_INT_MIN;
+        foreach ($candidates as $candidate) {
+            $xml = $zip->get($candidate['path']);
+            if (!is_string($xml) || $xml === '') {
+                continue;
+            }
+            $sheet = @simplexml_load_string($xml);
+            if (!$sheet instanceof SimpleXMLElement) {
+                continue;
+            }
+            $grid = $this->xlsxSheetToGrid($sheet, $strings);
+            if ($grid === []) {
+                continue;
+            }
+            $score = $this->scoreSheetGrid($grid, $candidate['name']);
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $best = ['name' => $candidate['name'], 'grid' => $grid];
+            }
         }
-        $sheet->registerXPathNamespace('m', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main');
-        $rows = $sheet->xpath('.//m:sheetData/m:row') ?: [];
+        $zip->close();
+
+        if ($best === null) {
+            throw new RuntimeException('엑셀에 읽을 수 있는 표가 없습니다.');
+        }
+
+        $sheetName = trim((string) $best['name']);
+        $label = $sheetName !== '' ? ($name . ' · ' . $sheetName) : $name;
+        return $this->gridToSheet($label, 'xlsx', $best['grid']);
+    }
+
+    /**
+     * @param array<int, string> $strings
+     * @return array<int, array<int, string>>
+     */
+    private function xlsxSheetToGrid(SimpleXMLElement $sheet, array $strings): array
+    {
+        $rows = $this->xpathLocal($sheet, './/*[local-name()="sheetData"]/*[local-name()="row"]');
         $grid = [];
         foreach ($rows as $row) {
             $line = [];
-            foreach ($row->c ?? [] as $cell) {
+            foreach ($this->xpathLocal($row, './*[local-name()="c"]') as $cell) {
                 $ref = (string) ($cell['r'] ?? '');
                 $col = $this->colIndexFromRef($ref);
                 if ($col < 0) {
@@ -207,17 +239,64 @@ final class OfficeDocumentParser
                 while (count($line) < $col) {
                     $line[] = '';
                 }
+                if ($col >= self::MAX_COLS) {
+                    continue;
+                }
                 $line[$col] = $this->xlsxCellValue($cell, $strings);
             }
             if ($line !== [] && !self::rowEmpty($line)) {
                 $grid[] = $line;
             }
+            if (count($grid) >= self::MAX_ROWS + 1) {
+                break;
+            }
         }
-        if ($grid === []) {
-            throw new RuntimeException('엑셀에 읽을 수 있는 표가 없습니다.');
+        return $grid;
+    }
+
+    /**
+     * @param array<int, array<int, string>> $grid
+     */
+    private function scoreSheetGrid(array $grid, string $sheetName): int
+    {
+        $header = $grid[0] ?? [];
+        $dataRows = array_slice($grid, 1);
+        $cols = 0;
+        foreach ($header as $cell) {
+            if (trim((string) $cell) !== '') {
+                $cols++;
+            }
+        }
+        $rows = count($dataRows);
+        if ($cols < 1 || $rows < 1) {
+            return -100000;
         }
 
-        return $this->gridToSheet($name, 'xlsx', $grid);
+        $score = $cols * 40 + min($rows, self::MAX_ROWS);
+        $name = mb_strtolower($sheetName);
+        if (preg_match('/주문|order|상품|product|라벨|label|list|목록|출고|배송/u', $name)) {
+            $score += 500;
+        }
+        if (preg_match('/cost|price|pivot|lookup|캐시|단가|재고마스터/iu', $name)) {
+            $score -= 400;
+        }
+        // 2열짜리 거대 조회표(sku/cost 등)보다 다열 주문표를 우선
+        if ($cols <= 2 && $rows >= 500) {
+            $score -= 800;
+        }
+        if ($cols >= 4 && $rows >= 5) {
+            $score += 200;
+        }
+
+        $textHeader = 0;
+        foreach ($header as $cell) {
+            $v = trim((string) $cell);
+            if ($v !== '' && !is_numeric($v)) {
+                $textHeader++;
+            }
+        }
+        $score += $textHeader * 15;
+        return $score;
     }
 
     /**
@@ -235,14 +314,13 @@ final class OfficeDocumentParser
         if (!$doc instanceof SimpleXMLElement) {
             throw new RuntimeException('워드 문서를 해석하지 못했습니다.');
         }
-        $doc->registerXPathNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
-        $tables = $doc->xpath('//w:tbl') ?: [];
+        $tables = $this->xpathLocal($doc, '//*[local-name()="tbl"]');
         foreach ($tables as $table) {
             $grid = [];
-            foreach ($table->xpath('.//w:tr') ?: [] as $tr) {
+            foreach ($this->xpathLocal($table, './/*[local-name()="tr"]') as $tr) {
                 $line = [];
-                foreach ($tr->xpath('./w:tc') ?: [] as $tc) {
-                    $texts = $tc->xpath('.//w:t') ?: [];
+                foreach ($this->xpathLocal($tr, './*[local-name()="tc"]') as $tc) {
+                    $texts = $this->xpathLocal($tc, './/*[local-name()="t"]');
                     $cell = '';
                     foreach ($texts as $t) {
                         $cell .= (string) $t;
@@ -259,8 +337,8 @@ final class OfficeDocumentParser
         }
 
         $paras = [];
-        foreach ($doc->xpath('//w:p') ?: [] as $p) {
-            $texts = $p->xpath('.//w:t') ?: [];
+        foreach ($this->xpathLocal($doc, '//*[local-name()="p"]') as $p) {
+            $texts = $this->xpathLocal($p, './/*[local-name()="t"]');
             $line = '';
             foreach ($texts as $t) {
                 $line .= (string) $t;
@@ -396,10 +474,9 @@ final class OfficeDocumentParser
         if (!$sst instanceof SimpleXMLElement) {
             return [];
         }
-        $sst->registerXPathNamespace('m', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main');
         $out = [];
-        foreach ($sst->xpath('//m:si') ?: [] as $si) {
-            $texts = $si->xpath('.//m:t') ?: [];
+        foreach ($this->xpathLocal($sst, '//*[local-name()="si"]') as $si) {
+            $texts = $this->xpathLocal($si, './/*[local-name()="t"]');
             $buf = '';
             foreach ($texts as $t) {
                 $buf .= (string) $t;
@@ -409,8 +486,12 @@ final class OfficeDocumentParser
         return $out;
     }
 
-    private function xlsxFirstSheetPath(OfficeZipReader $zip): string
+    /**
+     * @return array<int, array{name:string, path:string}>
+     */
+    private function xlsxSheetCandidates(OfficeZipReader $zip): array
     {
+        $out = [];
         $workbook = $zip->get('xl/workbook.xml');
         if (is_string($workbook) && $workbook !== '') {
             $rels = $zip->get('xl/_rels/workbook.xml.rels');
@@ -419,43 +500,60 @@ final class OfficeDocumentParser
             if (is_string($rels) && $rels !== '') {
                 $rx = @simplexml_load_string($rels);
                 if ($rx instanceof SimpleXMLElement) {
-                    foreach ($rx->Relationship ?? [] as $rel) {
+                    foreach ($this->xpathLocal($rx, '//*[local-name()="Relationship"]') as $rel) {
                         $relMap[(string) $rel['Id']] = ltrim((string) $rel['Target'], '/');
                     }
                 }
             }
             if ($wb instanceof SimpleXMLElement) {
-                $wb->registerXPathNamespace('m', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main');
-                $wb->registerXPathNamespace('r', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships');
-                $sheets = $wb->xpath('//m:sheet') ?: [];
-                if ($sheets !== []) {
-                    $rid = (string) ($sheets[0]->attributes('http://schemas.openxmlformats.org/officeDocument/2006/relationships')['id'] ?? '');
-                    if ($rid !== '' && isset($relMap[$rid])) {
-                        $target = $relMap[$rid];
-                        return str_starts_with($target, 'xl/') ? $target : 'xl/' . $target;
+                foreach ($this->xpathLocal($wb, '//*[local-name()="sheet"]') as $sheet) {
+                    $attrs = $sheet->attributes('http://schemas.openxmlformats.org/officeDocument/2006/relationships');
+                    $rid = (string) ($attrs['id'] ?? '');
+                    if ($rid === '') {
+                        foreach ($sheet->attributes() ?: [] as $k => $v) {
+                            if (strcasecmp((string) $k, 'id') === 0) {
+                                $rid = (string) $v;
+                                break;
+                            }
+                        }
                     }
+                    if ($rid === '' || !isset($relMap[$rid])) {
+                        continue;
+                    }
+                    $target = $relMap[$rid];
+                    $path = str_starts_with($target, 'xl/') ? $target : 'xl/' . $target;
+                    if (!$zip->has($path)) {
+                        continue;
+                    }
+                    $out[] = [
+                        'name' => (string) ($sheet['name'] ?? ''),
+                        'path' => $path,
+                    ];
                 }
             }
         }
-        foreach (['xl/worksheets/sheet1.xml', 'xl/worksheets/sheet.xml'] as $path) {
-            if ($zip->has($path)) {
-                return $path;
+        if ($out === []) {
+            foreach (['xl/worksheets/sheet1.xml', 'xl/worksheets/sheet.xml'] as $path) {
+                if ($zip->has($path)) {
+                    $out[] = ['name' => '', 'path' => $path];
+                }
             }
         }
-        throw new RuntimeException('엑셀 시트를 찾지 못했습니다.');
+        return $out;
     }
 
     /** @param array<int, string> $strings */
     private function xlsxCellValue(SimpleXMLElement $cell, array $strings): string
     {
         $type = (string) ($cell['t'] ?? '');
-        $raw = trim((string) ($cell->v ?? ''));
+        $vNodes = $this->xpathLocal($cell, './*[local-name()="v"]');
+        $raw = trim((string) ($vNodes[0] ?? $cell->v ?? ''));
         if ($type === 's') {
             $idx = (int) $raw;
             return trim((string) ($strings[$idx] ?? ''));
         }
         if ($type === 'inlineStr') {
-            $texts = $cell->xpath('.//*[local-name()="t"]') ?: [];
+            $texts = $this->xpathLocal($cell, './/*[local-name()="t"]');
             $buf = '';
             foreach ($texts as $t) {
                 $buf .= (string) $t;
@@ -463,6 +561,21 @@ final class OfficeDocumentParser
             return trim($buf);
         }
         return $raw;
+    }
+
+    /** @return array<int, SimpleXMLElement> */
+    private function xpathLocal(SimpleXMLElement $el, string $query): array
+    {
+        $prev = libxml_use_internal_errors(true);
+        try {
+            $found = $el->xpath($query);
+            return is_array($found) ? $found : [];
+        } catch (\Throwable) {
+            return [];
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($prev);
+        }
     }
 
     private function colIndexFromRef(string $ref): int

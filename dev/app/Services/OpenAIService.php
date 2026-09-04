@@ -135,15 +135,25 @@ final class OpenAIService
 첨부 표로 라벨 템플릿을 만듭니다. JSON만 출력하세요.
 {
   "title": "짧은 한국어 템플릿 이름",
-  "message": "사용자에게 보여줄 2~3문장 안내",
+  "message": "사용자에게 보여줄 2~3문장 안내(용도·용지·장당 칸 수 언급)",
+  "use_case": "shipping|packing|picking|inventory|hangtag|product|general",
+  "paper_no": "LU-3102|LU-3230|LU-3659|LU-3775 중 하나",
   "width_mm": 라벨 가로 mm,
   "height_mm": 라벨 세로 mm,
   "fields": [{"column":"표의 열 이름 그대로","kind":"text|barcode|qr"}]
 }
 규칙:
-- fields는 라벨에 넣을 열만, 최대 8개, column은 아래 표에 있는 이름만.
-- 이름/상품명은 text, 바코드·SKU는 barcode, URL·홈페이지는 qr.
-- 주소라벨이면 90×50 전후, 일반은 70×36 전후. 한 변은 20~120mm.
+- fields는 라벨에 넣을 열만, 최대 7개, column은 아래 표에 있는 이름만. URL·단가·이메일은 제외.
+- 이름/수취인/상품명은 text, 바코드·SKU는 barcode.
+- 반드시 A4 다칸 용지. 한 장 1칸 금지. width/height는 paper_no에 맞출 것.
+용도→용지:
+- shipping(배송·수취·주소·택배): LU-3102 (A4 100×50mm 10칸)
+- packing(패킹·내품·동봉, 필드 많음): LU-3775 (A4 84×58mm 8칸)
+- picking(피킹·SKU·바코드 집품): LU-3230 (A4 70×36mm 14칸)
+- inventory(검수·재고·소형 다량): LU-3659 (A4 50×30mm 21칸)
+- hangtag(행거·타공): LU-3775
+- product(일반 상품): LU-3230 또는 LU-3659
+사용자 힌트에 용도가 있으면 그걸 우선하세요.
 파일: {$sourceName}
 사용자 요청: {$hint}
 표:
@@ -165,6 +175,7 @@ PROMPT;
             return [
                 'title' => '',
                 'message' => '',
+                'paper_no' => '',
                 'width_mm' => 0,
                 'height_mm' => 0,
                 'fields' => [],
@@ -190,6 +201,8 @@ PROMPT;
         return [
             'title' => trim((string) ($decoded['title'] ?? '')),
             'message' => trim((string) ($decoded['message'] ?? '')),
+            'use_case' => trim((string) ($decoded['use_case'] ?? $decoded['useCase'] ?? '')),
+            'paper_no' => trim((string) ($decoded['paper_no'] ?? $decoded['paperNo'] ?? '')),
             'width_mm' => (float) ($decoded['width_mm'] ?? 0),
             'height_mm' => (float) ($decoded['height_mm'] ?? 0),
             'fields' => $fields,

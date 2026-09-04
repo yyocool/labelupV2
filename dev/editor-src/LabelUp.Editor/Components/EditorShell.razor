@@ -19,7 +19,8 @@
 
 <ErrorBoundary @ref="_errorBoundary">
   <ChildContent>
-<div class="ed @(Session.TopBarPinned ? "is-topbar-pinned" : "is-topbar-auto")" data-ed-root>
+@* HTML #editor-boot overlay covers until hideBoot(); keep shell mounted so first paint is ready. *@
+<div class="ed @(Session.TopBarPinned ? "is-topbar-pinned" : "is-topbar-auto") @(!_bootReady ? "is-booting" : null)" data-ed-root aria-busy="@(!_bootReady)">
   <TopBar />
   <div class="ed__body" data-ed-body>
     <div class="ed__workspace" data-ed-workspace>
@@ -84,6 +85,8 @@
     private ErrorBoundary? _errorBoundary;
     private CanvasHost? _canvas;
     private bool _panelsReady;
+    /// <summary>Canvas mounts only after Hangul fonts + initial document load finish (avoids garbled/default flash).</summary>
+    private bool _bootReady;
     private DotNetObjectReference<EditorShell>? _self;
     private object? _pendingUiLayout;
 
@@ -93,6 +96,7 @@
         {
             await Fonts.EnsureLoadedAsync();
             DocumentRenderer.SetFontCatalog(Fonts);
+
             await Papers.EnsureLoadedAsync();
 
             var savedMap = await Drafts.LoadMapAsync();
@@ -100,13 +104,32 @@
                 Papers.ReplaceMap(savedMap);
 
             var pageQuery = await ReadPageQueryAsync();
-            var projectLoaded = await TryLoadProjectFromQueryAsync(pageQuery);
+            var wantLabiDoc = pageQuery.ContainsKey("labiDoc") || pageQuery.ContainsKey("labidoc");
+            var hasProject = TryReadProjectId(pageQuery, out _);
+
+            // Logged-in Excel/CSV flow: prefer cloud project (authoritative), then pending stash.
+            var projectLoaded = hasProject && await TryLoadProjectFromQueryAsync(pageQuery);
+            var pendingDocApplied = false;
             if (projectLoaded)
             {
-                try { await Js.InvokeVoidAsync("labelUpEditor.takePendingDocument"); } catch { }
+                var hasData = Session.Document.Data is { RowCount: > 0 };
+                if (!hasData)
+                {
+                    pendingDocApplied = await TryApplyPendingDocumentAsync(pageQuery);
+                }
+                else
+                {
+                    try { await Js.InvokeVoidAsync("labelUpEditor.takePendingDocument"); } catch { }
+                }
             }
-            var themeApplied = !projectLoaded && await TryApplyTemplateFromQueryAsync(pageQuery);
-            var pendingDocApplied = !projectLoaded && !themeApplied && await TryApplyPendingDocumentAsync(pageQuery);
+            else
+            {
+                pendingDocApplied = (wantLabiDoc || !hasProject) && await TryApplyPendingDocumentAsync(pageQuery);
+                if (pendingDocApplied && TryReadProjectId(pageQuery, out var labiProjectId) && labiProjectId > 0)
+                    Session.WorkspaceId = labiProjectId;
+            }
+
+            var themeApplied = !projectLoaded && !pendingDocApplied && await TryApplyTemplateFromQueryAsync(pageQuery);
             var wantVendor = pageQuery.ContainsKey("vendor") || pageQuery.ContainsKey("vendorImport");
             var bootFromQuery = !projectLoaded && !themeApplied && !pendingDocApplied && !wantVendor && TryApplyPaperFromQuery(pageQuery);
             var clipartApplied = !projectLoaded && !pendingDocApplied && !wantVendor && await TryApplyClipartFromQueryAsync(pageQuery);
@@ -132,6 +155,13 @@
         {
             EditorLog.Error("편집기 초기화 실패", ex);
             Session.Status = "초기화 경고: " + ex.Message;
+        }
+        finally
+        {
+            // Hangul fonts + boot document first, then drop HTML boot overlay in the same frame.
+            _bootReady = Fonts.IsReady;
+            await InvokeAsync(StateHasChanged);
+            try { await Js.InvokeVoidAsync("labelUpEditor.hideBoot"); } catch { /* ignore */ }
         }
     }
 
@@ -215,6 +245,14 @@
         return map;
     }
 
+    private static bool TryReadProjectId(Dictionary<string, string> q, out int id)
+    {
+        id = 0;
+        if (!q.TryGetValue("project", out var raw) && !q.TryGetValue("workspace", out raw))
+            return false;
+        return int.TryParse(raw, out id) && id > 0;
+    }
+
     private async Task<bool> TryLoadProjectFromQueryAsync(Dictionary<string, string>? q = null)
     {
         q ??= await ReadPageQueryAsync();
@@ -275,6 +313,10 @@
             doc.EnsureStructure();
             doc.EnsurePagesForData();
             Session.ReplaceDocument(doc);
+            if (int.TryParse(pending.ProjectId, out var pid) && pid > 0)
+                Session.WorkspaceId = pid;
+            else if (TryReadProjectId(q, out var qid))
+                Session.WorkspaceId = qid;
             Session.Dirty = false;
             Session.DataPanelVisible = doc.Data is { RowCount: > 0 };
             Session.DataPanelExpanded = Session.DataPanelVisible;

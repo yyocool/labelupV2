@@ -71,6 +71,13 @@ public static class DocumentRenderer
         return SKTypeface.Default;
     }
 
+    /// <summary>True when a Hangul-capable typeface is available for canvas text.</summary>
+    public static bool FontsReady => Fonts?.IsReady == true;
+
+    /// <summary>Ruler / chrome text may use Default; content Hangul must wait for FontsReady.</summary>
+    public static SKTypeface ResolveChromeTypeface(bool bold = false)
+        => Fonts?.ResolveOrDefault(bold) ?? SKTypeface.Default;
+
     public static SKBitmap? GetBitmap(DesignObject obj)
     {
         if (string.IsNullOrEmpty(obj.ImageData)) return null;
@@ -255,7 +262,8 @@ public static class DocumentRenderer
                 DrawShape(canvas, obj, alpha);
                 break;
             case ObjectType.Text:
-                DrawText(canvas, obj, text, alpha);
+                if (FontsReady)
+                    DrawText(canvas, obj, text, alpha);
                 break;
             case ObjectType.Image:
                 DrawImage(canvas, obj, alpha);
@@ -265,7 +273,8 @@ public static class DocumentRenderer
                 BarcodeRenderer.Draw(canvas, obj, resolve?.Invoke(obj) ?? obj.BarcodeValue, alpha);
                 break;
             case ObjectType.Table:
-                DrawTable(canvas, obj, alpha);
+                if (FontsReady)
+                    DrawTable(canvas, obj, alpha);
                 break;
             case ObjectType.Clipart:
             case ObjectType.Icon:

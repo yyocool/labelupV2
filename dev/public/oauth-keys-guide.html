@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>라벨업 소셜 로그인 키 발급 안내</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f4f1ec;
+      --card: #fffdf9;
+      --ink: #1f2430;
+      --muted: #5c6475;
+      --line: #e7e0d6;
+      --accent: #7b2840;
+      --naver: #03c75a;
+      --kakao: #fee500;
+      --google: #4285f4;
+      --ok: #0f7a45;
+      --warn: #9a5b00;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Pretendard, "Apple SD Gothic Neo", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(900px 420px at 10% -10%, rgba(123,40,64,.12), transparent 60%),
+        radial-gradient(700px 380px at 100% 0%, rgba(3,199,90,.08), transparent 55%),
+        var(--bg);
+      line-height: 1.65;
+    }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 40px 20px 80px; }
+    .hero {
+      padding: 28px 28px 24px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: linear-gradient(165deg, #fff 0%, var(--card) 100%);
+      box-shadow: 0 18px 40px rgba(40, 30, 20, .06);
+    }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 800; letter-spacing: .04em;
+      color: var(--accent); text-transform: uppercase;
+    }
+    h1 { margin: 10px 0 8px; font-size: clamp(28px, 4vw, 40px); line-height: 1.2; letter-spacing: -.02em; }
+    .lead { margin: 0; color: var(--muted); font-size: 16px; max-width: 62ch; }
+    .summary {
+      display: grid; gap: 12px;
+      grid-template-columns: repeat(3, 1fr);
+      margin-top: 22px;
+    }
+    .summary article {
+      padding: 14px 14px 12px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+    .summary h2 { margin: 0 0 6px; font-size: 14px; }
+    .summary p { margin: 0; font-size: 12px; color: var(--muted); }
+    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .dot.naver { background: var(--naver); }
+    .dot.kakao { background: var(--kakao); border: 1px solid #d6bd00; }
+    .dot.google { background: var(--google); }
+
+    .section { margin-top: 28px; }
+    .section > h2 {
+      margin: 0 0 12px;
+      font-size: 22px;
+      letter-spacing: -.02em;
+    }
+    .note {
+      padding: 14px 16px;
+      border-left: 4px solid var(--accent);
+      background: rgba(123,40,64,.06);
+      border-radius: 0 14px 14px 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .note strong { color: var(--ink); }
+
+    .domain-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 1fr 1fr;
+      margin-top: 14px;
+    }
+    .domain-card {
+      padding: 14px 14px 12px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+    .domain-card h3 {
+      margin: 0 0 8px;
+      font-size: 13px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .pill {
+      font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;
+    }
+    .pill.dev { background: #e8f1ff; color: #1d4f91; }
+    .pill.prod { background: #eaf8ef; color: #0f7a45; }
+    .domain-card .base { margin: 0 0 10px; font-weight: 800; font-size: 13px; word-break: break-all; }
+    .domain-card .urls { display: grid; gap: 6px; }
+    .domain-card .urls .mono { display: block; }
+
+    .card {
+      margin-top: 16px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .card-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #fff, #faf7f2);
+    }
+    .card-head h3 { margin: 0; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+    .badge {
+      font-size: 11px; font-weight: 800; padding: 4px 8px; border-radius: 999px;
+      background: #f3ece4; color: var(--muted);
+    }
+    .steps { padding: 8px 8px 16px; }
+    .step {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 12px;
+      padding: 14px 12px;
+      border-radius: 16px;
+    }
+    .step + .step { margin-top: 4px; }
+    .step:hover { background: #faf7f2; }
+    .num {
+      width: 42px; height: 42px; border-radius: 14px;
+      display: grid; place-items: center;
+      font-weight: 800; color: #fff;
+      background: var(--accent);
+    }
+    .step.naver .num { background: var(--naver); }
+    .step.kakao .num { background: #3c1e1e; color: var(--kakao); }
+    .step.google .num { background: var(--google); }
+    .step h4 { margin: 0 0 4px; font-size: 15px; }
+    .step p, .step li { margin: 0; color: var(--muted); font-size: 14px; }
+    .step ul { margin: 8px 0 0; padding-left: 18px; }
+    .step li + li { margin-top: 4px; }
+    code, .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12.5px;
+      background: #f3f0ea;
+      padding: 2px 6px;
+      border-radius: 6px;
+      word-break: break-all;
+    }
+    a { color: var(--accent); font-weight: 700; }
+    a:hover { text-decoration: underline; }
+
+    .deliver {
+      margin-top: 16px;
+      padding: 16px 18px;
+      border-radius: 16px;
+      background: #f6fff9;
+      border: 1px solid #cfe9d8;
+    }
+    .deliver h4 { margin: 0 0 8px; color: var(--ok); font-size: 14px; }
+    .deliver ul { margin: 0; padding-left: 18px; }
+    .deliver li { margin: 6px 0; font-size: 14px; }
+    .deliver .key { font-weight: 800; color: var(--ink); }
+
+    .copy-box {
+      margin-top: 28px;
+      padding: 20px;
+      border-radius: 20px;
+      border: 1px dashed #c9b8a8;
+      background: #fffaf3;
+    }
+    .copy-box h2 { margin: 0 0 8px; font-size: 18px; }
+    .copy-box p { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+    textarea {
+      width: 100%;
+      min-height: 220px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: #fff;
+      color: var(--ink);
+    }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    button {
+      border: 0; border-radius: 12px; padding: 12px 16px;
+      background: var(--accent); color: #fff; font-weight: 800; cursor: pointer;
+    }
+    button.secondary { background: #2a2d3a; }
+    .hint { font-size: 12px; color: var(--warn); margin-top: 8px; }
+
+    .checklist {
+      display: grid; gap: 8px; margin-top: 12px;
+    }
+    .checklist label {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff;
+      font-size: 14px;
+    }
+    .checklist input { margin-top: 3px; }
+
+    @media (max-width: 760px) {
+      .summary, .domain-grid { grid-template-columns: 1fr; }
+      .wrap { padding: 24px 14px 60px; }
+      .hero { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="eyebrow">LabelUp · OAuth Setup</div>
+      <h1>네이버 · 카카오 · 구글<br>소셜 로그인 키 발급 안내</h1>
+      <p class="lead">
+        이 페이지는 <strong>키를 발급해 줄 담당자</strong>에게 그대로 전달하면 됩니다.
+        아래 순서대로 발급하고, 마지막의 <strong>전달 값 목록</strong>만 개발자에게 보내 주세요.
+      </p>
+      <div class="summary">
+        <article>
+          <h2><span class="dot naver"></span> 네이버</h2>
+          <p>Client ID + Client Secret</p>
+        </article>
+        <article>
+          <h2><span class="dot kakao"></span> 카카오</h2>
+          <p>REST API 키 (+ Client Secret 권장)</p>
+        </article>
+        <article>
+          <h2><span class="dot google"></span> 구글</h2>
+          <p>Client ID + Client Secret</p>
+        </article>
+      </div>
+    </header>
+
+    <section class="section">
+      <h2>0. 공통으로 꼭 맞출 콜백 주소</h2>
+      <div class="note">
+        네이버·카카오·구글 콘솔에 <strong>개발 / 운영 도메인 콜백 URL을 모두</strong> 등록해 주세요.
+        주소는 아래와 <strong>한 글자도 다르지 않게</strong> 입력해야 합니다. (http / https 구분 포함)
+      </div>
+      <div class="domain-grid">
+        <article class="domain-card">
+          <h3><span class="pill dev">개발</span> 개발 도메인</h3>
+          <p class="base">http://labelupdev.gagamkorea.kr</p>
+          <div class="urls">
+            <span class="mono">http://labelupdev.gagamkorea.kr/auth/naver/callback</span>
+            <span class="mono">http://labelupdev.gagamkorea.kr/auth/kakao/callback</span>
+            <span class="mono">http://labelupdev.gagamkorea.kr/auth/google/callback</span>
+          </div>
+        </article>
+        <article class="domain-card">
+          <h3><span class="pill prod">운영</span> 운영 도메인</h3>
+          <p class="base">https://www.labelup.co.kr</p>
+          <div class="urls">
+            <span class="mono">https://www.labelup.co.kr/auth/naver/callback</span>
+            <span class="mono">https://www.labelup.co.kr/auth/kakao/callback</span>
+            <span class="mono">https://www.labelup.co.kr/auth/google/callback</span>
+          </div>
+        </article>
+      </div>
+      <div class="note" style="margin-top:12px;">
+        서비스 URL(사이트 주소)도 가능하면 두 도메인을 모두 등록하세요.<br>
+        개발: <code>http://labelupdev.gagamkorea.kr</code> ·
+        운영: <code>https://www.labelup.co.kr</code>
+      </div>
+    </section>
+
+    <!-- NAVER -->
+    <section class="section">
+      <div class="card">
+        <div class="card-head">
+          <h3><span class="dot naver"></span> 1) 네이버 로그인</h3>
+          <span class="badge">developers.naver.com</span>
+        </div>
+        <div class="steps">
+          <div class="step naver">
+            <div class="num">1</div>
+            <div>
+              <h4>네이버 개발자 센터 접속</h4>
+              <p><a href="https://developers.naver.com/apps/#/register" target="_blank" rel="noopener">애플리케이션 등록 페이지</a>로 이동합니다. 네이버 계정 로그인이 필요합니다.</p>
+            </div>
+          </div>
+          <div class="step naver">
+            <div class="num">2</div>
+            <div>
+              <h4>새 애플리케이션 등록</h4>
+              <ul>
+                <li>애플리케이션 이름: <strong>라벨업</strong> (또는 회사 표기명)</li>
+                <li>사용 API: <strong>네아로(네이버 로그인)</strong> 선택</li>
+                <li>비로그인 오픈API 서비스 환경: <strong>PC 웹</strong></li>
+              </ul>
+            </div>
+          </div>
+          <div class="step naver">
+            <div class="num">3</div>
+            <div>
+              <h4>서비스 URL / Callback URL 입력</h4>
+              <ul>
+                <li>서비스 URL에 <strong>개발·운영 둘 다</strong> 등록
+                  <div style="margin-top:6px; display:grid; gap:4px;">
+                    <span class="mono">http://labelupdev.gagamkorea.kr</span>
+                    <span class="mono">https://www.labelup.co.kr</span>
+                  </div>
+                </li>
+                <li>Callback URL에도 <strong>개발·운영 둘 다</strong> 등록
+                  <div style="margin-top:6px; display:grid; gap:4px;">
+                    <span class="mono">http://labelupdev.gagamkorea.kr/auth/naver/callback</span>
+                    <span class="mono">https://www.labelup.co.kr/auth/naver/callback</span>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div class="step naver">
+            <div class="num">4</div>
+            <div>
+              <h4>제공 정보 선택</h4>
+              <p>회원 이름, <strong>이메일</strong>을 반드시 포함해 주세요. (이메일 없으면 자동 가입 품질이 떨어집니다)</p>
+            </div>
+          </div>
+          <div class="step naver">
+            <div class="num">5</div>
+            <div>
+              <h4>발급 결과 확인</h4>
+              <p>애플리케이션 상세에서 아래 2개 값을 복사합니다.</p>
+            </div>
+          </div>
+        </div>
+        <div class="deliver" style="margin:0 16px 16px;">
+          <h4>개발자에게 전달할 값 (네이버)</h4>
+          <ul>
+            <li><span class="key">NAVER_CLIENT_ID</span> = Client ID</li>
+            <li><span class="key">NAVER_CLIENT_SECRET</span> = Client Secret</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- KAKAO -->
+    <section class="section">
+      <div class="card">
+        <div class="card-head">
+          <h3><span class="dot kakao"></span> 2) 카카오 로그인</h3>
+          <span class="badge">developers.kakao.com</span>
+        </div>
+        <div class="steps">
+          <div class="step kakao">
+            <div class="num">1</div>
+            <div>
+              <h4>카카오 개발자 콘솔 접속</h4>
+              <p><a href="https://developers.kakao.com/console/app" target="_blank" rel="noopener">내 애플리케이션</a>에서 앱을 만들거나 기존 앱을 선택합니다.</p>
+            </div>
+          </div>
+          <div class="step kakao">
+            <div class="num">2</div>
+            <div>
+              <h4>앱 키 확인</h4>
+              <p>앱 설정 → 앱 키 메뉴에서 <strong>REST API 키</strong>를 복사합니다. (JavaScript 키가 아닙니다)</p>
+            </div>
+          </div>
+          <div class="step kakao">
+            <div class="num">3</div>
+            <div>
+              <h4>카카오 로그인 활성화</h4>
+              <ul>
+                <li>제품 설정 → 카카오 로그인 → <strong>활성화 ON</strong></li>
+                <li>Redirect URI에 <strong>개발·운영 둘 다</strong> 등록
+                  <div style="margin-top:6px; display:grid; gap:4px;">
+                    <span class="mono">http://labelupdev.gagamkorea.kr/auth/kakao/callback</span>
+                    <span class="mono">https://www.labelup.co.kr/auth/kakao/callback</span>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div class="step kakao">
+            <div class="num">4</div>
+            <div>
+              <h4>동의 항목 설정</h4>
+              <ul>
+                <li>닉네임: 필수 또는 선택</li>
+                <li><strong>카카오계정(이메일)</strong>: 가능한 한 필수로 설정</li>
+              </ul>
+            </div>
+          </div>
+          <div class="step kakao">
+            <div class="num">5</div>
+            <div>
+              <h4>(권장) Client Secret 사용</h4>
+              <p>보안 → Client Secret 생성/사용 설정 ON 후 Secret 코드를 복사합니다. 없어도 동작은 가능하지만 보안상 권장합니다.</p>
+            </div>
+          </div>
+        </div>
+        <div class="deliver" style="margin:0 16px 16px;">
+          <h4>개발자에게 전달할 값 (카카오)</h4>
+          <ul>
+            <li><span class="key">KAKAO_REST_API_KEY</span> = REST API 키</li>
+            <li><span class="key">KAKAO_CLIENT_SECRET</span> = Client Secret (사용 시)</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- GOOGLE -->
+    <section class="section">
+      <div class="card">
+        <div class="card-head">
+          <h3><span class="dot google"></span> 3) 구글 로그인</h3>
+          <span class="badge">console.cloud.google.com</span>
+        </div>
+        <div class="steps">
+          <div class="step google">
+            <div class="num">1</div>
+            <div>
+              <h4>Google Cloud 콘솔 접속</h4>
+              <p><a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">API 및 서비스 → 사용자 인증 정보</a>로 이동합니다. 프로젝트가 없으면 먼저 생성합니다.</p>
+            </div>
+          </div>
+          <div class="step google">
+            <div class="num">2</div>
+            <div>
+              <h4>OAuth 동의 화면 설정</h4>
+              <ul>
+                <li>User Type: 외부(일반 서비스) 또는 내부(조직 전용)</li>
+                <li>앱 이름: 라벨업</li>
+                <li>지원 이메일 / 개발자 연락처 입력</li>
+                <li>범위(Scopes): <code>email</code>, <code>profile</code>, <code>openid</code></li>
+              </ul>
+            </div>
+          </div>
+          <div class="step google">
+            <div class="num">3</div>
+            <div>
+              <h4>OAuth 클라이언트 ID 만들기</h4>
+              <ul>
+                <li>만들기 → 애플리케이션 유형: <strong>웹 애플리케이션</strong></li>
+                <li>승인된 자바스크립트 원본(선택)에 개발·운영 둘 다 등록
+                  <div style="margin-top:6px; display:grid; gap:4px;">
+                    <span class="mono">http://labelupdev.gagamkorea.kr</span>
+                    <span class="mono">https://www.labelup.co.kr</span>
+                  </div>
+                </li>
+                <li>승인된 리디렉션 URI에 <strong>개발·운영 둘 다</strong> 등록
+                  <div style="margin-top:6px; display:grid; gap:4px;">
+                    <span class="mono">http://labelupdev.gagamkorea.kr/auth/google/callback</span>
+                    <span class="mono">https://www.labelup.co.kr/auth/google/callback</span>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div class="step google">
+            <div class="num">4</div>
+            <div>
+              <h4>발급 결과 확인</h4>
+              <p>생성 직후 뜨는 팝업 또는 클라이언트 상세에서 Client ID / Client Secret을 복사합니다.</p>
+            </div>
+          </div>
+        </div>
+        <div class="deliver" style="margin:0 16px 16px;">
+          <h4>개발자에게 전달할 값 (구글)</h4>
+          <ul>
+            <li><span class="key">GOOGLE_CLIENT_ID</span> = 클라이언트 ID</li>
+            <li><span class="key">GOOGLE_CLIENT_SECRET</span> = 클라이언트 보안 비밀번호</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>4. 전달 전 체크리스트</h2>
+      <div class="checklist">
+        <label><input type="checkbox"> 개발 도메인(<code>http://labelupdev.gagamkorea.kr</code>) 콜백 3개를 모두 등록했다</label>
+        <label><input type="checkbox"> 운영 도메인(<code>https://www.labelup.co.kr</code>) 콜백 3개를 모두 등록했다</label>
+        <label><input type="checkbox"> 네이버 Client ID / Secret을 복사했다</label>
+        <label><input type="checkbox"> 카카오 REST API 키(+ Secret)를 복사했다</label>
+        <label><input type="checkbox"> 구글 Client ID / Secret을 복사했다</label>
+        <label><input type="checkbox"> 이메일 권한(동의항목)을 켜 두었다</label>
+        <label><input type="checkbox"> 키를 메신저/메일로 보낼 때 외부 공유 범위를 최소화한다</label>
+      </div>
+    </section>
+
+    <section class="copy-box">
+      <h2>개발자에게 보낼 메시지 템플릿</h2>
+      <p>아래 내용을 채운 뒤 복사해서 보내 주세요. 빈칸만 채우면 됩니다.</p>
+      <textarea id="msgTpl" readonly>[도메인]
+개발: http://labelupdev.gagamkorea.kr
+운영: https://www.labelup.co.kr
+
+[네이버]
+NAVER_CLIENT_ID=
+NAVER_CLIENT_SECRET=
+
+[카카오]
+KAKAO_REST_API_KEY=
+KAKAO_CLIENT_SECRET=
+
+[구글]
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+[콜백 URL 등록 여부]
+개발 네이버 http://labelupdev.gagamkorea.kr/auth/naver/callback : 완료
+개발 카카오 http://labelupdev.gagamkorea.kr/auth/kakao/callback : 완료
+개발 구글 http://labelupdev.gagamkorea.kr/auth/google/callback : 완료
+운영 네이버 https://www.labelup.co.kr/auth/naver/callback : 완료
+운영 카카오 https://www.labelup.co.kr/auth/kakao/callback : 완료
+운영 구글 https://www.labelup.co.kr/auth/google/callback : 완료
+</textarea>
+      <div class="actions">
+        <button type="button" id="copyBtn">템플릿 복사</button>
+        <button type="button" class="secondary" id="printBtn">인쇄 / PDF 저장</button>
+      </div>
+      <p class="hint" id="copyHint" hidden>복사되었습니다. 메신저나 메일로 붙여넣기 하세요.</p>
+    </section>
+
+    <section class="section">
+      <div class="note">
+        <strong>개발자 참고:</strong> 전달받은 값은 서버 <code>.env</code>에 넣고,
+        <code>APP_URL</code>을 콜백에 쓴 도메인과 맞춘 뒤 로그인/회원가입 페이지에서 버튼이 활성화되는지 확인합니다.
+        이 HTML은 독립 안내 문서이며 서비스 메뉴와 연결되어 있지 않습니다.
+      </div>
+    </section>
+  </div>
+
+  <script>
+    document.getElementById('copyBtn').addEventListener('click', async () => {
+      const text = document.getElementById('msgTpl').value;
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch (e) {
+        const el = document.getElementById('msgTpl');
+        el.focus();
+        el.select();
+        document.execCommand('copy');
+      }
+      const hint = document.getElementById('copyHint');
+      hint.hidden = false;
+      setTimeout(() => { hint.hidden = true; }, 2500);
+    });
+    document.getElementById('printBtn').addEventListener('click', () => window.print());
+  </script>
+</body>
+</html>

@@ -216,8 +216,14 @@ public sealed class LabelDocument
         if (rows <= 0) return;
         var per = Math.Max(1, Paper.LabelsPerPage);
         var need = Math.Max(1, (int)Math.Ceiling(rows / (double)per));
+        List<DesignObject>? prototype = null;
+        if (Pages.Count > 0 && Pages[0].Cells.Count > 0 && Pages[0].Cells[0].Objects.Count > 0)
+            prototype = Pages[0].Cells[0].Objects.Select(o => o.Clone()).ToList();
         while (Pages.Count < need)
-            AddPage();
+            AddPage(prototype);
+        // 데이터 행마다 같은 바인딩 디자인이 있어야 출력·미리보기에 값이 채워집니다.
+        if (prototype is { Count: > 0 })
+            ApplyDesignToAll(prototype);
     }
 
     public static LabelDocument CreateBlank(PaperSpec? paper = null)
