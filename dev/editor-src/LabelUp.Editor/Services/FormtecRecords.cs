@@ -25,10 +25,11 @@ internal static class FormtecRecords
         switch (type)
         {
             case 0x02:
-                // 페이지 블록 길이 100은 B8 01(2)을 포함하므로 객체는 보통 98바이트.
-                // +0x47의 0x2711+종류(선=1, 화살=0)까지는 최소 79바이트 필요.
-                length = Math.Min(100, available);
-                return length >= 79;
+                // 페이지 블록 길이 100은 B8 01(2)를 포함한다. 객체 본문은 98바이트.
+                // 100으로 읽으면 같은 페이지의 다음 선이 2바이트씩 밀린다.
+                if (available < 79) return false;
+                length = Math.Min(98, available);
+                return true;
             case 0x07:
             case 0x08:
                 return TryBarcode1DLength(data, start, pageEnd, out length);
@@ -50,6 +51,15 @@ internal static class FormtecRecords
                 return TryExtendedLength(data, start, pageEnd, out length);
             case 0x00:
                 return TryTextLength(data, start, pageEnd, out length);
+            case 0x0F:
+                return TryTableLength(data, start, pageEnd, out length);
+            case 0x0E:
+                if (IsGradient(data, start, pageEnd))
+                {
+                    length = 89;
+                    return length <= available;
+                }
+                return false;
             default:
                 return false;
         }
@@ -65,8 +75,13 @@ internal static class FormtecRecords
                 break;
             case 0x04:
             case 0x05:
-            case 0x0E:
                 ApplyClosedShape(obj, data, start, end);
+                break;
+            case 0x0E:
+                if (IsGradient(data, start, end))
+                    ApplyGradient(obj, data, start, end);
+                else
+                    ApplyClosedShape(obj, data, start, end);
                 break;
             case 0x09:
             case 0x18:
@@ -90,6 +105,9 @@ internal static class FormtecRecords
                 break;
             case 0x00:
                 ApplyPlainText(obj, data, start, end);
+                break;
+            case 0x0F:
+                ApplyTable(obj, data, start, end);
                 break;
         }
     }
@@ -249,6 +267,70 @@ internal static class FormtecRecords
                && data[rtf + 4] == (byte)'f';
     }
 
+    private static bool TryTableLength(byte[] data, int start, int pageEnd, out int length)
+    {
+        length = 0;
+        if (start + 0x53 > pageEnd) return false;
+        var rows = (int)BitConverter.ToUInt32(data, start + 0x4B);
+        var cols = (int)BitConverter.ToUInt32(data, start + 0x4F);
+        if (rows is < 1 or > 40 || cols is < 1 or > 40) return false;
+        length = 0x53 + 16 * (rows + cols);
+        return start + length <= pageEnd;
+    }
+
+    /// <summary>
+    /// 표 0x0F. md_formtec/표_색상_데이터_분석.md
+    /// 닫힌 도형과 같이 +0x29 배경, +0x2D 플래그, +0x2E 선색, +0x33 선굵기.
+    /// +0x47의 0x2711은 레코드 표식일 뿐 셀 텍스트가 아니다.
+    /// +0x4B 행, +0x4F 열. +0x53부터 16바이트×(행+열).
+    /// 셀 글은 별도 텍스트 항목이 확인될 때만. 바이너리 인쇄문자는 넣지 않는다.
+    /// </summary>
+    private static void ApplyTable(DesignObject obj, byte[] data, int start, int end)
+    {
+        obj.TableCells = [];
+        obj.TableRowFills = [];
+        obj.TableColFills = [];
+        obj.BackgroundTransparent = false;
+        obj.BackgroundFill = "#ffffff";
+        obj.Stroke = "#000000";
+        obj.TableBorderWidth = 0.2f;
+
+        if (start + 0x29 + 4 <= end)
+            obj.BackgroundFill = ColorRefCss(BitConverter.ToUInt32(data, start + 0x29));
+
+        if (start + 0x2E + 4 <= end)
+            obj.Stroke = ColorRefCss(BitConverter.ToUInt32(data, start + 0x2E));
+
+        if (start + 0x33 + 10 <= end)
+        {
+            var thick = Extended80.ReadStandard(data.AsSpan(start + 0x33, 10));
+            if (thick is > 0 and < 8)
+                obj.TableBorderWidth = (float)Math.Clamp(thick, 0.08, 2);
+        }
+
+        if (start + 0x53 > end) return;
+        var rows = (int)BitConverter.ToUInt32(data, start + 0x4B);
+        var cols = (int)BitConverter.ToUInt32(data, start + 0x4F);
+        if (rows is < 1 or > 40 || cols is < 1 or > 40) return;
+        obj.TableRows = rows;
+        obj.TableCols = cols;
+
+        for (var i = 0; i < rows + cols; i++)
+        {
+            var off = start + 0x53 + i * 16;
+            if (off + 16 > end) break;
+            var enabled = data[off + 11];
+            var color = enabled == 0 ? ColorRefCss(BitConverter.ToUInt32(data, off + 12)) : null;
+            if (i < rows)
+                obj.TableRowFills.Add(color);
+            else
+                obj.TableColFills.Add(color);
+        }
+
+        obj.EnsureTableSize();
+        EditorLog.Info($"폼텍 표: {rows}x{cols} bg={obj.BackgroundFill} stroke={obj.Stroke}");
+    }
+
     /// <summary>
     /// DGZ_텍스트_항목_최종_확정_2026-08-10.md + WPF DgfTextRecordParser.
     /// 117+2N+F 와 48+2N+F 는 표식 R(0x2711) 기준. 객체 앞머리 0x47은 별도.
@@ -312,9 +394,19 @@ internal static class FormtecRecords
         or 0x0E or 0x0F or 0x10 or 0x16 or 0x18;
 
     internal static bool IsPlainLine(byte[] data, int start, int end)
-        => TryReadLineKind(data, start, end, out var kind) && kind == 1;
+        => !IsArrow(data, start, end);
 
-    private static bool TryReadLineKind(byte[] data, int start, int end, out uint kind)
+    /// <summary>
+    /// 화살표는 +0x57 이 1~4. 일반 선은 0.
+    /// +0x4B의 0/1은 화살표 여부가 아니라 대각선 방향이다.
+    /// </summary>
+    internal static bool IsArrow(byte[] data, int start, int end)
+    {
+        var style = start + 0x57;
+        return style < end && data[style] is >= 1 and <= 4;
+    }
+
+    internal static bool TryReadLineKind(byte[] data, int start, int end, out uint kind)
     {
         kind = 0;
         var marker = start + 0x47;
@@ -335,8 +427,51 @@ internal static class FormtecRecords
     }
 
     /// <summary>
+    /// DGZ_그라데이션_프레임_분석.md. type 0x0E + R(+0x47)=0x2711 + RGB패드 + 방향 0~3 + 정밀도 1~100.
+    /// 레코드 길이는 89바이트. 더 길게 잡으면 같은 칸의 텍스트를 삼킨다.
+    /// </summary>
+    internal static bool IsGradient(byte[] data, int start, int end)
+    {
+        var marker = start + 0x47;
+        if (marker + 14 > end || !Is2711(data, marker)) return false;
+        if (data[marker + 7] != 0 || data[marker + 11] != 0) return false;
+        if (data[marker + 12] > 3) return false;
+        var prec = data[marker + 13];
+        return prec is >= 1 and <= 100;
+    }
+
+    private static void ApplyGradient(DesignObject obj, byte[] data, int start, int end)
+    {
+        obj.Type = ObjectType.Gradient;
+        obj.BackgroundTransparent = false;
+        var marker = start + 0x47;
+        obj.Fill = RgbCss(data[marker + 4], data[marker + 5], data[marker + 6]);
+        obj.GradientEnd = RgbCss(data[marker + 8], data[marker + 9], data[marker + 10]);
+        obj.GradientDirection = data[marker + 12];
+        obj.GradientPrecision = data[marker + 13];
+
+        var framed = start + 0x2D < end && data[start + 0x2D] != 0;
+        if (framed && start + 0x32 <= end)
+            obj.Stroke = ColorRefCss(BitConverter.ToUInt32(data, start + 0x2E));
+        else
+            obj.Stroke = "transparent";
+
+        obj.StrokeWidth = 0;
+        if (framed && start + 0x33 + 10 <= end)
+        {
+            var thick = Extended80.ReadStandard(data.AsSpan(start + 0x33, 10));
+            obj.StrokeWidth = (float)thick;
+        }
+
+        EditorLog.Info(
+            $"폼텍 그라데이션: {obj.Fill}->{obj.GradientEnd} dir={obj.GradientDirection} prec={obj.GradientPrecision} frame={obj.Stroke} w={obj.StrokeWidth:0.###}");
+    }
+
+    /// <summary>
     /// 닫힌 도형(사각/원/둥근사각). geometry 41바이트 다음:
-    /// +0x29 COLORREF 채우기, +0x2D 채우기 사용, +0x2E COLORREF 선색, +0x33 Extended80 선굵기.
+    /// +0x29 COLORREF 채우기, +0x2E COLORREF 선색, +0x33 Extended80 선굵기.
+    /// +0x2D는 채우기 투명이 아니다. 「여러가지 사각형」에서 흰 채우기=1, 초록/하늘/보라=0.
+    /// 0을 투명으로 보면 아래 3칸 채우기가 빠지고 속성 투명이 켜진다. 채우기는 항상 +0x29.
     /// </summary>
     private static void ApplyClosedShape(DesignObject obj, byte[] data, int start, int end)
     {
@@ -344,10 +479,14 @@ internal static class FormtecRecords
         obj.Stroke = "#000000";
         obj.StrokeWidth = 0.35f;
         obj.BackgroundTransparent = true;
+        byte flag = 0xFF;
 
-        if (start + 0x2D < end && data[start + 0x2D] != 0 && start + 0x29 + 4 <= end)
+        if (start + 0x29 + 4 <= end)
         {
-            obj.Fill = ColorRefCss(BitConverter.ToUInt32(data, start + 0x29));
+            var raw = BitConverter.ToUInt32(data, start + 0x29);
+            if (start + 0x2D < end)
+                flag = data[start + 0x2D];
+            obj.Fill = ColorRefCss(raw);
             obj.BackgroundFill = obj.Fill;
             obj.BackgroundTransparent = false;
         }
@@ -361,6 +500,8 @@ internal static class FormtecRecords
             if (thick is > 0 and < 20)
                 obj.StrokeWidth = (float)Math.Clamp(thick, 0.15, 8);
         }
+
+        EditorLog.Info($"폼텍 도형: fill={obj.Fill} flag={flag:X2} stroke={obj.Stroke} w={obj.StrokeWidth:0.###}");
     }
 
     private static void ApplyLineOrArrow(DesignObject obj, byte[] data, int start, int end)
@@ -383,13 +524,85 @@ internal static class FormtecRecords
         if (IsPlainLine(data, start, end))
         {
             obj.ShapeKind = ShapeKind.Line;
-            obj.ArrowHeads = ArrowHeads.End;
         }
         else
         {
             obj.ShapeKind = ShapeKind.Arrow;
             obj.ArrowHeads = ArrowHeads.End;
         }
+    }
+
+    /// <summary>
+    /// 선/화살표 배치. DGF에는 끝점 (x1,y1)-(x2,y2)가 없다.
+    /// 첫 4개 ext80은 히트 박스이고, 보이는 선보다 사방 약 5mm(한 축 10mm) 크다.
+    /// 납작한 박스는 가로/세로 중앙선, 아니면 대각선.
+    /// +0x4B 0=좌상→우하, 1=좌하→우상.
+    /// </summary>
+    internal static void FitFormtecLine(DesignObject obj, float x, float y, float w, float h, uint kind)
+    {
+        ShrinkLineHitBox(ref x, ref y, ref w, ref h);
+        var aw = MathF.Abs(w);
+        var ah = MathF.Abs(h);
+        var longSide = MathF.Max(aw, ah);
+        var shortSide = MathF.Min(aw, ah);
+        var aspect = longSide < 0.01f ? 0 : shortSide / longSide;
+        if (aspect < 0.45f)
+        {
+            FitLineBox(obj, x, y, w, h);
+            return;
+        }
+
+        if (kind == 1)
+            FitDiagonal(obj, x, y + h, w, -h);
+        else
+            FitDiagonal(obj, x, y, w, h);
+    }
+
+    /// <summary>
+    /// 가로선 히트 박스 높이가 10mm로 반복된다. 사방 5mm를 빼고 안쪽을 선으로 쓴다.
+    /// </summary>
+    private static void ShrinkLineHitBox(ref float x, ref float y, ref float w, ref float h)
+    {
+        const float pad = 5f;
+        const float minInner = 0.4f;
+        if (MathF.Abs(w) > pad * 2f + minInner)
+        {
+            x += MathF.CopySign(pad, w);
+            w -= MathF.CopySign(pad * 2f, w);
+        }
+        if (MathF.Abs(h) > pad * 2f + minInner)
+        {
+            y += MathF.CopySign(pad, h);
+            h -= MathF.CopySign(pad * 2f, h);
+        }
+        else
+        {
+            y += h / 2f;
+            h = 0;
+        }
+    }
+
+    /// <summary>
+    /// 납작한 박스: 긴 변 방향으로 중앙을 지난다.
+    /// </summary>
+    internal static void FitLineBox(DesignObject obj, float x, float y, float w, float h)
+    {
+        var thick = Math.Max(obj.StrokeWidth * 6f, 1.2f);
+        if (MathF.Abs(w) >= MathF.Abs(h))
+        {
+            obj.Width = Math.Max(MathF.Abs(w), 0.4f);
+            obj.Height = thick;
+            obj.X = w >= 0 ? x : x + w;
+            obj.Y = y + h / 2f - thick / 2f;
+            obj.Rotation = 0;
+            return;
+        }
+
+        obj.Width = Math.Max(MathF.Abs(h), 0.4f);
+        obj.Height = thick;
+        obj.X = x + w / 2f - obj.Width / 2f;
+        obj.Y = y + h / 2f - thick / 2f;
+        obj.Rotation = 90;
     }
 
     internal static void FitDiagonal(DesignObject obj, float x, float y, float w, float h)
@@ -428,19 +641,42 @@ internal static class FormtecRecords
 
         if (dataLen <= 0 || dataOff + dataLen > data.Length) return;
         var bytes = data.AsSpan(dataOff, dataLen).ToArray();
-        if (mime == "image/png") bytes = TrimPng(bytes);
-        if (mime == "image/jpeg") bytes = TrimJpeg(bytes);
-        if (mime is "image/wmf" or "application/octet-stream")
+        var enc = System.Diagnostics.Stopwatch.StartNew();
+        obj.ImageData = ExternalImportService.ToDataUrl(bytes, mime);
+        obj.ImageFit = "contain";
+        obj.StrokeWidth = 0;
+        obj.BackgroundTransparent = true;
+
+        if (mime == "image/wmf")
+        {
+            if (FormtecWmfShape.TryConvertClipart(bytes, out var parts) && parts.Count > 0)
+            {
+                obj.SvgParts = parts;
+                obj.Svg = parts[0].D;
+                obj.ClipartId = "formtec-wmf";
+                obj.Fill = parts.Select(p => p.Fill).FirstOrDefault(f =>
+                    !string.IsNullOrWhiteSpace(f) && f is not "transparent" && !f.Equals("#ffffff", StringComparison.OrdinalIgnoreCase))
+                    ?? "#2E2A27";
+                EditorLog.Info($"폼텍 클립아트 WMF: {dataLen}b paths={parts.Count} encode={enc.ElapsedMilliseconds}ms");
+                return;
+            }
+
+            EditorLog.Warn($"폼텍 클립아트 WMF 경로 변환 실패 {dataLen}b");
+            return;
+        }
+
+        if (mime == "application/octet-stream")
         {
             obj.ImageData = null;
             return;
         }
 
-        obj.ImageData = ExternalImportService.ToDataUrl(bytes, mime);
-        obj.ImageFit = "contain";
+        obj.Svg = null;
+        obj.SvgParts = null;
+        if (clipart)
+            obj.ClipartId = "embedded";
         obj.Fill = "transparent";
-        obj.StrokeWidth = 0;
-        obj.BackgroundTransparent = true;
+        EditorLog.Info($"폼텍 이미지: {mime} {dataLen}b encode={enc.ElapsedMilliseconds}ms");
     }
 
     private static readonly string[] Barcode1DFormats =
@@ -469,8 +705,11 @@ internal static class FormtecRecords
             ? Barcode1DFormats[subtype]
             : "CODE_128";
         obj.Type = ObjectType.Barcode;
+        obj.BarcodeVendor = "formtec";
         if (start + 0x55 + shift + textLen <= end)
             obj.BarcodeValue = Encoding.ASCII.GetString(data, start + 0x55 + shift, textLen);
+        if (subtype == 0x10 || BarcodeCatalog.LooksLikeIsbn(obj.BarcodeValue))
+            obj.BarcodeFormat = "ISBN";
 
         var p = start + 0x55 + shift + textLen;
         if (p + 14 > end) return;
@@ -480,13 +719,14 @@ internal static class FormtecRecords
         obj.Fill = ColorRefCss(BitConverter.ToUInt32(data, p + 6));
         obj.Stroke = obj.Fill;
 
-        if (fontNameLen > 0 && p + 14 + fontNameLen <= end)
-            obj.FontFamily = ExternalImportService.DecodeAnsi(data.AsSpan(p + 14, fontNameLen));
         var q = p + 14 + fontNameLen;
         if (q + 4 <= end)
             obj.FontSize = PtToMm(BitConverter.ToUInt32(data, q));
         if (q + 9 <= end)
             ApplyStyleFlags(obj, data[q + 8]);
+        if (fontNameLen > 0 && p + 14 + fontNameLen <= end)
+            FontCatalog.ApplyImportedFamily(obj, ExternalImportService.DecodeAnsi(data.AsSpan(p + 14, fontNameLen)));
+        EditorLog.Info($"폼텍 1D: format={obj.BarcodeFormat} subtype=0x{subtype:X2} value={obj.BarcodeValue} font={obj.FontFamily} {FontCatalog.ToPt(obj.FontSize):0.#}pt show={obj.BarcodeShowText}");
 
         var pos = afterStyle + 27;
         while (pos + 4 <= end)
@@ -520,14 +760,9 @@ internal static class FormtecRecords
         if (!TryReadClassAndText(data, start, available, classOff, out var nameLen, out var charCount, out var typeName))
             return;
 
-        obj.BarcodeFormat = typeName switch
-        {
-            "bcQRCode" => "QR_CODE",
-            "bcDataMatrix" => "DATA_MATRIX",
-            "bcPDF417" => "PDF_417",
-            _ => typeName.Contains("QR", StringComparison.OrdinalIgnoreCase) ? "QR_CODE" : "QR_CODE"
-        };
+        obj.BarcodeFormat = MapFormtec2DClass(typeName);
         obj.Type = ExternalImportService.Is2dBarcode(obj.BarcodeFormat) ? ObjectType.Qr : ObjectType.Barcode;
+        obj.BarcodeVendor = "formtec";
         obj.BarcodeShowText = false;
 
         var textOff = start + classOff + 4 + nameLen + 4;
@@ -538,6 +773,7 @@ internal static class FormtecRecords
             if (payload.StartsWith("URL:", StringComparison.OrdinalIgnoreCase))
                 payload = payload[4..];
             obj.BarcodeValue = payload;
+            EditorLog.Info($"폼텍 2D: {obj.BarcodeFormat} class={typeName} n={payload.Length}");
             if (payload.StartsWith("MECARD:", StringComparison.OrdinalIgnoreCase)) obj.QrKind = "vcard";
             else if (payload.StartsWith("SMSTO:", StringComparison.OrdinalIgnoreCase)) obj.QrKind = "sms";
             else if (payload.StartsWith("MAILTO:", StringComparison.OrdinalIgnoreCase)) obj.QrKind = "email";
@@ -549,9 +785,33 @@ internal static class FormtecRecords
         if (q + 8 > data.Length) return;
 
         obj.BackgroundTransparent = data[q] != 0;
+        // Q+1..3 배경, Q+5..7 바코드/QR. 기본값(01 FFFFFF / 000000)과
+        // 「배경 녹색」단독 파일이 이 순서다.
         obj.BackgroundFill = RgbCss(data[q + 1], data[q + 2], data[q + 3]);
         obj.Fill = RgbCss(data[q + 5], data[q + 6], data[q + 7]);
         obj.Stroke = obj.Fill;
+        EditorLog.Info($"폼텍 2D 색: bar={obj.Fill} bg={obj.BackgroundFill} transparent={obj.BackgroundTransparent}");
+    }
+
+    private static string MapFormtec2DClass(string typeName)
+    {
+        if (typeName.Contains("DataMatrix", StringComparison.OrdinalIgnoreCase))
+            return "DATA_MATRIX";
+        if (typeName.Contains("MicroPDF", StringComparison.OrdinalIgnoreCase))
+            return "MICRO_PDF417";
+        if (typeName.Contains("PDF417", StringComparison.OrdinalIgnoreCase) || typeName.Contains("PDF_417", StringComparison.OrdinalIgnoreCase))
+            return "PDF_417";
+        if (typeName.Contains("Aztec", StringComparison.OrdinalIgnoreCase))
+            return "AZTEC";
+        if (typeName.Contains("QR", StringComparison.OrdinalIgnoreCase))
+            return "QR_CODE";
+        return typeName switch
+        {
+            "bcQRCode" => "QR_CODE",
+            "bcDataMatrix" => "DATA_MATRIX",
+            "bcPDF417" => "PDF_417",
+            _ => "QR_CODE"
+        };
     }
 
     private static void ApplyWordArt(DesignObject obj, byte[] data, int start, int end)
@@ -561,7 +821,7 @@ internal static class FormtecRecords
         if (marker < 0 || !TryReadWordArtNF(data, marker, end, out var n, out var f, out var text))
             return;
 
-        obj.Text = text;
+        obj.Text = SanitizeImportedText(text);
         var extra = data[marker + 4];
         obj.WordArtStyle = extra == 0x01 ? WordArtStyle.Circle : WordArtStyle.None;
 
@@ -573,7 +833,7 @@ internal static class FormtecRecords
 
         var fontOff = p + 13;
         if (f > 0 && fontOff + f <= data.Length)
-            obj.FontFamily = ExternalImportService.DecodeAnsi(data.AsSpan(fontOff, f));
+            FontCatalog.ApplyImportedFamily(obj, ExternalImportService.DecodeAnsi(data.AsSpan(fontOff, f)));
 
         var s = fontOff + f;
         if (s + 19 > data.Length) return;
@@ -601,7 +861,7 @@ internal static class FormtecRecords
         var fontPos = p + 28;
         if (f < 0 || fontPos + f + 13 > data.Length) return;
         if (f > 0)
-            obj.FontFamily = ExternalImportService.DecodeAnsi(data.AsSpan(fontPos, f));
+            FontCatalog.ApplyImportedFamily(obj, ExternalImportService.DecodeAnsi(data.AsSpan(fontPos, f)));
 
         var q = fontPos + f;
         obj.FontSize = PtToMm(BitConverter.ToUInt32(data, q));
@@ -613,7 +873,7 @@ internal static class FormtecRecords
         var textBytes = n * 2;
         if (n < 0 || textPos + textBytes > data.Length) return;
         var raw = Encoding.Unicode.GetString(data, textPos, textBytes);
-        obj.Text = raw;
+        obj.Text = SanitizeImportedText(raw);
         obj.TextWrap = "char";
 
         var paramPos = textPos + textBytes;
@@ -635,7 +895,7 @@ internal static class FormtecRecords
         var rtfOff = start + 0x4F;
         if (rtfLen < 6 || rtfOff + rtfLen > data.Length) return;
         var rtf = Encoding.ASCII.GetString(data, rtfOff, rtfLen);
-        obj.Text = ExtractRtfPlain(rtf);
+        obj.Text = SanitizeImportedText(ExtractRtfPlain(rtf));
         obj.TextWrap = "char";
         if (Regex.IsMatch(rtf, @"\\fs(\d+)"))
         {
@@ -648,8 +908,6 @@ internal static class FormtecRecords
         var color = Regex.Match(rtf, @"\\red(\d+)\\green(\d+)\\blue(\d+)");
         if (color.Success)
             obj.Fill = RgbCss(byte.Parse(color.Groups[1].Value), byte.Parse(color.Groups[2].Value), byte.Parse(color.Groups[3].Value));
-        if (obj.Height > obj.Width * 1.15f)
-            obj.TextDirection = "vertical";
     }
 
     private static void ApplyPlainText(DesignObject obj, byte[] data, int start, int end)
@@ -660,14 +918,14 @@ internal static class FormtecRecords
         if (n is <= 0 or > 100_000) return;
         var textBytes = n * 2;
         if (marker + 8 + textBytes > data.Length) return;
-        obj.Text = Encoding.Unicode.GetString(data, marker + 8, textBytes);
+        obj.Text = SanitizeImportedText(Encoding.Unicode.GetString(data, marker + 8, textBytes));
         var p = marker + 8 + textBytes;
         if (p + 28 > data.Length) return;
         ApplyTextStyleHead(obj, data, p);
         var f = (int)BitConverter.ToUInt32(data, p + 24);
         if (f < 0 || p + 28 + f + 8 > data.Length) return;
         if (f > 0)
-            obj.FontFamily = ExternalImportService.DecodeAnsi(data.AsSpan(p + 28, f));
+            FontCatalog.ApplyImportedFamily(obj, ExternalImportService.DecodeAnsi(data.AsSpan(p + 28, f)));
         var q = p + 28 + f;
         obj.FontSize = PtToMm(BitConverter.ToUInt32(data, q));
         if (q + 8 <= data.Length)
@@ -675,10 +933,7 @@ internal static class FormtecRecords
         if (q + 9 <= data.Length)
             ApplyStyleFlags(obj, data[q + 8]);
 
-        var hAlign = data[p + 2];
-        var vAlign = data[p + 8];
-        if ((hAlign == 2 && vAlign == 1) || obj.Height > obj.Width * 1.15f)
-            obj.TextDirection = "vertical";
+        // 폼텍 세로 문자열은 전용 세로쓰기가 아니다. 좁은 박스에서 가로 줄바꿈만 한다.
         // 본문에 CR/LF가 없어도 박스 폭에서 자동 줄바꿈. P+9: 0=글자, 1=단어.
         if (p + 9 < data.Length)
             obj.TextWrap = data[p + 9] == 1 ? "word" : "char";
@@ -694,11 +949,7 @@ internal static class FormtecRecords
         obj.BackgroundFill = ColorRefCss(BitConverter.ToUInt32(data, p + 4));
         obj.VerticalAlign = data[p + 8] switch { 0 => "top", 2 => "bottom", _ => "middle" };
         if (p + 24 <= data.Length)
-        {
-            var spacing = BitConverter.ToDouble(data, p + 16);
-            if (Math.Abs(spacing) > double.Epsilon)
-                obj.LineHeight = (float)Math.Clamp(1.2 + spacing * 0.05, 0.8, 3);
-        }
+            obj.LineHeight = MapFormtecLineHeight(BitConverter.ToDouble(data, p + 16));
     }
 
     private static void ApplyStyleFlags(DesignObject obj, byte flags)
@@ -937,24 +1188,50 @@ internal static class FormtecRecords
         return "application/octet-stream";
     }
 
-    private static byte[] TrimPng(byte[] bytes)
+    /// <summary>
+    /// 폼텍이 문단 앞에 넣는 LRM(U+200E) 등은 화면에 안 그린다.
+    /// 글리프가 없어 네모(□)로 보이던 제어문자만 뺀다. 정렬 바이트는 본문이 아니다.
+    /// </summary>
+    private static string SanitizeImportedText(string text)
     {
-        for (var i = 8; i + 8 <= bytes.Length; i++)
+        if (string.IsNullOrEmpty(text)) return text;
+        var sb = new StringBuilder(text.Length);
+        foreach (var rune in text.EnumerateRunes())
         {
-            if (bytes[i] == 0x49 && bytes[i + 1] == 0x45 && bytes[i + 2] == 0x4E && bytes[i + 3] == 0x44)
-                return bytes[..Math.Min(bytes.Length, i + 8)];
+            if (IsInvisibleFormat(rune.Value)) continue;
+            sb.Append(rune);
         }
-        return bytes;
+        return sb.ToString().TrimEnd('\r', '\n');
     }
 
-    private static byte[] TrimJpeg(byte[] bytes)
+    /// <summary>
+    /// md_formtec 행간격 표. 저장 double은 배율이 아니라 단계 코드다.
+    /// 0=기본, ±1.90625=1칸, ±1.96875=2칸, ±1.984375=3칸.
+    /// 1.2+값×0.05로 바꾸면 +3도 1.30이라 화면에 차이가 없다.
+    /// </summary>
+    private static float MapFormtecLineHeight(double spacing)
     {
-        for (var i = 2; i + 1 < bytes.Length; i++)
-        {
-            if (bytes[i] == 0xFF && bytes[i + 1] == 0xD9)
-                return bytes[..(i + 2)];
-        }
-        return bytes;
+        if (Math.Abs(spacing) < 0.01)
+            return 1.2f;
+
+        var a = Math.Abs(spacing);
+        var step = a < 1.94 ? 1 : a < 1.977 ? 2 : 3;
+        return spacing > 0
+            ? step switch { 1 => 1.6f, 2 => 2.0f, _ => 2.4f }
+            : step switch { 1 => 1.0f, 2 => 0.82f, _ => 0.68f };
+    }
+
+    internal static bool IsInvisibleFormat(int code)
+    {
+        if (code is 0x200B or 0x200C or 0x200D or 0x200E or 0x200F)
+            return true;
+        if (code is >= 0x202A and <= 0x202E)
+            return true;
+        if (code is >= 0x2066 and <= 0x2069)
+            return true;
+        if (code is 0xFEFF or 0x00AD)
+            return true;
+        return code < 0x20 && code is not (0x09 or 0x0A or 0x0D);
     }
 
     private static string AlignH(byte v) => v switch { 1 => "right", 2 => "center", _ => "left" };

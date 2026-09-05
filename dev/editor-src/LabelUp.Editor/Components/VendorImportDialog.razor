@@ -2,6 +2,7 @@
 @using LabelUp.Editor.Services
 @inject EditorSession Session
 @inject HistoryService History
+@inject FontCatalog Fonts
 @implements IDisposable
 
 @if (Session.Dialog == EditorDialog.VendorImport && Session.PendingVendorImport is { } r)
@@ -115,7 +116,7 @@
         Session.CloseDialog();
     }
 
-    private void Apply()
+    private async Task Apply()
     {
         var r = Session.PendingVendorImport;
         if (r?.Document is null || !r.Ok)
@@ -127,6 +128,15 @@
         try
         {
             History.Push(Session.Document);
+            try
+            {
+                await Fonts.EnsureFamiliesAsync(
+                    r.Document.Pages.SelectMany(p => p.Cells).SelectMany(c => c.Objects).Select(o => o.FontFamily));
+            }
+            catch (Exception fontEx)
+            {
+                EditorLog.Error("변환 글꼴 미리 로드 실패", fontEx);
+            }
             Session.ReplaceDocument(r.Document);
             Session.PendingVendorImport = null;
             Session.Status = $"{r.VendorName} 변환 완료 · {r.PaperNo} · 항목 {r.ObjectCount}개";

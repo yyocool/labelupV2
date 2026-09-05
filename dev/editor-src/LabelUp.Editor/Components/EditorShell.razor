@@ -8,6 +8,7 @@
 @inject DraftStorage Drafts
 @inject HistoryService History
 @inject FontCatalog Fonts
+@inject FontAwesomeCatalog Icons
 @inject PaperCatalog Papers
 @inject TemplateCatalog Themes
 @inject ExternalImportService ExternalImport
@@ -17,10 +18,10 @@
 @inject IJSRuntime Js
 @implements IDisposable
 
-<ErrorBoundary @ref="_errorBoundary">
-  <ChildContent>
 <div class="ed @(Session.TopBarPinned ? "is-topbar-pinned" : "is-topbar-auto")" data-ed-root>
   <TopBar />
+<ErrorBoundary @ref="_errorBoundary">
+  <ChildContent>
   <div class="ed__body" data-ed-body>
     <div class="ed__workspace" data-ed-workspace>
       <FloatingTools />
@@ -50,35 +51,27 @@
   <InsertDialog />
   <VendorImportDialog />
   <VendorPickerDialog />
-  <UnsavedChangesDialog />
   <ConversionProgressDialog />
-  <ErrorDialog />
   <ShapePickerDialog />
   <LabiAiDialog />
   <LabelShopDialog />
   <ProjectPickerDialog />
   <TutorialHost />
-</div>
   </ChildContent>
   <ErrorContent Context="ex">
-    <div class="ed-modal" role="alertdialog" aria-label="변환 에러">
-      <div class="ed-modal__card ed-modal__card--confirm">
-        <header class="ed-modal__head">
-          <div>
-            <h3>변환 에러</h3>
-            <p>내부 오류로 화면이 멈췄습니다. 닫으면 이어서 작업할 수 있습니다.</p>
-          </div>
-        </header>
-        <div class="ed-modal__body">
-          <p class="ed-error-dialog__msg">@EditorSession.FriendlyError(ex)</p>
-        </div>
-        <footer class="ed-modal__foot">
-          <button type="button" class="ed-btn ed-btn--primary" @onclick="RecoverError">확인</button>
-        </footer>
+    <div class="ed__body" data-ed-body>
+      <div class="ed-crash">
+        <h3>화면 오류</h3>
+        <p>@EditorSession.FriendlyError(ex)</p>
+        <p class="ed-crash__hint">위쪽 저장하기는 그대로 쓸 수 있습니다. 확인하면 편집을 이어갑니다.</p>
+        <button type="button" class="ed-btn ed-btn--primary" @onclick="() => RecoverError(ex)">확인</button>
       </div>
     </div>
   </ErrorContent>
 </ErrorBoundary>
+  <ErrorDialog />
+  <UnsavedChangesDialog />
+</div>
 
 @code {
     private ErrorBoundary? _errorBoundary;
@@ -86,6 +79,8 @@
     private bool _panelsReady;
     private DotNetObjectReference<EditorShell>? _self;
     private object? _pendingUiLayout;
+    private int _fontEpoch = -1;
+    private bool _warmingFonts;
 
     protected override async Task OnInitializedAsync()
     {
@@ -93,6 +88,15 @@
         {
             await Fonts.EnsureLoadedAsync();
             DocumentRenderer.SetFontCatalog(Fonts);
+            try
+            {
+                await Icons.EnsureLoadedAsync();
+                DocumentRenderer.SetIconCatalog(Icons);
+            }
+            catch (Exception iconEx)
+            {
+                EditorLog.Error("폰트어썸 카탈로그 로드 실패", iconEx);
+            }
             await Papers.EnsureLoadedAsync();
 
             var savedMap = await Drafts.LoadMapAsync();
@@ -126,6 +130,8 @@
                 }
             }
 
+            await WarmDocumentFontsAsync();
+            Session.Changed += OnSessionChanged;
             Session.Notify();
         }
         catch (Exception ex)
@@ -668,13 +674,20 @@
     public void OnVendorConvertFailed(string message)
         => Session.ShowConversionError(message);
 
-    private void RecoverError()
+    private void RecoverError(Exception? ex = null)
     {
+        try { _ = Drafts.SaveAsync(Session.Document); }
+        catch (Exception saveEx) { EditorLog.Error("오류 중 초안 저장 실패", saveEx); }
         _errorBoundary?.Recover();
         Session.PendingVendorImport = null;
         Session.EndConversion();
-        Session.Status = "오류 후 계속합니다";
-        Session.Notify();
+        if (ex is not null)
+            Session.ShowError("화면 오류", EditorSession.FriendlyError(ex));
+        else
+        {
+            Session.Status = "오류 후 계속합니다";
+            Session.Notify();
+        }
     }
 
     [JSInvokable]
@@ -921,5 +934,39 @@
         return null;
     }
 
-    public void Dispose() => _self?.Dispose();
+    private void OnSessionChanged() => _ = WarmDocumentFontsAsync();
+
+    private async Task WarmDocumentFontsAsync()
+    {
+        var epoch = Session.DocumentEpoch;
+        if (_fontEpoch == epoch || _warmingFonts) return;
+        _warmingFonts = true;
+        try
+        {
+            var families = Session.Document.Pages
+                .SelectMany(p => p.Cells)
+                .SelectMany(c => c.Objects)
+                .Select(o => o.FontFamily);
+            var loaded = await Fonts.EnsureFamiliesAsync(families);
+            _fontEpoch = epoch;
+            if (loaded)
+                Session.Notify();
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error("문서 글꼴 미리 로드 실패", ex);
+        }
+        finally
+        {
+            _warmingFonts = false;
+            if (_fontEpoch != Session.DocumentEpoch)
+                _ = WarmDocumentFontsAsync();
+        }
+    }
+
+    public void Dispose()
+    {
+        Session.Changed -= OnSessionChanged;
+        _self?.Dispose();
+    }
 }

@@ -236,14 +236,14 @@
             if (!_paintFailed)
             {
                 _paintFailed = true;
-                Session.ShowConversionError(ex);
+                Session.ShowError("화면 오류", EditorSession.FriendlyError(ex));
             }
         }
     }
 
     private void PaintSurfaceCore(SKCanvas canvas, SKImageInfo info)
     {
-        canvas.Clear(SKColors.White);
+        canvas.Clear(new SKColor(0xF4, 0xF1, 0xEE));
 
         var doc = Session.Document;
         var scale = Session.PxPerMm * Session.Zoom;

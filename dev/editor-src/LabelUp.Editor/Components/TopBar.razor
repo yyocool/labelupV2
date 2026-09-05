@@ -250,13 +250,16 @@
         try
         {
             _autoSaving = true;
+            await Drafts.SaveAsync(Session.Document);
+
             var cloudOk = !auto;
             if (!auto)
             {
                 cloudOk = await Cloud.EnsureLoggedInForSaveAsync();
                 if (!cloudOk)
                 {
-                    Session.Status = "로그인하면 작업 내역을 저장할 수 있어요";
+                    Session.Dirty = false;
+                    Session.Status = "로컬 초안에 저장됨";
                     Session.Notify();
                     return;
                 }
@@ -265,8 +268,6 @@
             {
                 cloudOk = await Cloud.IsLoggedInAsync();
             }
-
-            await Drafts.SaveAsync(Session.Document);
             if (cloudOk)
             {
                 var layout = await Cloud.GetUiLayoutAsync();

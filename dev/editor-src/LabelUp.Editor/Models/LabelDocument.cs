@@ -72,6 +72,8 @@ public sealed class LabelDocument
     public DataSheet? Data { get; set; }
     public float PrintOffsetXMm { get; set; }
     public float PrintOffsetYMm { get; set; }
+    /// <summary>변환 출처. formtec / anylabel / ilabel 등. 바코드 기본 인코딩에 쓴다.</summary>
+    public string? SourceVendor { get; set; }
 
     [JsonIgnore]
     public float WidthMm
@@ -99,7 +101,8 @@ public sealed class LabelDocument
             Pages = Pages.Select(p => p.Clone()).ToList(),
             Data = Data?.Clone(),
             PrintOffsetXMm = PrintOffsetXMm,
-            PrintOffsetYMm = PrintOffsetYMm
+            PrintOffsetYMm = PrintOffsetYMm,
+            SourceVendor = SourceVendor,
         };
     }
 
@@ -193,6 +196,7 @@ public sealed class LabelDocument
             sum += o.X + o.Y + o.Width + o.Height + o.Rotation + o.ZIndex + o.StrokeWidth + o.Opacity
                    + (o.Text?.Length ?? 0) + (o.BarcodeValue?.Length ?? 0) + (o.ImageData?.Length ?? 0);
             style = HashCode.Combine(style, o.Fill, o.Stroke, o.Visible, o.ShapeKind, o.Locked, o.TextWrap);
+            style = HashCode.Combine(style, o.GradientEnd, o.GradientDirection, o.GradientPrecision);
             style = HashCode.Combine(style, o.Text, o.BarcodeValue, o.FontFamily);
             count++;
         }
@@ -207,6 +211,14 @@ public sealed class LabelDocument
             Paper.PaperNo);
         shapeKey = HashCode.Combine(shapeKey, Paper.LabelWidthMm, Paper.LabelHeightMm, Name);
         return $"{count}|{sum:0.##}|{style:X8}|{Background}|{Data?.RowCount ?? 0}|{shapeKey:X8}";
+    }
+
+    public void EnsurePageCount(int count)
+    {
+        EnsureStructure();
+        count = Math.Max(1, count);
+        while (Pages.Count < count)
+            AddPage();
     }
 
     public void EnsurePagesForData()

@@ -33,6 +33,69 @@ internal static class FormtecWmfShape
     {
         outer = "";
         guides = [];
+        if (!TryCollectDrawn(data, labelW, labelH, out var drawn))
+            return false;
+
+        var fills = drawn.Where(p => p.Fill).ToList();
+        if (fills.Count > 0)
+        {
+            var best = fills.MaxBy(p => p.Area);
+            outer = best.D;
+            var threshold = best.Area * 0.85;
+            foreach (var p in drawn)
+            {
+                if (p.Fill && p.D == best.D) continue;
+                if (p.Fill && p.Area >= threshold) continue;
+                // 타공만 구멍. 동물 도안처럼 외곽과 다른 색 채움은 선/면이다.
+                if (p.Fill && p.Area > best.Area * 0.08 && IsCutout(best.Guide.Fill, p.Guide.Fill))
+                    p.Guide.IsHole = true;
+                guides.Add(p.Guide);
+            }
+        }
+        else
+        {
+            foreach (var p in drawn)
+                guides.Add(p.Guide);
+        }
+
+        if (string.IsNullOrWhiteSpace(outer) && guides.Count > 0)
+            outer = guides[0].D;
+        return !string.IsNullOrWhiteSpace(outer);
+    }
+
+    internal static string? ToSvgPath(byte[] data, float labelW, float labelH)
+        => TryConvert(data, labelW, labelH, out var outer, out _) ? outer : null;
+
+    /// <summary>클립아트 WMF 전체를 0..100 viewBox 경로로 펼친다. 흰 배경 큰 면은 뺀다.</summary>
+    internal static bool TryConvertClipart(byte[] data, out List<SvgPart> parts)
+    {
+        parts = [];
+        if (!TryCollectDrawn(data, 100, 100, out var drawn))
+            return false;
+
+        foreach (var p in drawn)
+        {
+            var g = p.Guide;
+            if (string.IsNullOrWhiteSpace(g.D)) continue;
+            if (p.Fill && p.Area >= 80 * 80 && IsNearWhite(g.Fill))
+                continue;
+            parts.Add(new SvgPart
+            {
+                D = g.D,
+                Fill = p.Fill ? g.Fill : "transparent",
+                Stroke = g.Stroke,
+                StrokeWidth = g.StrokeWidthMm
+            });
+        }
+
+        return parts.Count > 0;
+    }
+
+    private static bool TryCollectDrawn(
+        byte[] data, float labelW, float labelH,
+        out List<(double Area, bool Fill, string D, PaperGuidePath Guide)> drawn)
+    {
+        drawn = [];
         if (!TryReadWindow(data, out var orgX, out var orgY, out var extX, out var extY, out var start))
             return false;
         if (Math.Abs(extX) < 2 || Math.Abs(extY) < 2) return false;
@@ -41,7 +104,6 @@ internal static class FormtecWmfShape
         GdiObj? brush = null;
         GdiObj? pen = null;
         var evenOdd = true;
-        var drawn = new List<(double Area, bool Fill, string D, PaperGuidePath Guide)>();
 
         var i = start;
         while (i + 6 <= data.Length)
@@ -87,34 +149,8 @@ internal static class FormtecWmfShape
             i += bytes;
         }
 
-        if (drawn.Count == 0) return false;
-
-        var fills = drawn.Where(p => p.Fill).ToList();
-        if (fills.Count > 0)
-        {
-            var best = fills.MaxBy(p => p.Area);
-            outer = best.D;
-            var threshold = best.Area * 0.85;
-            foreach (var p in drawn)
-            {
-                if (p.Fill && p.D == best.D) continue;
-                if (p.Fill && p.Area >= threshold) continue;
-                guides.Add(p.Guide);
-            }
-        }
-        else
-        {
-            foreach (var p in drawn)
-                guides.Add(p.Guide);
-        }
-
-        if (string.IsNullOrWhiteSpace(outer) && guides.Count > 0)
-            outer = guides[0].D;
-        return !string.IsNullOrWhiteSpace(outer);
+        return drawn.Count > 0;
     }
-
-    internal static string? ToSvgPath(byte[] data, float labelW, float labelH)
-        => TryConvert(data, labelW, labelH, out var outer, out _) ? outer : null;
 
     private static void ApplyDraw(
         WmfPiece piece,
@@ -130,12 +166,18 @@ internal static class FormtecWmfShape
 
         if (func != MetaPolyline && brush is { Hollow: false } fb)
         {
-            drawn.Add((piece.Area, true, piece.D, new PaperGuidePath
+            var g = new PaperGuidePath
             {
                 D = piece.D,
                 Fill = fb.Color,
                 EvenOdd = evenOdd
-            }));
+            };
+            if (pen is { Hollow: false } fp)
+            {
+                g.Stroke = fp.Color;
+                g.StrokeWidthMm = StrokeMm(fp.WidthWu, extX, labelW);
+            }
+            drawn.Add((piece.Area, true, piece.D, g));
             return;
         }
 
@@ -148,6 +190,31 @@ internal static class FormtecWmfShape
                 StrokeWidthMm = StrokeMm(sp.WidthWu, extX, labelW)
             }));
         }
+    }
+
+    private static bool IsCutout(string? outerFill, string? innerFill)
+        => IsNearWhite(innerFill) || ColorsSimilar(outerFill, innerFill);
+
+    private static bool IsNearWhite(string? hex)
+        => TryRgb(hex, out var r, out var g, out var b) && r >= 240 && g >= 240 && b >= 240;
+
+    private static bool ColorsSimilar(string? a, string? b)
+    {
+        if (!TryRgb(a, out var ar, out var ag, out var ab)) return false;
+        if (!TryRgb(b, out var br, out var bg, out var bb)) return false;
+        var dr = ar - br;
+        var dg = ag - bg;
+        var db = ab - bb;
+        return dr * dr + dg * dg + db * db <= 2700;
+    }
+
+    private static bool TryRgb(string? hex, out int r, out int g, out int b)
+    {
+        r = g = b = 0;
+        if (string.IsNullOrWhiteSpace(hex) || hex.Length < 7 || hex[0] != '#') return false;
+        return int.TryParse(hex.AsSpan(1, 2), System.Globalization.NumberStyles.HexNumber, null, out r)
+               && int.TryParse(hex.AsSpan(3, 2), System.Globalization.NumberStyles.HexNumber, null, out g)
+               && int.TryParse(hex.AsSpan(5, 2), System.Globalization.NumberStyles.HexNumber, null, out b);
     }
 
     private static float StrokeMm(int widthWu, int extX, float labelW)

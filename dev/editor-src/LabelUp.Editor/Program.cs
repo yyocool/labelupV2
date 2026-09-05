@@ -13,6 +13,7 @@ builder.Services.AddSingleton<HistoryService>();
 builder.Services.AddScoped<DraftStorage>();
 builder.Services.AddScoped<ExportService>();
 builder.Services.AddScoped<FontCatalog>();
+builder.Services.AddScoped<FontAwesomeCatalog>();
 builder.Services.AddScoped<PaperCatalog>();
 builder.Services.AddScoped<TemplateCatalog>();
 builder.Services.AddScoped<DataImportService>();

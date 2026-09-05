@@ -1,6 +1,7 @@
 @using LabelUp.Editor.Models
 @using LabelUp.Editor.Rendering
 @using LabelUp.Editor.Services
+@using SkiaSharp
 @inject EditorSession Session
 @inject FontCatalog Fonts
 @inject HistoryService History
@@ -18,7 +19,7 @@
     <div class="ed-preview__inner">
       <p class="ed-preview__spec">
         <strong>@Session.Document.Paper.PaperNo</strong>
-        <span class="ed-preview__sheet-meta">@Session.Document.Paper.Columns×@Session.Document.Paper.Rows · @Session.Document.Paper.LabelWidthMm.ToString("0.#")×@Session.Document.Paper.LabelHeightMm.ToString("0.#") mm</span>
+        <span class="ed-preview__sheet-meta">@(Session.Document.Paper.CustomSlots is { Count: > 0 } ? $"불규칙 {Session.Document.Paper.LabelsPerPage}칸" : $"{Session.Document.Paper.Columns}×{Session.Document.Paper.Rows}") · @Session.Document.Paper.LabelWidthMm.ToString("0.#")×@Session.Document.Paper.LabelHeightMm.ToString("0.#") mm</span>
       </p>
 
       <div class="ed-preview__actions">
@@ -27,15 +28,15 @@
       </div>
 
       <div class="ed-preview__page-wrap">
-        <div class="ed-preview__page" style="@($"--page-ar: {_pageAspect};")">
-          <div class="ed-preview__sheet"
-               style="@($"grid-template-columns: repeat({Session.Document.Paper.Columns}, minmax(0, 1fr)); --label-ar: {_aspect};")">
-            @for (var i = 0; i < Session.Document.Paper.LabelsPerPage; i++)
+        <div class="ed-preview__page" style="@PageBoxStyle()">
+          <div class="ed-preview__sheet">
+            @foreach (var slot in Session.Document.Paper.EnumerateSlots())
             {
-              var idx = i;
+              var idx = slot.Index;
               var url = ThumbAt(idx);
               <button type="button"
-                      class="ed-preview__cell @(idx == Session.LabelIndex ? "is-selected" : null)"
+                      class="ed-preview__cell @(IsRound ? "is-round" : null) @(idx == Session.LabelIndex ? "is-selected" : null)"
+                      style="@SlotBoxStyle(slot)"
                       @onclick="() => SelectCell(idx)">
                 @if (!string.IsNullOrEmpty(url))
                 {
@@ -66,16 +67,48 @@
 
 @code {
     private readonly Dictionary<string, string> _thumbs = new();
+    private readonly Dictionary<string, string> _thumbSig = new();
     private string _thumbGen = "";
-    private string _aspect = "5 / 3";
-    private string _pageAspect = "210 / 297";
+    private int _thumbSeq;
+
+    private bool IsRound => Session.Document.Paper.Shape.Kind is "ellipse" or "circle";
+
+    private string PageBoxStyle()
+    {
+        var pw = Math.Max(1f, Session.Document.Paper.PaperWidthMm);
+        var ph = Math.Max(1f, Session.Document.Paper.PaperHeightMm);
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        var bg = PaperFill();
+        return $"--page-ar:{pw.ToString("0.###", inv)} / {ph.ToString("0.###", inv)};--page-w:{pw.ToString("0.###", inv)};--page-h:{ph.ToString("0.###", inv)};background:{bg};";
+    }
+
+    private string SlotBoxStyle(LabelSlot slot)
+    {
+        var pw = Math.Max(1f, Session.Document.Paper.PaperWidthMm);
+        var ph = Math.Max(1f, Session.Document.Paper.PaperHeightMm);
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        var bg = PaperFill();
+        return string.Concat(
+            "left:", (slot.X / pw * 100f).ToString("0.###", inv), "%;",
+            "top:", (slot.Y / ph * 100f).ToString("0.###", inv), "%;",
+            "width:", (slot.W / pw * 100f).ToString("0.###", inv), "%;",
+            "height:", (slot.H / ph * 100f).ToString("0.###", inv), "%;",
+            "background:", bg, ";");
+    }
+
+    private string PaperFill()
+    {
+        var bg = Session.Document.Paper.LabelColor;
+        if (string.IsNullOrWhiteSpace(bg)) bg = Session.Document.Background;
+        return string.IsNullOrWhiteSpace(bg) ? "#fff" : bg;
+    }
 
     protected override async Task OnInitializedAsync()
     {
         Session.Changed += OnChanged;
         await Fonts.EnsureLoadedAsync();
         DocumentRenderer.SetFontCatalog(Fonts);
-        RebuildThumbs(force: true);
+        _ = RebuildThumbsDeferred(force: true);
     }
 
     public void Dispose() => Session.Changed -= OnChanged;
@@ -83,13 +116,51 @@
     private void OnChanged()
     {
         if (!Session.ConversionBusy)
-            RebuildThumbs(force: false);
+            _ = RebuildThumbsDeferred(force: false);
         _ = InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RebuildThumbsDeferred(bool force)
+    {
+        var seq = ++_thumbSeq;
+        await Task.Yield();
+        if (seq != _thumbSeq) return;
+        RebuildThumbs(force);
+        await InvokeAsync(StateHasChanged);
     }
 
     private string? ThumbAt(int idx) => _thumbs.TryGetValue(Key(Session.PageIndex, idx), out var u) ? u : null;
 
     private static string Key(int page, int cell) => $"{page}:{cell}";
+
+    private static string CellSig(LabelCell cell)
+    {
+        var h = cell.Objects.Count;
+        foreach (var o in cell.Objects)
+        {
+            h = HashCode.Combine(h, o.Type, o.X, o.Y, o.Width, o.Height);
+            h = HashCode.Combine(h, o.Rotation, o.ImageData?.Length ?? 0, o.Text, o.Visible);
+        }
+        return h.ToString("X8");
+    }
+
+    private static bool TryImageThumb(LabelCell cell, out string dataUrl)
+    {
+        dataUrl = "";
+        var obj = cell.Objects.FirstOrDefault(o => !string.IsNullOrEmpty(o.ImageData));
+        if (obj is null) return false;
+        var bmp = DocumentRenderer.GetBitmap(obj);
+        if (bmp is null) return false;
+        var w = Math.Max(1, Math.Min(120, bmp.Width));
+        var h = Math.Max(1, (int)Math.Round(bmp.Height * (w / (double)bmp.Width)));
+        using var small = bmp.Resize(new SKImageInfo(w, h), new SKSamplingOptions(SKFilterMode.Linear));
+        if (small is null) return false;
+        using var image = SKImage.FromBitmap(small);
+        using var encoded = image.Encode(SKEncodedImageFormat.Png, 50);
+        if (encoded is null) return false;
+        dataUrl = "data:image/png;base64," + Convert.ToBase64String(encoded.ToArray());
+        return true;
+    }
 
     private void RebuildThumbs(bool force)
     {
@@ -97,34 +168,62 @@
         {
             var doc = Session.Document;
             doc.EnsureStructure();
-            var w = Math.Max(1f, doc.WidthMm);
-            var h = Math.Max(1f, doc.HeightMm);
-            _aspect = $"{w:0.###} / {h:0.###}";
-            var pw = Math.Max(1f, doc.Paper.PaperWidthMm);
-            var ph = Math.Max(1f, doc.Paper.PaperHeightMm);
-            _pageAspect = $"{pw:0.###} / {ph:0.###}";
             if (!Fonts.IsReady) return;
 
-            var gen = $"{Session.DocumentEpoch}|{doc.Paper.PaperNo}|{doc.Pages.Count}|{doc.ObjectsFingerprint()}|{Session.PageIndex}|{doc.Data?.RowCount}";
-            if (!force && gen == _thumbGen && _thumbs.Count > 0) return;
-            _thumbGen = gen;
-            _thumbs.Clear();
+            var gen = $"{Session.DocumentEpoch}|{doc.Paper.PaperNo}|{doc.Paper.Shape.Kind}|{doc.Background}|{doc.Pages.Count}|{Session.PageIndex}|{doc.Data?.RowCount}";
+            if (force || gen != _thumbGen)
+            {
+                _thumbs.Clear();
+                _thumbSig.Clear();
+                _thumbGen = gen;
+            }
 
             var page = doc.Pages[Math.Clamp(Session.PageIndex, 0, doc.Pages.Count - 1)];
             var per = doc.Paper.LabelsPerPage;
+            var slotList = doc.Paper.EnumerateSlots().ToList();
+            var rendered = 0;
             for (var i = 0; i < page.Cells.Count; i++)
             {
+                var key = Key(Session.PageIndex, i);
+                var cell = page.Cells[i];
+                if (cell.Objects.Count == 0)
+                {
+                    _thumbs.Remove(key);
+                    _thumbSig.Remove(key);
+                    continue;
+                }
+
+                var sig = CellSig(cell);
+                if (!force && _thumbSig.TryGetValue(key, out var prev) && prev == sig && _thumbs.ContainsKey(key))
+                    continue;
+
                 try
                 {
+                    if (cell.Objects.All(o => o.Type is ObjectType.Image or ObjectType.Clipart)
+                        && TryImageThumb(cell, out var imageThumb))
+                    {
+                        _thumbs[key] = imageThumb;
+                        _thumbSig[key] = sig;
+                        rendered++;
+                        continue;
+                    }
+
                     var global = Session.PageIndex * per + i;
-                    var bytes = DocumentRenderer.ExportPng(doc, page.Cells[i], 90f, o => Session.ResolveObjectText(o, global));
-                    _thumbs[Key(Session.PageIndex, i)] = "data:image/png;base64," + Convert.ToBase64String(bytes);
+                    var slot = slotList.Find(s => s.Index == i);
+                    var bytes = DocumentRenderer.ExportPng(
+                        doc, cell, 48f, o => Session.ResolveObjectText(o, global),
+                        slot.W > 0 ? slot.W : null, slot.H > 0 ? slot.H : null, 62);
+                    _thumbs[key] = "data:image/png;base64," + Convert.ToBase64String(bytes);
+                    _thumbSig[key] = sig;
+                    rendered++;
                 }
                 catch (Exception ex)
                 {
                     EditorLog.Warn("미리보기 썸네일 실패: " + ex.Message);
                 }
             }
+            if (rendered > 0)
+                EditorLog.Info($"미리보기 썸네일: {rendered}칸 렌더 / {page.Cells.Count}칸 중");
         }
         catch (Exception ex)
         {

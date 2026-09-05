@@ -62,24 +62,55 @@ public sealed class DesignObject
     public string BarcodeValue { get; set; } = "12345678";
     public bool BarcodeShowText { get; set; } = true;
     public bool BarcodeShowStartEnd { get; set; }
+    /// <summary>
+    /// 바코드 변환 출처. formtec만 폼텍 인코딩(PZN 하이픈+체크 등)을 쓴다.
+    /// 다른 회사 변환은 이후 회사별 기본값으로 따로 둔다.
+    /// </summary>
+    public string? BarcodeVendor { get; set; }
+
+    [JsonIgnore]
+    public bool UsesFormtecBarcodeRules
+        => string.Equals(BarcodeVendor, "formtec", StringComparison.OrdinalIgnoreCase)
+           || string.IsNullOrWhiteSpace(BarcodeVendor);
+
     public string QrEcc { get; set; } = "M";
     public string QrKind { get; set; } = "text";
 
     public string? ImageData { get; set; }
     public string ImageFit { get; set; } = "contain";
     public string? Svg { get; set; }
+    public List<SvgPart>? SvgParts { get; set; }
     public string? IconName { get; set; }
     public string? ClipartId { get; set; }
 
     public int TableRows { get; set; } = 2;
     public int TableCols { get; set; } = 2;
     public List<string> TableCells { get; set; } = [];
+    public List<string?> TableRowFills { get; set; } = [];
+    public List<string?> TableColFills { get; set; } = [];
     public float TableBorderWidth { get; set; } = 0.2f;
+
+    public string? TableCellFill(int row, int col)
+    {
+        if (row >= 0 && row < TableRowFills.Count && !string.IsNullOrWhiteSpace(TableRowFills[row]))
+            return TableRowFills[row];
+        if (col >= 0 && col < TableColFills.Count && !string.IsNullOrWhiteSpace(TableColFills[col]))
+            return TableColFills[col];
+        if (!BackgroundTransparent && !string.IsNullOrWhiteSpace(BackgroundFill)
+            && BackgroundFill is not "transparent" and not "none")
+            return BackgroundFill;
+        return null;
+    }
 
     public ShapeKind ShapeKind { get; set; } = ShapeKind.Rect;
     public ArrowHeads ArrowHeads { get; set; } = ArrowHeads.End;
     public int PolygonSides { get; set; } = 5;
     public float CornerRadiusMm { get; set; } = 2.4f;
+    /// <summary>그라데이션 끝 색. 시작 색은 Fill.</summary>
+    public string GradientEnd { get; set; } = "#FFFFFF";
+    /// <summary>0=좌→우, 1=우→좌, 2=위→아래, 3=아래→위.</summary>
+    public int GradientDirection { get; set; }
+    public int GradientPrecision { get; set; } = 100;
 
     public static bool IsShape(ObjectType type)
         => type is ObjectType.Rect or ObjectType.Ellipse or ObjectType.Line or ObjectType.Shape;
@@ -138,21 +169,28 @@ public sealed class DesignObject
             BarcodeValue = BarcodeValue,
             BarcodeShowText = BarcodeShowText,
             BarcodeShowStartEnd = BarcodeShowStartEnd,
+            BarcodeVendor = BarcodeVendor,
             QrEcc = QrEcc,
             QrKind = QrKind,
             ImageData = ImageData,
             ImageFit = ImageFit,
             Svg = Svg,
+            SvgParts = SvgParts?.Select(p => p.Clone()).ToList(),
             IconName = IconName,
             ClipartId = ClipartId,
             TableRows = TableRows,
             TableCols = TableCols,
             TableCells = [.. TableCells],
+            TableRowFills = [.. TableRowFills],
+            TableColFills = [.. TableColFills],
             TableBorderWidth = TableBorderWidth,
             ShapeKind = ShapeKind,
             ArrowHeads = ArrowHeads,
             PolygonSides = PolygonSides,
-            CornerRadiusMm = CornerRadiusMm
+            CornerRadiusMm = CornerRadiusMm,
+            GradientEnd = GradientEnd,
+            GradientDirection = GradientDirection,
+            GradientPrecision = GradientPrecision
         };
     }
 
@@ -238,6 +276,16 @@ public sealed class DesignObject
                 o.BackgroundTransparent = true;
                 o.IconName = "star";
                 o.Svg = SvgLibrary.StarPath;
+                break;
+            case ObjectType.Gradient:
+                o.Width = 28f;
+                o.Height = 12f;
+                o.Fill = "#000000";
+                o.GradientEnd = "#FFFFFF";
+                o.GradientDirection = 0;
+                o.GradientPrecision = 100;
+                o.StrokeWidth = 0f;
+                o.BackgroundTransparent = false;
                 break;
         }
 
@@ -343,5 +391,9 @@ public sealed class DesignObject
         var n = TableRows * TableCols;
         while (TableCells.Count < n) TableCells.Add("");
         if (TableCells.Count > n) TableCells.RemoveRange(n, TableCells.Count - n);
+        while (TableRowFills.Count < TableRows) TableRowFills.Add(null);
+        if (TableRowFills.Count > TableRows) TableRowFills.RemoveRange(TableRows, TableRowFills.Count - TableRows);
+        while (TableColFills.Count < TableCols) TableColFills.Add(null);
+        if (TableColFills.Count > TableCols) TableColFills.RemoveRange(TableCols, TableColFills.Count - TableCols);
     }
 }

@@ -3,6 +3,7 @@
 @using LabelUp.Editor.Services
 @inject EditorSession Session
 @inject HistoryService History
+@inject FontCatalog Fonts
 @implements IDisposable
 
 <aside class="ed-props @(Session.PropsMinimized ? "is-minimized" : null)" data-ed-props-panel data-ed-snap-id="tr" data-tut="props" aria-label="속성 / 레이어">
@@ -24,7 +25,7 @@
       {
         if (Session.Selected is { } o)
         {
-          <div class="ed-props__body">
+          <div class="ed-props__body" @key="o.Id">
             <div class="ed-field-group">
               <div class="ed-field-label">공통</div>
               <div class="ed-checks">
@@ -54,6 +55,8 @@
               </label>
             </div>
 
+            @if (o.Type is not (ObjectType.Clipart or ObjectType.Icon))
+            {
             <div class="ed-field-group">
               <div class="ed-field-label">자료 연결</div>
               <div class="ed-checks">
@@ -77,6 +80,7 @@
                 <p class="ed-props__hint">상단 「데이터 가져오기」로 CSV/엑셀을 연결하세요.</p>
               }
             </div>
+            }
 
             @if (o.Type == ObjectType.Text)
             {
@@ -92,17 +96,28 @@
                     <option value="@TextMode.Custom">사용자 정의 (날짜/일련번호)</option>
                   </select>
                 </label>
+                @RenderFontPicker(o)
                 <div class="ed-field-row">
-                  <label class="ed-field">크기 <input type="number" step="0.1" value="@o.FontSize.ToString("0.##")" @onchange="e => SetFloat(v => o.FontSize = Math.Max(1, v), e)" /></label>
+                  <label class="ed-field">폰트 크기 (pt)
+                    <input type="number" step="0.5" min="4" max="200" list="ed-font-pt"
+                           value="@FontCatalog.ToPt(o.FontSize).ToString("0.##")"
+                           @onchange="e => SetFontSizePt(o, e)" />
+                  </label>
                 </div>
-                <div class="ed-checks">
-                  <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.Bold" @onchange="e => SetBool(v => o.Bold = v, e)" /> <span>굵게</span></label>
-                  <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.Italic" @onchange="e => SetBool(v => o.Italic = v, e)" /> <span>기울임</span></label>
-                  <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.Underline" @onchange="e => SetBool(v => o.Underline = v, e)" /> <span>밑줄</span></label>
-                  <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.Outline" @onchange="e => SetBool(v => o.Outline = v, e)" /> <span>외곽선</span></label>
-                  <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.Shadow" @onchange="e => SetBool(v => o.Shadow = v, e)" /> <span>그림자</span></label>
-                  <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.FlipHorizontal" @onchange="e => SetBool(v => o.FlipHorizontal = v, e)" /> <span>좌우 반전</span></label>
-                  <label class="ed-field ed-field--check"><input type="checkbox" checked="@IsVertical(o)" @onchange="e => SetVertical(o, e)" /> <span>세로 텍스트</span></label>
+                <datalist id="ed-font-pt">
+                  <option value="8"></option><option value="9"></option><option value="10"></option>
+                  <option value="11"></option><option value="12"></option><option value="14"></option>
+                  <option value="16"></option><option value="18"></option><option value="20"></option>
+                  <option value="24"></option><option value="28"></option><option value="36"></option>
+                </datalist>
+                <div class="ed-checks" @key="@(o.Id + "-text-style")">
+                  <label class="ed-field ed-field--check"><input type="checkbox" @key="@(o.Id + "-bold")" checked="@o.Bold" @onchange="e => SetBool(v => o.Bold = v, e)" /> <span>굵게</span></label>
+                  <label class="ed-field ed-field--check"><input type="checkbox" @key="@(o.Id + "-italic")" checked="@o.Italic" @onchange="e => SetBool(v => o.Italic = v, e)" /> <span>기울임</span></label>
+                  <label class="ed-field ed-field--check"><input type="checkbox" @key="@(o.Id + "-underline")" checked="@o.Underline" @onchange="e => SetBool(v => o.Underline = v, e)" /> <span>밑줄</span></label>
+                  <label class="ed-field ed-field--check"><input type="checkbox" @key="@(o.Id + "-outline")" checked="@o.Outline" @onchange="e => SetBool(v => o.Outline = v, e)" /> <span>외곽선</span></label>
+                  <label class="ed-field ed-field--check"><input type="checkbox" @key="@(o.Id + "-shadow")" checked="@o.Shadow" @onchange="e => SetBool(v => o.Shadow = v, e)" /> <span>그림자</span></label>
+                  <label class="ed-field ed-field--check"><input type="checkbox" @key="@(o.Id + "-flip")" checked="@o.FlipHorizontal" @onchange="e => SetBool(v => o.FlipHorizontal = v, e)" /> <span>좌우 반전</span></label>
+                  <label class="ed-field ed-field--check"><input type="checkbox" @key="@(o.Id + "-vertical")" checked="@IsVertical(o)" @onchange="e => SetVertical(o, e)" /> <span>세로 텍스트</span></label>
                 </div>
                 <div class="ed-field-row">
                   <label class="ed-field">가로정렬
@@ -201,6 +216,31 @@
               </div>
             }
 
+            @if (o.Type == ObjectType.Gradient)
+            {
+              <div class="ed-field-group">
+                <div class="ed-field-label">그라데이션</div>
+                <label class="ed-field ed-field--full">
+                  시작 색
+                  <input type="color" value="@ColorUtil.ToHtmlColor(o.Fill, "#000000")" @onchange="e => SetString(v => o.Fill = v, e)" />
+                </label>
+                <label class="ed-field ed-field--full">
+                  끝 색
+                  <input type="color" value="@ColorUtil.ToHtmlColor(o.GradientEnd, "#ffffff")" @onchange="e => SetString(v => o.GradientEnd = v, e)" />
+                </label>
+                <label class="ed-field ed-field--full">
+                  방향
+                  <select value="@o.GradientDirection" @onchange="e => SetInt(v => o.GradientDirection = Math.Clamp(v, 0, 3), e)">
+                    <option value="0">왼쪽 → 오른쪽</option>
+                    <option value="1">오른쪽 → 왼쪽</option>
+                    <option value="2">위 → 아래</option>
+                    <option value="3">아래 → 위</option>
+                  </select>
+                </label>
+                <label class="ed-field ed-field--full">정밀도 <input type="number" min="1" max="100" value="@o.GradientPrecision" @onchange="e => SetInt(v => o.GradientPrecision = Math.Clamp(v, 1, 100), e)" /></label>
+              </div>
+            }
+
             @if (o.Type is ObjectType.Barcode or ObjectType.Qr)
             {
               <div class="ed-field-group">
@@ -209,17 +249,39 @@
                 {
                   <label class="ed-field ed-field--full">
                     심볼로지
-                    <select value="@o.BarcodeFormat" @onchange="e => SetString(v => o.BarcodeFormat = v, e)">
+                    <select @key="@(o.Id + "-bc-fmt")" value="@o.BarcodeFormat" @onchange="e => SetString(v => o.BarcodeFormat = v, e)">
                       @foreach (var spec in BarcodeCatalog.OneD)
                       {
                         <option value="@spec.Id">@spec.Label</option>
                       }
                     </select>
                   </label>
-                  <div class="ed-checks">
-                    <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.BarcodeShowText" @onchange="e => SetBool(v => o.BarcodeShowText = v, e)" /> <span>내용 표시</span></label>
-                    <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.BarcodeShowStartEnd" @onchange="e => SetBool(v => o.BarcodeShowStartEnd = v, e)" /> <span>시작·끝 표시</span></label>
+                  <div class="ed-checks" @key="@(o.Id + "-bc-hri")">
+                    <label class="ed-field ed-field--check"><input type="checkbox" @key="@(o.Id + "-bc-showtext")" checked="@o.BarcodeShowText" @onchange="e => SetBool(v => o.BarcodeShowText = v, e)" /> <span>내용 표시</span></label>
+                    <label class="ed-field ed-field--check"><input type="checkbox" @key="@(o.Id + "-bc-startend")" checked="@o.BarcodeShowStartEnd" @onchange="e => SetBool(v => o.BarcodeShowStartEnd = v, e)" /> <span>시작·끝 표시</span></label>
                   </div>
+                  @if (o.BarcodeShowText)
+                  {
+                    <div class="ed-field-label">내용 글꼴</div>
+                    @RenderFontPicker(o)
+                    <label class="ed-field ed-field--full">
+                      크기 (pt)
+                      <input type="number" step="0.5" min="4" max="200" list="ed-barcode-font-pt"
+                             value="@FontCatalog.ToPt(o.FontSize).ToString("0.##")"
+                             @onchange="e => SetFontSizePt(o, e)" />
+                    </label>
+                    <datalist id="ed-barcode-font-pt">
+                      <option value="8"></option><option value="10"></option><option value="12"></option>
+                      <option value="14"></option><option value="16"></option><option value="20"></option>
+                      <option value="26"></option><option value="36"></option>
+                    </datalist>
+                    <div class="ed-checks" @key="@(o.Id + "-bc-style")">
+                      <label class="ed-field ed-field--check"><input type="checkbox" @key="@(o.Id + "-bc-bold")" checked="@o.Bold" @onchange="e => SetBool(v => o.Bold = v, e)" /> <span>굵게</span></label>
+                      <label class="ed-field ed-field--check"><input type="checkbox" @key="@(o.Id + "-bc-italic")" checked="@o.Italic" @onchange="e => SetBool(v => o.Italic = v, e)" /> <span>기울임</span></label>
+                      <label class="ed-field ed-field--check"><input type="checkbox" @key="@(o.Id + "-bc-underline")" checked="@o.Underline" @onchange="e => SetBool(v => o.Underline = v, e)" /> <span>밑줄</span></label>
+                      <label class="ed-field ed-field--check"><input type="checkbox" @key="@(o.Id + "-bc-strike")" checked="@o.Strikeout" @onchange="e => SetBool(v => o.Strikeout = v, e)" /> <span>취소선</span></label>
+                    </div>
+                  }
                 }
                 else
                 {
@@ -243,6 +305,23 @@
                   </label>
                 }
                 <label class="ed-field ed-field--full">@BarcodeCatalog.ValueFieldLabel(o.BarcodeFormat) <input value="@o.BarcodeValue" @onchange="e => SetString(v => o.BarcodeValue = v, e)" /></label>
+                <label class="ed-field ed-field--full">
+                  @(o.Type == ObjectType.Qr ? "QR / 바코드 색" : "바코드 색")
+                  <input type="color" value="@ColorUtil.ToHtmlColor(o.Fill, "#000000")" @onchange="e => SetString(v => o.Fill = v, e)" />
+                </label>
+                <div class="ed-checks">
+                  <label class="ed-field ed-field--check">
+                    <input type="checkbox" checked="@o.BackgroundTransparent" @onchange="e => SetBool(v => o.BackgroundTransparent = v, e)" />
+                    <span>배경 투명</span>
+                  </label>
+                </div>
+                @if (!o.BackgroundTransparent)
+                {
+                  <label class="ed-field ed-field--full">
+                    배경색
+                    <input type="color" value="@ColorUtil.ToHtmlColor(o.BackgroundFill, "#ffffff")" @onchange="e => SetString(v => o.BackgroundFill = v, e)" />
+                  </label>
+                }
               </div>
             }
 
@@ -279,11 +358,13 @@
               </div>
             }
 
+            @if (o.Type is not (ObjectType.Gradient or ObjectType.Clipart))
+            {
             <div class="ed-field-group">
               <div class="ed-field-label">채우기</div>
               <div class="ed-checks">
                 <label class="ed-field ed-field--check">
-                  <input type="checkbox" checked="@ColorUtil.IsTransparent(o.Fill)" @onchange="OnFillTransparent" />
+                  <input type="checkbox" @key="@(o.Id + "-fill-trans")" checked="@ColorUtil.IsTransparent(o.Fill)" @onchange="OnFillTransparent" />
                   <span>투명</span>
                 </label>
               </div>
@@ -295,9 +376,12 @@
                 </div>
               }
             </div>
+            }
 
+            @if (o.Type != ObjectType.Clipart)
+            {
             <div class="ed-field-group">
-              <div class="ed-field-label">선</div>
+              <div class="ed-field-label">@(o.Type == ObjectType.Gradient ? "프레임" : "선")</div>
               <label class="ed-field ed-field--full">색</label>
               <div class="ed-color">
                 <input type="color" value="@ColorUtil.ToHtmlColor(o.Stroke)" @oninput="e => LiveStroke(e)" @onchange="e => CommitStroke(e)" />
@@ -305,6 +389,7 @@
               </div>
               <label class="ed-field ed-field--full">굵기 <input type="number" step="0.05" min="0" value="@o.StrokeWidth.ToString("0.##")" @onchange="e => SetFloat(v => ApplySelected(o => o.StrokeWidth = Math.Max(0, v)), e)" /></label>
             </div>
+            }
 
             @if (o.Type == ObjectType.Image)
             {
@@ -359,7 +444,77 @@
 @code {
     protected override void OnInitialized() => Session.Changed += OnChanged;
     public void Dispose() => Session.Changed -= OnChanged;
-    private void OnChanged() => InvokeAsync(StateHasChanged);
+    private bool _preloadingFont;
+    private string? _boundObjectId;
+    private long _bindGuardUntil;
+
+    private bool BindGuarded => Environment.TickCount64 < _bindGuardUntil;
+
+    private void OnChanged()
+    {
+        var id = Session.Selected?.Id;
+        if (id != _boundObjectId)
+        {
+            _boundObjectId = id;
+            // 선택 직후 같은 클릭이 새로 생긴 체크박스/셀렉트에 들어가면 기울임·서식이 바뀐다.
+            _bindGuardUntil = Environment.TickCount64 + 400;
+        }
+        _ = PreloadSelectedFontAsync();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private async Task PreloadSelectedFontAsync()
+    {
+        if (_preloadingFont) return;
+        if (Session.Selected is not { } sel) return;
+        if (sel.Type is not (ObjectType.Text or ObjectType.Barcode)) return;
+        _preloadingFont = true;
+        try
+        {
+            if (await Fonts.EnsureFamilyAsync(sel.FontFamily))
+                Session.Notify();
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error("글꼴 미리 로드 실패", ex);
+            Session.Status = "글꼴 오류: " + ex.Message;
+        }
+        finally
+        {
+            _preloadingFont = false;
+        }
+    }
+
+    private string _fontFilter = "";
+
+    private RenderFragment RenderFontPicker(DesignObject o) => @<label class="ed-field ed-field--full">
+      폰트
+      <input class="ed-font-search" type="search" placeholder="글꼴 검색"
+             value="@_fontFilter" @oninput="OnFontFilter" />
+      <select @key="@(o.Id + "-font")" value="@FontSelectValue(o)" @onchange="OnFontFamily">
+        @foreach (var group in FontCatalog.GroupedChoices(o.FontFamily, _fontFilter))
+        {
+          <optgroup label="@group.Key">
+            @foreach (var font in group)
+            {
+              <option value="@font.Id">@font.Label</option>
+            }
+          </optgroup>
+        }
+      </select>
+    </label>;
+
+    private void OnFontFilter(ChangeEventArgs e)
+    {
+        _fontFilter = e.Value?.ToString() ?? "";
+        StateHasChanged();
+    }
+
+    private static string FontSelectValue(DesignObject o)
+    {
+        var raw = (o.FontFamily ?? "").Trim();
+        return raw.Length == 0 ? "Pretendard" : FontCatalog.CanonicalId(raw);
+    }
 
     private void SetTab(string tab) { Session.PropsTab = tab; Session.Notify(); }
     private void ShowPropsTab() => SetTab("props");
@@ -396,6 +551,7 @@
         ObjectType.Table => "표",
         ObjectType.Clipart => "클립아트",
         ObjectType.Icon => o.IconName ?? "아이콘",
+        ObjectType.Gradient => "그라데이션",
         _ => o.Type.ToString()
     };
 
@@ -452,6 +608,7 @@
 
     private void OnFillTransparent(ChangeEventArgs e)
     {
+        if (BindGuarded) return;
         var on = e.Value is bool b ? b : string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
         History.Push(Session.Document);
         ApplySelected(obj => obj.Fill = on ? "transparent" : ColorUtil.ToHtmlColor(obj.Fill, "#7b2840"));
@@ -460,6 +617,7 @@
 
     private void SetFloat(Action<float> apply, ChangeEventArgs e)
     {
+        if (BindGuarded) return;
         if (!float.TryParse(e.Value?.ToString(), out var v)) return;
         History.Push(Session.Document);
         apply(v);
@@ -468,6 +626,7 @@
 
     private void SetInt(Action<int> apply, ChangeEventArgs e)
     {
+        if (BindGuarded) return;
         if (!int.TryParse(e.Value?.ToString(), out var v)) return;
         History.Push(Session.Document);
         apply(v);
@@ -476,6 +635,7 @@
 
     private void SetBool(Action<bool> apply, ChangeEventArgs e)
     {
+        if (BindGuarded) return;
         History.Push(Session.Document);
         apply(e.Value is bool b ? b : string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase));
         Touch();
@@ -489,6 +649,7 @@
 
     private void SetString(Action<string> apply, ChangeEventArgs e)
     {
+        if (BindGuarded) return;
         History.Push(Session.Document);
         apply(e.Value?.ToString() ?? "");
         Touch();
@@ -496,14 +657,53 @@
 
     private void SetText(DesignObject o, ChangeEventArgs e)
     {
+        if (BindGuarded) return;
         History.Push(Session.Document);
         o.Text = e.Value?.ToString() ?? "";
         Touch();
     }
 
+    private void SetFontSizePt(DesignObject o, ChangeEventArgs e)
+    {
+        if (BindGuarded) return;
+        if (!float.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var pt)
+            && !float.TryParse(e.Value?.ToString(), out pt))
+            return;
+        History.Push(Session.Document);
+        o.FontSize = FontCatalog.FromPt(Math.Clamp(pt, 4f, 200f));
+        Touch();
+    }
+
+    private async Task OnFontFamily(ChangeEventArgs e)
+    {
+        if (BindGuarded || Session.Selected is null) return;
+        try
+        {
+            var id = e.Value?.ToString() ?? "Pretendard";
+            if (string.Equals(Session.Selected.FontFamily, id, StringComparison.OrdinalIgnoreCase))
+                return;
+            History.Push(Session.Document);
+            Session.Selected.FontFamily = id;
+            Session.Status = "글꼴을 불러오는 중…";
+            Touch();
+            await Fonts.EnsureFamilyAsync(id);
+            Session.Status = Fonts.IsFamilyReady(id)
+                ? "글꼴 적용됨"
+                : "글꼴을 불러오지 못해 기본 글꼴로 표시합니다.";
+            Session.Notify();
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error("글꼴 변경 실패", ex);
+            Session.Status = "글꼴 오류: " + ex.Message;
+            Session.Notify();
+        }
+    }
+
     private void OnTextMode(ChangeEventArgs e)
     {
-        if (Session.Selected is null) return;
+        if (BindGuarded || Session.Selected is null) return;
         History.Push(Session.Document);
         if (Enum.TryParse<TextMode>(e.Value?.ToString(), true, out var mode))
             Session.Selected.TextMode = mode;

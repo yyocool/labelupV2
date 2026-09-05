@@ -1,9 +1,13 @@
+using System.Threading;
+using System.Threading;
 using LabelUp.Editor.Models;
 
 namespace LabelUp.Editor.Services;
 
 internal static class VendorImportActions
 {
+    private static int _busy;
+
     public static async Task AnalyzeAsync(
         EditorSession session,
         ExternalImportService import,
@@ -11,6 +15,12 @@ internal static class VendorImportActions
         byte[] bytes,
         Func<Task>? yieldUi = null)
     {
+        if (Interlocked.Exchange(ref _busy, 1) == 1)
+        {
+            EditorLog.Warn("변환이 이미 진행 중입니다");
+            return;
+        }
+
         session.BeginConversion(fileName);
         try
         {
@@ -38,6 +48,10 @@ internal static class VendorImportActions
             EditorLog.Error("타사 포맷 변환 실패", ex);
             session.EndConversion();
             session.ShowConversionError(ex);
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _busy, 0);
         }
     }
 }

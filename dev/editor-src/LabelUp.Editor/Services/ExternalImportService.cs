@@ -145,6 +145,7 @@ public sealed class ExternalImportService(PaperCatalog papers)
             ObjectType.Image => "이미지",
             ObjectType.Clipart => "클립아트",
             ObjectType.Icon => "아이콘",
+            ObjectType.Gradient => "그라데이션",
             _ when DesignObject.IsShape(obj.Type) => "도형",
             _ => obj.Type.ToString()
         };
@@ -328,7 +329,12 @@ public sealed class ExternalImportService(PaperCatalog papers)
     }
 
     internal static string ToDataUrl(byte[] bytes, string mime)
-        => $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
+    {
+        var (normalized, outMime) = RasterImage.Normalize(bytes, mime);
+        if (outMime != mime || normalized.Length != bytes.Length)
+            EditorLog.Info($"이미지 정규화: {mime} {bytes.Length}b → {outMime} {normalized.Length}b");
+        return $"data:{outMime};base64,{Convert.ToBase64String(normalized)}";
+    }
 
     internal static string? FindImageDataUrl(byte[] data, int start, int end)
     {
@@ -348,11 +354,8 @@ public sealed class ExternalImportService(PaperCatalog papers)
             }
             if (data[i] == 0xFF && data[i + 1] == 0xD8 && data[i + 2] == 0xFF)
             {
-                var limit = Math.Min(end, i + maxImage);
-                var eoi = limit;
-                for (var j = i + 2; j + 1 < limit; j++)
-                    if (data[j] == 0xFF && data[j + 1] == 0xD9) { eoi = j + 2; break; }
-                return ToDataUrl(data.AsSpan(i, eoi - i).ToArray(), "image/jpeg");
+                var take = Math.Min(maxImage, end - i);
+                return ToDataUrl(data.AsSpan(i, take).ToArray(), "image/jpeg");
             }
             if (data[i] == (byte)'B' && data[i + 1] == (byte)'M' && i + 6 < end)
             {
@@ -395,7 +398,9 @@ public sealed class ExternalImportService(PaperCatalog papers)
         if (key.Contains("MICRO") && key.Contains("PDF")) return "MICRO_PDF417";
         if (key.Contains("PDF")) return "PDF_417";
         if (key.Contains("AZTEC")) return "AZTEC";
-        if (key.Contains("EAN_13") || key.Contains("EAN13") || key.Contains("JAN_13") || key.Contains("JAN13") || key.Contains("ISBN")) return "EAN_13";
+        if (BarcodeCatalog.LooksLikeIsbn(raw) || key.Contains("ISBN") || key.Contains("BOOKLAND"))
+            return "ISBN";
+        if (key.Contains("EAN_13") || key.Contains("EAN13") || key.Contains("JAN_13") || key.Contains("JAN13")) return "EAN_13";
         if (key.Contains("EAN_8") || key.Contains("EAN8") || key.Contains("JAN_8")) return "EAN_8";
         if (key.Contains("UPC_A") || key.Contains("UPCA")) return "UPC_A";
         if (key.Contains("UPC_E")) return "UPC_E";
@@ -451,8 +456,15 @@ public sealed class ExternalImportService(PaperCatalog papers)
             var hd = Extended80.ReadStandard(data.AsSpan(pos + 31, 10));
             if (double.IsNaN(xd) || double.IsNaN(yd) || double.IsNaN(wd) || double.IsNaN(hd)
                 || double.IsInfinity(xd) || double.IsInfinity(yd) || double.IsInfinity(wd) || double.IsInfinity(hd)
-                || wd is < 0.05 or > 400 || hd is < 0.05 or > 400
                 || xd is < -8 or > 500 || yd is < -8 or > 500)
+                return false;
+            // 선(0x02)은 가로/세로 정렬이면 W 또는 H가 0에 가깝다.
+            if (type == 0x02)
+            {
+                if (wd is < 0 or > 400 || hd is < 0 or > 400) return false;
+                if (Math.Max(wd, hd) < 0.05) return false;
+            }
+            else if (wd is < 0.05 or > 400 || hd is < 0.05 or > 400)
                 return false;
             x = (float)xd; y = (float)yd; w = (float)wd; h = (float)hd;
             return true;
@@ -1104,17 +1116,46 @@ internal static class FormtecImporter
 {
     public static LabelDocument Import(byte[] dgf, string name, PaperCatalog papers)
     {
+        var importSw = System.Diagnostics.Stopwatch.StartNew();
         var header = ExtractHeader(dgf);
-        var paperNo = header.FirstOrDefault(s => Regex.IsMatch(s, @"^\d{3,5}$"));
+        var tHeader = importSw.ElapsedMilliseconds;
+        var paperNo = header.FirstOrDefault(s => Regex.IsMatch(s, @"^\d{3,5}$"))
+                      ?? header.FirstOrDefault(s => Regex.IsMatch(s, @"^[A-Za-z]{2,}[-_]?\d{3,5}$"));
         float pw = 210, ph = 297, lw = 70, lh = 36, left = -1, top = -1, right = -1, bottom = -1, hg = -1, vg = -1;
         var cols = 0;
         var rows = 0;
         if (!TryLabelsBlock(dgf, out pw, out ph, out cols, out rows, out lw, out lh, out left, out top, out right, out bottom, out hg, out vg))
             TryPaper(dgf, out pw, out ph, out cols, out rows, out lw, out lh);
+        var tLabels = importSw.ElapsedMilliseconds;
         var paper = ExternalImportService.ResolvePaper(papers, "formtec", paperNo, lw, lh, cols, rows, pw, ph, left, top, right, bottom, hg, vg);
-        ApplyFormtecWmfShape(dgf, header, paperNo, paper, papers.FormtecWmf);
+        ApplyFormtecPaperColor(dgf, paper);
+        var tPaper = importSw.ElapsedMilliseconds;
+        if (TryReadSpecialSlots(dgf, Math.Max(1, cols) * Math.Max(1, rows), pw, ph, out var slots))
+        {
+            paper.CustomSlots = slots;
+            paper.LabelWidthMm = slots[0].W;
+            paper.LabelHeightMm = slots[0].H;
+            paper.Shape.Kind = "rect";
+            paper.Shape.Svg = null;
+            paper.Shape.Guides = null;
+            paper.Shape.GuideSvg = null;
+            EditorLog.Info($"폼텍 불규칙 배치: {slots.Count}칸 (격자 {cols}×{rows} 대신 개별 X/Y/H/W)");
+        }
+        else if (TryApplyFormtecCircle(dgf, paper))
+        {
+            // 원형 enum 필드는 없다. +0x20/+0x2A=0 이고 칸이 정사각이면 원.
+            // 5301.WMF 는 공통 리소스라 원 외곽이 아니다.
+        }
+        else
+        {
+            ApplyFormtecWmfShape(dgf, header, paperNo, paper, papers.FormtecWmf);
+            if (!HasFormtecShape(paper))
+                ApplyFormtecShapeFallback(dgf, paper);
+        }
+        var tShape = importSw.ElapsedMilliseconds;
         var doc = LabelDocument.CreateBlank(paper);
         doc.Name = name;
+        doc.SourceVendor = "formtec";
         foreach (var cell in doc.Pages[0].Cells)
             cell.Objects.Clear();
 
@@ -1124,19 +1165,36 @@ internal static class FormtecImporter
             && !ReadLegacySections(dgf, doc, per, ref z))
             ScanLoose(dgf, doc, ref z);
 
-        if (doc.Pages[0].Cells[0].Objects.Count == 0 && !paper.Shape.HasGuides)
-        {
-            var t = DesignObject.CreateDefault(ObjectType.Text, paper.LabelWidthMm * 0.1f, paper.LabelHeightMm * 0.3f);
-            t.Text = name;
-            doc.Pages[0].Cells[0].Objects.Add(t);
-        }
+        // 라벨 데이터가 없어도 0x3D page_count / 후미 테이블만큼 빈 페이지를 둔다.
+        var pageCount = ReadDeclaredPageCount(dgf);
+        doc.EnsurePageCount(Math.Clamp(pageCount, 1, ExternalImportService.MaxImportPages));
 
+        // 객체 0개는 빈 디자인이다. 파일명은 doc.Name이지 텍스트 항목이 아니다.
+        // 가운데 구멍·원형 외곽은 WMF 용지 형상이지 type 0x00이 아니다.
+        EditorLog.Info($"폼텍 Import {importSw.ElapsedMilliseconds}ms header={tHeader} labels={tLabels} paper={tPaper} shape={tShape} objects={z} pages={doc.Pages.Count}/{pageCount} bytes={dgf.Length}");
         return doc;
     }
 
     private const int DgfPageAreaStart = 0x41;
     private const int DgfEmptyPageSize = 362;
     private const int DgfFooterSize = 260;
+
+    /// <summary>
+    /// md_formtec/폼텍_DGZ_DGF_페이지_구조_최종분석.md
+    /// 0x3D uint32 LE = 전체 페이지 수. 후미 260바이트 "off,len/" 개수는 보조.
+    /// </summary>
+    private static int ReadDeclaredPageCount(byte[] data)
+    {
+        var declared = data.Length >= 0x41 ? (int)BitConverter.ToUInt32(data, 0x3D) : 0;
+        if (declared is >= 1 and <= ExternalImportService.MaxImportPages)
+            return declared;
+
+        if (data.Length < DgfFooterSize + DgfPageAreaStart)
+            return 1;
+        var footer = Encoding.ASCII.GetString(data, data.Length - DgfFooterSize, DgfFooterSize);
+        var n = Regex.Matches(footer, @"(\d+),(\d+)/").Count;
+        return n is >= 1 and <= ExternalImportService.MaxImportPages ? n : 1;
+    }
 
     private static bool ReadByPageTable(byte[] data, LabelDocument doc, int per, ref int z)
     {
@@ -1149,7 +1207,7 @@ internal static class FormtecImporter
 
         var declared = data.Length >= 0x41 ? (int)BitConverter.ToUInt32(data, 0x3D) : 0;
         var pageLimit = declared is >= 1 and <= 24 ? declared : matches.Count;
-        var found = false;
+        var parsed = false;
         var expectedOff = DgfPageAreaStart;
         for (var pi = 0; pi < matches.Count && pi < pageLimit; pi++)
         {
@@ -1163,25 +1221,43 @@ internal static class FormtecImporter
             else if (pi > 0 && off != expectedOff && Math.Abs(off - expectedOff) > 8)
                 break;
 
+            parsed = true;
             var pos = off + DgfEmptyPageSize;
             var end = off + len;
-            while (pos + 8 <= end)
+            // 접두 362 뒤 패딩은 짧게만 찾는다. BMP/JPEG 픽셀은 한 바이트씩 훑지 않는다.
+            var searchTo = Math.Min(end, pos + 2048);
+            var found = false;
+            while (pos + 10 <= searchTo)
             {
-                var key = (int)BitConverter.ToUInt32(data, pos);
                 var plen = (int)BitConverter.ToUInt32(data, pos + 4);
-                if (plen < 2 || pos + 8 + plen > end) break;
                 var payload = pos + 8;
-                if (data[payload] != 0xB8 || data[payload + 1] != 0x01) break;
-                var global = pi * per + Math.Max(1, key);
-                if (ReadObjectRun(data, payload + 2, payload + plen, doc, per, global, ref z) > 0)
+                if (plen >= 2 && payload + plen <= end
+                    && data[payload] == 0xB8 && data[payload + 1] == 0x01
+                    && IsType(data[payload + 2]))
+                {
+                    var key = (int)BitConverter.ToUInt32(data, pos);
+                    var global = pi * per + Math.Max(1, key);
+                    ReadObjectRun(data, payload + 2, payload + plen, doc, per, global, ref z);
+                    pos = payload + plen;
                     found = true;
-                pos = payload + plen;
+                    searchTo = Math.Min(end, pos + 2048);
+                    if (pos + 80 >= end) break;
+                    continue;
+                }
+                pos++;
+            }
+            if (!found && off + DgfEmptyPageSize + 41 < end)
+            {
+                var run = off + DgfEmptyPageSize;
+                if (run + 10 < end && data[run + 8] == 0xB8 && data[run + 9] == 0x01)
+                    run += 10;
+                ReadObjectRun(data, run, end, doc, per, pi * per + 1, ref z);
             }
             expectedOff = off + len;
         }
-        if (found)
+        if (parsed)
             EditorLog.Info($"폼텍 페이지 테이블: 청크={Math.Min(matches.Count, pageLimit)} 객체={z}");
-        return found;
+        return parsed;
     }
 
     private static bool ReadLegacySections(byte[] data, LabelDocument doc, int per, ref int z)
@@ -1226,10 +1302,30 @@ internal static class FormtecImporter
                 miss = 0;
                 continue;
             }
+            var typeByte = data[pos];
+            if (typeByte is 0x09 or 0x18
+                && FormtecRecords.TryObjectLength(data, pos, end, typeByte, out var imgLen)
+                && imgLen > 41)
+            {
+                ExternalImportService.TryGeom(data, pos, end, out _, out var ix, out var iy, out var iw, out var ih);
+                if (iw < 0.05f) iw = 20;
+                if (ih < 0.05f) ih = 20;
+                var imgEnd = (int)Math.Min(end, pos + imgLen);
+                var img = Map(data, pos, pos + 41, imgEnd, typeByte, ix, iy, iw, ih);
+                if (img is not null)
+                {
+                    img.ZIndex = ++z;
+                    doc.Pages[0].Cells[0].Objects.Add(img);
+                }
+                pos = imgEnd;
+                miss = 0;
+                continue;
+            }
             if (!ExternalImportService.TryGeom(data, pos, end, out var type, out var x, out var y, out var w, out var h)
                 || !IsType(type))
             {
-                pos += ++miss > 80 ? 64 : 1;
+                if (++miss > 256) break;
+                pos += miss > 80 ? 64 : 1;
                 continue;
             }
             miss = 0;
@@ -1259,10 +1355,33 @@ internal static class FormtecImporter
                 miss = 0;
                 continue;
             }
+
+            var typeByte = data[pos];
+            if (typeByte is 0x09 or 0x18
+                && FormtecRecords.TryObjectLength(data, pos, end, typeByte, out var imgLen)
+                && imgLen > 41)
+            {
+                ExternalImportService.TryGeom(data, pos, end, out _, out var ix, out var iy, out var iw, out var ih);
+                if (iw < 0.05f) iw = 20;
+                if (ih < 0.05f) ih = 20;
+                var imgEnd = (int)Math.Min(end, pos + imgLen);
+                var img = Map(data, pos, pos + 41, imgEnd, typeByte, ix, iy, iw, ih);
+                if (img is not null)
+                {
+                    img.ZIndex = ++z;
+                    ExternalImportService.Place(doc, img, Math.Max(1, labelKey), per);
+                    added++;
+                }
+                pos = imgEnd;
+                miss = 0;
+                continue;
+            }
+
             if (!ExternalImportService.TryGeom(data, pos, end, out var type, out var x, out var y, out var w, out var h)
                 || !IsType(type))
             {
-                pos += ++miss > 80 ? 64 : 1;
+                if (++miss > 256) break;
+                pos += miss > 80 ? 64 : 1;
                 continue;
             }
             miss = 0;
@@ -1287,14 +1406,7 @@ internal static class FormtecImporter
     {
         pw = ph = lw = lh = 0; cols = rows = 0;
         left = top = right = bottom = hg = vg = -1;
-        var needle = "Labels"u8;
-        var labels = -1;
-        var searchEnd = Math.Min(data.Length, 256 * 1024);
-        for (var i = 0; i + needle.Length <= searchEnd; i++)
-        {
-            if (data.AsSpan(i, needle.Length).SequenceEqual(needle))
-            { labels = i; break; }
-        }
+        var labels = FindLabelsOffset(data);
         if (labels < 0 || labels + 0x76 + 10 > data.Length) return false;
         try
         {
@@ -1328,7 +1440,7 @@ internal static class FormtecImporter
             return exact;
         switch (type)
         {
-            case 0x02: return available >= 79 ? Math.Min(100, available) : 41;
+            case 0x02: return available >= 98 ? 98 : 41;
             case 0x04: return 95 <= available ? 95 : 41;
             case 0x05: return 75 <= available ? 75 : 41;
             case 0x0E: return Math.Min(120, available);
@@ -1338,9 +1450,12 @@ internal static class FormtecImporter
                 var columns = BitConverter.ToUInt32(data, start + 0x4F);
                 if (rows > 200 || columns > 200) return 83;
                 return Math.Min(available, 83 + 16L * (rows + columns));
+            case 0x09:
+            case 0x18:
+                return Math.Min(available, 41);
             default:
                 var next = start + 41;
-                var scanCap = type is 0x09 or 0x18 or 0x16 ? start + 80 : start + 4_000;
+                var scanCap = type == 0x16 ? start + 80 : start + 4_000;
                 while (next + 41 < pageEnd)
                 {
                     if (data[next] == 0xB8 && next + 1 < pageEnd && data[next + 1] == 0x01)
@@ -1350,24 +1465,35 @@ internal static class FormtecImporter
                     next++;
                     if (next > scanCap) break;
                 }
-                return Math.Min(available, type is 0x09 or 0x18 ? available : 4000);
+                return Math.Min(available, 4000);
         }
     }
 
     private static DesignObject? Map(byte[] data, int geom, int start, int end, byte type, float x, float y, float w, float h)
     {
-        var strings = ExternalImportService.ExtractPrintable(data, start, Math.Min(end, start + 4000), 1);
+        var strings = type is 0x09 or 0x18 or 0x0F
+            ? []
+            : ExternalImportService.ExtractPrintable(data, start, Math.Min(end, start + 4000), 1);
         switch (type)
         {
             case 0x02:
                 var line = ExternalImportService.Shape(
                     FormtecRecords.IsPlainLine(data, geom, end) ? ShapeKind.Line : ShapeKind.Arrow, x, y, w, h);
                 FormtecRecords.Apply(line, data, geom, end, type);
-                FormtecRecords.FitDiagonal(line, x, y, w, h);
+                FormtecRecords.TryReadLineKind(data, geom, end, out var lineKind);
+                FormtecRecords.FitFormtecLine(line, x, y, w, h, lineKind);
                 return line;
             case 0x04:
             case 0x05:
             case 0x0E:
+                if (type == 0x0E && FormtecRecords.IsGradient(data, geom, end))
+                {
+                    var grad = DesignObject.CreateDefault(ObjectType.Gradient, x, y);
+                    grad.Width = w;
+                    grad.Height = h;
+                    FormtecRecords.Apply(grad, data, geom, end, type);
+                    return grad;
+                }
                 var closed = ExternalImportService.Shape(
                     type == 0x05 ? ShapeKind.Ellipse : type == 0x0E ? ShapeKind.RoundRect : ShapeKind.Rect,
                     x, y, w, h);
@@ -1388,21 +1514,22 @@ internal static class FormtecImporter
                 if (type == 0x10 && !ExternalImportService.Is2dBarcode(format)) format = "QR_CODE";
                 var bar = DesignObject.CreateDefault(ExternalImportService.Is2dBarcode(format) ? ObjectType.Qr : ObjectType.Barcode, x, y);
                 bar.Width = w; bar.Height = h;
-                bar.BarcodeValue = ReadAsciiPrefixed(data, start, end) ?? strings.LastOrDefault(s => s.Length is >= 1 and <= 80) ?? "12345678";
                 bar.BarcodeFormat = format;
                 FormtecRecords.Apply(bar, data, geom, end, type);
+                if (string.IsNullOrWhiteSpace(bar.BarcodeValue)
+                    || bar.BarcodeValue is "https://labelup.kr" or "LABELUP" or "12345678")
+                    bar.BarcodeValue = ReadAsciiPrefixed(data, start, end)
+                        ?? strings.LastOrDefault(s => s.Length is >= 4 and <= 2000 && !s.StartsWith("bc", StringComparison.Ordinal))
+                        ?? bar.BarcodeValue;
+                if (type is 0x07 or 0x08 && BarcodeCatalog.LooksLikeIsbn(bar.BarcodeValue))
+                    bar.BarcodeFormat = "ISBN";
                 return bar;
             case 0x0F:
                 var table = DesignObject.CreateDefault(ObjectType.Table, x, y);
-                table.Width = w; table.Height = h;
-                if (geom + 0x53 <= data.Length)
-                {
-                    var tr = (int)BitConverter.ToUInt32(data, geom + 0x4B);
-                    var tc = (int)BitConverter.ToUInt32(data, geom + 0x4F);
-                    if (tr is >= 1 and <= 40) table.TableRows = tr;
-                    if (tc is >= 1 and <= 40) table.TableCols = tc;
-                }
-                if (strings.Count > 0) table.TableCells = strings.Take(table.TableRows * table.TableCols).ToList();
+                table.Width = w;
+                table.Height = h;
+                table.TableCells = [];
+                FormtecRecords.Apply(table, data, geom, end, type);
                 table.EnsureTableSize();
                 return table;
             case 0x00:
@@ -1456,6 +1583,123 @@ internal static class FormtecImporter
             return Encoding.Unicode.GetString(data, p, (int)n * 2).Trim('\0', ' ');
         }
         return null;
+    }
+
+    private static bool HasFormtecShape(PaperSpec paper)
+        => paper.Shape.Kind is "ellipse" or "circle"
+           || (paper.Shape.Kind == "svg" && !string.IsNullOrWhiteSpace(paper.Shape.Svg));
+
+    /// <summary>
+    /// 원형 전용 enum은 파일에 없다. Labels +0x20/+0x2A = 0 이고 칸이 정사각이면 원.
+    /// 동물 도안도 0/0 이지만 칸이 정사각이 아니라 WMF를 쓴다.
+    /// 5301.WMF 는 여러 제품이 공유하므로 원 외곽으로 쓰지 않는다.
+    /// </summary>
+    private static bool TryApplyFormtecCircle(byte[] dgf, PaperSpec paper)
+    {
+        var min = Math.Min(paper.LabelWidthMm, paper.LabelHeightMm);
+        var max = Math.Max(paper.LabelWidthMm, paper.LabelHeightMm);
+        if (max < 1f || min / max < 0.92f) return false;
+        if (!TryLabelsSpecialMode(dgf, out var a, out var b) || Math.Abs(a) > 0.02 || Math.Abs(b) > 0.02)
+            return false;
+
+        paper.Shape.Kind = "ellipse";
+        paper.Shape.Svg = null;
+        paper.Shape.Guides = null;
+        paper.Shape.GuideSvg = null;
+        EditorLog.Info($"폼텍 원형: {paper.LabelWidthMm:0.#}×{paper.LabelHeightMm:0.#} mm (Labels +0x20/+0x2A=0, WMF 미적용)");
+        return true;
+    }
+
+    private static void ApplyFormtecShapeFallback(byte[] dgf, PaperSpec paper)
+        => TryApplyFormtecCircle(dgf, paper);
+
+    /// <summary>Labels +0x34 COLORREF = 용지/라벨 색. 아이보리 25mm 는 FB F9 E1 → #FBF9E1.</summary>
+    private static void ApplyFormtecPaperColor(byte[] dgf, PaperSpec paper)
+    {
+        if (!TryLabelsColor(dgf, out var css)) return;
+        paper.LabelColor = css;
+        EditorLog.Info($"폼텍 용지 색: {css} (Labels +0x34)");
+    }
+
+    private static bool TryLabelsColor(byte[] data, out string css)
+    {
+        css = "";
+        var i = FindLabelsOffset(data);
+        if (i < 0 || i + 0x38 + 4 > data.Length) return false;
+        var c = BitConverter.ToUInt32(data, i + 0x34);
+        var d = BitConverter.ToUInt32(data, i + 0x38);
+        if ((c >> 24) != 0 || c != d) return false;
+        css = $"#{c & 0xFF:X2}{(c >> 8) & 0xFF:X2}{(c >> 16) & 0xFF:X2}";
+        return true;
+    }
+
+    private static int FindLabelsOffset(byte[] data)
+    {
+        var cap = Math.Min(data.Length, 8192);
+        return data.AsSpan(0, cap).IndexOf("Labels"u8);
+    }
+
+    /// <summary>
+    /// 불규칙 용지: 슬래시 숫자열 N개짜리 중 값이 큰 4줄 = X, Y, Height, Width.
+    /// md_formtec/DGZ_DGF_용지헤더_구조_분석.md §11.
+    /// </summary>
+    private static bool TryReadSpecialSlots(byte[] data, int count, float pw, float ph, out List<LabelSlot> slots)
+    {
+        slots = [];
+        if (count is < 2 or > 80 || pw < 20 || ph < 20) return false;
+        var text = ExternalImportService.DecodeAnsi(data.AsSpan(0, Math.Min(data.Length, 4096)));
+        var groups = new List<float[]>();
+        foreach (Match m in Regex.Matches(text, @"(?:\d+(?:\.\d+)?/){2,}"))
+        {
+            var vals = new List<float>();
+            foreach (var part in m.Value.Split('/', StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (float.TryParse(part, NumberStyles.Float, CultureInfo.InvariantCulture, out var n))
+                    vals.Add(n);
+            }
+            if (vals.Count == count && vals.Exists(v => v > 1.5f))
+                groups.Add(vals.ToArray());
+        }
+        if (groups.Count < 4) return false;
+
+        var xs = groups[0];
+        var ys = groups[1];
+        var hs = groups[2];
+        var ws = groups[3];
+        var fit = 0;
+        var list = new List<LabelSlot>(count);
+        for (var i = 0; i < count; i++)
+        {
+            var x = xs[i];
+            var y = ys[i];
+            var h = hs[i];
+            var w = ws[i];
+            if (w < 2 || h < 2 || x < -2 || y < -2 || x > pw + 2 || y > ph + 2)
+                return false;
+            if (x + w <= pw + 4 && y + h <= ph + 4) fit++;
+            list.Add(new LabelSlot(x > pw * 0.45f ? 1 : 0, i, i, x, y, w, h));
+        }
+        if (fit < count * 0.8) return false;
+        slots = list;
+        return true;
+    }
+
+    private static bool TryLabelsSpecialMode(byte[] data, out double a, out double b)
+    {
+        a = 1;
+        b = 1;
+        var i = FindLabelsOffset(data);
+        if (i < 0 || i + 0x2A + 10 > data.Length) return false;
+        try
+        {
+            a = Extended80.ReadStandard(data.AsSpan(i + 0x20, 10));
+            b = Extended80.ReadStandard(data.AsSpan(i + 0x2A, 10));
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static void ApplyFormtecWmfShape(
@@ -1867,6 +2111,8 @@ internal static class ILabelImporter
         o.Width = w; o.Height = h;
         o.IconName = (cont ?? "").Trim();
         o.Text = o.IconName;
+        if (FontAwesomeCatalog.TryResolve(o.IconName, out var d))
+            o.Svg = d;
         return o;
     }
 

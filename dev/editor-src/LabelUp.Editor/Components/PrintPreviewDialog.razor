@@ -18,10 +18,12 @@
       </header>
       <div class="ed-modal__body ed-print">
         <div class="ed-print__preview">
-          @if (!string.IsNullOrEmpty(_url))
-          {
-            <img src="@_url" alt="인쇄 미리보기" />
-          }
+          <div class="ed-print__sheet" style="@PageBoxStyle()">
+            @if (!string.IsNullOrEmpty(_url))
+            {
+              <img src="@_url" alt="인쇄 미리보기" />
+            }
+          </div>
         </div>
         <div class="ed-print__controls">
           <p>인쇄 위치 조정 (mm)</p>
@@ -103,6 +105,14 @@
         Session.Document.PrintOffsetXMm = _ox;
         Session.Document.PrintOffsetYMm = _oy;
         Rebuild();
+    }
+
+    private string PageBoxStyle()
+    {
+        var pw = Math.Max(1f, Session.Document.Paper.PaperWidthMm);
+        var ph = Math.Max(1f, Session.Document.Paper.PaperHeightMm);
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        return $"--page-ar:{pw.ToString("0.###", inv)} / {ph.ToString("0.###", inv)};--page-w:{pw.ToString("0.###", inv)};--page-h:{ph.ToString("0.###", inv)};";
     }
 
     private void Rebuild()

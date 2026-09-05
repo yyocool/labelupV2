@@ -12,7 +12,8 @@ public enum ObjectType
     Qr,
     Table,
     Clipart,
-    Icon
+    Icon,
+    Gradient
 }
 
 public enum EditorTool

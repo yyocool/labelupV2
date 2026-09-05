@@ -65,6 +65,11 @@ def main() -> int:
   AddType application/wasm .wasm
   AddType application/octet-stream .dll
 </IfModule>
+<IfModule mod_headers.c>
+  <FilesMatch "\\.(wasm|dll|json)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /editor/

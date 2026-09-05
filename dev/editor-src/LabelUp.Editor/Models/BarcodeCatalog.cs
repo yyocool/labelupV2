@@ -31,9 +31,9 @@ public static class BarcodeCatalog
         new("EAN_2", "EAN-2", "숫자만, 2자", 2, 2, BarcodeFormat.CODE_128),
         new("JAN_13", "JAN-13", "숫자만, 최소 12자 · 최대 13자", 12, 13, BarcodeFormat.EAN_13),
         new("JAN_8", "JAN-8", "숫자만, 최소 7자 · 최대 8자", 7, 8, BarcodeFormat.EAN_8),
-        new("ISBN", "ISBN / Bookland", "숫자만, 10자 또는 13자", 10, 13, BarcodeFormat.EAN_13),
-        new("ISSN", "ISSN", "숫자만, 권장 8~13자", 8, 13, BarcodeFormat.EAN_13),
-        new("ISMN", "ISMN", "숫자만, 권장 10~13자", 10, 13, BarcodeFormat.EAN_13),
+        new("ISBN", "ISBN / Bookland", "EAN-13 막대 + 하이픈 숫자. 예: 978-89-5674-316-9", 10, 13, BarcodeFormat.EAN_13),
+        new("ISSN", "ISSN", "EAN-13 막대 + 하이픈 숫자. 예: 1227-116000", 8, 13, BarcodeFormat.EAN_13),
+        new("ISMN", "ISMN", "EAN-13 막대 + 하이픈 숫자. 예: 80-7226-102-9", 10, 13, BarcodeFormat.EAN_13),
         new("UPC_A", "UPC-A", "숫자만, 최소 11자 · 최대 12자", 11, 12, BarcodeFormat.UPC_A),
         new("UPC_E", "UPC-E", "숫자만, 최소 6자 · 최대 8자", 6, 8, BarcodeFormat.UPC_E),
         new("UPC_E0", "UPC-E0", "숫자만, 6~8자", 6, 8, BarcodeFormat.UPC_E),
@@ -50,7 +50,7 @@ public static class BarcodeCatalog
         new("COOP25", "Coop 2 of 5", "숫자만, 권장 1~20자", 1, 20, BarcodeFormat.ITF),
         new("MSI", "MSI / Plessey", "숫자만, 권장 1~20자", 1, 20, BarcodeFormat.MSI),
         new("PLESSEY", "Plessey", "숫자·A–F, 권장 1~16자", 1, 16, BarcodeFormat.PLESSEY),
-        new("PZN", "PZN", "숫자만, 6~8자", 6, 8, BarcodeFormat.CODE_39),
+        new("PZN", "PZN", "Code 39. 입력 숫자에 `-`와 mod-11 체크를 붙임. 예: 123456 → -1234562", 6, 8, BarcodeFormat.CODE_39),
         new("CODE_32", "Code 32 (Italian Pharmacode)", "숫자만, 8자", 8, 8, BarcodeFormat.CODE_39),
         new("PHARMA_1", "Pharmacode One-track", "숫자만, 1~6자", 1, 6, BarcodeFormat.PHARMA_CODE),
         new("PHARMA_2", "Pharmacode Two-track", "숫자만, 1~8자", 1, 8, BarcodeFormat.PHARMA_CODE),
@@ -96,5 +96,40 @@ public static class BarcodeCatalog
         var spec = Find(id);
         if (spec is null) return "값";
         return $"값 (ex) {spec.Label}은 {spec.Hint}";
+    }
+
+    public static string Digits(string? raw)
+        => new((raw ?? "").Where(char.IsAsciiDigit).ToArray());
+
+    /// <summary>ISBN/ISSN/ISMN은 EAN-13 막대에 하이픈 캡션을 쓰는 Bookland 형태.</summary>
+    public static bool IsBookland(string? format)
+    {
+        var id = (format ?? "").Replace("-", "_").ToUpperInvariant();
+        return id is "ISBN" or "ISSN" or "ISMN";
+    }
+
+    /// <summary>하이픈이 있는 978/979만 ISBN(Bookland). 숫자만 있는 978은 일반 EAN-13이다.</summary>
+    public static bool LooksLikeIsbn(string? raw)
+    {
+        if (raw?.Contains('-') != true) return false;
+        var digits = Digits(raw);
+        return digits.Length is 12 or 13
+            && (digits.StartsWith("978") || digits.StartsWith("979"));
+    }
+
+    public static string FormatIsbn(string? raw) => FormatBookland("ISBN", raw);
+
+    /// <summary>폼텍이 저장한 하이픈을 그대로 쓴다. 없으면 ISBN-13만 기본 그룹한다.</summary>
+    public static string FormatBookland(string? format, string? raw)
+    {
+        if (!string.IsNullOrWhiteSpace(raw) && raw.Contains('-') && raw.Any(char.IsAsciiDigit))
+            return raw.Trim();
+        var d = Digits(raw);
+        var id = (format ?? "").Replace("-", "_").ToUpperInvariant();
+        if (id is "ISBN" or "" && d.Length == 10)
+            return $"{d[0]}-{d[1..5]}-{d[5..9]}-{d[9]}";
+        if (id is "ISBN" or "" && d.Length == 13 && (d.StartsWith("978") || d.StartsWith("979")))
+            return $"{d[..3]}-{d[3..5]}-{d[5..9]}-{d[9..12]}-{d[12]}";
+        return raw?.Trim() ?? "";
     }
 }

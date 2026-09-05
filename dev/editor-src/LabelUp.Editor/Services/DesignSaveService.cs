@@ -7,15 +7,16 @@ public sealed class DesignSaveService(EditorSession session, DraftStorage drafts
     {
         try
         {
+            await drafts.SaveAsync(session.Document);
+
             var loggedIn = await cloud.EnsureLoggedInForSaveAsync();
             if (!loggedIn)
             {
-                session.Status = "로그인하면 작업 내역을 저장할 수 있어요";
+                session.Dirty = false;
+                session.Status = "로컬 초안에 저장됨";
                 session.Notify();
-                return false;
+                return true;
             }
-
-            await drafts.SaveAsync(session.Document);
             var layout = await cloud.GetUiLayoutAsync();
             var ui = new
             {
@@ -46,9 +47,20 @@ public sealed class DesignSaveService(EditorSession session, DraftStorage drafts
         catch (Exception ex)
         {
             EditorLog.Error("저장 실패", ex);
-            session.Status = "저장 실패: " + ex.Message;
-            session.Notify();
-            return false;
+            try
+            {
+                await drafts.SaveAsync(session.Document);
+                session.Dirty = false;
+                session.Status = "계정 저장 실패 · 로컬 초안은 저장됨";
+                session.Notify();
+                return true;
+            }
+            catch
+            {
+                session.Status = "저장 실패: " + ex.Message;
+                session.Notify();
+                return false;
+            }
         }
     }
 }

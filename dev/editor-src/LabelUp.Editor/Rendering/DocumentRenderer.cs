@@ -61,28 +61,48 @@ public static class DocumentRenderer
 {
     private static readonly Dictionary<string, SKBitmap> ImageCache = new();
     private static FontCatalog? Fonts;
+    private static FontAwesomeCatalog? Icons;
 
     public static void SetFontCatalog(FontCatalog? catalog) => Fonts = catalog;
-    public static void ClearImageCache() => ImageCache.Clear();
-
-    public static SKTypeface ResolveTypeface(bool bold = false)
+    public static void SetIconCatalog(FontAwesomeCatalog? catalog) => Icons = catalog;
+    public static void ClearImageCache()
     {
-        if (Fonts is not null) return Fonts.Resolve(bold);
+        foreach (var bmp in ImageCache.Values)
+            bmp.Dispose();
+        ImageCache.Clear();
+    }
+
+    public static SKTypeface ResolveTypeface(bool bold = false, int codepoint = 0)
+        => ResolveTypeface(null, bold, codepoint);
+
+    public static SKTypeface ResolveTypeface(string? family, bool bold = false, int codepoint = 0)
+        => ResolveTypeface(family, bold, italic: false, codepoint);
+
+    public static SKTypeface ResolveTypeface(string? family, bool bold, bool italic, int codepoint = 0)
+    {
+        if (Fonts is not null) return Fonts.Resolve(family, bold, codepoint, italic);
         return SKTypeface.Default;
     }
+
+    public static float HriWidthScale(string? family)
+        => Fonts?.WidthScaleFor(family) ?? FontCatalog.WidthScale(family);
+
+    public static bool HasItalicFace(string? family)
+        => Fonts?.HasItalicFace(family) == true;
 
     public static SKBitmap? GetBitmap(DesignObject obj)
     {
         if (string.IsNullOrEmpty(obj.ImageData)) return null;
-        if (ImageCache.TryGetValue(obj.Id, out var cached) && cached != null) return cached;
+        var key = RasterImage.CacheKey(obj.ImageData);
+        if (ImageCache.TryGetValue(key, out var cached) && cached != null) return cached;
         try
         {
             var data = obj.ImageData!;
             var comma = data.IndexOf(',');
             if (comma >= 0) data = data[(comma + 1)..];
             var bytes = Convert.FromBase64String(data);
-            var bmp = SKBitmap.Decode(bytes);
-            if (bmp != null) ImageCache[obj.Id] = bmp;
+            var bmp = RasterImage.Decode(bytes);
+            if (bmp != null) ImageCache[key] = bmp;
             return bmp;
         }
         catch
@@ -93,7 +113,7 @@ public static class DocumentRenderer
 
     public static void InvalidateImage(string id)
     {
-        if (ImageCache.Remove(id, out var bmp)) bmp.Dispose();
+        ClearImageCache();
     }
 
     public static void DrawCell(
@@ -102,22 +122,18 @@ public static class DocumentRenderer
         LabelCell cell,
         Func<DesignObject, string>? resolve = null,
         bool forExport = false,
-        Action? afterBackground = null)
+        Action? afterBackground = null,
+        float? widthMm = null,
+        float? heightMm = null)
     {
-        var w = doc.WidthMm;
-        var h = doc.HeightMm;
+        var w = widthMm ?? doc.WidthMm;
+        var h = heightMm ?? doc.HeightMm;
         using var clip = CreateLabelPath(doc.Paper.Shape, w, h);
         canvas.Save();
         canvas.ClipPath(clip, SKClipOperation.Intersect, antialias: true);
 
         using var bg = new SKPaint { Color = ColorUtil.Parse(doc.Background), IsAntialias = true, Style = SKPaintStyle.Fill };
         canvas.DrawRect(0, 0, w, h, bg);
-
-        if (doc.Paper.Shape.Hole is { Width: > 0, Height: > 0 } hole)
-        {
-            using var holePaint = new SKPaint { BlendMode = SKBlendMode.Clear, IsAntialias = true };
-            canvas.DrawOval(new SKRect(hole.X, hole.Y, hole.X + hole.Width, hole.Y + hole.Height), holePaint);
-        }
 
         if (!forExport)
         {
@@ -167,6 +183,26 @@ public static class DocumentRenderer
                 path.AddRect(new SKRect(0, 0, w, h));
                 break;
         }
+
+        if (shape.Hole is { Width: > 0, Height: > 0 } hole)
+        {
+            path.FillType = SKPathFillType.EvenOdd;
+            var r = Math.Min(hole.Width, hole.Height) * 0.12f;
+            path.AddRoundRect(new SKRoundRect(new SKRect(hole.X, hole.Y, hole.X + hole.Width, hole.Y + hole.Height), r, r));
+        }
+
+        if (shape.Guides is { Count: > 0 })
+        {
+            var fit = !shape.SvgIsLabelMm;
+            foreach (var g in shape.Guides)
+            {
+                if (!g.IsHole || string.IsNullOrWhiteSpace(g.D)) continue;
+                path.FillType = SKPathFillType.EvenOdd;
+                using var holePath = SvgPathParser.Parse(g.D, w, h, fitToBounds: fit);
+                path.AddPath(holePath);
+            }
+        }
+
         return path;
     }
 
@@ -177,7 +213,7 @@ public static class DocumentRenderer
         {
             foreach (var g in shape.Guides)
             {
-                if (string.IsNullOrWhiteSpace(g.D)) continue;
+                if (g.IsHole || string.IsNullOrWhiteSpace(g.D)) continue;
                 using var path = SvgPathParser.Parse(g.D, w, h, fitToBounds: fit);
                 path.FillType = g.EvenOdd ? SKPathFillType.EvenOdd : SKPathFillType.Winding;
                 if (!string.IsNullOrWhiteSpace(g.Fill))
@@ -238,42 +274,59 @@ public static class DocumentRenderer
     {
         if (!obj.Visible) return;
         canvas.Save();
-        canvas.Translate(obj.X + obj.Width / 2f, obj.Y + obj.Height / 2f);
-        if (Math.Abs(obj.Rotation) > 0.01f)
-            canvas.RotateDegrees(obj.Rotation);
-        canvas.Translate(-obj.Width / 2f, -obj.Height / 2f);
-
-        var alpha = (byte)Math.Clamp((int)(obj.Opacity * 255), 0, 255);
-        var text = resolve?.Invoke(obj) ?? obj.Text;
-
-        switch (obj.Type)
+        try
         {
-            case ObjectType.Rect:
-            case ObjectType.Ellipse:
-            case ObjectType.Line:
-            case ObjectType.Shape:
-                DrawShape(canvas, obj, alpha);
-                break;
-            case ObjectType.Text:
-                DrawText(canvas, obj, text, alpha);
-                break;
-            case ObjectType.Image:
-                DrawImage(canvas, obj, alpha);
-                break;
-            case ObjectType.Barcode:
-            case ObjectType.Qr:
-                BarcodeRenderer.Draw(canvas, obj, resolve?.Invoke(obj) ?? obj.BarcodeValue, alpha);
-                break;
-            case ObjectType.Table:
-                DrawTable(canvas, obj, alpha);
-                break;
-            case ObjectType.Clipart:
-            case ObjectType.Icon:
-                DrawSvgShape(canvas, obj, alpha);
-                break;
-        }
+            canvas.Translate(obj.X + obj.Width / 2f, obj.Y + obj.Height / 2f);
+            if (Math.Abs(obj.Rotation) > 0.01f)
+                canvas.RotateDegrees(obj.Rotation);
+            canvas.Translate(-obj.Width / 2f, -obj.Height / 2f);
 
-        canvas.Restore();
+            var alpha = (byte)Math.Clamp((int)(obj.Opacity * 255), 0, 255);
+            var text = resolve?.Invoke(obj) ?? obj.Text;
+
+            switch (obj.Type)
+            {
+                case ObjectType.Rect:
+                case ObjectType.Ellipse:
+                case ObjectType.Line:
+                case ObjectType.Shape:
+                    DrawShape(canvas, obj, alpha);
+                    break;
+                case ObjectType.Text:
+                    DrawText(canvas, obj, text, alpha);
+                    break;
+                case ObjectType.Image:
+                    DrawImage(canvas, obj, alpha);
+                    break;
+                case ObjectType.Barcode:
+                case ObjectType.Qr:
+                    BarcodeRenderer.Draw(canvas, obj, resolve?.Invoke(obj) ?? obj.BarcodeValue, alpha);
+                    break;
+                case ObjectType.Table:
+                    DrawTable(canvas, obj, alpha);
+                    break;
+                case ObjectType.Clipart:
+                case ObjectType.Icon:
+                    if (obj.SvgParts is { Count: > 0 })
+                        DrawSvgParts(canvas, obj, alpha);
+                    else if (obj.Type == ObjectType.Clipart && IsRasterImageData(obj.ImageData))
+                        DrawImage(canvas, obj, alpha);
+                    else
+                        DrawSvgShape(canvas, obj, alpha);
+                    break;
+                case ObjectType.Gradient:
+                    DrawGradient(canvas, obj, alpha);
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error($"객체 그리기 실패: {obj.Type}", ex);
+        }
+        finally
+        {
+            canvas.Restore();
+        }
     }
 
     private static ShapeKind ResolveShape(DesignObject obj) => obj.Type switch
@@ -284,45 +337,101 @@ public static class DocumentRenderer
         _ => obj.ShapeKind
     };
 
+    private static void DrawGradient(SKCanvas canvas, DesignObject obj, byte alpha)
+    {
+        var rect = new SKRect(0, 0, Math.Max(0.2f, obj.Width), Math.Max(0.2f, obj.Height));
+        var start = ColorUtil.Parse(obj.Fill, alpha);
+        var end = ColorUtil.Parse(string.IsNullOrWhiteSpace(obj.GradientEnd) ? "#FFFFFF" : obj.GradientEnd, alpha);
+        var (a, b) = obj.GradientDirection switch
+        {
+            1 => (new SKPoint(rect.Right, rect.MidY), new SKPoint(rect.Left, rect.MidY)),
+            2 => (new SKPoint(rect.MidX, rect.Top), new SKPoint(rect.MidX, rect.Bottom)),
+            3 => (new SKPoint(rect.MidX, rect.Bottom), new SKPoint(rect.MidX, rect.Top)),
+            _ => (new SKPoint(rect.Left, rect.MidY), new SKPoint(rect.Right, rect.MidY))
+        };
+
+        var steps = Math.Clamp(obj.GradientPrecision, 2, 100);
+        var colors = new SKColor[steps];
+        var pos = new float[steps];
+        for (var i = 0; i < steps; i++)
+        {
+            var t = i / (float)(steps - 1);
+            colors[i] = LerpColor(start, end, t);
+            pos[i] = t;
+        }
+
+        using var fill = new SKPaint { IsAntialias = true, Style = SKPaintStyle.Fill };
+        using var shader = SKShader.CreateLinearGradient(a, b, colors, pos, SKShaderTileMode.Clamp);
+        fill.Shader = shader;
+        canvas.DrawRect(rect, fill);
+
+        var frameW = obj.StrokeWidth < 0 ? 0.2f : obj.StrokeWidth;
+        if (frameW > 0.01f && !ColorUtil.IsTransparent(obj.Stroke))
+        {
+            using var stroke = new SKPaint
+            {
+                Color = ColorUtil.Parse(obj.Stroke, alpha),
+                IsAntialias = true,
+                Style = SKPaintStyle.Stroke,
+                StrokeWidth = frameW,
+                StrokeJoin = SKStrokeJoin.Miter
+            };
+            var inset = frameW / 2f;
+            canvas.DrawRect(inset, inset, rect.Width - frameW, rect.Height - frameW, stroke);
+        }
+    }
+
+    private static SKColor LerpColor(SKColor a, SKColor b, float t)
+    {
+        t = Math.Clamp(t, 0, 1);
+        byte Mix(byte x, byte y) => (byte)Math.Clamp((int)(x + (y - x) * t), 0, 255);
+        return new SKColor(Mix(a.Red, b.Red), Mix(a.Green, b.Green), Mix(a.Blue, b.Blue), Mix(a.Alpha, b.Alpha));
+    }
+
     private static void DrawShape(SKCanvas canvas, DesignObject obj, byte alpha)
     {
         var kind = ResolveShape(obj);
+        var sw = Math.Max(0, obj.StrokeWidth);
+        var inside = kind is not (ShapeKind.Line or ShapeKind.Arrow);
+        var strokeRect = InsideStrokeRect(obj.Width, obj.Height, inside ? sw : 0);
         using var fill = new SKPaint { Color = ColorUtil.Parse(obj.Fill, alpha), IsAntialias = true, Style = SKPaintStyle.Fill };
         using var stroke = new SKPaint
         {
             Color = ColorUtil.Parse(obj.Stroke, alpha),
             IsAntialias = true,
             Style = SKPaintStyle.Stroke,
-            StrokeWidth = Math.Max(obj.StrokeWidth, kind is ShapeKind.Line or ShapeKind.Arrow ? 0.35f : 0),
+            StrokeWidth = Math.Max(sw, kind is ShapeKind.Line or ShapeKind.Arrow ? 0.35f : 0),
             StrokeCap = SKStrokeCap.Round,
-            StrokeJoin = SKStrokeJoin.Round
+            StrokeJoin = SKStrokeJoin.Miter
         };
 
         switch (kind)
         {
             case ShapeKind.Ellipse:
             case ShapeKind.Circle:
-                var oval = new SKRect(0, 0, obj.Width, obj.Height);
-                canvas.DrawOval(oval, fill);
-                if (obj.StrokeWidth > 0) canvas.DrawOval(oval, stroke);
+                canvas.DrawOval(strokeRect, fill);
+                if (sw > 0) canvas.DrawOval(strokeRect, stroke);
                 break;
             case ShapeKind.RoundRect:
-                var rr = new SKRoundRect(new SKRect(0, 0, obj.Width, obj.Height), obj.CornerRadiusMm, obj.CornerRadiusMm);
+                var radius = Math.Max(0.1f, obj.CornerRadiusMm - (inside ? sw / 2f : 0));
+                var rr = new SKRoundRect(strokeRect, radius, radius);
                 canvas.DrawRoundRect(rr, fill);
-                if (obj.StrokeWidth > 0) canvas.DrawRoundRect(rr, stroke);
+                if (sw > 0) canvas.DrawRoundRect(rr, stroke);
                 break;
             case ShapeKind.Triangle:
-                using (var path = TrianglePath(obj.Width, obj.Height))
+                using (var path = TrianglePath(strokeRect.Width, strokeRect.Height))
                 {
+                    path.Transform(SKMatrix.CreateTranslation(strokeRect.Left, strokeRect.Top));
                     canvas.DrawPath(path, fill);
-                    if (obj.StrokeWidth > 0) canvas.DrawPath(path, stroke);
+                    if (sw > 0) canvas.DrawPath(path, stroke);
                 }
                 break;
             case ShapeKind.Polygon:
-                using (var path = PolygonPath(obj.Width, obj.Height, obj.PolygonSides))
+                using (var path = PolygonPath(strokeRect.Width, strokeRect.Height, obj.PolygonSides))
                 {
+                    path.Transform(SKMatrix.CreateTranslation(strokeRect.Left, strokeRect.Top));
                     canvas.DrawPath(path, fill);
-                    if (obj.StrokeWidth > 0) canvas.DrawPath(path, stroke);
+                    if (sw > 0) canvas.DrawPath(path, stroke);
                 }
                 break;
             case ShapeKind.Line:
@@ -332,11 +441,19 @@ public static class DocumentRenderer
                 DrawArrow(canvas, obj, fill, stroke);
                 break;
             default:
-                var rect = new SKRect(0, 0, obj.Width, obj.Height);
-                canvas.DrawRect(rect, fill);
-                if (obj.StrokeWidth > 0) canvas.DrawRect(rect, stroke);
+                canvas.DrawRect(strokeRect, fill);
+                if (sw > 0) canvas.DrawRect(strokeRect, stroke);
                 break;
         }
+    }
+
+    /// <summary>GDI PS_INSIDEFRAME처럼 선 두께가 객체 박스 안쪽으로만 커진다.</summary>
+    private static SKRect InsideStrokeRect(float w, float h, float strokeWidth)
+    {
+        var half = Math.Max(0, strokeWidth) / 2f;
+        var rw = Math.Max(0.05f, w - strokeWidth);
+        var rh = Math.Max(0.05f, h - strokeWidth);
+        return new SKRect(half, half, half + rw, half + rh);
     }
 
     private static SKPath TrianglePath(float w, float h)
@@ -401,7 +518,8 @@ public static class DocumentRenderer
             canvas.DrawRect(0, 0, obj.Width, obj.Height, bg);
         }
 
-        text = string.IsNullOrEmpty(text) ? " " : text;
+        text = string.IsNullOrEmpty(text) ? " " : StripInvisibleFormat(text);
+        if (string.IsNullOrEmpty(text)) text = " ";
         canvas.Save();
         if (obj.FlipHorizontal)
         {
@@ -409,7 +527,7 @@ public static class DocumentRenderer
             canvas.Scale(-1, 1);
         }
 
-        if (obj.Italic)
+        if (obj.Italic && !HasItalicFace(obj.FontFamily))
             canvas.Skew(-0.25f, 0);
 
         var style = obj.TextMode == TextMode.WordArt ? obj.WordArtStyle : WordArtStyle.None;
@@ -421,7 +539,7 @@ public static class DocumentRenderer
         }
 
         using var paint = new SKPaint { Color = ColorUtil.Parse(obj.Fill, alpha), IsAntialias = true };
-        using var font = new SKFont(ResolveTypeface(obj.Bold), obj.FontSize);
+        using var font = new SKFont(ResolveTypeface(obj.FontFamily, obj.Bold, obj.Italic), obj.FontSize);
 
         if (obj.TextDirection == "vertical")
         {
@@ -437,10 +555,12 @@ public static class DocumentRenderer
             return;
         }
 
-        var inset = 1f;
-        var maxW = Math.Max(obj.FontSize * 0.6f, obj.Width - inset * 2f);
-        var lines = WrapText(text, font, maxW, obj.TextWrap);
-        var lineH = obj.FontSize * Math.Max(0.8f, obj.LineHeight);
+        // 폼텍은 박스 폭으로 줄바꿈한다. 좌우 1mm씩 빼면 세로 박스(7.1mm·10pt)에
+        // '세로' 두 글자가 안 들어가 한 글자씩 쌓이고 위가 잘린다.
+        var inset = Math.Clamp(obj.Width * 0.015f, 0.08f, 0.35f);
+        var maxW = Math.Max(0.3f, obj.Width);
+        var lines = WrapText(text, font, obj.FontFamily, obj.Bold, maxW, obj.TextWrap);
+        var lineH = obj.FontSize * Math.Max(0.62f, obj.LineHeight);
         var totalH = lineH * lines.Count;
         float startY = obj.VerticalAlign switch
         {
@@ -454,7 +574,7 @@ public static class DocumentRenderer
         for (var i = 0; i < lines.Count; i++)
         {
             var line = lines[i];
-            var tw = font.MeasureText(line);
+            var tw = MeasureLine(font, obj.FontFamily, obj.Bold, line);
             float x = obj.TextAlign switch
             {
                 "left" => inset,
@@ -479,7 +599,7 @@ public static class DocumentRenderer
         canvas.Restore();
     }
 
-    private static List<string> WrapText(string text, SKFont font, float maxWidth, string? mode)
+    private static List<string> WrapText(string text, SKFont font, string? family, bool bold, float maxWidth, string? mode)
     {
         var hard = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         if (string.Equals(mode, "none", StringComparison.OrdinalIgnoreCase))
@@ -499,7 +619,7 @@ public static class DocumentRenderer
             foreach (var ch in para)
             {
                 var test = current + ch;
-                if (font.MeasureText(test) <= maxWidth || current.Length == 0)
+                if (MeasureLine(font, family, bold, test) <= maxWidth + 0.35f || current.Length == 0)
                 {
                     current = test;
                     continue;
@@ -549,6 +669,12 @@ public static class DocumentRenderer
 
     private static void DrawGlyph(SKCanvas canvas, DesignObject obj, string text, float x, float y, SKTextAlign align, SKFont font, SKPaint paint, byte alpha)
     {
+        if (NeedsMixedGlyphs(font, text))
+        {
+            DrawMixedGlyphs(canvas, obj, text, x, y, align, font, paint, alpha);
+            return;
+        }
+
         if (obj.Shadow)
         {
             using var shade = new SKPaint { Color = new SKColor(0x40, 0x3A, 0x36, (byte)(alpha * 0.45f)), IsAntialias = true };
@@ -568,6 +694,210 @@ public static class DocumentRenderer
             return;
         }
         canvas.DrawText(text, x, y, align, font, paint);
+    }
+
+    private static string StripInvisibleFormat(string text)
+    {
+        var sb = new System.Text.StringBuilder(text.Length);
+        foreach (var rune in text.EnumerateRunes())
+        {
+            if (IsInvisibleFormat(rune.Value)) continue;
+            sb.Append(rune);
+        }
+        return sb.ToString();
+    }
+
+    private static bool IsInvisibleFormat(int code)
+    {
+        if (code is 0x200B or 0x200C or 0x200D or 0x200E or 0x200F)
+            return true;
+        if (code is >= 0x202A and <= 0x202E)
+            return true;
+        if (code is >= 0x2066 and <= 0x2069)
+            return true;
+        if (code is 0xFEFF or 0x00AD)
+            return true;
+        return code < 0x20 && code is not (0x09 or 0x0A or 0x0D);
+    }
+
+    private static bool NeedsMixedGlyphs(SKFont font, string text)
+    {
+        foreach (var rune in text.EnumerateRunes())
+        {
+            if (IsInvisibleFormat(rune.Value)) continue;
+            if (FontCatalog.PrefersSymbolRange(rune.Value))
+                return true;
+        }
+        return HasMissingGlyph(font, text);
+    }
+
+    private static bool HasMissingGlyph(SKFont font, string text)
+    {
+        try
+        {
+            var glyphs = font.GetGlyphs(text);
+            foreach (var g in glyphs)
+            {
+                if (g == 0) return true;
+            }
+        }
+        catch
+        {
+            return false;
+        }
+        return false;
+    }
+
+    private static float MeasureLine(SKFont font, string? family, bool bold, string text)
+        => NeedsMixedGlyphs(font, text)
+            ? MeasureMixed(font, family, bold, text)
+            : font.MeasureText(text);
+
+    private static float MeasureMixed(SKFont font, string? family, bool bold, string text)
+    {
+        var width = 0f;
+        foreach (var rune in text.EnumerateRunes())
+        {
+            if (IsInvisibleFormat(rune.Value)) continue;
+            var ch = rune.ToString();
+            using (var face = new SKFont(ResolveTypeface(family, bold, rune.Value), font.Size))
+                width += Math.Max(0.2f, face.MeasureText(ch));
+        }
+        return width;
+    }
+
+    private static void DrawMixedGlyphs(SKCanvas canvas, DesignObject obj, string text, float x, float y, SKTextAlign align, SKFont font, SKPaint paint, byte alpha)
+    {
+        var total = MeasureMixed(font, obj.FontFamily, obj.Bold, text);
+        var cursor = align switch
+        {
+            SKTextAlign.Right => x - total,
+            SKTextAlign.Center => x - total / 2f,
+            _ => x
+        };
+        if (obj.Shadow)
+        {
+            using var shade = new SKPaint { Color = new SKColor(0x40, 0x3A, 0x36, (byte)(alpha * 0.45f)), IsAntialias = true };
+            DrawMixedRun(canvas, obj.FontFamily, obj.Bold, text, cursor + obj.FontSize * 0.12f, y + obj.FontSize * 0.12f, font, shade);
+        }
+        if (obj.Outline)
+        {
+            using var stroke = new SKPaint
+            {
+                Color = ColorUtil.Parse(obj.Fill, alpha),
+                IsAntialias = true,
+                Style = SKPaintStyle.Stroke,
+                StrokeWidth = Math.Max(0.18f, obj.FontSize * 0.1f),
+                StrokeJoin = SKStrokeJoin.Round
+            };
+            DrawMixedRun(canvas, obj.FontFamily, obj.Bold, text, cursor, y, font, stroke);
+            return;
+        }
+        DrawMixedRun(canvas, obj.FontFamily, obj.Bold, text, cursor, y, font, paint);
+    }
+
+    private static void DrawMixedRun(SKCanvas canvas, string? family, bool bold, string text, float x, float y, SKFont font, SKPaint paint)
+    {
+        foreach (var rune in text.EnumerateRunes())
+        {
+            if (IsInvisibleFormat(rune.Value)) continue;
+            var ch = rune.ToString();
+            using (var face = new SKFont(ResolveTypeface(family, bold, rune.Value), font.Size))
+            {
+                if (HasMissingGlyph(face, ch))
+                {
+                    DrawFallbackGlyph(canvas, rune.Value, x, y, font.Size, paint);
+                    x += font.Size * 0.92f;
+                    continue;
+                }
+                canvas.DrawText(ch, x, y, SKTextAlign.Left, face, paint);
+                x += Math.Max(0.2f, face.MeasureText(ch));
+            }
+        }
+    }
+
+    /// <summary>상자 그리기·도형 특수문자는 Pretendard에 없어 선으로 그린다.</summary>
+    private static void DrawFallbackGlyph(SKCanvas canvas, int code, float x, float y, float size, SKPaint paint)
+    {
+        var cell = size;
+        var left = x;
+        var right = left + cell;
+        var bottom = y + size * 0.12f;
+        var top = bottom - cell;
+        var cx = (left + right) / 2f;
+        var cy = (top + bottom) / 2f;
+        var thick = Math.Max(0.18f, size * (IsHeavyBox(code) ? 0.14f : 0.08f));
+        using var stroke = new SKPaint
+        {
+            Color = paint.Color,
+            IsAntialias = true,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = thick,
+            StrokeCap = SKStrokeCap.Square
+        };
+
+        if (code is >= 0x25A0 and <= 0x25FF)
+        {
+            DrawGeometricFallback(canvas, code, left, top, right, bottom, paint, stroke);
+            return;
+        }
+
+        if (!TryBoxArms(code, out var n, out var s, out var e, out var w))
+        {
+            canvas.DrawRect(left + cell * 0.15f, top + cell * 0.15f, cell * 0.7f, cell * 0.7f, stroke);
+            return;
+        }
+
+        if (n) canvas.DrawLine(cx, cy, cx, top, stroke);
+        if (s) canvas.DrawLine(cx, cy, cx, bottom, stroke);
+        if (e) canvas.DrawLine(cx, cy, right, cy, stroke);
+        if (w) canvas.DrawLine(cx, cy, left, cy, stroke);
+    }
+
+    private static bool IsHeavyBox(int code)
+        => code is 0x2501 or 0x2503 or 0x250F or 0x2513 or 0x2517 or 0x251B
+            or 0x2523 or 0x252B or 0x2533 or 0x253B or 0x254B;
+
+    private static bool TryBoxArms(int code, out bool n, out bool s, out bool e, out bool w)
+    {
+        n = s = e = w = false;
+        switch (code)
+        {
+            case 0x2500 or 0x2501: e = w = true; return true;
+            case 0x2502 or 0x2503: n = s = true; return true;
+            case 0x250C or 0x250F: s = e = true; return true;
+            case 0x2510 or 0x2513: s = w = true; return true;
+            case 0x2514 or 0x2517: n = e = true; return true;
+            case 0x2518 or 0x251B: n = w = true; return true;
+            case 0x251C or 0x2523: n = s = e = true; return true;
+            case 0x2524 or 0x252B: n = s = w = true; return true;
+            case 0x252C or 0x2533: s = e = w = true; return true;
+            case 0x2534 or 0x253B: n = e = w = true; return true;
+            case 0x253C or 0x254B: n = s = e = w = true; return true;
+            default: return false;
+        }
+    }
+
+    private static void DrawGeometricFallback(SKCanvas canvas, int code, float left, float top, float right, float bottom, SKPaint fill, SKPaint stroke)
+    {
+        var w = right - left;
+        var h = bottom - top;
+        switch (code)
+        {
+            case 0x25A0:
+                canvas.DrawRect(left, top, w, h, fill);
+                break;
+            case 0x25A1:
+                canvas.DrawRect(left, top, w, h, stroke);
+                break;
+            case 0x25A3:
+                canvas.DrawRect(left, top, w, h, stroke);
+                canvas.DrawRect(left + w * 0.22f, top + h * 0.22f, w * 0.56f, h * 0.56f, fill);
+                break;
+            default:
+                canvas.DrawRect(left + w * 0.12f, top + h * 0.12f, w * 0.76f, h * 0.76f, stroke);
+                break;
+        }
     }
 
     private static void DrawVerticalText(SKCanvas canvas, DesignObject obj, string text, SKFont font, SKPaint paint, byte alpha)
@@ -607,7 +937,7 @@ public static class DocumentRenderer
     private static void DrawWordArt(SKCanvas canvas, DesignObject obj, string text, byte alpha, WordArtStyle style)
     {
         using var paint = new SKPaint { Color = ColorUtil.Parse(obj.Fill, alpha), IsAntialias = true };
-        using var font = new SKFont(ResolveTypeface(obj.Bold), obj.FontSize);
+        using var font = new SKFont(ResolveTypeface(obj.FontFamily, obj.Bold, obj.Italic), obj.FontSize);
         var chars = text.Replace("\n", "").ToCharArray();
         if (chars.Length == 0) return;
 
@@ -724,40 +1054,80 @@ public static class DocumentRenderer
         var cols = obj.TableCols;
         var cw = obj.Width / cols;
         var rh = obj.Height / rows;
-        if (!obj.BackgroundTransparent
-            && !string.IsNullOrWhiteSpace(obj.BackgroundFill)
-            && obj.BackgroundFill is not "transparent" and not "none")
+        var sw = Math.Max(0.12f, obj.TableBorderWidth);
+        for (var r = 0; r < rows; r++)
         {
-            using var fill = new SKPaint
+            for (var c = 0; c < cols; c++)
             {
-                Color = ColorUtil.Parse(obj.BackgroundFill, alpha),
-                IsAntialias = true
-            };
-            canvas.DrawRect(0, 0, obj.Width, obj.Height, fill);
+                var fillCss = obj.TableCellFill(r, c);
+                if (string.IsNullOrWhiteSpace(fillCss) || ColorUtil.IsTransparent(fillCss))
+                    continue;
+                using var fill = new SKPaint { Color = ColorUtil.Parse(fillCss, alpha), IsAntialias = true };
+                canvas.DrawRect(c * cw, r * rh, cw, rh, fill);
+            }
         }
         using var stroke = new SKPaint
         {
             Color = ColorUtil.Parse(obj.Stroke, alpha),
             IsAntialias = true,
             Style = SKPaintStyle.Stroke,
-            StrokeWidth = Math.Max(0.12f, obj.TableBorderWidth)
+            StrokeWidth = sw
         };
-        using var tp = new SKPaint { Color = ColorUtil.Parse(obj.Fill, alpha), IsAntialias = true };
-        using var font = new SKFont(ResolveTypeface(obj.Bold), obj.FontSize);
         for (var r = 0; r <= rows; r++)
             canvas.DrawLine(0, r * rh, obj.Width, r * rh, stroke);
         for (var c = 0; c <= cols; c++)
             canvas.DrawLine(c * cw, 0, c * cw, obj.Height, stroke);
+        using var tp = new SKPaint { Color = ColorUtil.Parse(obj.Fill, alpha), IsAntialias = true };
+        using var font = new SKFont(ResolveTypeface(obj.FontFamily, obj.Bold, obj.Italic), Math.Min(obj.FontSize, rh * 0.55f));
         for (var r = 0; r < rows; r++)
         {
             for (var c = 0; c < cols; c++)
             {
                 var cell = obj.GetTableCell(r, c);
-                if (string.IsNullOrEmpty(cell)) continue;
+                if (string.IsNullOrWhiteSpace(cell)) continue;
+                canvas.Save();
+                canvas.ClipRect(new SKRect(c * cw, r * rh, (c + 1) * cw, (r + 1) * rh));
                 var tw = font.MeasureText(cell);
-                var x = c * cw + Math.Max(0.4f, (cw - tw) / 2f);
+                var x = c * cw + Math.Max(0.3f, (cw - tw) / 2f);
                 var y = r * rh + rh * 0.68f;
                 canvas.DrawText(cell, x, y, SKTextAlign.Left, font, tp);
+                canvas.Restore();
+            }
+        }
+    }
+
+    private static void DrawSvgParts(SKCanvas canvas, DesignObject obj, byte alpha)
+    {
+        if (obj.SvgParts is not { Count: > 0 } parts) return;
+        var sx = obj.Width / 100f;
+        var sy = obj.Height / 100f;
+        foreach (var part in parts)
+        {
+            if (string.IsNullOrWhiteSpace(part.D)) continue;
+            using var path = SvgPathParser.Parse(part.D, obj.Width, obj.Height, 100, fitToBounds: false);
+            path.Transform(SKMatrix.CreateScale(sx, sy));
+            if (!ColorUtil.IsTransparent(part.Fill))
+            {
+                using var fill = new SKPaint
+                {
+                    Color = ColorUtil.Parse(part.Fill, alpha),
+                    IsAntialias = true,
+                    Style = SKPaintStyle.Fill
+                };
+                canvas.DrawPath(path, fill);
+            }
+            if (part.StrokeWidth > 0.01f && !ColorUtil.IsTransparent(part.Stroke))
+            {
+                using var stroke = new SKPaint
+                {
+                    Color = ColorUtil.Parse(part.Stroke, alpha),
+                    IsAntialias = true,
+                    Style = SKPaintStyle.Stroke,
+                    StrokeWidth = part.StrokeWidth * Math.Min(sx, sy),
+                    StrokeJoin = SKStrokeJoin.Round,
+                    StrokeCap = SKStrokeCap.Round
+                };
+                canvas.DrawPath(path, stroke);
             }
         }
     }
@@ -768,7 +1138,12 @@ public static class DocumentRenderer
         if (string.IsNullOrWhiteSpace(d))
         {
             if (obj.Type == ObjectType.Icon)
-                d = SvgLibrary.Icons.FirstOrDefault(i => i.Id == obj.IconName).Path;
+            {
+                if (Icons?.TryGetPath(obj.IconName, out var fa) == true)
+                    d = fa;
+                else
+                    d = SvgLibrary.Icons.FirstOrDefault(i => i.Id == obj.IconName).Path;
+            }
             else
                 d = SvgLibrary.Cliparts.FirstOrDefault(i => i.Id == obj.ClipartId).Path;
         }
@@ -789,6 +1164,14 @@ public static class DocumentRenderer
             canvas.DrawPath(path, stroke);
         }
     }
+
+    private static bool IsRasterImageData(string? data)
+        => data is not null
+           && (data.StartsWith("data:image/png", StringComparison.OrdinalIgnoreCase)
+               || data.StartsWith("data:image/jpeg", StringComparison.OrdinalIgnoreCase)
+               || data.StartsWith("data:image/jpg", StringComparison.OrdinalIgnoreCase)
+               || data.StartsWith("data:image/bmp", StringComparison.OrdinalIgnoreCase)
+               || data.StartsWith("data:image/gif", StringComparison.OrdinalIgnoreCase));
 
     public static void DrawSelection(SKCanvas canvas, DesignObject obj, float pxPerMm, float zoom)
     {
@@ -853,21 +1236,23 @@ public static class DocumentRenderer
         yield return (r, b);
     }
 
-    public static byte[] ExportPng(LabelDocument doc, LabelCell? cell = null, float dpi = 300f, Func<DesignObject, string>? resolve = null)
+    public static byte[] ExportPng(LabelDocument doc, LabelCell? cell = null, float dpi = 300f, Func<DesignObject, string>? resolve = null, float? widthMm = null, float? heightMm = null, int quality = 100)
     {
         doc.EnsureStructure();
         cell ??= doc.Pages[0].Cells[0];
+        var wMm = widthMm ?? doc.WidthMm;
+        var hMm = heightMm ?? doc.HeightMm;
         var scale = dpi / 25.4f;
-        var w = Math.Max(1, (int)Math.Ceiling(doc.WidthMm * scale));
-        var h = Math.Max(1, (int)Math.Ceiling(doc.HeightMm * scale));
+        var w = Math.Max(1, (int)Math.Ceiling(wMm * scale));
+        var h = Math.Max(1, (int)Math.Ceiling(hMm * scale));
         var info = new SKImageInfo(w, h, SKColorType.Rgba8888, SKAlphaType.Premul);
         using var surface = SKSurface.Create(info);
         var canvas = surface.Canvas;
         canvas.Clear(SKColors.Transparent);
         canvas.Scale(scale);
-        DrawCell(canvas, doc, cell, resolve, forExport: true);
+        DrawCell(canvas, doc, cell, resolve, forExport: true, widthMm: wMm, heightMm: hMm);
         using var image = surface.Snapshot();
-        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        using var data = image.Encode(SKEncodedImageFormat.Png, Math.Clamp(quality, 10, 100));
         return data.ToArray();
     }
 
@@ -888,7 +1273,8 @@ public static class DocumentRenderer
         var info = new SKImageInfo(w, h, SKColorType.Rgba8888, SKAlphaType.Premul);
         using var surface = SKSurface.Create(info);
         var canvas = surface.Canvas;
-        canvas.Clear(SKColors.White);
+        var paperBg = ColorUtil.Parse(paper.LabelColor);
+        canvas.Clear(paperBg.Alpha == 0 ? SKColors.White : paperBg);
         canvas.Scale(scale);
         canvas.Translate(offsetXMm, offsetYMm);
 
@@ -901,7 +1287,7 @@ public static class DocumentRenderer
             var global = pageIndex * per + slot.Index;
             canvas.Save();
             canvas.Translate(slot.X, slot.Y);
-            DrawCell(canvas, doc, cell, obj => resolve?.Invoke(global, obj) ?? obj.Text, forExport: true);
+            DrawCell(canvas, doc, cell, obj => resolve?.Invoke(global, obj) ?? obj.Text, forExport: true, widthMm: slot.W, heightMm: slot.H);
             using (var outline = new SKPaint
             {
                 Color = new SKColor(0xC4, 0x28, 0x3A),

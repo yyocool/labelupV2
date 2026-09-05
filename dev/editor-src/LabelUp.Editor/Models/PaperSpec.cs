@@ -34,9 +34,13 @@ public sealed class PaperSpec
     public string LabelColor { get; set; } = "#FFFFFF";
     public PaperShape Shape { get; set; } = new();
     public string? DesignImageUrl { get; set; }
+    /// <summary>불규칙 용지. 있으면 격자 대신 이 좌표를 쓴다 (X/Y/H/W 순으로 저장된 배열).</summary>
+    public List<LabelSlot>? CustomSlots { get; set; }
 
     [JsonIgnore]
-    public int LabelsPerPage => Math.Max(1, Columns) * Math.Max(1, Rows);
+    public int LabelsPerPage => CustomSlots is { Count: > 0 }
+        ? CustomSlots.Count
+        : Math.Max(1, Columns) * Math.Max(1, Rows);
 
     public PaperSpec Clone()
     {
@@ -61,11 +65,15 @@ public sealed class PaperSpec
             VGapMm = VGapMm,
             LabelColor = LabelColor,
             Shape = Shape.Clone(),
-            DesignImageUrl = DesignImageUrl
+            DesignImageUrl = DesignImageUrl,
+            CustomSlots = CustomSlots is { Count: > 0 } ? [.. CustomSlots] : null
         };
     }
 
     public IEnumerable<LabelSlot> EnumerateSlots()
+        => CustomSlots is { Count: > 0 } ? CustomSlots : EnumerateGridSlots();
+
+    private IEnumerable<LabelSlot> EnumerateGridSlots()
     {
         var cols = Math.Max(1, Columns);
         var rows = Math.Max(1, Rows);
@@ -181,7 +189,7 @@ public sealed class PaperShape
         {
             foreach (var g in shape.Guides)
             {
-                if (string.IsNullOrWhiteSpace(g.D)) continue;
+                if (g.IsHole || string.IsNullOrWhiteSpace(g.D)) continue;
                 var fill = string.IsNullOrWhiteSpace(g.Fill) ? "none" : g.Fill;
                 var stroke = string.IsNullOrWhiteSpace(g.Stroke) ? "none" : g.Stroke;
                 var sw = g.StrokeWidthMm.ToString("0.###", inv);
@@ -209,6 +217,8 @@ public sealed class PaperGuidePath
     public string? Stroke { get; set; }
     public float StrokeWidthMm { get; set; } = 0.28f;
     public bool EvenOdd { get; set; }
+    /// <summary>외곽보다 작은 채움. 라벨에서 빼는 구멍(가운데 타공).</summary>
+    public bool IsHole { get; set; }
 
     public PaperGuidePath Clone() => new()
     {
@@ -216,7 +226,8 @@ public sealed class PaperGuidePath
         Fill = Fill,
         Stroke = Stroke,
         StrokeWidthMm = StrokeWidthMm,
-        EvenOdd = EvenOdd
+        EvenOdd = EvenOdd,
+        IsHole = IsHole
     };
 }
 

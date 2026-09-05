@@ -209,21 +209,19 @@ public sealed class EditorSession
             LabelIndex = 0;
             ClearSelection();
         }
+        ApplyCurrentSlotSize();
         Dirty = true;
         Notify();
     }
 
+    /// <summary>임시: 새 파일·변환 시 저장 확인 대화상자를 띄우지 않는다.</summary>
     public async Task ConfirmIfDirtyAsync(Func<Task> continueAsync)
     {
         ArgumentNullException.ThrowIfNull(continueAsync);
-        if (!Dirty)
-        {
-            await continueAsync();
-            return;
-        }
-
-        PendingContinueAsync = continueAsync;
-        OpenDialog(EditorDialog.UnsavedChanges);
+        PendingContinueAsync = null;
+        if (Dialog == EditorDialog.UnsavedChanges)
+            CloseDialog();
+        await continueAsync();
     }
 
     public void CancelPendingContinue()
@@ -240,8 +238,18 @@ public sealed class EditorSession
         Document.EnsureStructure();
         PageIndex = Math.Clamp(pageIndex, 0, Document.Pages.Count - 1);
         LabelIndex = Math.Clamp(labelIndex, 0, Document.Pages[PageIndex].Cells.Count - 1);
+        ApplyCurrentSlotSize();
         ClearSelection();
         Notify();
+    }
+
+    private void ApplyCurrentSlotSize()
+    {
+        var slots = Document.Paper.CustomSlots;
+        if (slots is not { Count: > 0 }) return;
+        var i = Math.Clamp(LabelIndex, 0, slots.Count - 1);
+        Document.Paper.LabelWidthMm = slots[i].W;
+        Document.Paper.LabelHeightMm = slots[i].H;
     }
 
     public void ClearSelection()

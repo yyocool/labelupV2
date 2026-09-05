@@ -821,6 +821,10 @@ html, body {
   align-items: center;
   gap: 8px 14px;
 }
+.ed-font-search {
+  margin-bottom: 6px;
+  font-weight: 600;
+}
 .ed-field input,
 .ed-field select,
 .ed-textarea {
@@ -913,42 +917,38 @@ html, body {
 }
 .ed-preview__page-wrap {
   flex: 1 1 auto;
-  min-height: 180px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  min-height: 0;
+  display: grid;
+  place-items: center;
   padding: 8px 12px;
   overflow: hidden;
+  container-type: size;
 }
 .ed-preview__page {
-  width: auto;
+  position: relative;
+  width: min(100cqw, calc(100cqh * var(--page-w, 210) / var(--page-h, 297)));
+  aspect-ratio: var(--page-ar, 210 / 297);
   height: auto;
   max-width: 100%;
   max-height: 100%;
-  aspect-ratio: var(--page-ar, 210 / 297);
-  background: #ece7e1;
+  background: #fff;
   border: 1px solid var(--ed-border);
-  border-radius: 4px;
+  border-radius: 2px;
   overflow: hidden;
-  display: flex;
   box-shadow: 0 2px 8px rgba(46, 42, 39, 0.08);
 }
 .ed-preview__sheet {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
-  padding: 6px;
-  background: #f7f4f1;
-  border-radius: 0;
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-  align-content: start;
+  position: absolute;
+  inset: 0;
+  display: block;
+  padding: 0;
+  background: transparent;
 }
 .ed-preview__cell {
-  aspect-ratio: var(--label-ar, 5 / 3);
+  position: absolute;
+  box-sizing: border-box;
   border: 1px solid var(--ed-border);
-  border-radius: 4px;
+  border-radius: 2px;
   background: #fff;
   display: flex;
   align-items: stretch;
@@ -957,6 +957,9 @@ html, body {
   padding: 0;
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(46, 42, 39, 0.04);
+}
+.ed-preview__cell.is-round {
+  border-radius: 50%;
 }
 .ed-preview__cell.is-selected {
   border-color: var(--ed-primary);
@@ -968,9 +971,12 @@ html, body {
   object-fit: contain;
   object-position: center;
   display: block;
-  background: #fff;
+  background: transparent;
   pointer-events: none;
   user-select: none;
+}
+.ed-preview__cell.is-round .ed-preview__thumb {
+  border-radius: 50%;
 }
 .ed-preview__hint {
   font-size: 9px;
@@ -2451,8 +2457,28 @@ html, body {
   word-break: break-word;
   white-space: pre-wrap;
 }
+.ed-crash {
+  margin: 48px auto;
+  max-width: 420px;
+  padding: 24px;
+  border: 1px solid #E8D4DB;
+  border-radius: 12px;
+  background: #fff;
+  color: #2E2A27;
+}
+.ed-crash h3 { margin: 0 0 8px; font-size: 16px; }
+.ed-crash p { margin: 0 0 10px; line-height: 1.5; }
+.ed-crash__hint { color: #6B6560; font-size: 12px; }
 .ed-modal__card--form { width: min(860px, 100%); }
-.ed-modal__card--print { width: min(1080px, 100%); }
+.ed-modal__card--print {
+  width: min(1080px, calc(100vw - 48px));
+  max-height: min(92vh, 960px);
+}
+.ed-modal__card--print .ed-modal__body {
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+}
 .ed-modal__head {
   display: flex;
   justify-content: space-between;
@@ -2540,9 +2566,43 @@ html, body {
   display: grid; place-items: center; gap: 6px; font: inherit; font-size: 11px; font-weight: 700;
 }
 .ed-shape-card:hover { background: var(--ed-primary-soft); }
-.ed-print { display: grid; grid-template-columns: 1fr 240px; gap: 16px; }
-.ed-print__preview { background: #ece7e1; border-radius: 10px; padding: 12px; overflow: auto; max-height: 62vh; }
-.ed-print__preview img { width: 100%; background: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+.ed-print {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  align-items: stretch;
+}
+.ed-print__preview {
+  background: #ece7e1;
+  border-radius: 10px;
+  padding: 12px;
+  overflow: hidden;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  container-type: size;
+}
+.ed-print__sheet {
+  position: relative;
+  width: min(100cqw, calc(100cqh * var(--page-w, 210) / var(--page-h, 297)));
+  aspect-ratio: var(--page-ar, 210 / 297);
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0,0,0,.08);
+}
+.ed-print__sheet img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+  background: #fff;
+}
 .ed-print__controls { display: grid; gap: 10px; align-content: start; }
 .ed-print__pad { display: grid; grid-template-columns: 36px 1fr 36px; gap: 6px; justify-items: center; }
 .ed-print__pad button { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--ed-border); background: #fff; cursor: pointer; }
