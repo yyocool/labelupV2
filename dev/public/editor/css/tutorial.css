@@ -30,6 +30,7 @@
 .lu-tut__cursor[hidden],
 .lu-tut__caption[hidden],
 .lu-tut__toast[hidden],
+.lu-tut__demo[hidden],
 .lu-tut__ctrl[hidden] {
   display: none !important;
 }
@@ -393,4 +394,112 @@
   .lu-tut__caption {
     bottom: 150px;
   }
+}
+
+.lu-tut__demo {
+  position: fixed;
+  z-index: 4;
+  pointer-events: none;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px dashed rgba(255, 255, 255, 0.45);
+}
+.lu-tut__finger {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(123, 40, 64, 0.55);
+  border: 2px solid #fff;
+  box-shadow: 0 4px 12px rgba(46, 42, 39, 0.25);
+}
+.lu-tut__finger--a { left: 28%; top: 42%; }
+.lu-tut__finger--b { right: 28%; top: 42%; }
+.lu-tut__hold {
+  display: none;
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  border-radius: 50%;
+  border: 3px solid #7B2840;
+  background: rgba(123, 40, 64, 0.2);
+}
+.lu-tut__demo-label {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+.lu-tut.is-mobile-tour .lu-tut__finger { display: none; }
+.lu-tut.is-mobile-tour .lu-tut__demo.is-pinch .lu-tut__finger,
+.lu-tut.is-mobile-tour .lu-tut__demo.is-pan .lu-tut__finger { display: block; }
+.lu-tut__demo.is-pinch .lu-tut__finger--a { animation: luTutPinchA 1.4s ease-in-out infinite; }
+.lu-tut__demo.is-pinch .lu-tut__finger--b { animation: luTutPinchB 1.4s ease-in-out infinite; }
+.lu-tut__demo.is-pan .lu-tut__finger--a,
+.lu-tut__demo.is-pan .lu-tut__finger--b { animation: luTutPan 1.5s ease-in-out infinite; }
+.lu-tut__demo.is-longpress .lu-tut__hold {
+  display: block;
+  animation: luTutHold 1.2s ease-in-out infinite;
+}
+@keyframes luTutPinchA {
+  0%, 100% { transform: translate(10px, 6px); }
+  50% { transform: translate(-16px, -10px); }
+}
+@keyframes luTutPinchB {
+  0%, 100% { transform: translate(-10px, 6px); }
+  50% { transform: translate(16px, -10px); }
+}
+@keyframes luTutPan {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(22px); }
+}
+@keyframes luTutHold {
+  0% { transform: scale(0.7); opacity: 0.35; }
+  50% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(0.7); opacity: 0.35; }
+}
+
+.lu-tut.is-mobile-tour .lu-tut__tip {
+  width: auto !important;
+  max-width: none;
+  max-height: 38vh;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.lu-tut.is-mobile-tour .lu-tut__caption { display: none !important; }
+.lu-tut.is-mobile-tour .lu-tut__ctrl {
+  left: 12px;
+  right: 12px;
+  width: auto;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
+.lu-tut.is-mobile-tour .lu-tut__tip-actions button {
+  min-height: 40px;
+}
+.lu-tut.is-mobile-tour .lu-tut__ctrl-row button {
+  width: 40px;
+  height: 40px;
+}
+
+.is-ed-mobile .ed-tut-reopen,
+.ed.is-mobile .ed-tut-reopen {
+  left: 12px;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+}
+
+.is-ed-mobile .lu-tut-invite {
+  align-items: flex-end;
+  padding: 12px 12px calc(16px + env(safe-area-inset-bottom, 0px));
+}
+.is-ed-mobile .lu-tut-invite__card {
+  width: 100%;
+  border-radius: 18px 18px 14px 14px;
 }

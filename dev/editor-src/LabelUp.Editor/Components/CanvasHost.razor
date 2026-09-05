@@ -98,6 +98,9 @@
     private bool _ctxBlocked;
     private bool _skipRender;
     private DotNetObjectReference<CanvasHost>? _self;
+    private int _longPressGen;
+    private bool _gestureLock;
+    private bool _touchPointer;
 
     protected override bool ShouldRender()
     {
@@ -110,6 +113,7 @@
     public void Dispose()
     {
         Session.Changed -= OnSessionChanged;
+        CancelLongPress();
         _self?.Dispose();
         _self = null;
     }
@@ -156,6 +160,41 @@
     private (float X, float Y) StagePoint(MouseEventArgs e)
         => ((float)e.OffsetX, (float)e.OffsetY);
 
+    private bool IsCoarsePointer()
+        => _viewW > 0 && _viewW <= 920;
+
+    private float TouchPadMm()
+    {
+        var scale = Math.Max(0.2f, Session.PxPerMm * Session.Zoom);
+        return 14f / scale;
+    }
+
+    [JSInvokable]
+    public void OnGestureZoomPan(float zoom, float panX, float panY)
+    {
+        _gestureLock = true;
+        CancelLongPress();
+        _dragging = false;
+        _marquee = false;
+        _handle = HandleKind.None;
+        Session.Zoom = Math.Clamp(zoom, EditorSession.MinZoom, EditorSession.MaxZoom);
+        Session.PanX = panX;
+        Session.PanY = panY;
+        _view?.Invalidate();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public float[] GetViewState()
+        => [Session.Zoom, Session.PanX, Session.PanY];
+
+    [JSInvokable]
+    public void OnGestureEnd()
+    {
+        _gestureLock = false;
+        Session.Notify();
+    }
+
     private (float X, float Y) StagePoint(DragEventArgs e)
         => ((float)e.OffsetX, (float)e.OffsetY);
 
@@ -189,8 +228,9 @@
         var labelW = Session.Document.WidthMm * scale;
         var labelH = Session.Document.HeightMm * scale;
         var pad = Ruler + Gap + 8f;
-        var ox = Math.Max(pad, (_viewW - labelW) / 2f);
-        var oy = Math.Max(pad, (_viewH - labelH) / 2f);
+        var minPad = _viewW < 900 ? 8f : pad;
+        var ox = Math.Max(minPad, (_viewW - labelW) / 2f) + Session.PanX;
+        var oy = Math.Max(minPad, (_viewH - labelH) / 2f) + Session.PanY;
         return (ox, oy, scale, labelW, labelH);
     }
 
@@ -488,9 +528,35 @@
     private bool OverLabel(float docX, float docY)
         => docX >= 0 && docY >= 0 && docX <= Session.Document.WidthMm && docY <= Session.Document.HeightMm;
 
-    private void OnPointerDown(PointerEventArgs e)
+    private void CancelLongPress()
+        => _longPressGen++;
+
+    private void ArmLongPress()
     {
+        var gen = ++_longPressGen;
+        var x = _lastX;
+        var y = _lastY;
+        _ = LongPressAsync(gen, x, y);
+    }
+
+    private async Task LongPressAsync(int gen, float x, float y)
+    {
+        await Task.Delay(480);
+        if (gen != _longPressGen || _gestureLock) return;
+        _dragging = false;
+        _marquee = false;
+        _handle = HandleKind.None;
+        _ctxX = x;
+        _ctxY = y;
+        _ctxOpen = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnPointerDown(MouseEventArgs e)
+    {
+        if (_gestureLock) return;
         _ctxOpen = false;
+        _touchPointer = IsCoarsePointer();
         var p = StagePoint(e);
         _lastX = p.X;
         _lastY = p.Y;
@@ -498,20 +564,24 @@
         _startDocX = dx;
         _startDocY = dy;
         _historyPushed = false;
+        if (_touchPointer)
+            ArmLongPress();
 
         if (e.Button == 2)
         {
+            CancelLongPress();
             _ctxX = _lastX;
             _ctxY = _lastY;
             _ctxOpen = true;
             return;
         }
 
-        if (e.Button != 0) return;
+        if (e.Button != 0 && !_touchPointer) return;
 
+        var slop = _touchPointer ? TouchPadMm() : 0f;
         if (Session.Selected is { } sel)
         {
-            var h = HitTest.HitHandle(sel, dx, dy, Session.Zoom);
+            var h = HitTest.HitHandle(sel, dx, dy, Session.Zoom, slop);
             if (h != HandleKind.None && h != HandleKind.Move && !sel.Locked)
             {
                 _handle = h;
@@ -521,7 +591,7 @@
             }
         }
 
-        var hit = HitTest.HitObject(Session.CurrentCell.Objects, dx, dy);
+        var hit = HitTest.HitObject(Session.CurrentCell.Objects, dx, dy, _touchPointer ? Math.Max(1.6f, slop) : 0.8f);
         if (hit != null)
         {
             if (e.ShiftKey || e.CtrlKey)
@@ -558,10 +628,13 @@
         Session.Notify();
     }
 
-    private void OnPointerMove(PointerEventArgs e)
+    private void OnPointerMove(MouseEventArgs e)
     {
+        if (_gestureLock) return;
         _skipRender = true;
         var p = StagePoint(e);
+        if (_touchPointer && (Math.Abs(p.X - _lastX) > 8 || Math.Abs(p.Y - _lastY) > 8))
+            CancelLongPress();
         var x = p.X;
         var y = p.Y;
         var (dx, dy) = ScreenToDoc(x, y);
@@ -616,15 +689,18 @@
         _view?.Invalidate();
     }
 
-    private void OnPointerLeave(PointerEventArgs e)
+    private void OnPointerLeave(MouseEventArgs e)
     {
+        if (_gestureLock) return;
         Session.CursorOverLabel = false;
         OnPointerUp(e);
         _view?.Invalidate();
     }
 
-    private void OnPointerUp(PointerEventArgs e)
+    private void OnPointerUp(MouseEventArgs e)
     {
+        CancelLongPress();
+        if (_gestureLock) return;
         if (_marquee)
         {
             var tiny = Math.Abs(_mx2 - _mx1) < 0.35f && Math.Abs(_my2 - _my1) < 0.35f;

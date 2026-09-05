@@ -7,6 +7,7 @@
 
   var SPEEDS = [0.75, 1, 1.25, 1.5];
   var STORAGE_SKIP = 'lu-ed-tutorial-skip';
+  var STORAGE_SKIP_M = 'lu-ed-tutorial-skip-m';
   /** 전체 진행 배율 (클수록 느림). 요청: 기존 대비 절반 속도 → 2 */
   var PACE = 2;
   /** 한 설명이 끝난 뒤 다음으로 넘어가기 전 쉬는 시간(ms) */
@@ -299,9 +300,190 @@
       action: 'closeVendorPicker'
     }
   ];
+
+  var MOBILE_STEPS = [
+    {
+      id: 'm-welcome',
+      selector: '[data-tut="topbar"]',
+      title: '휴대폰 편집기예요',
+      description: '상단은 꼭 필요한 버튼만 남겼어요. 저장·쇼핑·출력은 ☰ 메뉴에, 세부 값은 속성 버튼에 있어요.',
+      effect: '작은 화면에서도 캔버스를 가리지 않습니다.',
+      speech: '휴대폰용 편집기예요. 모바일 전용 조작부터 알려드릴게요.',
+      wait: 2800,
+      action: 'closeMobileOverlays'
+    },
+    {
+      id: 'm-menu',
+      selector: '.ed-m-more',
+      title: '☰ 메뉴',
+      description: '오른쪽 위 ☰을 누르면 라벨쇼핑, 저장, 출력, 나가기가 아래에서 올라옵니다.',
+      effect: '자주 쓰는 작업을 한곳에서 실행합니다.',
+      speech: '메뉴 버튼을 눌러 볼게요.',
+      wait: 2600,
+      cursor: true,
+      click: true,
+      action: 'openMobileMenu'
+    },
+    {
+      id: 'm-menu-items',
+      selector: '[data-tut="topbar-actions"]',
+      title: '메뉴 서랍',
+      description: '여기서 미리보기·저장하기·편집기에서 출력을 할 수 있어요. 바깥을 누르거나 메뉴 닫기를 누르면 접힙니다.',
+      effect: '상단을 간결하게 유지하면서 기능은 그대로입니다.',
+      speech: '저장과 출력은 이 메뉴 안에 있어요.',
+      wait: 3000,
+      cursor: true,
+      action: 'openMobileMenu'
+    },
+    {
+      id: 'm-props-btn',
+      selector: '.ed-m-props',
+      title: '속성 버튼',
+      description: '선택한 객체의 위치·크기·글꼴을 바꾸려면 속성 버튼을 누르세요.',
+      effect: '캔버스를 가리지 않고 필요할 때만 시트가 올라옵니다.',
+      speech: '속성 버튼을 눌러 패널을 열게요.',
+      wait: 2600,
+      cursor: true,
+      click: true,
+      action: 'openMobileProps'
+    },
+    {
+      id: 'm-props-sheet',
+      selector: '[data-tut="props"]',
+      title: '속성 시트',
+      description: '아래에서 올라온 시트에서 값을 바꾸고, 다시 속성을 누르거나 바깥을 누르면 닫혀요.',
+      effect: '한 손으로도 세부 조정이 가능합니다.',
+      speech: '아래 속성 시트에서 숫자와 색을 바꿔요.',
+      wait: 3000,
+      cursor: true,
+      action: 'openMobileProps'
+    },
+    {
+      id: 'm-tools',
+      selector: '[data-tut="float-tools"]',
+      title: '하단 도구바',
+      description: '텍스트·바코드·이미지·도형은 아래 도구를 가로로 밀어 고릅니다. 용지와 템플릿도 여기에 있어요.',
+      effect: '엄지로 바로 추가할 수 있습니다.',
+      speech: '도구는 화면 아래에 모아 두었어요.',
+      wait: 2800,
+      cursor: true,
+      action: 'closeMobileProps'
+    },
+    {
+      id: 'm-canvas',
+      selector: '[data-tut="canvas"]',
+      title: '한 손가락으로 편집',
+      description: '객체를 탭하면 선택되고, 끌면 이동합니다. 모서리 핸들을 잡아 크기를 바꿀 수 있어요.',
+      effect: '손가락 맞춤 여유를 두고 잡히도록 했습니다.',
+      speech: '한 손가락으로 고르고 옮기면 됩니다.',
+      wait: 2800,
+      cursor: true,
+      action: 'closeMobileOverlays'
+    },
+    {
+      id: 'm-pinch',
+      selector: '[data-tut="canvas"]',
+      title: '두 손가락으로 확대',
+      description: '캔버스 위에서 두 손가락을 벌리거나 오므리면 줌이 바뀝니다. 마우스 휠 대신 이 제스처를 쓰세요.',
+      effect: '라벨 디테일을 크게 보고 다시 맞출 수 있습니다.',
+      speech: '두 손가락을 벌리면 확대돼요.',
+      wait: 3200,
+      demo: 'pinch',
+      action: 'closeMobileOverlays'
+    },
+    {
+      id: 'm-pan',
+      selector: '[data-tut="canvas"]',
+      title: '두 손가락으로 이동',
+      description: '두 손가락을 붙인 채 밀면 라벨이 함께 움직여 화면 밖 영역도 볼 수 있어요.',
+      effect: '확대한 뒤에도 원하는 위치로 옮깁니다.',
+      speech: '두 손가락으로 밀면 화면이 이동해요.',
+      wait: 3000,
+      demo: 'pan',
+      action: 'closeMobileOverlays'
+    },
+    {
+      id: 'm-longpress',
+      selector: '[data-tut="canvas"]',
+      title: '길게 누르기',
+      description: '같은 자리를 잠시 누르고 있으면 삭제 등 빠른 메뉴가 열립니다. 움직이면 취소돼요.',
+      effect: '오른쪽 클릭 대신 쓰는 모바일 메뉴입니다.',
+      speech: '길게 누르면 빠른 메뉴가 열려요.',
+      wait: 3200,
+      demo: 'longpress',
+      action: 'closeMobileOverlays'
+    },
+    {
+      id: 'm-zoom',
+      selector: '[data-tut="zoom"]',
+      title: '줌 숫자',
+      description: '핀치로 조절한 배율은 위쪽 숫자에 보여요. − / + 로도 바꿀 수 있습니다.',
+      effect: '현재 확대 상태를 바로 확인합니다.',
+      speech: '줌 숫자는 상단 가운데에 있어요.',
+      wait: 2400,
+      cursor: true
+    },
+    {
+      id: 'm-done',
+      selector: '[data-tut="topbar"]',
+      title: '이제 직접 만들어 보세요',
+      description: '왼쪽 아래 ✦ 모바일 튜토리얼에서 언제든 다시 볼 수 있어요.',
+      effect: '실전 편집으로 바로 이어갑니다.',
+      speech: '모바일 튜토리얼이 끝났어요. 멋진 라벨을 만들어 보세요!',
+      wait: 3000,
+      action: 'closeMobileOverlays'
+    }
+  ];
   function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
   function isTouch() {
     return window.matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
+  }
+  function isMobileTour() {
+    try {
+      if (window.labelUpEditor && typeof window.labelUpEditor.isMobileEditor === 'function')
+        return !!window.labelUpEditor.isMobileEditor();
+    } catch (e) { /* ignore */ }
+    return window.matchMedia('(max-width: 900px)').matches;
+  }
+  function skipKey() {
+    return isMobileTour() ? STORAGE_SKIP_M : STORAGE_SKIP;
+  }
+  function setMobileMenuOpen(on) {
+    var actions = document.querySelector('.ed-topbar__actions');
+    var open = !!(actions && actions.classList.contains('is-open'));
+    if (on && !open) {
+      var more = document.querySelector('.ed-m-more');
+      if (more) more.click();
+    } else if (!on && open) {
+      var closer = document.querySelector('.ed-m-drawer-close');
+      if (closer) closer.click();
+    }
+  }
+  function setMobilePropsOpen(on) {
+    var props = document.querySelector('[data-ed-props-panel]');
+    var open = !!(props && props.classList.contains('is-m-open'));
+    if (on === open) return;
+    if (window.labelUpEditor && typeof window.labelUpEditor.toggleMobileProps === 'function')
+      window.labelUpEditor.toggleMobileProps();
+  }
+  function closeMobileOverlays() {
+    setMobileMenuOpen(false);
+    setMobilePropsOpen(false);
+  }
+  function patchMobileInvite() {
+    if (!isMobileTour()) return;
+    var card = document.querySelector('.lu-tut-invite__card');
+    if (card) {
+      var h = card.querySelector('h3');
+      var p = card.querySelector('p');
+      if (h) h.textContent = '휴대폰에서 편집하는 법, 같이 볼까요?';
+      if (p) p.textContent = '☰ 메뉴, 속성 시트, 두 손가락 확대·이동, 길게 누르기 등 모바일 전용 조작을 짧게 안내해요.';
+    }
+    var reopen = document.querySelector('.ed-tut-reopen');
+    if (reopen) {
+      reopen.textContent = '✦ 모바일 튜토리얼';
+      reopen.setAttribute('title', '모바일 튜토리얼 다시 보기');
+    }
   }
 
   function Tutorial() {
@@ -319,6 +501,7 @@
     this._ignoreUserUntil = 0;
     this._built = false;
     this._speechUtter = null;
+    this.mobile = false;
   }
 
   Tutorial.prototype.mount = function (rootSel, dotNet) {
@@ -329,6 +512,21 @@
       this._bindKeys();
       this._bindUserInterrupt();
       this._built = true;
+    }
+    this._applyTrack();
+    patchMobileInvite();
+    setTimeout(patchMobileInvite, 80);
+    setTimeout(patchMobileInvite, 400);
+    setTimeout(patchMobileInvite, 1200);
+  };
+
+  Tutorial.prototype._applyTrack = function () {
+    this.mobile = isMobileTour();
+    this.steps = this.mobile ? MOBILE_STEPS : STEPS;
+    if (this.host) {
+      this.host.classList.toggle('is-mobile-tour', this.mobile);
+      var title = this.host.querySelector('.lu-tut__ctrl-top strong');
+      if (title) title.textContent = this.mobile ? '모바일 튜토리얼' : '튜토리얼';
     }
   };
 
@@ -355,6 +553,12 @@
         '<span class="lu-tut__cursor-ripple"></span>' +
       '</div>' +
       '<div class="lu-tut__caption" data-tut-caption hidden></div>' +
+      '<div class="lu-tut__demo" data-tut-demo hidden>' +
+        '<i class="lu-tut__finger lu-tut__finger--a"></i>' +
+        '<i class="lu-tut__finger lu-tut__finger--b"></i>' +
+        '<b class="lu-tut__hold"></b>' +
+        '<span class="lu-tut__demo-label" data-tut-demo-label></span>' +
+      '</div>' +
       '<div class="lu-tut__toast" data-tut-toast hidden></div>' +
       '<div class="lu-tut__ctrl" data-tut-ctrl hidden>' +
         '<div class="lu-tut__ctrl-top">' +
@@ -392,6 +596,8 @@
       cursor: host.querySelector('[data-tut-cursor]'),
       caption: host.querySelector('[data-tut-caption]'),
       toast: host.querySelector('[data-tut-toast]'),
+      demo: host.querySelector('[data-tut-demo]'),
+      demoLabel: host.querySelector('[data-tut-demo-label]'),
       ctrl: host.querySelector('[data-tut-ctrl]'),
       title: host.querySelector('[data-tut-title]'),
       desc: host.querySelector('[data-tut-desc]'),
@@ -485,6 +691,7 @@
     this.els.tip.classList.remove('is-shown');
     this.els.ctrl.hidden = !on;
     this.els.caption.hidden = true;
+    if (this.els.demo) this.els.demo.hidden = true;
     if (!on) {
       this.els.cursor.hidden = true;
       this.els.toast.hidden = true;
@@ -493,6 +700,8 @@
   };
 
   Tutorial.prototype.start = function (fromIndex) {
+    this._applyTrack();
+    patchMobileInvite();
     this.index = typeof fromIndex === 'number' ? fromIndex : 0;
     this.playing = true;
     this.paused = false;
@@ -514,7 +723,7 @@
     this.paused = false;
     this._setVisible(false);
     this._updatePlayBtn();
-    try { localStorage.setItem(STORAGE_SKIP, '1'); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(skipKey(), '1'); } catch (e) { /* ignore */ }
   };
 
   Tutorial.prototype.pause = function (reason) {
@@ -622,6 +831,7 @@
     this.els.tip.classList.remove('is-shown');
     this.els.caption.hidden = true;
     this.els.spot.hidden = true;
+    if (this.els.demo) this.els.demo.hidden = true;
     this._stopSpeech();
 
     this._ignoreUserUntil = Date.now() + 900;
@@ -631,6 +841,8 @@
       if (step.action === 'openImport' || step.action === 'openPaperPicker' ||
           step.action === 'openVendorPicker' || step.action === 'closeVendorPicker' ||
           step.action === 'closeVendorPickerThenImport' ||
+          step.action === 'openMobileMenu' || step.action === 'openMobileProps' ||
+          step.action === 'closeMobileProps' || step.action === 'closeMobileOverlays' ||
           (step.action && (step.action.indexOf('importTab:') === 0 || step.action.indexOf('paperTab:') === 0))) {
         settle = (420 * PACE) / self.speed;
       }
@@ -647,6 +859,7 @@
       }
       return self._ensureVisible(el, step).then(function () {
         self._highlight(el);
+        self._showDemo(step, el);
         if (step.cursor) {
           return self._moveCursor(el, !!step.click);
         }
@@ -654,7 +867,6 @@
       }).then(function () {
         self._fillTipContent(step, false);
         self._placeTip(el);
-        self._revealTip();
         if (self.voiceOn) self._speak(step.speech || step.description);
         if (!self.paused) self._scheduleAdvance();
       });
@@ -709,6 +921,8 @@
       step.action === 'openPaperPicker' || step.action === 'closePaperPicker' ||
       step.action === 'openVendorPicker' || step.action === 'closeVendorPicker' ||
       step.action === 'closeVendorPickerThenImport' ||
+      step.action === 'openMobileMenu' || step.action === 'openMobileProps' ||
+      step.action === 'closeMobileProps' || step.action === 'closeMobileOverlays' ||
       step.action.indexOf('importTab:') === 0 || step.action.indexOf('paperTab:') === 0;
     this._ignoreUserUntil = Date.now() + (needsDom ? 2800 : 1200);
     var runLocal = function () { return self._fallbackAction(step.action); };
@@ -783,6 +997,16 @@
       var tabId = action.split(':')[1];
       var tabBtn = document.querySelector('[data-tut="import-tab-' + tabId + '"]');
       if (tabBtn) tabBtn.click();
+    } else if (action === 'openMobileMenu') {
+      closeMobileOverlays();
+      setMobileMenuOpen(true);
+    } else if (action === 'openMobileProps') {
+      setMobileMenuOpen(false);
+      setMobilePropsOpen(true);
+    } else if (action === 'closeMobileProps') {
+      setMobilePropsOpen(false);
+    } else if (action === 'closeMobileOverlays') {
+      closeMobileOverlays();
     }
     return this._wait(200 * PACE);
   };
@@ -804,6 +1028,17 @@
     tip.style.visibility = 'hidden';
     tip.hidden = false;
     tip.classList.remove('is-shown');
+    if (this.mobile) {
+      tip.style.left = '12px';
+      tip.style.right = '12px';
+      tip.style.width = 'auto';
+      tip.style.top = 'auto';
+      tip.style.bottom = '158px';
+      tip.style.transform = '';
+      tip.style.visibility = '';
+      tip.hidden = true;
+      return;
+    }
     var r = el.getBoundingClientRect();
     var tw = tip.offsetWidth || 300;
     var th = tip.offsetHeight || 160;
@@ -814,10 +1049,37 @@
     if (top + th > window.innerHeight - 100) top = window.innerHeight - th - 100;
     if (top < 12) top = 12;
     tip.style.left = left + 'px';
+    tip.style.right = '';
+    tip.style.width = '';
+    tip.style.bottom = '';
     tip.style.top = top + 'px';
     tip.style.transform = '';
     tip.style.visibility = '';
     tip.hidden = true;
+  };
+
+  Tutorial.prototype._showDemo = function (step, el) {
+    var demo = this.els.demo;
+    if (!demo) return;
+    demo.className = 'lu-tut__demo';
+    if (!step.demo) {
+      demo.hidden = true;
+      return;
+    }
+    var r = el ? el.getBoundingClientRect() : { left: 40, top: 120, width: window.innerWidth - 80, height: 220 };
+    var w = Math.max(120, Math.min(220, r.width * 0.55));
+    var h = Math.max(120, Math.min(180, r.height * 0.4));
+    demo.style.left = (r.left + (r.width - w) / 2) + 'px';
+    demo.style.top = (r.top + (r.height - h) / 2) + 'px';
+    demo.style.width = w + 'px';
+    demo.style.height = h + 'px';
+    demo.classList.add('is-' + step.demo);
+    demo.hidden = false;
+    if (this.els.demoLabel) {
+      this.els.demoLabel.textContent = step.demo === 'pinch' ? '벌리기 / 오므리기'
+        : step.demo === 'pan' ? '두 손가락으로 밀기'
+        : '잠시 누르기';
+    }
   };
 
   Tutorial.prototype._placeTipCenter = function () {
@@ -827,6 +1089,10 @@
     tip.classList.remove('is-shown');
     this.els.spot.hidden = true;
     this.els.overlay.hidden = false;
+    if (this.mobile) {
+      this._placeTip(null);
+      return;
+    }
     tip.style.transform = '';
     var tw = tip.offsetWidth || 300;
     tip.style.left = ((window.innerWidth - tw) / 2) + 'px';
@@ -910,14 +1176,14 @@
 
   Tutorial.prototype.shouldAutoOffer = function () {
     try {
-      return localStorage.getItem(STORAGE_SKIP) !== '1';
+      return localStorage.getItem(skipKey()) !== '1';
     } catch (e) {
       return true;
     }
   };
 
   Tutorial.prototype.markSkipped = function () {
-    try { localStorage.setItem(STORAGE_SKIP, '1'); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(skipKey(), '1'); } catch (e) { /* ignore */ }
   };
 
   var instance = new Tutorial();
@@ -929,6 +1195,7 @@
     stop: function () { instance.stop(); },
     shouldAutoOffer: function () { return instance.shouldAutoOffer(); },
     markSkipped: function () { instance.markSkipped(); },
-    isActive: function () { return instance.playing; }
+    isActive: function () { return instance.playing; },
+    isMobileTour: function () { return isMobileTour(); }
   };
 })();

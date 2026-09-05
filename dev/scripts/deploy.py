@@ -59,22 +59,42 @@ def run_ssh(ssh, cmd: str):
     return stdout.channel.recv_exit_status()
 
 
+def parse_env_text(text: str) -> dict:
+    result = {}
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith('#') or '=' not in line:
+            continue
+        k, _, v = line.partition('=')
+        result[k.strip()] = v.strip().strip('"').strip("'")
+    return result
+
+
 def load_local_env_value(key: str) -> str:
     local_env = os.path.join(LOCAL_ROOT, '.env')
     if not os.path.isfile(local_env):
         return ''
     try:
         with open(local_env, 'r', encoding='utf-8') as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith('#') or '=' not in line:
-                    continue
-                k, _, v = line.partition('=')
-                if k.strip() == key:
-                    return v.strip().strip('"').strip("'")
+            return parse_env_text(f.read()).get(key, '')
     except OSError:
         return ''
     return ''
+
+
+def read_remote_env(sftp, path: str) -> dict:
+    try:
+        with sftp.open(path, 'r') as f:
+            return parse_env_text(f.read().decode('utf-8', errors='replace'))
+    except OSError:
+        return {}
+
+
+def pick_env(existing: dict, key: str, default: str = '') -> str:
+    local = load_local_env_value(key)
+    if local:
+        return local
+    return existing.get(key, default) or default
 
 
 def main():
@@ -93,11 +113,18 @@ def main():
     ensure_remote_dir(sftp, REMOTE_ROOT)
     upload_dir(sftp, LOCAL_ROOT, REMOTE_ROOT)
 
-    openai_key = load_local_env_value('OPENAI_API_KEY')
-    openai_model = load_local_env_value('OPENAI_MODEL') or 'gpt-4o-mini'
-    openai_max = load_local_env_value('OPENAI_MAX_TOKENS') or '1800'
-    openai_image = load_local_env_value('OPENAI_IMAGE_MODEL') or 'gpt-image-1'
-    openai_image_quality = load_local_env_value('OPENAI_IMAGE_QUALITY') or 'medium'
+    existing_env = read_remote_env(sftp, REMOTE_ROOT + '/.env')
+    openai_key = pick_env(existing_env, 'OPENAI_API_KEY')
+    openai_model = pick_env(existing_env, 'OPENAI_MODEL', 'gpt-4o-mini')
+    openai_max = pick_env(existing_env, 'OPENAI_MAX_TOKENS', '1800')
+    openai_image = pick_env(existing_env, 'OPENAI_IMAGE_MODEL', 'gpt-image-1')
+    openai_image_quality = pick_env(existing_env, 'OPENAI_IMAGE_QUALITY', 'medium')
+    naver_id = pick_env(existing_env, 'NAVER_CLIENT_ID')
+    naver_secret = pick_env(existing_env, 'NAVER_CLIENT_SECRET')
+    kakao_rest = pick_env(existing_env, 'KAKAO_REST_API_KEY')
+    kakao_secret = pick_env(existing_env, 'KAKAO_CLIENT_SECRET')
+    google_id = pick_env(existing_env, 'GOOGLE_CLIENT_ID')
+    google_secret = pick_env(existing_env, 'GOOGLE_CLIENT_SECRET')
 
     env_content = f"""APP_NAME=LabelUp
 APP_ENV=remote
@@ -116,6 +143,12 @@ OPENAI_MODEL={openai_model}
 OPENAI_MAX_TOKENS={openai_max}
 OPENAI_IMAGE_MODEL={openai_image}
 OPENAI_IMAGE_QUALITY={openai_image_quality}
+NAVER_CLIENT_ID={naver_id}
+NAVER_CLIENT_SECRET={naver_secret}
+KAKAO_REST_API_KEY={kakao_rest}
+KAKAO_CLIENT_SECRET={kakao_secret}
+GOOGLE_CLIENT_ID={google_id}
+GOOGLE_CLIENT_SECRET={google_secret}
 """
     with sftp.open(REMOTE_ROOT + '/.env', 'w') as f:
         f.write(env_content)
@@ -129,6 +162,8 @@ OPENAI_IMAGE_QUALITY={openai_image_quality}
         f"chown -R www-data:www-data {REMOTE_ROOT}/public/assets/ai-clipart {REMOTE_ROOT}/public/assets/cliparts {REMOTE_ROOT}/public/assets/editor-previews {REMOTE_ROOT}/storage/ai-clipart {REMOTE_ROOT}/storage/imports",
         f"chmod -R 775 {REMOTE_ROOT}/storage",
         f"chmod 777 {REMOTE_ROOT}/public/assets/ai-clipart {REMOTE_ROOT}/public/assets/cliparts {REMOTE_ROOT}/public/assets/editor-previews {REMOTE_ROOT}/storage/ai-clipart {REMOTE_ROOT}/storage/imports",
+        f"chown www-data:www-data {REMOTE_ROOT}/.env",
+        f"chmod 640 {REMOTE_ROOT}/.env",
     ]
     for cmd in cmds:
         run_ssh(ssh, cmd)

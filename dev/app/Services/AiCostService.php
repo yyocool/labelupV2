@@ -96,7 +96,7 @@ final class AiCostService
      *   total_tokens:int,
      *   image_count:int,
      *   usd:float,
-     *   krw:int,
+     *   krw:float,
      *   usd_krw:float,
      *   currency_note:string,
      *   steps:array<int, array<string, mixed>>
@@ -131,7 +131,7 @@ final class AiCostService
 
         $usd = self::estimateUsd($usage);
         $rate = self::usdKrwRate();
-        $krw = (int) max(0, (int) round($usd * $rate));
+        $krw = max(0.0, round($usd * $rate, 4));
 
         $agentKey = self::agentKey($intent, $imageCount > 0);
         $diffLabel = match ($difficulty) {

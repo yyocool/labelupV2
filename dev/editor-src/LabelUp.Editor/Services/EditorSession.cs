@@ -392,8 +392,9 @@ public sealed class EditorSession
         var wMm = Math.Max(1f, Document.WidthMm);
         var hMm = Math.Max(1f, Document.HeightMm);
         var pad = (RulerPx + RulerGapPx + 24f) * 2f;
+        var mobileExtra = viewW < 920f ? 96f : 0f;
         var availW = Math.Max(80f, viewW - pad);
-        var availH = Math.Max(80f, viewH - pad);
+        var availH = Math.Max(80f, viewH - pad - mobileExtra);
         var zoom = Math.Min(availW / (wMm * PxPerMm), availH / (hMm * PxPerMm)) * 0.9f;
         return Math.Clamp(zoom, MinZoom, MaxZoom);
     }

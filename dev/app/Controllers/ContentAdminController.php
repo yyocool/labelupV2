@@ -8,6 +8,8 @@ use App\Middleware\AuthMiddleware;
 use App\Services\AuthService;
 use App\Services\ClipartService;
 use App\Services\LabelTemplateService;
+use App\Services\ProductDetailPageService;
+use App\Services\ShopAdminService;
 use App\Services\UserAiClipartService;
 
 final class ContentAdminController extends BaseController
@@ -16,6 +18,8 @@ final class ContentAdminController extends BaseController
     private ClipartService $cliparts;
     private LabelTemplateService $templates;
     private UserAiClipartService $userDesigns;
+    private ProductDetailPageService $detailPages;
+    private ShopAdminService $shop;
 
     public function __construct()
     {
@@ -23,6 +27,8 @@ final class ContentAdminController extends BaseController
         $this->cliparts = new ClipartService();
         $this->templates = new LabelTemplateService();
         $this->userDesigns = new UserAiClipartService();
+        $this->detailPages = new ProductDetailPageService();
+        $this->shop = new ShopAdminService();
     }
 
     public function cliparts(): void
@@ -130,6 +136,31 @@ final class ContentAdminController extends BaseController
                 'q' => $q,
                 'category' => $category,
             ],
+        ]);
+    }
+
+    public function productDetailPages(): void
+    {
+        $this->requireAdmin();
+
+        $filters = [
+            'q' => trim((string) ($_GET['q'] ?? '')),
+            'registered' => trim((string) ($_GET['registered'] ?? '')),
+            'category_id' => (int) ($_GET['category_id'] ?? 0),
+            'product_status' => trim((string) ($_GET['product_status'] ?? '')),
+            'page' => max(1, (int) ($_GET['page'] ?? 1)),
+            'per_page' => 20,
+        ];
+
+        view('admin/layout', [
+            'contentTemplate' => 'admin/content/product-detail-pages',
+            'pageTitle' => '컨텐츠관리 › 상세페이지관리 — 라벨업 관리자',
+            'activeMenu' => 'content-product-detail-pages',
+            'menuGroup' => 'content',
+            'crumbTitle' => '컨텐츠관리 › 상세페이지관리',
+            'user' => $this->auth->admin(),
+            'list' => $this->detailPages->adminList($filters),
+            'categories' => $this->shop->categories(),
         ]);
     }
 

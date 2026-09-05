@@ -462,13 +462,38 @@
     };
   }
 
+  function isMobileEditor() {
+    return window.labelUpEditor && typeof window.labelUpEditor.isMobileEditor === 'function'
+      ? window.labelUpEditor.isMobileEditor()
+      : window.matchMedia('(max-width: 900px)').matches;
+  }
+
+  function resetMobileChrome(root) {
+    [root.querySelector('[data-ed-float-tools]'), root.querySelector('[data-ed-props-panel]'), root.querySelector('[data-ed-preview-panel]')]
+      .forEach(function (el) {
+        if (!el) return;
+        el.style.left = '';
+        el.style.top = '';
+        el.style.right = '';
+        el.style.bottom = '';
+        el.style.width = '';
+        el.style.height = '';
+        el.style.transform = '';
+      });
+  }
+
   function init(rootSelector) {
     const root = document.querySelector(rootSelector || '[data-ed-root]');
     if (!root) return;
 
-    bindFloatTools(root);
+    if (isMobileEditor()) {
+      resetMobileChrome(root);
+    } else {
+      bindFloatTools(root);
+    }
 
-    const propsApi = bindPanel(root, {
+    const mobile = isMobileEditor();
+    const propsApi = mobile ? null : bindPanel(root, {
       panelSelector: '[data-ed-props-panel]',
       handleSelector: '[data-ed-props-handle]',
       minSelector: '.ed-props__min',
@@ -478,7 +503,7 @@
       stretchToBottom: true
     });
 
-    const previewApi = bindPanel(root, {
+    const previewApi = mobile ? null : bindPanel(root, {
       panelSelector: '[data-ed-preview-panel]',
       handleSelector: '[data-ed-preview-handle]',
       minSelector: '.ed-props__min',
@@ -505,7 +530,7 @@
       }
     };
 
-    const propsPanel = root.querySelector('[data-ed-props-panel]');
+    const propsPanel = mobile ? null : root.querySelector('[data-ed-props-panel]');
     if (propsPanel) {
       const syncPropsHeight = function () {
         if (propsApi && typeof propsApi.applyHeight === 'function') propsApi.applyHeight();

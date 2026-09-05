@@ -65,8 +65,12 @@
     </button>
   </div>
 
-  <div class="ed-topbar__actions" data-tut="topbar-actions">
-    <button type="button" class="ed-btn ed-btn--shop" data-tut="shop" title="라벨 상품 구매" @onclick="() => Session.OpenDialog(EditorDialog.LabelShop)">
+  <button type="button" class="ed-chip ed-m-more" title="메뉴" aria-label="메뉴" aria-expanded="@_mobileMenu" @onclick="ToggleMobileMenu">☰</button>
+  <button type="button" class="ed-chip ed-m-props" title="속성" aria-label="속성 패널" @onclick="ToggleMobileProps">속성</button>
+  <div class="ed-m-scrim @(_mobileMenu ? "is-open" : null)" @onclick="CloseMobileMenu"></div>
+  <div class="ed-topbar__actions @(_mobileMenu ? "is-open" : null)" data-tut="topbar-actions">
+    <button type="button" class="ed-m-drawer-close" @onclick="CloseMobileMenu">메뉴 닫기</button>
+    <button type="button" class="ed-btn ed-btn--shop" data-tut="shop" title="라벨 상품 구매" @onclick="OpenShop">
       <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M5.2 2.2 4.4 5H2.6a.6.6 0 0 0-.6.7l.9 6.2A1.6 1.6 0 0 0 4.5 14h7a1.6 1.6 0 0 0 1.6-1.1l.9-6.2a.6.6 0 0 0-.6-.7h-1.8l-.8-2.8A1.4 1.4 0 0 0 9.5 1.8H6.5c-.6 0-1.1.4-1.3.9Zm1.4.8h2.8l.6 2H6l.6-2ZM5 8.2a.7.7 0 0 1 1.4 0v2.4a.7.7 0 1 1-1.4 0V8.2Zm4.6 0a.7.7 0 0 1 1.4 0v2.4a.7.7 0 1 1-1.4 0V8.2Z"/></svg>
       라벨쇼핑
     </button>
@@ -87,7 +91,7 @@
       <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3.4 2.2h7.1c.2 0 .5.1.6.3l2.4 2.4c.2.2.3.4.3.6v8.1c0 .7-.6 1.2-1.2 1.2H3.4c-.7 0-1.2-.5-1.2-1.2V3.4c0-.7.5-1.2 1.2-1.2Zm.6 1.4v3.4h6.2V3.6H4Zm8.2 3.2-1.4-1.4v2.2c0 .4-.3.6-.6.6H3.8a.6.6 0 0 1-.6-.6V3.6h-.4v9.2h.8V9.4c0-.4.3-.6.6-.6h7.6c.4 0 .6.2.6.6v3.4h.8V6.8ZM5 10h6v2.4H5V10Z"/></svg>
       저장하기
     </button>
-    <button type="button" class="ed-btn ed-btn--primary" data-tut="export" @onclick="() => Session.OpenDialog(EditorDialog.PrintPreview)">
+    <button type="button" class="ed-btn ed-btn--primary" data-tut="export" @onclick="OpenExport">
       <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4.2 2.2h7.6c.6 0 1 .4 1 .9V5h.6A1.6 1.6 0 0 1 15 6.6v4.2A1.4 1.4 0 0 1 13.6 12h-.8v1.8c0 .6-.5 1-1 .9H4.2c-.6 0-1-.4-1-.9V12h-.8A1.4 1.4 0 0 1 1 10.8V6.6A1.6 1.6 0 0 1 2.6 5h.6V3.1c0-.5.4-.9 1-.9ZM5 3.6v1.4h6V3.6H5Zm-.8 8.4v1.6h7.6V12H4.2Zm8.6-5.6a.8.8 0 1 0 0 1.6.8.8 0 0 0 0-1.6Z"/></svg>
       편집기에서 출력
     </button>
@@ -101,6 +105,7 @@
 
 @code {
     private string ZoomPercent => $"{Session.Zoom * 100:0}";
+    private bool _mobileMenu;
     private bool _pinLoaded;
     private bool _autoSaveLoop;
     private bool _autoSaving;
@@ -193,6 +198,26 @@
         }
     }
 
+    private void ToggleMobileMenu()
+    {
+        _mobileMenu = !_mobileMenu;
+    }
+
+    private void CloseMobileMenu()
+    {
+        _mobileMenu = false;
+    }
+
+    private void ToggleMobileProps()
+    {
+        if (Session.PropsMinimized)
+        {
+            Session.PropsMinimized = false;
+            Session.Notify();
+        }
+        try { _ = Js.InvokeVoidAsync("labelUpEditor.toggleMobileProps"); } catch { }
+    }
+
     private void ToggleGrid()
     {
         Session.ShowGrid = !Session.ShowGrid;
@@ -202,6 +227,19 @@
 
     private void OpenPrintPreview()
     {
+        CloseMobileMenu();
+        Session.OpenDialog(EditorDialog.PrintPreview);
+    }
+
+    private void OpenShop()
+    {
+        CloseMobileMenu();
+        Session.OpenDialog(EditorDialog.LabelShop);
+    }
+
+    private void OpenExport()
+    {
+        CloseMobileMenu();
         Session.OpenDialog(EditorDialog.PrintPreview);
     }
 
@@ -214,6 +252,7 @@
             Session.Notify();
             return;
         }
+        CloseMobileMenu();
         Session.OpenDialog(EditorDialog.ProjectPicker);
     }
 
@@ -245,6 +284,7 @@
 
     private async Task SaveDesign(bool auto)
     {
+        CloseMobileMenu();
         if (_autoSaving) return;
         if (auto && !Session.Dirty) return;
         try

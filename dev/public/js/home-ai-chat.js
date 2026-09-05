@@ -284,6 +284,18 @@ window.LabelUpLabiChat = {
     if (chatLog) chatLog.hidden = !active;
   }
 
+  function formatAiKrw(amount) {
+    const n = Number(amount || 0);
+    if (!(n > 0)) return '0';
+    if (n < 1) {
+      return String(n.toFixed(4)).replace(/\.?0+$/, '') || '0';
+    }
+    if (Math.abs(n - Math.round(n)) < 0.005) {
+      return Math.round(n).toLocaleString('ko-KR');
+    }
+    return n.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
   function escapeHtml(text) {
     return String(text)
       .replace(/&/g, '&amp;')
@@ -912,7 +924,7 @@ window.LabelUpLabiChat = {
     if (diff) bits.push(`<span>${escapeHtml(diff)}</span>`);
     if (tokens > 0) bits.push(`<span>토큰 ${tokens.toLocaleString('ko-KR')}</span>`);
     if (images > 0) bits.push(`<span>이미지 ${images}</span>`);
-    bits.push(`<span class="ai-chat-meta__cost">약 ${krw.toLocaleString('ko-KR')}원</span>`);
+    bits.push(`<span class="ai-chat-meta__cost">약 ${formatAiKrw(krw)}원</span>`);
 
     el.innerHTML = `
       <span class="ai-chat-meta__head">AI 사용</span>

@@ -70,6 +70,13 @@ final class Router
     public function dispatch(string $method, string $uri): void
     {
         $path = parse_url($uri, PHP_URL_PATH) ?: '/';
+        if (preg_match('#^/public/(.+)$#', $path, $publicMatch) === 1) {
+            $rel = str_replace('\\', '/', $publicMatch[1]);
+            if (!str_contains($rel, '..') && is_file(public_path($rel))) {
+                $query = parse_url($uri, PHP_URL_QUERY);
+                redirect('/' . $rel . ($query ? ('?' . $query) : ''));
+            }
+        }
         $path = rtrim($path, '/') ?: '/';
 
         foreach ($this->routes as $route) {
@@ -185,10 +192,14 @@ final class Router
         $router->get('/admin/ops/inquiries', [$inquiryAdmin, 'index']);
         $router->get('/admin/qr-coupons', [$qrCouponAdmin, 'index']);
         $router->get('/admin/ai/example-prompts', [$aiAdmin, 'examplePrompts']);
+        $router->get('/admin/ai/token-logs', [$aiAdmin, 'tokenLogs']);
+        $router->get('/admin/ai/token-logs/export', [$aiAdmin, 'tokenLogsExport']);
+        $router->get('/admin/ai/member-usage', [$aiAdmin, 'memberUsage']);
         $router->get('/admin/ai/usage', [$aiAdmin, 'usage']);
         $router->get('/admin/content/cliparts', [$contentAdmin, 'cliparts']);
         $router->get('/admin/content/user-designs', [$contentAdmin, 'userDesigns']);
         $router->get('/admin/content/templates', [$contentAdmin, 'templates']);
+        $router->get('/admin/content/product-detail-pages', [$contentAdmin, 'productDetailPages']);
 
         $router->get('/admin/shop/categories', [$shop, 'categories']);
         $router->get('/admin/shop/specs', [$shop, 'specs']);

@@ -5,13 +5,13 @@ namespace LabelUp.Editor.Rendering;
 
 public static class HitTest
 {
-    public static DesignObject? HitObject(IList<DesignObject> objects, float docX, float docY)
+    public static DesignObject? HitObject(IList<DesignObject> objects, float docX, float docY, float padMm = 0.8f)
     {
         var ordered = objects.Where(o => o.Visible).OrderBy(o => o.ZIndex).ThenBy(objects.IndexOf).ToList();
         for (var i = ordered.Count - 1; i >= 0; i--)
         {
             var o = ordered[i];
-            if (ContainsPoint(o, docX, docY)) return o;
+            if (ContainsPoint(o, docX, docY, padMm)) return o;
         }
         return null;
     }
@@ -31,17 +31,16 @@ public static class HitTest
         return o.X < r && o.X + o.Width > l && o.Y < b && o.Y + o.Height > t;
     }
 
-    public static bool ContainsPoint(DesignObject o, float docX, float docY)
+    public static bool ContainsPoint(DesignObject o, float docX, float docY, float pad = 0.8f)
     {
         var local = ToLocal(o, docX, docY);
-        const float pad = 0.8f;
         return local.X >= -pad && local.Y >= -pad && local.X <= o.Width + pad && local.Y <= o.Height + pad;
     }
 
-    public static HandleKind HitHandle(DesignObject o, float docX, float docY, float zoom)
+    public static HandleKind HitHandle(DesignObject o, float docX, float docY, float zoom, float extraMm = 0)
     {
         var local = ToLocal(o, docX, docY);
-        var thresh = Math.Max(2.2f / zoom, 1.6f);
+        var thresh = Math.Max(2.2f / zoom, 1.6f) + Math.Max(0, extraMm);
         float pad = 0.6f;
         float l = -pad, t = -pad, r = o.Width + pad, b = o.Height + pad;
         float cx = o.Width / 2f, cy = o.Height / 2f;
