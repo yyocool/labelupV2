@@ -390,6 +390,13 @@ public sealed class FontCatalog : IAsyncDisposable
         return any;
     }
 
+    public SKTypeface ResolveOrDefault(bool bold = false)
+    {
+        if (bold && _bold is not null) return _bold;
+        if (_regular is not null) return _regular;
+        return SKTypeface.Default;
+    }
+
     public SKTypeface Resolve(bool bold = false, int codepoint = 0)
         => Resolve(null, bold, codepoint);
 

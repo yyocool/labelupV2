@@ -72,6 +72,12 @@ public static class DocumentRenderer
         ImageCache.Clear();
     }
 
+    public static bool FontsReady => Fonts?.IsReady == true;
+
+    /// <summary>눈금·크롬은 Default 허용. 본문 한글은 FontsReady를 기다린다.</summary>
+    public static SKTypeface ResolveChromeTypeface(bool bold = false)
+        => Fonts?.ResolveOrDefault(bold) ?? SKTypeface.Default;
+
     public static SKTypeface ResolveTypeface(bool bold = false, int codepoint = 0)
         => ResolveTypeface(null, bold, codepoint);
 
