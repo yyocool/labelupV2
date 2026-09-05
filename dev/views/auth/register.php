@@ -23,21 +23,45 @@
         <p class="register-login-link">이미 계정이 있으신가요? <a href="<?= url('login') ?>">로그인</a></p>
       </div>
 
-      <div id="authAlert" class="login-alert"></div>
+      <div id="authAlert" class="login-alert<?= !empty($authFlash) ? ' show error' : '' ?>"><?= e($authFlash ?? '') ?></div>
 
       <div class="login-social login-social--row">
-        <button type="button" class="login-social-btn login-social-btn--compact" disabled title="준비 중">
+        <?php $oauthEnabled = $oauthEnabled ?? ['naver' => false, 'kakao' => false, 'google' => false]; ?>
+        <?php if (!empty($oauthEnabled['naver'])): ?>
+        <a class="login-social-btn login-social-btn--compact" href="<?= url('auth/naver') ?>">
+          <img src="<?= asset('icon-naver.svg') ?>" alt="">
+          <span>네이버로 가입</span>
+        </a>
+        <?php else: ?>
+        <button type="button" class="login-social-btn login-social-btn--compact" disabled title="키 설정 후 이용 가능">
           <img src="<?= asset('icon-naver.svg') ?>" alt="">
           <span>네이버로 가입</span>
         </button>
-        <button type="button" class="login-social-btn login-social-btn--compact" disabled title="준비 중">
+        <?php endif; ?>
+
+        <?php if (!empty($oauthEnabled['kakao'])): ?>
+        <a class="login-social-btn login-social-btn--compact" href="<?= url('auth/kakao') ?>">
           <img src="<?= asset('icon-kakao.svg') ?>" alt="">
-          <span>카카오톡으로 가입</span>
+          <span>카카오로 가입</span>
+        </a>
+        <?php else: ?>
+        <button type="button" class="login-social-btn login-social-btn--compact" disabled title="키 설정 후 이용 가능">
+          <img src="<?= asset('icon-kakao.svg') ?>" alt="">
+          <span>카카오로 가입</span>
         </button>
-        <button type="button" class="login-social-btn login-social-btn--compact" disabled title="준비 중">
+        <?php endif; ?>
+
+        <?php if (!empty($oauthEnabled['google'])): ?>
+        <a class="login-social-btn login-social-btn--compact" href="<?= url('auth/google') ?>">
+          <img src="<?= asset('icon-google.svg') ?>" alt="">
+          <span>구글로 가입</span>
+        </a>
+        <?php else: ?>
+        <button type="button" class="login-social-btn login-social-btn--compact" disabled title="키 설정 후 이용 가능">
           <img src="<?= asset('icon-google.svg') ?>" alt="">
           <span>구글로 가입</span>
         </button>
+        <?php endif; ?>
       </div>
 
       <div class="login-divider register-divider"><span>또는</span></div>

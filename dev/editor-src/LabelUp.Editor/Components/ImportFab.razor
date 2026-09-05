@@ -196,50 +196,36 @@
           <div class="ed-import__ai-box" data-tut="import-smart-box">
             <div class="ed-import__ai-title">
               <img class="ed-import__ai-labi" src="img/labi-icon.png" alt="" width="28" height="28" />
-              라비 — 어떤 라벨을 디자인할까요?
+              라비와 라벨 만들기
             </div>
-            <p class="ed-import__ai-sub">스마트 라벨 AI 라비에게 아이디어나 요구사항을 자유롭게 입력해주세요.</p>
-            <div class="ed-import__ai-input">
-              <textarea rows="4"
-                        maxlength="2000"
-                        placeholder="예) 유기농 꿀 라벨, 70x50mm, 자연 느낌, 밝은 색상, 꿀벌 일러스트"
-                        @bind="SmartPrompt"
-                        @bind:event="oninput"></textarea>
-              <div class="ed-import__ai-input-foot">
-                <span>@(SmartPrompt?.Length ?? 0) / 2000</span>
-                <button type="button" class="ed-import__ai-send" aria-label="전송" @onclick="SendSmartPrompt">➤</button>
-              </div>
-            </div>
-            <div class="ed-import__ai-or">또는</div>
+            <p class="ed-import__ai-sub">메인과 동일하게 채팅·파일 첨부·엑셀/CSV 템플릿·클립아트·타사포맷 변환을 라비AI에서 이용할 수 있어요.</p>
+            <button type="button" class="ed-btn ed-btn--primary ed-import__ai-open-labi" @onclick="OpenLabiFromSmart">
+              라비AI 열기
+            </button>
+            <div class="ed-import__ai-or">바로 시작</div>
             <div class="ed-import__ai-cards">
-              <button type="button" class="ed-import__ai-card" @onclick='() => SessionHint("이미지 붙여넣기는 준비 중입니다")'>
-                <span class="ed-import__ai-card-icon">🖼</span>
-                <strong>이미지 붙여넣기</strong>
-                <small>이미지를 붙여넣어 디자인을 생성해보세요.</small>
+              <button type="button" class="ed-import__ai-card" @onclick="OpenLabiFromSmart">
+                <span class="ed-import__ai-card-icon">💬</span>
+                <strong>말로 디자인하기</strong>
+                <small>원하는 라벨을 설명하면 상품·시안을 제안해요.</small>
               </button>
-              <button type="button" class="ed-import__ai-card" @onclick='() => SessionHint("엑셀 업로드는 준비 중입니다")'>
+              <button type="button" class="ed-import__ai-card" @onclick="OpenLabiFromSmart">
                 <span class="ed-import__ai-card-icon ed-import__ai-card-icon--green">📊</span>
-                <strong>엑셀 파일 업로드</strong>
-                <small>엑셀(CSV) 파일을 드래그하거나 업로드하세요.</small>
+                <strong>엑셀·CSV 업로드</strong>
+                <small>데이터 라벨 템플릿을 만들고 편집기에 적용해요.</small>
               </button>
-              <button type="button" class="ed-import__ai-card" @onclick="UseSmartExample">
-                <span class="ed-import__ai-card-icon ed-import__ai-card-icon--purple">T</span>
-                <strong>프롬프트 예시 사용</strong>
-                <small>다양한 예시를 활용하여 시작해보세요.</small>
+              <button type="button" class="ed-import__ai-card" @onclick="OpenLabiFromSmart">
+                <span class="ed-import__ai-card-icon">🖼</span>
+                <strong>이미지·클립아트</strong>
+                <small>이미지를 첨부하거나 클립아트를 생성해요.</small>
               </button>
-              <button type="button" class="ed-import__ai-card" @onclick='() => SessionHint("내 파일에서 시작은 준비 중입니다")'>
+              <button type="button" class="ed-import__ai-card" @onclick="OpenLabiFromSmart">
                 <span class="ed-import__ai-card-icon ed-import__ai-card-icon--purple">📁</span>
-                <strong>내 파일에서 시작</strong>
-                <small>이전에 업로드한 파일을 불러와 시작하세요.</small>
+                <strong>타사포맷 변환</strong>
+                <small>폼텍·아이라벨·애니라벨 파일을 가져와 변환해요.</small>
               </button>
             </div>
-            <div class="ed-import__ai-tip">💡 팁! 구체적으로 입력할수록 더 정확한 결과를 얻을 수 있어요.</div>
-            <div class="ed-import__ai-examples">
-              @foreach (var ex in SmartExamples)
-              {
-                <button type="button" class="ed-import__ai-chip" @onclick="() => AppendExample(ex)">@ex</button>
-              }
-            </div>
+            <div class="ed-import__ai-tip">💡 팁! 라비AI 팝업에서 파일을 끌어다 놓거나 첨부 버튼으로 올릴 수 있어요.</div>
           </div>
         </div>
       </div>
@@ -415,6 +401,12 @@
         ActiveCat = "a4";
         Subtype = "blank";
         Search = "";
+    }
+
+    private async Task OpenLabiFromSmart()
+    {
+        try { await Js.InvokeVoidAsync("labelUpEditor.closeImport"); } catch { /* ignore */ }
+        Session.OpenDialog(EditorDialog.LabiAi);
     }
 
     private void SetCat(string cat) => ActiveCat = cat;

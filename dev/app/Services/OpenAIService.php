@@ -11,13 +11,21 @@ final class OpenAIService
     private const CHAT_URL = 'https://api.openai.com/v1/chat/completions';
     private const IMAGE_URL = 'https://api.openai.com/v1/images/generations';
 
-    /** @var array{model:?string,prompt_tokens:?int,completion_tokens:?int,total_tokens:?int}|null */
+    /** @var array{model:?string,prompt_tokens:?int,completion_tokens:?int,total_tokens:?int,image_count:int,image_model:?string,image_quality:?string,models:array<int,string>,steps:array<int,array<string,mixed>>}|null */
     private ?array $lastUsage = null;
 
-    /** @return array{model:?string,prompt_tokens:?int,completion_tokens:?int,total_tokens:?int}|null */
+    private ?string $chatModelOverride = null;
+
+    /** @return array{model:?string,prompt_tokens:?int,completion_tokens:?int,total_tokens:?int,image_count:int,image_model:?string,image_quality:?string,models:array<int,string>,steps:array<int,array<string,mixed>>}|null */
     public function lastUsage(): ?array
     {
         return $this->lastUsage;
+    }
+
+    public function setChatModel(?string $model): void
+    {
+        $model = $model !== null ? trim($model) : '';
+        $this->chatModelOverride = $model !== '' ? $model : null;
     }
 
     public function chat(array $messages): string
@@ -127,15 +135,25 @@ final class OpenAIService
 첨부 표로 라벨 템플릿을 만듭니다. JSON만 출력하세요.
 {
   "title": "짧은 한국어 템플릿 이름",
-  "message": "사용자에게 보여줄 2~3문장 안내",
+  "message": "사용자에게 보여줄 2~3문장 안내(용도·용지·장당 칸 수 언급)",
+  "use_case": "shipping|packing|picking|inventory|hangtag|product|general",
+  "paper_no": "LU-3102|LU-3230|LU-3659|LU-3775 중 하나",
   "width_mm": 라벨 가로 mm,
   "height_mm": 라벨 세로 mm,
   "fields": [{"column":"표의 열 이름 그대로","kind":"text|barcode|qr"}]
 }
 규칙:
-- fields는 라벨에 넣을 열만, 최대 8개, column은 아래 표에 있는 이름만.
-- 이름/상품명은 text, 바코드·SKU는 barcode, URL·홈페이지는 qr.
-- 주소라벨이면 90×50 전후, 일반은 70×36 전후. 한 변은 20~120mm.
+- fields는 라벨에 넣을 열만, 최대 7개, column은 아래 표에 있는 이름만. URL·단가·이메일은 제외.
+- 이름/수취인/상품명은 text, 바코드·SKU는 barcode.
+- 반드시 A4 다칸 용지. 한 장 1칸 금지. width/height는 paper_no에 맞출 것.
+용도→용지:
+- shipping(배송·수취·주소·택배): LU-3102 (A4 100×50mm 10칸)
+- packing(패킹·내품·동봉, 필드 많음): LU-3775 (A4 84×58mm 8칸)
+- picking(피킹·SKU·바코드 집품): LU-3230 (A4 70×36mm 14칸)
+- inventory(검수·재고·소형 다량): LU-3659 (A4 50×30mm 21칸)
+- hangtag(행거·타공): LU-3775
+- product(일반 상품): LU-3230 또는 LU-3659
+사용자 힌트에 용도가 있으면 그걸 우선하세요.
 파일: {$sourceName}
 사용자 요청: {$hint}
 표:
@@ -157,6 +175,7 @@ PROMPT;
             return [
                 'title' => '',
                 'message' => '',
+                'paper_no' => '',
                 'width_mm' => 0,
                 'height_mm' => 0,
                 'fields' => [],
@@ -182,6 +201,8 @@ PROMPT;
         return [
             'title' => trim((string) ($decoded['title'] ?? '')),
             'message' => trim((string) ($decoded['message'] ?? '')),
+            'use_case' => trim((string) ($decoded['use_case'] ?? $decoded['useCase'] ?? '')),
+            'paper_no' => trim((string) ($decoded['paper_no'] ?? $decoded['paperNo'] ?? '')),
             'width_mm' => (float) ($decoded['width_mm'] ?? 0),
             'height_mm' => (float) ($decoded['height_mm'] ?? 0),
             'fields' => $fields,
@@ -207,6 +228,7 @@ PROMPT;
             $cleanPrompt = mb_substr($cleanPrompt, 0, 900);
         }
 
+        $quality = trim((string) env('OPENAI_IMAGE_QUALITY', 'medium')) ?: 'medium';
         try {
             $response = $this->request($apiKey, self::IMAGE_URL, $this->imagePayload($model, $cleanPrompt), 180);
         } catch (RuntimeException $e) {
@@ -225,6 +247,8 @@ PROMPT;
                 throw $e;
             }
         }
+
+        $this->recordImageUsage($model, $quality, 1);
 
         $item = $response['data'][0] ?? null;
         if (!is_array($item)) {
@@ -279,7 +303,8 @@ PROMPT;
     private function chatRequest(array $messages, array $overrides = []): array
     {
         $apiKey = $this->apiKey();
-        $model = trim((string) env('OPENAI_MODEL', 'gpt-4o-mini'));
+        $model = $this->chatModelOverride
+            ?? trim((string) env('OPENAI_MODEL', 'gpt-4o-mini'));
         if ($model === '') {
             $model = 'gpt-4o-mini';
         }
@@ -372,15 +397,82 @@ PROMPT;
             throw new RuntimeException($message);
         }
 
-        $usage = is_array($decoded['usage'] ?? null) ? $decoded['usage'] : [];
-        $this->lastUsage = [
-            'model' => isset($decoded['model']) ? (string) $decoded['model'] : (isset($payload['model']) ? (string) $payload['model'] : null),
-            'prompt_tokens' => isset($usage['prompt_tokens']) ? (int) $usage['prompt_tokens'] : null,
-            'completion_tokens' => isset($usage['completion_tokens']) ? (int) $usage['completion_tokens'] : null,
-            'total_tokens' => isset($usage['total_tokens']) ? (int) $usage['total_tokens'] : null,
-        ];
+        $isImage = str_contains($url, '/images/');
+        if (!$isImage) {
+            $usage = is_array($decoded['usage'] ?? null) ? $decoded['usage'] : [];
+            $modelName = isset($decoded['model'])
+                ? (string) $decoded['model']
+                : (isset($payload['model']) ? (string) $payload['model'] : null);
+            $this->recordChatUsage(
+                $modelName,
+                isset($usage['prompt_tokens']) ? (int) $usage['prompt_tokens'] : 0,
+                isset($usage['completion_tokens']) ? (int) $usage['completion_tokens'] : 0,
+                isset($usage['total_tokens']) ? (int) $usage['total_tokens'] : null
+            );
+        }
 
         return $decoded;
+    }
+
+    private function ensureUsageBag(): void
+    {
+        if ($this->lastUsage !== null) {
+            return;
+        }
+        $this->lastUsage = [
+            'model' => null,
+            'prompt_tokens' => 0,
+            'completion_tokens' => 0,
+            'total_tokens' => 0,
+            'image_count' => 0,
+            'image_model' => null,
+            'image_quality' => null,
+            'models' => [],
+            'steps' => [],
+        ];
+    }
+
+    private function recordChatUsage(?string $model, int $promptTokens, int $completionTokens, ?int $totalTokens): void
+    {
+        $this->ensureUsageBag();
+        $total = $totalTokens ?? ($promptTokens + $completionTokens);
+        $this->lastUsage['prompt_tokens'] = (int) $this->lastUsage['prompt_tokens'] + $promptTokens;
+        $this->lastUsage['completion_tokens'] = (int) $this->lastUsage['completion_tokens'] + $completionTokens;
+        $this->lastUsage['total_tokens'] = (int) $this->lastUsage['total_tokens'] + $total;
+        if ($model) {
+            $this->lastUsage['model'] = $model;
+            if (!in_array($model, $this->lastUsage['models'], true)) {
+                $this->lastUsage['models'][] = $model;
+            }
+        }
+        $this->lastUsage['steps'][] = [
+            'kind' => 'chat',
+            'model' => $model,
+            'prompt_tokens' => $promptTokens,
+            'completion_tokens' => $completionTokens,
+            'total_tokens' => $total,
+        ];
+    }
+
+    private function recordImageUsage(string $model, string $quality, int $count = 1): void
+    {
+        $this->ensureUsageBag();
+        $count = max(1, $count);
+        $this->lastUsage['image_count'] = (int) $this->lastUsage['image_count'] + $count;
+        $this->lastUsage['image_model'] = $model;
+        $this->lastUsage['image_quality'] = $quality;
+        if ($model !== '' && !in_array($model, $this->lastUsage['models'], true)) {
+            $this->lastUsage['models'][] = $model;
+        }
+        if (empty($this->lastUsage['model'])) {
+            $this->lastUsage['model'] = $model;
+        }
+        $this->lastUsage['steps'][] = [
+            'kind' => 'image',
+            'model' => $model,
+            'quality' => $quality,
+            'image_count' => $count,
+        ];
     }
 
     private function storeClipartFromBase64(string $b64): string

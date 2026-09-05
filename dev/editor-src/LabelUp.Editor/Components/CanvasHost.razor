@@ -7,6 +7,7 @@
 @using SkiaSharp.Views.Blazor
 @inject EditorSession Session
 @inject HistoryService History
+@inject FontCatalog Fonts
 @inject IJSRuntime Js
 @implements IDisposable
 
@@ -249,8 +250,6 @@
         var scale = Session.PxPerMm * Session.Zoom;
         if (info.Width > 8 && doc.WidthMm > 0.01f)
             scale = info.Width / doc.WidthMm;
-        var labelW = doc.WidthMm * scale;
-        var labelH = doc.HeightMm * scale;
 
         canvas.Save();
         canvas.Scale(scale);
@@ -265,8 +264,11 @@
                     return;
                 DrawLabelGridMm(canvas, doc.WidthMm, doc.HeightMm);
             });
-        foreach (var sel in Session.SelectedObjects)
-            DocumentRenderer.DrawSelection(canvas, sel, Session.PxPerMm, Session.Zoom);
+        if (Fonts.IsReady)
+        {
+            foreach (var sel in Session.SelectedObjects)
+                DocumentRenderer.DrawSelection(canvas, sel, Session.PxPerMm, Session.Zoom);
+        }
         canvas.Restore();
 
         if (_marquee)
@@ -392,7 +394,7 @@
 
         using var tick = new SKPaint { Color = new SKColor(0x4A, 0x44, 0x40), StrokeWidth = 1, IsAntialias = false };
         using var major = new SKPaint { Color = new SKColor(0x2E, 0x2A, 0x27), StrokeWidth = 1.4f, IsAntialias = false };
-        using var font = new SKFont(DocumentRenderer.ResolveTypeface(false), 10);
+        using var font = new SKFont(DocumentRenderer.ResolveChromeTypeface(false), 10);
         using var text = new SKPaint { Color = new SKColor(0x2E, 0x2A, 0x27), IsAntialias = true };
 
         var step = RulerStep(Session.Zoom);
@@ -424,7 +426,7 @@
         }
 
         using var dim = new SKPaint { Color = new SKColor(0x7B, 0x28, 0x40, 180), IsAntialias = true };
-        using var dimFont = new SKFont(DocumentRenderer.ResolveTypeface(true), 10);
+        using var dimFont = new SKFont(DocumentRenderer.ResolveChromeTypeface(true), 10);
         canvas.DrawText($"{mmW:0.#}×{mmH:0.#} mm", ox + 8, rulerTop + 18, SKTextAlign.Left, dimFont, dim);
     }
 
@@ -467,7 +469,7 @@
         canvas.DrawLine(px, rulerTop + 1, px, rulerBottom, red);
         canvas.DrawLine(rulerLeft + 1, py, rulerRight, py, red);
 
-        using var font = new SKFont(DocumentRenderer.ResolveTypeface(true), 9);
+        using var font = new SKFont(DocumentRenderer.ResolveChromeTypeface(true), 9);
         using var tp = new SKPaint { Color = new SKColor(0xC4, 0x28, 0x3A), IsAntialias = true };
         canvas.DrawText($"{Session.CursorMmX:0.0}", px + 4, rulerTop + 12, SKTextAlign.Left, font, tp);
         canvas.Save();

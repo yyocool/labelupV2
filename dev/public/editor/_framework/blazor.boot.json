@@ -3,10 +3,10 @@
   "resources": {
     "hash": "sha256-FIdYB0FovMiUW87YBhmH9m/BqLOxAcoxRMb4W+k2X8U=",
     "jsModuleNative": {
-      "dotnet.native.8.0.30.ozmvmdktbp.js": "sha256-h7DWn5hRj8s2oKK/k/JBnPtlONbB92KHy/ari4lLAoI="
+      "dotnet.native.js": "sha256-L2tOugdwl8KqBLlVzV/lFFQnCT7yopLrsa8YEhB+zb8="
     },
     "jsModuleRuntime": {
-      "dotnet.runtime.8.0.30.dweckncnnt.js": "sha256-Iz92tEdLDz6hULg8toBVTeVi4QRnFEbFBy3lo3dbmEw="
+      "dotnet.runtime.js": "sha256-8TPKoZjPkxn9U2bhn70tBfGFmfwnOXj2CAKmQl5+oJ4="
     },
     "wasmNative": {
       "dotnet.native.wasm": "sha256-juwXi6S3R00McQL6sb8NaSHIahZMoAxRWMf9MVhKm8M="
@@ -16,8 +16,8 @@
       "icudt_EFIGS.dat": "sha256-8fItetYY8kQ0ww6oxwTLiT3oXlBwHKumbeP2pRF4yTc=",
       "icudt_no_CJK.dat": "sha256-L7sV7NEYP37/Qr2FPCePo5cJqRgTXRwGHuwF5Q+0Nfs="
     },
+    "coreAssembly": {},
     "assembly": {
-      "ExcelDataReader.DataSet.wasm": "sha256-eM/Vt4GxUiQsxVwPh3KKAke/LL9EnUPuS5ajIFktgqQ=",
       "ExcelDataReader.wasm": "sha256-p2z9GHuyV5pTFXT+GKmexXTO4ltRggPcT9q47Kjwzvg=",
       "LabelUp.Editor.wasm": "sha256-Eo7LNXQRORePKj+K8ZGIKi6S9kk603bIWheZX5Airt8=",
       "Microsoft.AspNetCore.Components.wasm": "sha256-SiHWtHabxBHJsGjDSDPIEjlIXadQcURL1rbPnfvUIx8=",

@@ -136,7 +136,7 @@ public static class BarcodeRenderer
             }
         }
 
-        if (textH > 0)
+        if (textH > 0 && DocumentRenderer.FontsReady)
         {
             using var tp = new SKPaint { Color = ColorUtil.Parse(obj.Fill, alpha), IsAntialias = true };
             using var font = CreateHriFont(obj, HriFontMm(obj, textH));
@@ -347,6 +347,7 @@ public static class BarcodeRenderer
             StrokeWidth = 0.25f
         };
         canvas.DrawRect(0.1f, 0.1f, obj.Width - 0.2f, obj.Height - 0.2f, stroke);
+        if (!DocumentRenderer.FontsReady) return;
         using var tp = new SKPaint { Color = ColorUtil.Parse("#6B6560", alpha), IsAntialias = true };
         using var font = new SKFont(DocumentRenderer.ResolveTypeface(false), Math.Min(3.2f, obj.Height * 0.3f));
         canvas.DrawText(msg, obj.Width / 2f, obj.Height / 2f + 1f, SKTextAlign.Center, font, tp);

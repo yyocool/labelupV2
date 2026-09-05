@@ -13,6 +13,7 @@ public sealed class FontCatalog : IAsyncDisposable
     public const float MmPerPt = 0.3528f;
 
     private readonly HttpClient _http;
+    private readonly SemaphoreSlim _gate = new(1, 1);
     private SKTypeface? _regular;
     private SKTypeface? _bold;
     private SKTypeface? _symbols;

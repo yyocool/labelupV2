@@ -20,7 +20,7 @@
       <h2 class="login-card-title">라벨업에 오신 것을 환영합니다</h2>
       <p class="login-card-sub">로그인하여 다양한 기능을 이용해 보세요.</p>
 
-      <div id="authAlert" class="login-alert"></div>
+      <div id="authAlert" class="login-alert<?= !empty($authFlash) ? ' show error' : '' ?>"><?= e($authFlash ?? '') ?></div>
 
       <form id="loginForm" class="login-form" data-redirect="<?= e($redirectUrl ?? url('/')) ?>">
         <div class="login-field">
@@ -52,18 +52,45 @@
       <div class="login-divider"><span>또는</span></div>
 
       <div class="login-social">
-        <button type="button" class="login-social-btn" disabled title="준비 중">
+        <?php
+          $oauthEnabled = $oauthEnabled ?? ['naver' => false, 'kakao' => false, 'google' => false];
+          $oauthRedirect = rawurlencode((string) ($_GET['redirect'] ?? '/'));
+        ?>
+        <?php if (!empty($oauthEnabled['naver'])): ?>
+        <a class="login-social-btn" href="<?= url('auth/naver') ?>?redirect=<?= e($oauthRedirect) ?>">
+          <img src="<?= asset('icon-naver.svg') ?>" alt="">
+          <span>네이버로 로그인</span>
+        </a>
+        <?php else: ?>
+        <button type="button" class="login-social-btn" disabled title="키 설정 후 이용 가능">
           <img src="<?= asset('icon-naver.svg') ?>" alt="">
           <span>네이버로 로그인</span>
         </button>
-        <button type="button" class="login-social-btn" disabled title="준비 중">
+        <?php endif; ?>
+
+        <?php if (!empty($oauthEnabled['kakao'])): ?>
+        <a class="login-social-btn" href="<?= url('auth/kakao') ?>?redirect=<?= e($oauthRedirect) ?>">
           <img src="<?= asset('icon-kakao.svg') ?>" alt="">
-          <span>카카오톡으로 로그인</span>
+          <span>카카오로 로그인</span>
+        </a>
+        <?php else: ?>
+        <button type="button" class="login-social-btn" disabled title="키 설정 후 이용 가능">
+          <img src="<?= asset('icon-kakao.svg') ?>" alt="">
+          <span>카카오로 로그인</span>
         </button>
-        <button type="button" class="login-social-btn" disabled title="준비 중">
+        <?php endif; ?>
+
+        <?php if (!empty($oauthEnabled['google'])): ?>
+        <a class="login-social-btn" href="<?= url('auth/google') ?>?redirect=<?= e($oauthRedirect) ?>">
+          <img src="<?= asset('icon-google.svg') ?>" alt="">
+          <span>구글로 로그인</span>
+        </a>
+        <?php else: ?>
+        <button type="button" class="login-social-btn" disabled title="키 설정 후 이용 가능">
           <img src="<?= asset('icon-google.svg') ?>" alt="">
           <span>구글로 로그인</span>
         </button>
+        <?php endif; ?>
       </div>
 
       <p class="login-signup">계정이 없으신가요? <a href="<?= url('register') ?>">회원가입</a></p>

@@ -12,16 +12,18 @@
   <link rel="stylesheet" href="css/tutorial.css?v=20260905s" />
 </head>
 <body>
-  <div id="app">
-    <div class="boot">
-      <div class="boot__labi" aria-hidden="true">
-        <img class="boot__labi-img" src="img/labi-icon.png" alt="" width="128" height="128" />
-        <span class="boot__labi-shadow"></span>
-      </div>
-      <div class="boot__mark">LABEL UP</div>
-      <div class="boot__bar"><span></span></div>
-      <p class="boot__text">라비가 편집기를 준비하고 있어요…</p>
+  <div id="app"></div>
+
+  <div id="editor-boot" class="boot" aria-busy="true">
+    <div class="boot__labi" aria-hidden="true">
+      <svg class="boot__ring" viewBox="0 0 100 100" aria-hidden="true">
+        <circle class="boot__ring-track" cx="50" cy="50" r="46" pathLength="100" />
+        <circle class="boot__ring-fill" cx="50" cy="50" r="46" pathLength="100" />
+      </svg>
+      <img class="boot__labi-img" src="img/labi-icon.png" alt="" width="128" height="128" />
+      <span class="boot__labi-shadow"></span>
     </div>
+    <div class="boot__pct loading-progress-text"></div>
   </div>
 
   <div id="blazor-error-ui">

@@ -144,6 +144,7 @@ final class AdminAccessService
             '/api/admin/shop/coupon' => 'shop-coupons',
             '/admin/shop/banners' => 'shop-banners',
             '/api/admin/shop/banner' => 'shop-banners',
+            '/admin/qr-coupons' => 'qr-coupons',
         ];
         uksort($map, static fn (string $a, string $b): int => strlen($b) <=> strlen($a));
         foreach ($map as $prefix => $key) {

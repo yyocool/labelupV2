@@ -110,21 +110,85 @@ window.labelUpEditor = {
     } catch (e) { /* ignore */ }
     return fromSession();
   },
-  takePendingDocument: function () {
-    try {
-      var raw = sessionStorage.getItem('labelup.pendingDocument');
-      if (!raw) return null;
-      sessionStorage.removeItem('labelup.pendingDocument');
-      var data = JSON.parse(raw);
-      if (!data || !data.document) return null;
-      return {
-        json: JSON.stringify(data.document),
-        title: data.title ? String(data.title) : '',
-        projectId: data.projectId ? String(data.projectId) : ''
-      };
-    } catch (e) {
-      return null;
+  takePendingDocument: async function () {
+    function fromSession() {
+      try {
+        var raw = sessionStorage.getItem('labelup.pendingDocument');
+        if (!raw) return null;
+        var data = JSON.parse(raw);
+        if (!data || !data.document) return null;
+        sessionStorage.removeItem('labelup.pendingDocument');
+        return {
+          json: JSON.stringify(data.document),
+          title: data.title ? String(data.title) : '',
+          projectId: data.projectId ? String(data.projectId) : ''
+        };
+      } catch (e) {
+        return null;
+      }
     }
+    function readIdb() {
+      return new Promise(function (resolve) {
+        var settled = false;
+        var timer = 0;
+        var finish = function (value) {
+          if (settled) return;
+          settled = true;
+          if (timer) window.clearTimeout(timer);
+          resolve(value || null);
+        };
+        timer = window.setTimeout(function () { finish(null); }, 4000);
+        try {
+          var req = indexedDB.open('labelup', 1);
+          req.onerror = function () { finish(null); };
+          req.onblocked = function () { finish(null); };
+          req.onupgradeneeded = function () {
+            if (!req.result.objectStoreNames.contains('pending'))
+              req.result.createObjectStore('pending');
+          };
+          req.onsuccess = function () {
+            try {
+              var db = req.result;
+              if (!db.objectStoreNames.contains('pending')) {
+                finish(null);
+                return;
+              }
+              var tx = db.transaction('pending', 'readwrite');
+              var store = tx.objectStore('pending');
+              var get = store.get('document');
+              get.onsuccess = function () {
+                var row = get.result || null;
+                if (row && row.document) {
+                  try { store.delete('document'); } catch (e) { /* ignore */ }
+                  // Resolve after transaction completes so delete is durable.
+                  tx.oncomplete = function () { finish(row); };
+                  tx.onerror = function () { finish(row); };
+                } else {
+                  finish(null);
+                }
+              };
+              get.onerror = function () { finish(null); };
+            } catch (e) {
+              finish(null);
+            }
+          };
+        } catch (e) {
+          finish(null);
+        }
+      });
+    }
+    try {
+      var idbData = await readIdb();
+      if (idbData && idbData.document) {
+        try { sessionStorage.removeItem('labelup.pendingDocument'); } catch (e) { /* ignore */ }
+        return {
+          json: JSON.stringify(idbData.document),
+          title: idbData.title ? String(idbData.title) : '',
+          projectId: idbData.projectId ? String(idbData.projectId) : ''
+        };
+      }
+    } catch (e) { /* ignore */ }
+    return fromSession();
   },
   fetchImageDataUrl: async function (src) {
     if (!src) return '';
@@ -361,6 +425,15 @@ window.labelUpEditor = {
     this._labiDotNet = dotnet;
   },
 
+  hideBoot: function () {
+    var el = document.getElementById('editor-boot');
+    if (!el) return;
+    el.classList.add('is-done');
+    el.setAttribute('hidden', '');
+    el.setAttribute('aria-busy', 'false');
+    try { document.documentElement.classList.add('editor-ready'); } catch (e) { /* ignore */ }
+  },
+
   mountLabiChat: async function () {
     var root = document.getElementById('aiPromptPanel');
     if (!root || !window.LabelUpLabiChat) return;
@@ -372,6 +445,15 @@ window.labelUpEditor = {
       embedMode: 'editor',
       chatApiUrl: this.apiUrl('/api/ai/chat'),
       examplePromptsUrl: this.apiUrl('/api/ai/example-prompts?surface=editor'),
+      examplePrompts: [
+        { label: '☆ 라벨 추천', prompt_text: '용도에 맞는 라벨 상품을 하나 추천해줘.' },
+        { label: '◎ 주소 라벨', prompt_text: '주소 라벨용 용지를 추천해줘.' },
+        { label: '▦ 바코드', prompt_text: '바코드 라벨 상품을 추천해줘.' },
+        { label: '○ 원형 스티커', prompt_text: '원형 네임 스티커 용지를 추천해줘.' },
+        { label: '◇ 가격표', prompt_text: '가격표 라벨 상품을 추천해줘.' },
+        { label: '✦ 클립아트', prompt_text: '카페 원두 라벨에 넣을 커피콩 클립아트를 그려줘.' },
+        { label: '♡ 일러스트', prompt_text: '핸드메이드 라벨용 하트와 리본 일러스트를 그려줘.' }
+      ],
       labiIconUrl: '/assets/labi-icon.png',
       isLoggedIn: !!user,
       ensureLogin: async function () {

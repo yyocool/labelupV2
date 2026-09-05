@@ -73,12 +73,18 @@ window.LabelUpLabiChat = {
     window.location.href = buildClipartEditorUrl(clipart);
   }
 
-  function applyTemplate(template) {
+  async function applyTemplate(template) {
     closeLightbox();
-    stashPendingDocument(template);
     if (embedMode && typeof cfg.onApplyTemplate === 'function') {
       cfg.onApplyTemplate(template);
       return;
+    }
+    if (template && template.document) {
+      const ok = await stashPendingDocument(template);
+      if (!ok) {
+        appendMessage('assistant', '데이터량이 커서 브라우저에 임시 저장하지 못했어요. 행 수를 줄이거나 CSV로 다시 첨부해 주세요.');
+        return;
+      }
     }
     window.location.href = buildTemplateEditorUrl(template);
   }
@@ -180,12 +186,10 @@ window.LabelUpLabiChat = {
 
   function bindApply(el, handler) {
     if (!el) return;
-    if (embedMode) {
-      el.addEventListener('click', (e) => {
-        e.preventDefault();
-        handler();
-      });
-    }
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      handler();
+    });
   }
 
   function syncComposer() {
@@ -200,6 +204,25 @@ window.LabelUpLabiChat = {
     return `att-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   }
 
+  function fileFormatBadge(name, kind) {
+    const n = String(name || '').toLowerCase();
+    const m = n.match(/\.([a-z0-9]{1,8})$/i);
+    if (m) return m[1].toUpperCase();
+    if (kind === 'image') return 'IMG';
+    if (kind === 'vendor') return 'VENDOR';
+    if (kind === 'text') return 'TXT';
+    return 'FILE';
+  }
+
+  function fileFormatTone(ext) {
+    const e = String(ext || '').toLowerCase();
+    if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg', 'img'].includes(e)) return 'image';
+    if (['xlsx', 'xls', 'csv', 'tsv'].includes(e)) return 'sheet';
+    if (['docx', 'doc', 'txt', 'md', 'json'].includes(e)) return 'doc';
+    if (['lbl', 'idf', 'xml', 'dgz', 'dgf', 'fmt', 'fdx', 'zip'].includes(e)) return 'vendor';
+    return 'file';
+  }
+
   function renderAttachPreview() {
     if (!attachPreview) return;
     attachPreview.innerHTML = '';
@@ -209,18 +232,35 @@ window.LabelUpLabiChat = {
     }
     attachPreview.hidden = false;
     pendingAttachments.forEach((item) => {
+      const ext = fileFormatBadge(item.name, item.kind);
+      const tone = fileFormatTone(ext);
       const chip = document.createElement('div');
-      chip.className = 'ai-attach-chip';
+      chip.className = `ai-attach-chip ai-attach-chip--${tone}`;
+      chip.title = item.name || '';
+
+      const tile = document.createElement('div');
+      tile.className = 'ai-attach-tile';
       if (item.kind === 'image' && item.dataUrl) {
         const img = document.createElement('img');
         img.src = item.dataUrl;
-        img.alt = item.name;
-        chip.appendChild(img);
+        img.alt = item.name || '첨부 이미지';
+        tile.appendChild(img);
       } else {
-        const label = document.createElement('span');
-        label.textContent = item.name;
-        chip.appendChild(label);
+        const glyph = document.createElement('strong');
+        glyph.className = 'ai-attach-glyph';
+        glyph.textContent = ext.slice(0, 4);
+        tile.appendChild(glyph);
       }
+
+      const badge = document.createElement('em');
+      badge.className = 'ai-attach-badge';
+      badge.textContent = ext;
+      tile.appendChild(badge);
+
+      const name = document.createElement('span');
+      name.className = 'ai-attach-name';
+      name.textContent = item.name || '첨부파일';
+
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'ai-attach-remove';
@@ -231,6 +271,9 @@ window.LabelUpLabiChat = {
         renderAttachPreview();
         syncComposer();
       });
+
+      chip.appendChild(tile);
+      chip.appendChild(name);
       chip.appendChild(remove);
       attachPreview.appendChild(chip);
     });
@@ -288,21 +331,72 @@ window.LabelUpLabiChat = {
     return qs ? `${editorBaseUrl}${editorBaseUrl.includes('?') ? '&' : '?'}${qs}` : editorBaseUrl;
   }
 
-  function stashPendingDocument(template) {
-    if (!template || !template.document) return;
+  function ensureLabiDocUrl(url) {
+    const base = String(url || editorBaseUrl || '/editor/');
     try {
-      sessionStorage.setItem('labelup.pendingDocument', JSON.stringify({
-        document: template.document,
-        title: template.title || '',
-        projectId: template.project_id || 0,
-      }));
-    } catch (e) { /* quota */ }
+      const u = new URL(base, window.location.origin);
+      if (!u.searchParams.has('labiDoc') && !u.searchParams.has('labidoc')) {
+        u.searchParams.set('labiDoc', '1');
+      }
+      return u.pathname + u.search + u.hash;
+    } catch (e) {
+      if (/[?&]labiDoc=/i.test(base)) return base;
+      return `${base}${base.includes('?') ? '&' : '?'}labiDoc=1`;
+    }
+  }
+
+  function stashPendingDocument(template) {
+    if (!template || !template.document) return Promise.resolve(false);
+    const payload = {
+      document: template.document,
+      title: template.title || '',
+      projectId: template.project_id || 0,
+      ts: Date.now(),
+    };
+    let sessionOk = false;
+    try {
+      sessionStorage.setItem('labelup.pendingDocument', JSON.stringify(payload));
+      sessionOk = true;
+    } catch (e) {
+      sessionOk = false;
+    }
+    return new Promise((resolve) => {
+      const done = (idbOk) => resolve(sessionOk || idbOk);
+      try {
+        const req = indexedDB.open('labelup', 1);
+        req.onerror = () => done(false);
+        req.onupgradeneeded = () => {
+          if (!req.result.objectStoreNames.contains('pending'))
+            req.result.createObjectStore('pending');
+        };
+        req.onsuccess = () => {
+          try {
+            const db = req.result;
+            if (!db.objectStoreNames.contains('pending')) {
+              done(false);
+              return;
+            }
+            const tx = db.transaction('pending', 'readwrite');
+            tx.objectStore('pending').put(payload, 'document');
+            tx.oncomplete = () => done(true);
+            tx.onerror = () => done(false);
+          } catch (e) {
+            done(false);
+          }
+        };
+      } catch (e) {
+        done(false);
+      }
+    });
   }
 
   function buildTemplateEditorUrl(template) {
-    stashPendingDocument(template);
     if (template && template.document && !template.url) {
-      if (template.editor_url) return template.editor_url;
+      if (template.editor_url) return ensureLabiDocUrl(template.editor_url);
+      const projectId = Number(template.project_id || 0);
+      if (projectId > 0) {
+        return ensureLabiDocUrl(`${editorBaseUrl}${editorBaseUrl.includes('?') ? '&' : '?'}project=${projectId}`);
+      }
       return `${editorBaseUrl}${editorBaseUrl.includes('?') ? '&' : '?'}labiDoc=1`;
     }
     stashPendingClipart({
@@ -337,11 +431,13 @@ window.LabelUpLabiChat = {
         <button type="button" class="ai-lightbox-close" data-ai-lb-close aria-label="닫기">×</button>
         <div class="ai-lightbox-figure">
           <img class="ai-lightbox-img" alt="">
+          <div class="ai-lightbox-html" hidden></div>
         </div>
         <div class="ai-lightbox-meta">
           <div class="ai-lightbox-kicker"></div>
           <h3 class="ai-lightbox-title"></h3>
           <p class="ai-lightbox-desc"></p>
+          <div class="ai-lightbox-extra" hidden></div>
           <div class="ai-lightbox-actions"></div>
         </div>
       </div>`;
@@ -364,18 +460,40 @@ window.LabelUpLabiChat = {
   function openLightbox(opts) {
     const root = ensureLightbox();
     const img = root.querySelector('.ai-lightbox-img');
+    const htmlBox = root.querySelector('.ai-lightbox-html');
     const kicker = root.querySelector('.ai-lightbox-kicker');
     const title = root.querySelector('.ai-lightbox-title');
     const desc = root.querySelector('.ai-lightbox-desc');
+    const extra = root.querySelector('.ai-lightbox-extra');
     const actions = root.querySelector('.ai-lightbox-actions');
 
-    img.src = opts.image || '';
-    img.alt = opts.title || '미리보기';
+    const hasHtml = !!(opts.html || opts.svg);
+    if (hasHtml) {
+      img.hidden = true;
+      img.removeAttribute('src');
+      htmlBox.hidden = false;
+      htmlBox.innerHTML = opts.html || opts.svg || '';
+    } else {
+      htmlBox.hidden = true;
+      htmlBox.innerHTML = '';
+      img.hidden = false;
+      img.src = opts.image || '';
+      img.alt = opts.title || '미리보기';
+    }
     kicker.textContent = opts.kicker || '';
     title.textContent = opts.title || '';
     desc.textContent = opts.desc || '';
     desc.hidden = !opts.desc;
     kicker.hidden = !opts.kicker;
+    if (extra) {
+      if (opts.extraHtml) {
+        extra.hidden = false;
+        extra.innerHTML = opts.extraHtml;
+      } else {
+        extra.hidden = true;
+        extra.innerHTML = '';
+      }
+    }
     actions.innerHTML = '';
 
     if (opts.editHref || opts.onEdit) {
@@ -389,7 +507,7 @@ window.LabelUpLabiChat = {
     }
     if (opts.primaryHref) {
       const a = document.createElement('a');
-      a.className = opts.editHref ? 'ai-lightbox-btn' : 'ai-lightbox-btn ai-lightbox-btn--primary';
+      a.className = opts.editHref || opts.onEdit ? 'ai-lightbox-btn' : 'ai-lightbox-btn ai-lightbox-btn--primary';
       a.href = opts.primaryHref;
       a.textContent = opts.primaryLabel || '자세히 보기';
       actions.appendChild(a);
@@ -568,14 +686,31 @@ window.LabelUpLabiChat = {
       : '';
     const cols = dataset && Array.isArray(dataset.columns) ? dataset.columns : [];
     const rowCount = dataset ? Number(dataset.row_count || 0) : 0;
+    const paperName = (template.paper_name || (dataset && dataset.paper_name) || '').trim();
+    const perPage = Number(template.labels_per_page || (dataset && dataset.labels_per_page) || 0);
+    const useLabel = (template.use_case_label || (dataset && dataset.use_case_label) || '').trim();
+    const paperLine = [
+      useLabel ? `${useLabel}용` : '',
+      paperName,
+      perPage > 1 ? `장당 ${perPage}건` : '',
+    ].filter(Boolean).join(' · ') || (spec || '');
+    const previewSvg = String(template.preview_svg || '').trim();
+    const previewRows = dataset && Array.isArray(dataset.preview_rows) ? dataset.preview_rows : [];
 
-    const media = document.createElement(dataset && !template.url ? 'div' : 'button');
-    if (!dataset || template.url) media.type = 'button';
-    media.className = dataset && !template.url ? 'ai-data-media' : 'ai-clip-media ai-tpl-media';
+    const media = document.createElement('button');
+    media.type = 'button';
+    media.className = dataset && !template.url
+      ? (previewSvg ? 'ai-data-media ai-data-media--preview' : 'ai-data-media')
+      : 'ai-clip-media ai-tpl-media';
+    media.setAttribute('aria-label', '라벨 미리보기');
     if (dataset && !template.url) {
-      media.innerHTML = `
-        <strong>${rowCount.toLocaleString('ko-KR')}행</strong>
-        <span>${cols.length}개 열</span>`;
+      if (previewSvg) {
+        media.innerHTML = `<div class="ai-data-preview">${previewSvg}</div><span class="ai-clip-zoom">미리보기</span>`;
+      } else {
+        media.innerHTML = `
+          <strong>${rowCount.toLocaleString('ko-KR')}행</strong>
+          <span>${cols.length}개 열</span>`;
+      }
     } else {
       const img = document.createElement('img');
       img.src = template.url || '';
@@ -587,9 +722,32 @@ window.LabelUpLabiChat = {
       media.appendChild(zoomHint);
     }
 
+    const openDataPreview = () => {
+      const tableHtml = previewRows.length
+        ? `<div class="ai-data-preview-table"><table><thead><tr>${cols.slice(0, 5).map((c) => `<th>${escapeHtml(c)}</th>`).join('')}</tr></thead><tbody>${
+          previewRows.slice(0, 4).map((row) => `<tr>${(row || []).slice(0, 5).map((c) => `<td>${escapeHtml(String(c ?? ''))}</td>`).join('')}</tr>`).join('')
+        }</tbody></table><p>${rowCount.toLocaleString('ko-KR')}행 중 미리보기 · 편집기에서 전체 자료를 확인할 수 있어요.</p></div>`
+        : '';
+      openLightbox({
+        svg: previewSvg
+          ? `<div class="ai-data-preview ai-data-preview--lg">${previewSvg}</div>`
+          : '',
+        html: !previewSvg && tableHtml ? tableHtml : undefined,
+        kicker: useLabel ? `${useLabel} 라벨 미리보기` : '데이터 라벨 미리보기',
+        title: template.title || '라비가 만든 데이터 템플릿',
+        desc: paperLine
+          ? `${paperLine}. 샘플 1건으로 배치한 미리보기예요. 확인 후 바로편집으로 이어가세요.`
+          : '샘플 데이터로 배치한 미리보기예요. 확인 후 바로편집으로 이어가세요.',
+        extraHtml: previewSvg ? tableHtml : '',
+        editHref: embedMode ? '#' : editHref,
+        editLabel: embedMode ? '편집기에 적용' : '바로편집',
+        onEdit: () => applyTemplate(template),
+      });
+    };
+
     const openTpl = () => {
       if (dataset && !template.url) {
-        applyTemplate(template);
+        openDataPreview();
         return;
       }
       openLightbox({
@@ -601,10 +759,10 @@ window.LabelUpLabiChat = {
           : '완성된 라벨 디자인이에요. 바로편집으로 이어가 보세요.',
         editHref: embedMode ? '#' : editHref,
         editLabel: embedMode ? '편집기에 적용' : '바로편집',
-        onEdit: embedMode ? () => applyTemplate(template) : null,
+        onEdit: () => applyTemplate(template),
       });
     };
-    if (!dataset || template.url) media.addEventListener('click', openTpl);
+    media.addEventListener('click', openTpl);
 
     const body = document.createElement('div');
     body.className = 'ai-clip-body';
@@ -614,19 +772,17 @@ window.LabelUpLabiChat = {
       <span class="ai-clip-badge">${dataset ? '데이터 템플릿' : '템플릿 생성'}</span>
       <strong>${escapeHtml(template.title || '라비가 만든 라벨 템플릿')}</strong>
       <span>${escapeHtml(dataset
-        ? `${spec ? `${spec} · ` : ''}${rowCount}행 데이터셋과 자료 연결을 준비했어요`
-        : (spec ? `${spec} 라벨 템플릿을 준비했어요` : '편집기에서 바로 이어갈 수 있어요'))}</span>
+        ? `${paperLine ? `${paperLine} · ` : ''}${rowCount}행 · 미리보기 후 편집`
+        : (paperLine ? `${paperLine} 라벨 템플릿을 준비했어요` : (spec ? `${spec} 라벨 템플릿을 준비했어요` : '편집기에서 바로 이어갈 수 있어요')))}</span>
       ${dataset ? `<div class="ai-data-cols">${chips}${extra}</div>` : ''}`;
     const actions = document.createElement('div');
     actions.className = 'ai-rec-actions';
-    if (!dataset || template.url) {
-      const enlarge = document.createElement('button');
-      enlarge.type = 'button';
-      enlarge.className = 'ai-rec-btn ai-rec-btn--ghost';
-      enlarge.textContent = '확대보기';
-      enlarge.addEventListener('click', openTpl);
-      actions.appendChild(enlarge);
-    }
+    const enlarge = document.createElement('button');
+    enlarge.type = 'button';
+    enlarge.className = 'ai-rec-btn ai-rec-btn--ghost';
+    enlarge.textContent = dataset && !template.url ? '미리보기' : '확대보기';
+    enlarge.addEventListener('click', openTpl);
+    actions.appendChild(enlarge);
     const editLink = document.createElement(embedMode ? 'button' : 'a');
     editLink.type = embedMode ? 'button' : undefined;
     editLink.className = 'ai-rec-btn ai-rec-btn--edit';
@@ -725,11 +881,45 @@ window.LabelUpLabiChat = {
     if (extras.vendor) {
       body.appendChild(buildVendorCard(extras.vendor));
     }
+    if (extras.usage) {
+      const meta = buildUsageMeta(extras.usage);
+      if (meta) body.appendChild(meta);
+    }
 
     item.appendChild(avatar);
     item.appendChild(body);
     chatLog.appendChild(item);
     chatLog.scrollTop = chatLog.scrollHeight;
+  }
+
+  function buildUsageMeta(usage) {
+    if (!usage || typeof usage !== 'object') return null;
+    const tokens = Number(usage.total_tokens || 0);
+    const krw = Number(usage.krw || 0);
+    const agent = String(usage.agent_label || usage.agent || '').trim();
+    const model = String(usage.model || (Array.isArray(usage.models) ? usage.models[0] : '') || '').trim();
+    const images = Number(usage.image_count || 0);
+    const diff = String(usage.difficulty_label || '').trim();
+    if (tokens <= 0 && images <= 0 && krw <= 0 && !agent && !model) return null;
+
+    const el = document.createElement('div');
+    el.className = 'ai-chat-meta';
+    el.setAttribute('title', usage.currency_note || '추정 비용');
+
+    const bits = [];
+    if (agent) bits.push(`<span>${escapeHtml(agent)}</span>`);
+    if (model) bits.push(`<span>${escapeHtml(model)}</span>`);
+    if (diff) bits.push(`<span>${escapeHtml(diff)}</span>`);
+    if (tokens > 0) bits.push(`<span>토큰 ${tokens.toLocaleString('ko-KR')}</span>`);
+    if (images > 0) bits.push(`<span>이미지 ${images}</span>`);
+    bits.push(`<span class="ai-chat-meta__cost">약 ${krw.toLocaleString('ko-KR')}원</span>`);
+
+    el.innerHTML = `
+      <span class="ai-chat-meta__head">AI 사용</span>
+      <span class="ai-chat-meta__sep" aria-hidden="true">·</span>
+      ${bits.join('<span class="ai-chat-meta__sep" aria-hidden="true">·</span>')}
+    `;
+    return el;
   }
 
   function isClipartRequest(text) {
@@ -1038,11 +1228,12 @@ window.LabelUpLabiChat = {
         clipart: payload.clipart || null,
         template: payload.template || null,
         choices: payload.choices || null,
+        usage: payload.usage || null,
       });
       history.push({ role: 'assistant', content: reply });
       if (payload.template && payload.template.dataset) {
         compactOfficeHistory();
-        stashPendingDocument(payload.template);
+        void stashPendingDocument(payload.template);
       }
     } catch (err) {
       removeTyping(typing);
@@ -1231,7 +1422,6 @@ window.LabelUpLabiChat = {
   async function loadExamplePrompts() {
     if (Array.isArray(cfg.examplePrompts) && cfg.examplePrompts.length) {
       renderExamplePrompts(cfg.examplePrompts);
-      return;
     }
     const url = cfg.examplePromptsUrl || `/api/ai/example-prompts?surface=${encodeURIComponent(surface)}`;
     try {
@@ -1239,7 +1429,7 @@ window.LabelUpLabiChat = {
       const data = await res.json().catch(() => ({}));
       const items = data && data.data && Array.isArray(data.data.items) ? data.data.items : [];
       if (items.length) renderExamplePrompts(items);
-    } catch (e) { /* keep SSR chips */ }
+    } catch (e) { /* keep SSR / fallback chips */ }
   }
 
   await loadExamplePrompts();
