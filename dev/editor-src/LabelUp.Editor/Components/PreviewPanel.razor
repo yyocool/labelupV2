@@ -123,7 +123,7 @@
     private async Task RebuildThumbsDeferred(bool force)
     {
         var seq = ++_thumbSeq;
-        await Task.Yield();
+        await Task.Delay(1);
         if (seq != _thumbSeq) return;
         RebuildThumbs(force);
         await InvokeAsync(StateHasChanged);

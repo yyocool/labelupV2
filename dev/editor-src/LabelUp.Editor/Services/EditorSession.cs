@@ -381,6 +381,75 @@ public sealed class EditorSession
         Notify();
     }
 
+    public void BringSelectionForward() => NudgeSelectionInStack(1);
+
+    public void SendSelectionBackward() => NudgeSelectionInStack(-1);
+
+    /// <summary>Swap selected object(s) with the next neighbor in visual stack order, then rewrite 1..n z-index.</summary>
+    private void NudgeSelectionInStack(int direction)
+    {
+        var objects = CurrentCell.Objects;
+        if (objects.Count < 2 || SelectedIds.Count == 0) return;
+
+        var stack = objects
+            .Select((o, i) => (o, i))
+            .OrderBy(t => t.o.ZIndex)
+            .ThenBy(t => t.i)
+            .Select(t => t.o)
+            .ToList();
+        var selected = new HashSet<string>(SelectedIds, StringComparer.Ordinal);
+        var indexes = new List<int>();
+        for (var i = 0; i < stack.Count; i++)
+        {
+            if (selected.Contains(stack[i].Id))
+                indexes.Add(i);
+        }
+        if (indexes.Count == 0) return;
+
+        if (direction > 0)
+        {
+            var top = indexes[indexes.Count - 1];
+            if (top >= stack.Count - 1) return;
+            if (indexes.Count == 1)
+            {
+                var swap = stack[top];
+                stack[top] = stack[top + 1];
+                stack[top + 1] = swap;
+            }
+            else
+            {
+                var neighbor = stack[top + 1];
+                stack.RemoveAt(top + 1);
+                stack.Insert(indexes[0], neighbor);
+            }
+        }
+        else
+        {
+            var bottom = indexes[0];
+            if (bottom <= 0) return;
+            if (indexes.Count == 1)
+            {
+                var swap = stack[bottom];
+                stack[bottom] = stack[bottom - 1];
+                stack[bottom - 1] = swap;
+            }
+            else
+            {
+                var neighbor = stack[bottom - 1];
+                stack.RemoveAt(bottom - 1);
+                stack.Insert(indexes[indexes.Count - 1], neighbor);
+            }
+        }
+
+        for (var i = 0; i < stack.Count; i++)
+            stack[i].ZIndex = i + 1;
+        objects.Clear();
+        objects.AddRange(stack);
+        Dirty = true;
+        Status = direction > 0 ? "한 단계 앞으로" : "한 단계 뒤로";
+        Notify();
+    }
+
     public void SetZoom(float zoom)
     {
         Zoom = Math.Clamp(zoom, MinZoom, MaxZoom);

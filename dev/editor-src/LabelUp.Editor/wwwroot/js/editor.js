@@ -14,6 +14,7 @@ window.labelUpEditor = {
     return { w: w, h: h, x: x, y: y };
   },
   bindCanvasStage: function (el, dotnet) {
+    if (dotnet) this._canvasHost = dotnet;
     if (!el || el._luStageBound) return;
     el._luStageBound = true;
     var apply = function () {
@@ -698,6 +699,1192 @@ window.labelUpEditor = {
   setAutoSave: function (on) {
     try { localStorage.setItem('labelup.autosave', on ? '1' : '0'); } catch (e) { /* ignore */ }
   },
+  bindZoomSlider: function () {
+    if (this._zoomSliderBound) return;
+    this._zoomSliderBound = true;
+    var MIN = 25;
+    var MAX = 800;
+    var dragging = false;
+
+    function readPct(box) {
+      var span = box.querySelector('.ed-zoom__pct') || box.querySelector('span');
+      var n = parseFloat(((span && span.textContent) || '').replace(/[^\d.]/g, ''));
+      return isFinite(n) ? n : 100;
+    }
+
+    function applyZoom(percent, end) {
+      var host = window.labelUpEditor._canvasHost;
+      var zoom = Math.max(0.25, Math.min(8, percent / 100));
+      if (!host) return;
+      Promise.resolve(host.invokeMethodAsync('GetViewState')).then(function (st) {
+        var panX = st && st.length > 1 ? Number(st[1]) || 0 : 0;
+        var panY = st && st.length > 2 ? Number(st[2]) || 0 : 0;
+        return host.invokeMethodAsync('OnGestureZoomPan', zoom, panX, panY).then(function () {
+          if (end) return host.invokeMethodAsync('OnGestureEnd');
+        });
+      }).catch(function () { /* ignore */ });
+    }
+
+    function enhance(box) {
+      if (!box || box.querySelector('.ed-zoom__slider')) return;
+      var span = box.querySelector('span');
+      if (span) span.classList.add('ed-zoom__pct');
+      var wrap = document.createElement('div');
+      wrap.className = 'ed-zoom__slider-wrap';
+      var input = document.createElement('input');
+      input.type = 'range';
+      input.className = 'ed-zoom__slider';
+      input.min = String(MIN);
+      input.max = String(MAX);
+      input.step = '1';
+      input.setAttribute('aria-label', '확대/축소');
+      input.value = String(Math.round(Math.max(MIN, Math.min(MAX, readPct(box)))));
+      wrap.appendChild(input);
+      box.insertBefore(wrap, span || null);
+
+      input.addEventListener('pointerdown', function () { dragging = true; });
+      input.addEventListener('input', function () {
+        dragging = true;
+        var pct = Number(input.value);
+        if (span) span.textContent = Math.round(pct) + '%';
+        applyZoom(pct, false);
+      });
+      function finish() {
+        var pct = Number(input.value);
+        if (span) span.textContent = Math.round(pct) + '%';
+        applyZoom(pct, true);
+        dragging = false;
+      }
+      input.addEventListener('change', finish);
+      input.addEventListener('pointerup', finish);
+      input.addEventListener('pointercancel', finish);
+    }
+
+    function sync() {
+      var box = document.querySelector('.ed-zoom');
+      if (!box) return;
+      enhance(box);
+      if (dragging) return;
+      var input = box.querySelector('.ed-zoom__slider');
+      if (!input || document.activeElement === input) return;
+      input.value = String(Math.round(Math.max(MIN, Math.min(MAX, readPct(box)))));
+    }
+
+    var mo = new MutationObserver(sync);
+    var start = function () {
+      sync();
+      var root = document.querySelector('.ed-topbar') || document.body;
+      mo.observe(root, { subtree: true, childList: true, characterData: true });
+    };
+    if (document.querySelector('.ed-zoom')) start();
+    else {
+      var wait = new MutationObserver(function () {
+        if (document.querySelector('.ed-zoom')) {
+          wait.disconnect();
+          start();
+        }
+      });
+      wait.observe(document.documentElement, { childList: true, subtree: true });
+    }
+  },
+  bindTutorialDock: function () {
+    if (this._tutorialDockBound) return;
+    this._tutorialDockBound = true;
+    var pickLast = function (sel) {
+      var all = document.querySelectorAll(sel);
+      if (!all.length) return null;
+      var keep = all[all.length - 1];
+      all.forEach(function (b) { if (b !== keep) b.remove(); });
+      return keep;
+    };
+    var asItem = function (btn) {
+      if (!btn) return;
+      btn.classList.add('ed-float-tools__item');
+      var span = btn.querySelector('span:not(.ed-float-tools__ico)');
+      if (span) span.classList.add('ed-float-tools__label');
+      var img = btn.querySelector('img');
+      if (img && !img.closest('.ed-float-tools__ico')) {
+        var wrap = document.createElement('span');
+        wrap.className = 'ed-float-tools__ico';
+        wrap.setAttribute('aria-hidden', 'true');
+        img.parentNode.insertBefore(wrap, img);
+        wrap.appendChild(img);
+      }
+      var svg = btn.querySelector('svg.ed-corner-fab__ico');
+      if (svg) svg.classList.add('ed-float-tools__ico');
+    };
+    var formatTut = function (btn) {
+      if (!btn) return;
+      btn.classList.add('ed-float-tools__item');
+      if (btn.querySelector('.ed-float-tools__label')) return;
+      btn.textContent = '';
+      var ico = document.createElement('span');
+      ico.className = 'ed-float-tools__ico';
+      ico.setAttribute('aria-hidden', 'true');
+      ico.textContent = '✦';
+      var lab = document.createElement('span');
+      lab.className = 'ed-float-tools__label';
+      lab.textContent = '튜토리얼';
+      btn.appendChild(ico);
+      btn.appendChild(lab);
+      btn.setAttribute('title', '튜토리얼 다시 보기');
+    };
+    var dock = function () {
+      var bar = document.querySelector('.ed-float-tools__bar');
+      if (!bar) return;
+      var labi = pickLast('.ed-corner-fab--labi');
+      var vendor = pickLast('.ed-corner-fab--vendor');
+      var tut = pickLast('.ed-tut-reopen');
+      asItem(labi);
+      asItem(vendor);
+      formatTut(tut);
+      var desired = [labi, vendor, tut].filter(Boolean);
+      if (!desired.length) return;
+      var ok = desired.every(function (el, i) {
+        return el.parentElement === bar &&
+          (i === 0 || desired[i - 1].nextElementSibling === el) &&
+          bar.lastElementChild === desired[desired.length - 1];
+      });
+      if (!ok) desired.forEach(function (el) { bar.appendChild(el); });
+    };
+    var mo = new MutationObserver(dock);
+    var start = function () {
+      dock();
+      mo.observe(document.body, { childList: true, subtree: true });
+    };
+    if (document.querySelector('.ed-float-tools__bar')) start();
+    else {
+      var wait = new MutationObserver(function () {
+        if (document.querySelector('.ed-float-tools__bar')) {
+          wait.disconnect();
+          start();
+        }
+      });
+      wait.observe(document.documentElement, { childList: true, subtree: true });
+    }
+  },
+  ensureLayerOps: function () {
+    if (this._layerOps) return this._layerOps;
+    var wait = function (ms) {
+      return new Promise(function (resolve) { setTimeout(resolve, ms); });
+    };
+    var tabByName = function (name) {
+      var tabs = document.querySelectorAll('.ed-props__tab');
+      for (var i = 0; i < tabs.length; i++) {
+        if ((tabs[i].textContent || '').replace(/\s+/g, '') === name) return tabs[i];
+      }
+      return null;
+    };
+    var showTab = async function (name) {
+      var tab = tabByName(name);
+      if (tab && !tab.classList.contains('is-active')) {
+        tab.click();
+        await wait(80);
+      }
+      return tab;
+    };
+    var expandProps = async function () {
+      var panel = document.querySelector('[data-ed-props-panel]');
+      if (panel && panel.classList.contains('is-minimized')) {
+        var min = panel.querySelector('.ed-props__min');
+        if (min) min.click();
+        await wait(60);
+      }
+    };
+    var readZ = function (el) {
+      var em = el && el.querySelector ? el.querySelector('em') : null;
+      var m = ((em && em.textContent) || '').match(/-?\d+/);
+      return m ? parseInt(m[0], 10) : 0;
+    };
+    var layerRows = function () {
+      return Array.prototype.slice.call(document.querySelectorAll('[data-ed-props-panel] .ed-layer-item')).map(function (el) {
+        var nameEl = el.querySelector('span:nth-child(2)');
+        return {
+          el: el,
+          z: readZ(el),
+          active: el.classList.contains('is-active'),
+          name: ((nameEl && nameEl.textContent) || '').trim(),
+          key: (el.textContent || '').replace(/\s+/g, ' ').trim()
+        };
+      });
+    };
+    var freezeEl = null;
+    var freezePanel = null;
+    var startFreeze = function (order) {
+      stopFreeze();
+      var panel = document.querySelector('[data-ed-props-panel]');
+      var inner = panel && panel.querySelector('.ed-props__inner');
+      var list = panel && panel.querySelector('.ed-props__layers');
+      var src = inner || panel;
+      if (!src) return;
+      freezePanel = panel;
+      var box = src.getBoundingClientRect();
+      if (panel) {
+        var pb = panel.getBoundingClientRect();
+        panel.style.width = pb.width + 'px';
+        panel.style.height = pb.height + 'px';
+        panel.style.maxHeight = pb.height + 'px';
+        panel.style.overflow = 'hidden';
+      }
+      document.documentElement.classList.add('lu-layer-applying');
+      freezeEl = document.createElement('div');
+      freezeEl.id = 'lu-layer-freeze';
+      freezeEl.className = 'ed-layer-freeze';
+      freezeEl.setAttribute('aria-hidden', 'true');
+      freezeEl.style.top = box.top + 'px';
+      freezeEl.style.left = box.left + 'px';
+      freezeEl.style.width = box.width + 'px';
+      freezeEl.style.height = box.height + 'px';
+      var tabs = panel && panel.querySelector('.ed-props__tabs');
+      if (tabs) {
+        var t = tabs.cloneNode(true);
+        Array.prototype.forEach.call(t.querySelectorAll('.ed-props__tab'), function (b) {
+          b.classList.toggle('is-active', (b.textContent || '').replace(/\s+/g, '') === '레이어');
+        });
+        freezeEl.appendChild(t);
+      }
+      var body = document.createElement('div');
+      body.className = 'ed-layer-freeze__list';
+      var items = list ? Array.prototype.slice.call(list.querySelectorAll('.ed-layer-item')) : [];
+      var pick = function (name) {
+        for (var i = 0; i < items.length; i++) {
+          var n = ((items[i].querySelector('span:nth-child(2)') || {}).textContent || '').trim();
+          if (n === name) return items[i];
+        }
+        return null;
+      };
+      if (order && order.length) {
+        order.forEach(function (info) {
+          var match = pick(info.name);
+          if (match) body.appendChild(match.cloneNode(true));
+        });
+      } else {
+        items.forEach(function (el) { body.appendChild(el.cloneNode(true)); });
+      }
+      freezeEl.appendChild(body);
+      document.body.appendChild(freezeEl);
+    };
+    var stopFreeze = function () {
+      document.documentElement.classList.remove('lu-layer-applying');
+      if (freezeEl) {
+        freezeEl.remove();
+        freezeEl = null;
+      }
+      if (freezePanel) {
+        freezePanel.style.width = '';
+        freezePanel.style.height = '';
+        freezePanel.style.maxHeight = '';
+        freezePanel.style.overflow = '';
+        freezePanel = null;
+      }
+    };
+    var findZInput = function () {
+      var labels = document.querySelectorAll('[data-ed-props-panel] .ed-field');
+      for (var i = 0; i < labels.length; i++) {
+        if (((labels[i].textContent || '').indexOf('Z-Index') === -1)) continue;
+        var input = labels[i].querySelector('input[type="number"]');
+        if (input) return input;
+      }
+      return null;
+    };
+    var setSelectedZ = async function (z) {
+      await showTab('속성');
+      var input = findZInput();
+      if (!input) return false;
+      var desc = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
+      if (desc && desc.set) desc.set.call(input, String(z));
+      else input.value = String(z);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      await wait(90);
+      return true;
+    };
+    var findRow = function (pred) {
+      var rows = layerRows();
+      for (var i = 0; i < rows.length; i++) if (pred(rows[i], i)) return rows[i];
+      return null;
+    };
+    var selectRow = async function (pred) {
+      await showTab('레이어');
+      var hit = findRow(pred);
+      if (!hit) return null;
+      hit.el.click();
+      await wait(430);
+      return hit;
+    };
+    this._layerOps = {
+      wait: wait,
+      showTab: showTab,
+      expandProps: expandProps,
+      readZ: readZ,
+      layerRows: layerRows,
+      setSelectedZ: setSelectedZ,
+      findRow: findRow,
+      selectRow: selectRow,
+      startFreeze: startFreeze,
+      stopFreeze: stopFreeze
+    };
+    return this._layerOps;
+  },
+  bindLayerNudge: function () {
+    if (this._layerNudgeBound) return;
+    this._layerNudgeBound = true;
+    var self = this;
+    var ops = this.ensureLayerOps();
+    var clickLayerByZ = async function (z, preferInactive) {
+      var hit = await ops.selectRow(function (row) {
+        if (row.z !== z) return false;
+        if (preferInactive && row.active) return false;
+        return true;
+      });
+      if (hit) return true;
+      hit = await ops.selectRow(function (row) { return row.z === z; });
+      return !!hit;
+    };
+    var nudge = async function (forward) {
+      if (self._layerBusy) return;
+      var bar = document.querySelector('.ed-float-bar');
+      if (bar && bar.querySelector('button[disabled][title="' + (forward ? '앞으로' : '뒤로') + '"]')) return;
+      self._layerBusy = true;
+      try {
+        await ops.expandProps();
+        var prevTab = document.querySelector('.ed-props__tab.is-active');
+        var prevName = prevTab ? (prevTab.textContent || '').replace(/\s+/g, '') : '속성';
+        await ops.showTab('레이어');
+        var rows = ops.layerRows();
+        if (rows.length < 2) return;
+        var actives = [];
+        for (var i = 0; i < rows.length; i++) if (rows[i].active) actives.push(i);
+        if (!actives.length) return;
+        var edge = forward ? actives[0] : actives[actives.length - 1];
+        var neighbor = forward ? edge - 1 : edge + 1;
+        if (neighbor < 0 || neighbor >= rows.length) return;
+        var selZ = rows[edge].z;
+        var neiZ = rows[neighbor].z;
+        var preview = rows.map(function (r) { return { name: r.name, z: r.z }; });
+        var tmp = preview[edge];
+        preview[edge] = preview[neighbor];
+        preview[neighbor] = tmp;
+        ops.startFreeze(preview);
+        rows[edge].el.click();
+        await ops.wait(430);
+        var temp = 100000 + Math.abs(selZ) + Math.abs(neiZ);
+        if (!await ops.setSelectedZ(temp)) return;
+        if (!await clickLayerByZ(neiZ, true)) return;
+        if (!await ops.setSelectedZ(selZ)) return;
+        if (!await clickLayerByZ(temp, false)) return;
+        if (!await ops.setSelectedZ(neiZ === selZ ? (selZ + (forward ? 1 : -1)) : neiZ)) return;
+        await ops.showTab(prevName === '레이어' ? '레이어' : '속성');
+      } finally {
+        ops.stopFreeze();
+        self._layerBusy = false;
+      }
+    };
+    document.addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest && e.target.closest('.ed-float-bar button');
+      if (!btn) return;
+      var title = btn.getAttribute('title') || '';
+      if (title !== '앞으로' && title !== '뒤로') return;
+      if (btn.disabled) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      nudge(title === '앞으로');
+    }, true);
+  },
+  bindLayerDrag: function () {
+    if (this._layerDragBound) return;
+    this._layerDragBound = true;
+    var self = this;
+    var ops = this.ensureLayerOps();
+    var drag = null;
+    var line = null;
+    var THRESH = 6;
+
+    var ensureLine = function () {
+      if (line && line.isConnected) return line;
+      line = document.createElement('div');
+      line.className = 'ed-layer-drop';
+      line.hidden = true;
+      document.body.appendChild(line);
+      return line;
+    };
+    var listEl = function () {
+      return document.querySelector('.ed-props__layers');
+    };
+    var decorate = function () {
+      var list = listEl();
+      if (!list) return;
+      list.setAttribute('data-lu-layer-sort', '1');
+      if (!list.getAttribute('title'))
+        list.setAttribute('title', '드래그해서 레이어 순서를 바꿀 수 있습니다');
+    };
+    var dropIndexAt = function (clientY, from) {
+      var items = Array.prototype.slice.call(document.querySelectorAll('.ed-props__layers > .ed-layer-item'));
+      if (!items.length) return from;
+      var others = items.filter(function (_, i) { return i !== from; });
+      var to = others.length;
+      for (var i = 0; i < others.length; i++) {
+        var r = others[i].getBoundingClientRect();
+        if (clientY < r.top + r.height / 2) { to = i; break; }
+      }
+      return to;
+    };
+    var placeLine = function (to, from) {
+      var list = listEl();
+      var items = Array.prototype.slice.call(document.querySelectorAll('.ed-props__layers > .ed-layer-item'));
+      if (!list || !items.length) return;
+      var others = items.filter(function (_, i) { return i !== from; });
+      var marker = ensureLine();
+      var box = list.getBoundingClientRect();
+      var y;
+      if (!others.length) y = box.top + 8;
+      else if (to <= 0) y = others[0].getBoundingClientRect().top;
+      else if (to >= others.length) y = others[others.length - 1].getBoundingClientRect().bottom;
+      else y = others[to].getBoundingClientRect().top;
+      marker.style.top = (y - 1) + 'px';
+      marker.style.left = (box.left + 10) + 'px';
+      marker.style.width = Math.max(40, box.width - 20) + 'px';
+      marker.hidden = false;
+    };
+    var applyMove = async function (from, to, snapshot) {
+      if (from === to) return;
+      var order = snapshot.slice();
+      var moved = order.splice(from, 1)[0];
+      order.splice(to, 0, moved);
+      var above = to > 0 ? order[to - 1] : null;
+      var below = to < order.length - 1 ? order[to + 1] : null;
+      var others = order.filter(function (r) { return r !== moved; });
+      var target = null;
+      var useShift = false;
+      if (!above) target = Math.max.apply(null, others.map(function (r) { return r.z; })) + 1;
+      else if (!below) target = Math.min.apply(null, others.map(function (r) { return r.z; })) - 1;
+      else if (above.z - below.z >= 2) target = below.z + 1;
+      else useShift = true;
+      ops.startFreeze(order);
+      try {
+        if (useShift) {
+          var oldAbove = above.z;
+          var prefix = order.slice(0, to);
+          if (!await ops.selectRow(function (row) { return row.name === moved.name && row.z === moved.z; })) return;
+          if (!await ops.setSelectedZ(100000)) return;
+          for (var i = 0; i < prefix.length; i++) {
+            var p = prefix[i];
+            if (!await ops.selectRow(function (row) { return row.name === p.name && row.z === p.z; })) return;
+            if (!await ops.setSelectedZ(p.z + 1)) return;
+            p.z += 1;
+          }
+          if (!await ops.selectRow(function (row) { return row.z === 100000; })) return;
+          await ops.setSelectedZ(oldAbove);
+        } else if (target !== moved.z) {
+          if (!await ops.selectRow(function (row) { return row.name === moved.name && row.z === moved.z; })) {
+            if (!await ops.selectRow(function (row) { return row.active; })) return;
+          }
+          await ops.setSelectedZ(target);
+        }
+        await ops.showTab('레이어');
+      } finally {
+        ops.stopFreeze();
+      }
+    };
+
+    document.addEventListener('pointerdown', function (e) {
+      if (e.button !== 0 || self._layerBusy) return;
+      var item = e.target && e.target.closest && e.target.closest('.ed-props__layers > .ed-layer-item');
+      if (!item) return;
+      var items = Array.prototype.slice.call(document.querySelectorAll('.ed-props__layers > .ed-layer-item'));
+      if (items.length < 2) return;
+      var from = items.indexOf(item);
+      if (from < 0) return;
+      drag = {
+        item: item,
+        from: from,
+        to: from,
+        startX: e.clientX,
+        startY: e.clientY,
+        dragging: false,
+        snapshot: ops.layerRows().map(function (r) { return { name: r.name, z: r.z }; })
+      };
+    }, true);
+
+    document.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      var dx = e.clientX - drag.startX;
+      var dy = e.clientY - drag.startY;
+      if (!drag.dragging) {
+        if (Math.abs(dx) < THRESH && Math.abs(dy) < THRESH) return;
+        drag.dragging = true;
+        drag.item.classList.add('is-dragging');
+        var list = listEl();
+        if (list) list.classList.add('is-reordering');
+        try { drag.item.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      }
+      e.preventDefault();
+      drag.to = dropIndexAt(e.clientY, drag.from);
+      placeLine(drag.to, drag.from);
+    }, true);
+
+    document.addEventListener('pointerup', function (e) {
+      if (!drag) return;
+      var s = drag;
+      drag = null;
+      s.item.classList.remove('is-dragging');
+      var list = listEl();
+      if (list) list.classList.remove('is-reordering');
+      if (line) line.hidden = true;
+      if (!s.dragging) return;
+      e.preventDefault();
+      s.item.setAttribute('data-lu-dragged', '1');
+      if (s.to === s.from || self._layerBusy) return;
+      self._layerBusy = true;
+      applyMove(s.from, s.to, s.snapshot).finally(function () {
+        self._layerBusy = false;
+      });
+    }, true);
+
+    document.addEventListener('click', function (e) {
+      var item = e.target && e.target.closest && e.target.closest('.ed-layer-item');
+      if (!item || item.getAttribute('data-lu-dragged') !== '1') return;
+      item.removeAttribute('data-lu-dragged');
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }, true);
+
+    var mo = new MutationObserver(decorate);
+    var start = function () {
+      decorate();
+      var root = document.querySelector('[data-ed-props-panel]') || document.body;
+      mo.observe(root, { childList: true, subtree: true });
+    };
+    if (document.querySelector('[data-ed-props-panel]')) start();
+    else {
+      var waitMo = new MutationObserver(function () {
+        if (document.querySelector('[data-ed-props-panel]')) {
+          waitMo.disconnect();
+          start();
+        }
+      });
+      waitMo.observe(document.documentElement, { childList: true, subtree: true });
+    }
+  },
+  bindCanvaToolbar: function () {
+    if (this._canvaToolbarBound) return;
+    this._canvaToolbarBound = true;
+    var ops = this.ensureLayerOps();
+    var busy = false;
+    var populating = false;
+    var lastKey = '';
+
+    var hasSelection = function () {
+      var bar = document.querySelector('.ed-float-bar');
+      if (bar) {
+        var btns = bar.querySelectorAll('button');
+        for (var i = 0; i < btns.length; i++) {
+          if (!btns[i].disabled) return true;
+        }
+      }
+      return !!document.querySelector('.ed-layer-item.is-active');
+    };
+    var activeTab = function () {
+      var t = document.querySelector('[data-ed-props-panel] .ed-props__tab.is-active');
+      return t ? (t.textContent || '').replace(/\s+/g, '') : '';
+    };
+    var tabByName = function (name) {
+      var tabs = document.querySelectorAll('.ed-props__tab');
+      for (var i = 0; i < tabs.length; i++) {
+        if ((tabs[i].textContent || '').replace(/\s+/g, '') === name) return tabs[i];
+      }
+      return null;
+    };
+    var showPropsFields = async function () {
+      var panel = document.querySelector('[data-ed-props-panel]');
+      if (!panel) return false;
+      if (panel.classList.contains('is-minimized')) {
+        var min = panel.querySelector('.ed-props__min');
+        if (min) min.click();
+        await ops.wait(40);
+      }
+      var tab = tabByName('속성');
+      var tabs = document.querySelector('.ed-props__tabs');
+      if (tab) {
+        if (tabs) tabs.style.setProperty('display', 'flex', 'important');
+        tab.style.setProperty('display', 'inline-block', 'important');
+        if (!tab.classList.contains('is-active')) {
+          tab.click();
+          await ops.wait(140);
+        }
+        tab.style.removeProperty('display');
+        if (tabs) tabs.style.removeProperty('display');
+      }
+      return !!document.querySelector('[data-ed-props-panel] .ed-props__body:not(.ed-props__layers)');
+    };
+    var groupByLabel = function (re) {
+      var groups = document.querySelectorAll('[data-ed-props-panel] .ed-field-group');
+      for (var i = 0; i < groups.length; i++) {
+        var lab = groups[i].querySelector('.ed-field-label');
+        if (re.test(((lab && lab.textContent) || '').replace(/\s+/g, ''))) return groups[i];
+      }
+      return null;
+    };
+    var fieldLabel = function (el) {
+      var parts = [];
+      if (!el) return '';
+      for (var n = el.firstChild; n; n = n.nextSibling) {
+        if (n.nodeType === 3) {
+          parts.push(n.textContent);
+          continue;
+        }
+        if (n.nodeType === 1 && n.tagName === 'SPAN') {
+          parts.push(n.textContent);
+          continue;
+        }
+        break;
+      }
+      return parts.join('').replace(/\s+/g, '');
+    };
+    var fieldByText = function (re, root) {
+      var fields = root && root.querySelectorAll
+        ? root.querySelectorAll('.ed-field')
+        : document.querySelectorAll('[data-ed-props-panel] .ed-field');
+      for (var i = 0; i < fields.length; i++) {
+        var t = fieldLabel(fields[i]) || (fields[i].textContent || '').replace(/\s+/g, '');
+        if (re.test(t)) return fields[i];
+      }
+      return null;
+    };
+    var setValue = function (el, value) {
+      if (!el) return;
+      var proto = el.tagName === 'SELECT' ? window.HTMLSelectElement.prototype : window.HTMLInputElement.prototype;
+      var desc = Object.getOwnPropertyDescriptor(proto, 'value');
+      if (desc && desc.set) desc.set.call(el, String(value));
+      else el.value = String(value);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    var clickFloat = function (name) {
+      var btns = document.querySelectorAll('.ed-float-bar button');
+      for (var i = 0; i < btns.length; i++) {
+        var t = (btns[i].getAttribute('title') || '') + (btns[i].textContent || '');
+        if (t.indexOf(name) !== -1 && !btns[i].disabled) {
+          btns[i].click();
+          return;
+        }
+      }
+    };
+    var fillColor = function () {
+      var g = groupByLabel(/^채우기$/);
+      return g ? g.querySelector('input[type="color"]') : null;
+    };
+    var strokeColor = function () {
+      var g = groupByLabel(/^(선|프레임)$/);
+      return g ? g.querySelector('input[type="color"]') : null;
+    };
+    var strokeWidth = function () {
+      var f = fieldByText(/^굵기/);
+      return f ? f.querySelector('input[type="number"]') : null;
+    };
+    var fontSelect = function () {
+      var f = fieldByText(/^(폰트|글꼴)(?!크기)/);
+      if (f && f.querySelector('select')) return f.querySelector('select');
+      var g = groupByLabel(/텍스트/);
+      if (!g) return null;
+      var selects = g.querySelectorAll('select');
+      for (var i = 0; i < selects.length; i++) {
+        var host = selects[i].closest('.ed-field') || selects[i].parentElement;
+        var t = fieldLabel(host);
+        if (/표현|워드아트|종류|가로정렬|세로정렬/.test(t)) continue;
+        if (/폰트|글꼴/.test(t) || selects[i].options.length > 8) return selects[i];
+      }
+      return null;
+    };
+    var fontSize = function () {
+      var listed = document.querySelector('[data-ed-props-panel] input[list="ed-font-pt"], [data-ed-props-panel] input[list="ed-barcode-font-pt"]');
+      if (listed) return listed;
+      var g = groupByLabel(/텍스트/);
+      var f = fieldByText(/^(폰트크기|글자크기|크기\(pt\)|크기pt|크기)$/, g);
+      return f ? f.querySelector('input[type="number"]') : null;
+    };
+    var alignSelect = function () {
+      var f = fieldByText(/^가로정렬/);
+      return f ? f.querySelector('select') : null;
+    };
+    var opacityInput = function () {
+      var f = fieldByText(/^투명도/);
+      return f ? f.querySelector('input[type="number"]') : null;
+    };
+    var checkByText = function (re) {
+      var f = fieldByText(re);
+      return f ? f.querySelector('input[type="checkbox"]') : null;
+    };
+    var selectionKey = function () {
+      var row = document.querySelector('.ed-layer-item.is-active');
+      if (row) return (row.textContent || '').replace(/\s+/g, ' ').trim();
+      return hasSelection() ? '*' : '';
+    };
+    var withPropsFields = async function (fn) {
+      var onLayers = activeTab() !== '속성';
+      if (onLayers) ops.startFreeze();
+      try {
+        await showPropsFields();
+        await fn();
+      } finally {
+        await ops.showTab('레이어');
+        if (onLayers) ops.stopFreeze();
+      }
+    };
+
+    var ensureBar = function () {
+      var host = document.querySelector('[data-ed-workspace]') ||
+        document.querySelector('[data-ed-body]') ||
+        document.querySelector('[data-ed-root]');
+      if (!host) return null;
+      var bar = document.getElementById('lu-ctx-bar');
+      if (bar) return bar;
+      bar = document.createElement('div');
+      bar.id = 'lu-ctx-bar';
+      bar.className = 'ed-ctx-bar';
+      bar.hidden = true;
+      bar.innerHTML =
+        '<div class="ed-ctx-bar__row">' +
+          '<span class="ed-ctx-bar__slot" data-slot="fill">' +
+            '<input type="color" data-act="fill" title="채우기" />' +
+          '</span>' +
+          '<span class="ed-ctx-bar__slot" data-slot="stroke">' +
+            '<input type="color" data-act="stroke" title="선 색" />' +
+            '<input type="number" data-act="sw" min="0" step="0.05" title="선 굵기" />' +
+          '</span>' +
+          '<span class="ed-ctx-bar__div" data-slot="color-div"></span>' +
+          '<span class="ed-ctx-bar__slot" data-slot="font">' +
+            '<select data-act="font" title="글꼴"></select>' +
+            '<input type="number" data-act="fs" min="4" max="200" step="0.5" title="크기" />' +
+            '<button type="button" data-act="bold" title="굵게">B</button>' +
+            '<button type="button" data-act="italic" title="기울임"><i>I</i></button>' +
+            '<button type="button" data-act="underline" title="밑줄"><u>U</u></button>' +
+            '<button type="button" data-act="align-left" title="왼쪽">좌</button>' +
+            '<button type="button" data-act="align-center" title="가운데">중</button>' +
+            '<button type="button" data-act="align-right" title="오른쪽">우</button>' +
+          '</span>' +
+          '<span class="ed-ctx-bar__div" data-slot="font-div"></span>' +
+          '<button type="button" data-act="flip">뒤집기</button>' +
+          '<span class="ed-ctx-bar__slot" data-slot="opacity">' +
+            '<input type="number" data-act="opacity" min="0" max="1" step="0.05" title="투명도" />' +
+          '</span>' +
+          '<button type="button" data-act="lock" title="잠금">잠금</button>' +
+          '<span class="ed-ctx-bar__div"></span>' +
+          '<button type="button" data-act="fwd">앞으로</button>' +
+          '<button type="button" data-act="back">뒤로</button>' +
+          '<button type="button" data-act="dup" title="복제">⧉</button>' +
+          '<button type="button" data-act="del" title="삭제">🗑</button>' +
+        '</div>';
+      host.appendChild(bar);
+      bar.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+      bar.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+      bar.addEventListener('click', function (e) {
+        var btn = e.target && e.target.closest ? e.target.closest('[data-act]') : null;
+        if (!btn || btn.tagName === 'INPUT' || btn.tagName === 'SELECT') return;
+        var act = btn.getAttribute('data-act');
+        if (act === 'fwd') return clickFloat('앞으로');
+        if (act === 'back') return clickFloat('뒤로');
+        if (act === 'dup') return clickFloat('복제');
+        if (act === 'del') return clickFloat('삭제');
+        withPropsFields(function () {
+          if (act.indexOf('align-') === 0) {
+            var map = { 'align-left': 'left', 'align-center': 'center', 'align-right': 'right' };
+            setValue(alignSelect(), map[act]);
+          } else {
+            var box = checkByText(act === 'bold' ? /^굵게$/ : act === 'italic' ? /^기울임$/ : act === 'underline' ? /^밑줄$/ : act === 'flip' ? /반전/ : /속성잠금|잠금/);
+            if (box) box.click();
+          }
+          populate(bar);
+        });
+      });
+      bar.addEventListener('change', function (e) {
+        var el = e.target;
+        if (!el || !el.getAttribute) return;
+        var act = el.getAttribute('data-act');
+        if (!act) return;
+        withPropsFields(function () {
+          if (act === 'font') setValue(fontSelect(), el.value);
+          else if (act === 'fill') setValue(fillColor(), el.value);
+          else if (act === 'stroke') setValue(strokeColor(), el.value);
+          else if (act === 'sw') setValue(strokeWidth(), el.value);
+          else if (act === 'fs') setValue(fontSize(), el.value);
+          else if (act === 'opacity') setValue(opacityInput(), el.value);
+          populate(bar);
+        });
+      });
+      return bar;
+    };
+    var toggleSlot = function (bar, name, on) {
+      var el = bar.querySelector('[data-slot="' + name + '"]');
+      if (el) el.hidden = !on;
+    };
+    var populate = function (bar) {
+      populating = true;
+      try {
+        var fc = fillColor();
+        var sc = strokeColor();
+        var sw = strokeWidth();
+        var fsSel = fontSelect();
+        var fs = fontSize();
+        var al = alignSelect();
+        var op = opacityInput();
+        var fillEl = bar.querySelector('[data-act="fill"]');
+        var strokeEl = bar.querySelector('[data-act="stroke"]');
+        var swEl = bar.querySelector('[data-act="sw"]');
+        var fontEl = bar.querySelector('[data-act="font"]');
+        var sizeEl = bar.querySelector('[data-act="fs"]');
+        var opEl = bar.querySelector('[data-act="opacity"]');
+        toggleSlot(bar, 'fill', !!fc);
+        toggleSlot(bar, 'stroke', !!(sc || sw));
+        toggleSlot(bar, 'color-div', !!(fc || sc || sw));
+        var hasText = !!(fsSel || fs || checkByText(/^굵게$/));
+        toggleSlot(bar, 'font', hasText);
+        toggleSlot(bar, 'font-div', hasText);
+        toggleSlot(bar, 'opacity', !!op);
+        if (fillEl && fc) fillEl.value = fc.value;
+        if (strokeEl && sc) strokeEl.value = sc.value;
+        if (swEl) {
+          swEl.hidden = !sw;
+          if (sw) swEl.value = sw.value;
+        }
+        if (fontEl) {
+          fontEl.hidden = !fsSel;
+          if (fsSel) {
+            fontEl.innerHTML = fsSel.innerHTML;
+            fontEl.value = fsSel.value;
+          }
+        }
+        if (sizeEl) {
+          sizeEl.hidden = !fs;
+          if (fs) sizeEl.value = fs.value;
+        }
+        if (opEl && op) opEl.value = op.value;
+        [['bold', /^굵게$/], ['italic', /^기울임$/], ['underline', /^밑줄$/], ['flip', /반전/], ['lock', /속성잠금|잠금/]].forEach(function (pair) {
+          var btn = bar.querySelector('[data-act="' + pair[0] + '"]');
+          var box = checkByText(pair[1]);
+          if (btn) {
+            btn.hidden = !box;
+            btn.classList.toggle('is-on', !!(box && box.checked));
+          }
+        });
+        ['left', 'center', 'right'].forEach(function (v) {
+          var btn = bar.querySelector('[data-act="align-' + v + '"]');
+          if (btn) {
+            btn.hidden = !al;
+            btn.classList.toggle('is-on', !!(al && al.value === v));
+          }
+        });
+      } finally {
+        populating = false;
+      }
+    };
+
+    var sync = async function () {
+      if (document.documentElement.classList.contains('lu-layer-applying')) return;
+      var bar = ensureBar();
+      if (!bar) return;
+      var panel = document.querySelector('[data-ed-props-panel]');
+      var title = panel && panel.querySelector('.ed-props__title');
+      if (title) title.textContent = '레이어';
+      var selected = hasSelection();
+      if (selected) {
+        document.documentElement.classList.add('lu-ctx-on');
+        bar.hidden = false;
+        var key = selectionKey();
+        if (busy) return;
+        if (key && key === lastKey && bar.getAttribute('data-ready') === '1') return;
+        busy = true;
+        try {
+          await withPropsFields(function () { populate(bar); });
+          lastKey = key;
+          bar.setAttribute('data-ready', '1');
+        } finally {
+          busy = false;
+        }
+        if (activeTab() !== '레이어') ops.showTab('레이어');
+        return;
+      }
+      document.documentElement.classList.remove('lu-ctx-on');
+      bar.hidden = true;
+      bar.removeAttribute('data-ready');
+      lastKey = '';
+      if (activeTab() !== '레이어') ops.showTab('레이어');
+    };
+    var queued = false;
+    var requestSync = function () {
+      if (queued || populating) return;
+      queued = true;
+      setTimeout(function () {
+        queued = false;
+        sync();
+      }, 50);
+    };
+
+    document.addEventListener('pointerup', function (e) {
+      if (e.target && e.target.closest && e.target.closest('[data-tut="canvas"], .canvas-stage, .ed-layer-item')) {
+        setTimeout(requestSync, 30);
+      }
+    }, true);
+
+    var mo = new MutationObserver(function (records) {
+      var meaningful = false;
+      for (var i = 0; i < records.length; i++) {
+        var t = records[i].target;
+        if (t && t.closest && t.closest('#lu-ctx-bar')) continue;
+        meaningful = true;
+        break;
+      }
+      if (meaningful) requestSync();
+    });
+    var start = function () {
+      ensureBar();
+      requestSync();
+      var root = document.querySelector('[data-ed-root]') || document.body;
+      mo.observe(root, { subtree: true, childList: true, attributes: true, attributeFilter: ['disabled', 'class'] });
+    };
+    if (document.querySelector('[data-ed-root], .ed-float-bar, [data-ed-workspace]')) start();
+    else {
+      var wait = new MutationObserver(function () {
+        if (document.querySelector('[data-ed-root], .ed-float-bar, [data-ed-workspace]')) {
+          wait.disconnect();
+          start();
+        }
+      });
+      wait.observe(document.documentElement, { childList: true, subtree: true });
+    }
+  },
+  bindCreditBadge: function () {
+    if (this._creditBadgeBound) return;
+    this._creditBadgeBound = true;
+    var self = this;
+    var state = { balance: 0, page: 1, pages: 1, items: [], loaded: false, guest: false };
+
+    var fmt = function (n) {
+      var v = Number(n) || 0;
+      return v.toLocaleString('ko-KR') + ' C';
+    };
+    var when = function (s) {
+      return String(s || '').replace('T', ' ').slice(0, 16);
+    };
+
+    var ensureChip = function () {
+      var host = document.querySelector('[data-ed-root]') || document.querySelector('.ed');
+      if (!host) return null;
+      var chip = document.getElementById('lu-credit-chip');
+      if (chip) return chip;
+      chip = document.createElement('button');
+      chip.id = 'lu-credit-chip';
+      chip.type = 'button';
+      chip.className = 'ed-credit-chip';
+      chip.hidden = true;
+      chip.innerHTML = '<span class="ed-credit-chip__ic" aria-hidden="true">C</span>' +
+        '<span class="ed-credit-chip__meta"><em>남은 크레딧</em><strong>0 C</strong></span>';
+      host.appendChild(chip);
+      chip.addEventListener('click', function () {
+        if (state.guest) {
+          self.showSaveAuthPrompt().then(function (ok) {
+            if (ok) load(1, true);
+          });
+          return;
+        }
+        openModal();
+      });
+      return chip;
+    };
+
+    var renderChip = function () {
+      var chip = ensureChip();
+      if (!chip) return;
+      var strong = chip.querySelector('strong');
+      var em = chip.querySelector('em');
+      if (state.guest) {
+        chip.hidden = false;
+        chip.classList.add('is-guest');
+        chip.title = '로그인하면 남은 크레딧을 볼 수 있습니다';
+        if (em) em.textContent = '크레딧';
+        if (strong) strong.textContent = '로그인';
+        return;
+      }
+      chip.classList.remove('is-guest');
+      chip.hidden = false;
+      chip.title = '크레딧 사용 이력 보기';
+      if (em) em.textContent = '남은 크레딧';
+      if (strong) strong.textContent = fmt(state.balance);
+    };
+
+    var rowHtml = function (item) {
+      var amt = Number(item.amount) || 0;
+      var plus = amt >= 0;
+      return '<div class="ed-credit-row">' +
+        '<div><strong>' + escapeHtml(item.description || item.tx_type_label || '크레딧') + '</strong>' +
+        '<span>' + escapeHtml(when(item.created_at)) + ' · ' + escapeHtml(item.tx_type_label || '') +
+        (item.source_label ? ' · ' + escapeHtml(item.source_label) : '') + '</span></div>' +
+        '<b class="' + (plus ? 'is-plus' : 'is-minus') + '">' + (plus ? '+' : '') + fmt(amt) + '</b></div>';
+    };
+
+    var escapeHtml = function (s) {
+      return String(s).replace(/[&<>"']/g, function (ch) {
+        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch];
+      });
+    };
+
+    var renderModal = function () {
+      var box = document.getElementById('lu-credit-modal');
+      if (!box) return;
+      var bal = box.querySelector('[data-credit-balance]');
+      var list = box.querySelector('[data-credit-list]');
+      var more = box.querySelector('[data-credit-more]');
+      if (bal) bal.textContent = fmt(state.balance);
+      if (list) {
+        if (!state.items.length) {
+          list.innerHTML = '<p class="ed-credit-empty">크레딧 사용·적립 내역이 없습니다.</p>';
+        } else {
+          list.innerHTML = state.items.map(rowHtml).join('');
+        }
+      }
+      if (more) more.hidden = state.page >= state.pages;
+    };
+
+    var openModal = function () {
+      var existing = document.getElementById('lu-credit-modal');
+      if (existing) existing.remove();
+      var root = document.createElement('div');
+      root.id = 'lu-credit-modal';
+      root.className = 'ed-modal ed-credit-modal';
+      root.innerHTML = '<div class="ed-modal__card ed-modal__card--confirm ed-credit-modal__card" role="dialog" aria-modal="true" aria-labelledby="lu-credit-title">' +
+        '<div class="ed-modal__head"><div><h3 id="lu-credit-title">크레딧 사용 이력</h3>' +
+        '<p>남은 크레딧 <strong data-credit-balance>0 C</strong></p></div>' +
+        '<button type="button" class="ed-modal__close" data-credit-close aria-label="닫기">×</button></div>' +
+        '<div class="ed-modal__body"><div class="ed-credit-list" data-credit-list></div>' +
+        '<button type="button" class="ed-credit-more" data-credit-more hidden>더 보기</button></div>' +
+        '<div class="ed-modal__foot"><a class="ed-btn" href="/account#credits">내 계정에서 보기</a>' +
+        '<button type="button" class="ed-btn ed-btn--primary" data-credit-close>닫기</button></div></div>';
+      document.body.appendChild(root);
+      renderModal();
+      if (!state.loaded || !state.items.length) load(1, false);
+      var close = function () { root.remove(); };
+      root.addEventListener('click', function (e) {
+        if (e.target === root || (e.target.closest && e.target.closest('[data-credit-close]'))) close();
+        if (e.target.closest && e.target.closest('[data-credit-more]')) load(state.page + 1, false);
+      });
+    };
+
+    var load = async function (page, reset) {
+      try {
+        var raw = await self.apiGetJson('/api/credit/me?page=' + page + '&per_page=20');
+        var data = JSON.parse(raw || '{}');
+        state.guest = false;
+        state.balance = Number(data.balance) || 0;
+        state.page = Number(data.page) || page;
+        state.pages = Number(data.pages) || 1;
+        var next = Array.isArray(data.items) ? data.items : [];
+        state.items = reset || page <= 1 ? next : state.items.concat(next);
+        state.loaded = true;
+        renderChip();
+        renderModal();
+      } catch (err) {
+        if (err && err.status === 401) {
+          state.guest = true;
+          state.loaded = true;
+          renderChip();
+          return;
+        }
+        var chip = ensureChip();
+        if (chip) {
+          chip.hidden = false;
+          chip.title = (err && err.message) || '크레딧을 불러오지 못했습니다';
+        }
+      }
+    };
+
+    var start = function () {
+      ensureChip();
+      load(1, true);
+    };
+    if (document.querySelector('[data-ed-root], .ed')) start();
+    else {
+      var wait = new MutationObserver(function () {
+        if (document.querySelector('[data-ed-root], .ed')) {
+          wait.disconnect();
+          start();
+        }
+      });
+      wait.observe(document.documentElement, { childList: true, subtree: true });
+    }
+  },
+  bindCloudSave: function () {
+    if (this._cloudSaveBound) return;
+    this._cloudSaveBound = true;
+    var tips = {
+      saved: '클라우드에 저장됨',
+      unsaved: '수정됨 · 자동저장을 기다립니다',
+      saving: '클라우드에 저장하는 중…',
+      error: '저장에 실패했습니다',
+      off: '자동저장 꺼짐 · 클릭하면 켭니다'
+    };
+    var sync = function () {
+      var label = document.querySelector('.ed-autosave');
+      var saved = document.querySelector('.ed-topbar__saved');
+      if (!label) return;
+      var text = ((saved && saved.textContent) || '').replace(/\s+/g, ' ').trim();
+      var current = document.documentElement.getAttribute('data-ed-save');
+      var authOpen = !!document.getElementById('lu-save-auth-gate');
+      var state = 'saved';
+      if (/실패/.test(text)) state = 'error';
+      else if (authOpen) state = (saved && saved.classList.contains('is-unsaved')) ? 'unsaved' : 'saved';
+      else if (current === 'saving' && !/저장됨|자동저장됨|실패|초안/.test(text)) state = 'saving';
+      else if (/수정됨/.test(text) || (saved && saved.classList.contains('is-unsaved'))) state = 'unsaved';
+      else if (/저장됨|자동저장됨|초안/.test(text) || (saved && saved.classList.contains('is-saved'))) state = 'saved';
+      if (state !== 'saving' && state !== 'error' && !label.classList.contains('is-on'))
+        state = 'off';
+      document.documentElement.setAttribute('data-ed-save', state);
+      var extra = text.replace(/^●\s*(저장됨|수정됨)\s*/g, '').trim();
+      var tip = tips[state];
+      if (extra && extra !== tip && !/^(저장됨|수정됨|준비됨)$/.test(extra) && tip.indexOf(extra) === -1)
+        tip += ' · ' + extra;
+      label.title = tip;
+      label.setAttribute('aria-label', tip);
+    };
+    document.addEventListener('click', function (e) {
+      if (!e.target || !e.target.closest) return;
+      if (e.target.closest('.ed-autosave')) {
+        setTimeout(sync, 0);
+        setTimeout(sync, 80);
+        return;
+      }
+      if (e.target.closest('[data-tut="save"]')) {
+        document.documentElement.setAttribute('data-ed-save', 'saving');
+        var label = document.querySelector('.ed-autosave');
+        if (label) {
+          label.title = tips.saving;
+          label.setAttribute('aria-label', tips.saving);
+        }
+        setTimeout(sync, 50);
+        setTimeout(sync, 600);
+        setTimeout(sync, 2000);
+      }
+    }, true);
+    var mo = new MutationObserver(sync);
+    var start = function () {
+      sync();
+      var root = document.querySelector('.ed-topbar') || document.body;
+      mo.observe(root, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class'] });
+      var bodyWatch = new MutationObserver(function () {
+        if (document.getElementById('lu-save-auth-gate')) sync();
+      });
+      bodyWatch.observe(document.body, { childList: true });
+    };
+    if (document.querySelector('.ed-autosave')) start();
+    else {
+      var wait = new MutationObserver(function () {
+        if (document.querySelector('.ed-autosave')) {
+          wait.disconnect();
+          start();
+        }
+      });
+      wait.observe(document.documentElement, { childList: true, subtree: true });
+    }
+  },
 
   setProjectId: function (id) {
     try {
@@ -820,6 +2007,20 @@ window.labelUpEditor = {
   var apply = function () {
     if (window.labelUpEditor && typeof window.labelUpEditor.applyMobileChrome === 'function')
       window.labelUpEditor.applyMobileChrome();
+    if (window.labelUpEditor && typeof window.labelUpEditor.bindCloudSave === 'function')
+      window.labelUpEditor.bindCloudSave();
+    if (window.labelUpEditor && typeof window.labelUpEditor.bindZoomSlider === 'function')
+      window.labelUpEditor.bindZoomSlider();
+    if (window.labelUpEditor && typeof window.labelUpEditor.bindTutorialDock === 'function')
+      window.labelUpEditor.bindTutorialDock();
+    if (window.labelUpEditor && typeof window.labelUpEditor.bindLayerNudge === 'function')
+      window.labelUpEditor.bindLayerNudge();
+    if (window.labelUpEditor && typeof window.labelUpEditor.bindLayerDrag === 'function')
+      window.labelUpEditor.bindLayerDrag();
+    if (window.labelUpEditor && typeof window.labelUpEditor.bindCreditBadge === 'function')
+      window.labelUpEditor.bindCreditBadge();
+    if (window.labelUpEditor && typeof window.labelUpEditor.bindCanvaToolbar === 'function')
+      window.labelUpEditor.bindCanvaToolbar();
   };
   window.addEventListener('resize', apply);
   window.addEventListener('orientationchange', apply);

@@ -129,4 +129,32 @@ final class CreditService
             default => $status,
         };
     }
+
+    /** @return array{balance:int,items:array,total:int,page:int,pages:int,per_page:int} */
+    public function summaryForUser(int $userId, int $page = 1, int $perPage = 20): array
+    {
+        $tx = $this->repo->transactionsForUser($userId, $page, $perPage);
+        $items = [];
+        foreach ($tx['items'] as $row) {
+            $items[] = [
+                'id' => (int) ($row['id'] ?? 0),
+                'amount' => (int) ($row['amount'] ?? 0),
+                'balance_after' => (int) ($row['balance_after'] ?? 0),
+                'tx_type' => (string) ($row['tx_type'] ?? ''),
+                'tx_type_label' => self::txTypeLabel((string) ($row['tx_type'] ?? '')),
+                'source' => (string) ($row['source'] ?? ''),
+                'source_label' => self::sourceLabel((string) ($row['source'] ?? '')),
+                'description' => (string) ($row['description'] ?? ''),
+                'created_at' => (string) ($row['created_at'] ?? ''),
+            ];
+        }
+        return [
+            'balance' => $this->balance($userId),
+            'items' => $items,
+            'total' => (int) ($tx['total'] ?? 0),
+            'page' => (int) ($tx['page'] ?? $page),
+            'pages' => (int) ($tx['pages'] ?? 1),
+            'per_page' => (int) ($tx['per_page'] ?? $perPage),
+        ];
+    }
 }

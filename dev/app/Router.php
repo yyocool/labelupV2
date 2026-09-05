@@ -6,6 +6,7 @@ namespace App;
 
 use App\Controllers\AdminController;
 use App\Controllers\Api\CreditAdminApiController;
+use App\Controllers\Api\CreditApiController;
 use App\Controllers\Api\LegalApiController;
 use App\Controllers\Api\ShopAdminApiController;
 use App\Controllers\Api\ShopApiController;
@@ -133,6 +134,7 @@ final class Router
         $shopApi = new ShopAdminApiController();
         $creditAdmin = new CreditAdminController();
         $creditAdminApi = new CreditAdminApiController();
+        $creditApi = new CreditApiController();
         $heroAdmin = new HeroAdminController();
         $heroAdminApi = new HeroAdminApiController();
         $eventPopupAdmin = new EventPopupAdminController();
@@ -220,6 +222,7 @@ final class Router
         $router->post('/api/auth/login', [$authApi, 'login']);
         $router->post('/api/auth/logout', [$authApi, 'logout']);
         $router->get('/api/auth/me', [$authApi, 'me']);
+        $router->get('/api/credit/me', [$creditApi, 'me']);
         $router->get('/api/auth/check-email', [$authApi, 'checkEmail']);
         $router->post('/api/auth/profile', [$authApi, 'updateProfile']);
         $router->post('/api/auth/password', [$authApi, 'changePassword']);

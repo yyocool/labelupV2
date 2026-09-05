@@ -489,7 +489,7 @@
     if (isMobileEditor()) {
       resetMobileChrome(root);
     } else {
-      bindFloatTools(root);
+      resetMobileChrome(root);
     }
 
     const mobile = isMobileEditor();

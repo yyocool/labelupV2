@@ -445,8 +445,7 @@ public sealed class FontCatalog : IAsyncDisposable
     {
         try
         {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
-            var bytes = await _http.GetByteArrayAsync(relativePath, cts.Token);
+            var bytes = await _http.GetByteArrayAsync(relativePath);
             if (bytes.Length < 100) return null;
             using var data = SKData.CreateCopy(bytes);
             return SKTypeface.FromData(data);

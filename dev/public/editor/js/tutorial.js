@@ -125,11 +125,11 @@
     },
     {
       id: 'props',
-      selector: '[data-tut="props"]',
-      title: '속성 · 레이어 패널',
-      description: '선택한 객체의 위치·크기·색상·텍스트를 수정하고, 레이어 순서를 관리해요.',
-      effect: '정밀한 스타일 조정이 가능합니다.',
-      speech: '오른쪽 속성 패널에서 세부 값을 수정하세요.',
+      selector: '[data-tut="canvas"]',
+      title: '선택 속성 막대',
+      description: '객체를 선택하면 격자 위쪽에 캔바처럼 글꼴·색·크기를 바로 바꿀 수 있어요.',
+      effect: '선택한 객체만 심플하게 조절합니다.',
+      speech: '객체를 고르면 격자 위에서 속성을 바로 바꿔요.',
       wait: 3000,
       cursor: true,
       action: 'expandProps'
@@ -481,7 +481,9 @@
     }
     var reopen = document.querySelector('.ed-tut-reopen');
     if (reopen) {
-      reopen.textContent = '✦ 모바일 튜토리얼';
+      var lab = reopen.querySelector('.ed-float-tools__label');
+      if (lab) lab.textContent = '튜토리얼';
+      else reopen.textContent = '✦ 튜토리얼';
       reopen.setAttribute('title', '모바일 튜토리얼 다시 보기');
     }
   }
