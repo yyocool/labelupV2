@@ -194,7 +194,10 @@ public sealed class FontCatalog : IAsyncDisposable
     private static readonly Dictionary<string, string> Aliases = new(StringComparer.OrdinalIgnoreCase)
     {
         ["Gulim"] = "굴림",
+        ["굴림체"] = "굴림",
         ["Dotum"] = "돋움",
+        ["돋움체"] = "돋움",
+        ["문체부 돋움체"] = "돋움",
         ["Batang"] = "바탕",
         ["Gungsuh"] = "궁서",
         ["NanumGothic"] = "나눔고딕",
@@ -272,7 +275,7 @@ public sealed class FontCatalog : IAsyncDisposable
         var list = new List<EditorFontSpec>(Specs);
         var extra = (extraFamily ?? "").Trim();
         if (extra.Length > 0 && !list.Any(s => s.Id.Equals(extra, StringComparison.OrdinalIgnoreCase)))
-            list.Insert(0, new EditorFontSpec(extra, extra + " (문서)", "현재", []));
+            list.Insert(0, new EditorFontSpec(extra, extra + " (미사용 폰트)", "현재", []));
 
         IEnumerable<EditorFontSpec> items = list;
         if (q.Length > 0)

@@ -66,9 +66,24 @@ public sealed class PaperSpec
             LabelColor = LabelColor,
             Shape = Shape.Clone(),
             DesignImageUrl = DesignImageUrl,
-            CustomSlots = CustomSlots is { Count: > 0 } ? [.. CustomSlots] : null
+            CustomSlots = CustomSlots is { Count: > 0 }
+                ? CustomSlots.Select(s => s with { Shape = s.Shape?.Clone() }).ToList()
+                : null
         };
     }
+
+    public PaperShape ShapeFor(int cellIndex)
+    {
+        if (CustomSlots is { Count: > 0 })
+        {
+            var i = Math.Clamp(cellIndex, 0, CustomSlots.Count - 1);
+            if (CustomSlots[i].Shape is { } slotShape)
+                return slotShape;
+        }
+        return Shape;
+    }
+
+    public PaperShape ShapeFor(LabelSlot slot) => slot.Shape ?? Shape;
 
     public IEnumerable<LabelSlot> EnumerateSlots()
         => CustomSlots is { Count: > 0 } ? CustomSlots : EnumerateGridSlots();
@@ -100,7 +115,7 @@ public sealed class PaperSpec
             $"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 {pw:0.###} {ph:0.###}' width='{w:0.##}' height='{h:0.##}'>");
         sb.Append("<rect x='0' y='0' width='100%' height='100%' fill='#f7f4f1' stroke='#d9cfc0' stroke-width='0.4'/>");
         foreach (var slot in EnumerateSlots())
-            sb.Append(Shape.ToPreviewSvg(slot.X, slot.Y, slot.W, slot.H, LabelColor));
+            sb.Append(ShapeFor(slot).ToPreviewSvg(slot.X, slot.Y, slot.W, slot.H, LabelColor));
         sb.Append("</svg>");
         return sb.ToString();
     }
@@ -239,7 +254,8 @@ public sealed class PaperHole
     public float Height { get; set; }
 }
 
-public readonly record struct LabelSlot(int Col, int Row, int Index, float X, float Y, float W, float H);
+public readonly record struct LabelSlot(
+    int Col, int Row, int Index, float X, float Y, float W, float H, PaperShape? Shape = null);
 
 public static class BuiltInPapers
 {

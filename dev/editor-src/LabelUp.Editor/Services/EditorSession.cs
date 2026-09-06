@@ -450,7 +450,29 @@ public sealed class EditorSession
         return obj;
     }
 
-    public string ResolveObjectText(DesignObject obj, int? globalIndex = null)
+    public int ExpandCustomSerial()
+    {
+        Document.EnsureStructure();
+        var prototype = CurrentCell.Objects;
+        if (prototype.All(o => o.CustomKind is not ("serial" or "hexserial")))
+        {
+            var found = Document.Pages.SelectMany(p => p.Cells).SelectMany(c => c.Objects)
+                .FirstOrDefault(o => o.CustomKind is "serial" or "hexserial");
+            if (found is null) return 0;
+            prototype = Document.Pages[0].Cells[0].Objects;
+        }
+        var total = Document.EnsureCustomSerialLabels(prototype);
+        if (total > 0)
+        {
+            PageIndex = Math.Clamp(PageIndex, 0, Document.Pages.Count - 1);
+            LabelIndex = Math.Clamp(LabelIndex, 0, Document.Pages[PageIndex].Cells.Count - 1);
+            Status = $"일련번호 라벨 {total}개 생성 (반복회수, 증가 {prototype.FirstOrDefault(o => o.CustomKind is "serial" or "hexserial")?.SerialStep ?? 1})";
+            Dirty = true;
+        }
+        return total;
+    }
+
+    public string ResolveObjectText(DesignObject obj, int? globalIndex = null, DateTime? clock = null)
     {
         var idx = globalIndex ?? GlobalLabelIndex;
         var text = obj.Text ?? "";
@@ -473,7 +495,7 @@ public sealed class EditorSession
         }
 
         if (obj.TextMode == TextMode.Custom || obj.CustomKind is "date" or "time" or "serial" or "hexserial")
-            text = FormtecRecords.ExpandCustom(obj, idx);
+            text = FormtecRecords.ExpandCustom(obj, idx, clock);
 
         return text;
     }

@@ -63,6 +63,9 @@
           <div class="ed-form-grid">
             <label>행 <input type="number" min="1" max="12" @bind="_rows" /></label>
             <label>열 <input type="number" min="1" max="12" @bind="_cols" /></label>
+            <label>테두리 색 <input type="color" @bind="_border" /></label>
+            <label>테두리 굵기 <input type="number" min="0.08" max="4" step="0.05" @bind="_borderWidth" /></label>
+            <label>표 배경 <input type="color" @bind="_fill" /></label>
           </div>
         }
       </div>
@@ -81,6 +84,9 @@
     private bool _showStartEnd;
     private int _rows = 2;
     private int _cols = 2;
+    private string _border = "#000000";
+    private float _borderWidth = 0.2f;
+    private string _fill = "#ffffff";
     private EditorDialog _last;
 
     private string Title => Session.Dialog switch
@@ -114,6 +120,9 @@
             {
                 _rows = 2;
                 _cols = 2;
+                _border = "#000000";
+                _borderWidth = 0.2f;
+                _fill = "#ffffff";
             }
         }
         _ = InvokeAsync(StateHasChanged);
@@ -154,6 +163,10 @@
             {
                 o.TableRows = Math.Clamp(_rows, 1, 12);
                 o.TableCols = Math.Clamp(_cols, 1, 12);
+                o.Stroke = _border;
+                o.TableBorderWidth = Math.Clamp(_borderWidth, 0.08f, 4f);
+                o.BackgroundFill = _fill;
+                o.BackgroundTransparent = false;
                 o.EnsureTableSize();
             });
         }

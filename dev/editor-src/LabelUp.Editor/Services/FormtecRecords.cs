@@ -99,12 +99,15 @@ internal static class FormtecRecords
                 break;
             case 0x0B:
                 ApplyUserDefined(obj, data, start, end);
+                ApplyImportedTextPad(obj);
                 break;
             case 0x16:
                 ApplyExtended(obj, data, start, end);
+                ApplyImportedTextPad(obj);
                 break;
             case 0x00:
                 ApplyPlainText(obj, data, start, end);
+                ApplyImportedTextPad(obj);
                 break;
             case 0x0F:
                 ApplyTable(obj, data, start, end);
@@ -112,20 +115,25 @@ internal static class FormtecRecords
         }
     }
 
-    internal static string ExpandCustom(DesignObject obj, int labelIndex)
+    /// <summary>폼텍 텍스트만 박스 안에서 좌우 2mm 띄운다. 박스 크기는 바꾸지 않는다.</summary>
+    internal const float ImportedTextPaddingXMm = 2f;
+
+    private static void ApplyImportedTextPad(DesignObject obj)
+        => obj.TextPaddingXMm = ImportedTextPaddingXMm;
+
+    internal static string ExpandCustom(DesignObject obj, int labelIndex, DateTime? clock = null)
     {
+        var now = clock ?? DateTime.Now;
         var raw = obj.Text ?? "";
         if (CustomToken.IsMatch(raw))
-            return ExpandTokens(raw, obj, labelIndex);
+            return ExpandTokens(raw, obj, labelIndex, now);
 
         return obj.CustomKind switch
         {
-            "date" => DateTime.Now.ToString(string.IsNullOrWhiteSpace(obj.CustomFormat) ? "yyyy-MM-dd" : obj.CustomFormat, CultureInfo.InvariantCulture),
-            "time" => DateTime.Now.ToString(string.IsNullOrWhiteSpace(obj.CustomFormat) ? "HH:mm" : obj.CustomFormat, CultureInfo.InvariantCulture),
-            "serial" => (obj.SerialStart + labelIndex * Math.Max(1, obj.SerialStep))
-                .ToString("D" + Math.Clamp(obj.SerialDigits, 1, 12), CultureInfo.InvariantCulture),
-            "hexserial" => (obj.SerialStart + labelIndex * Math.Max(1, obj.SerialStep))
-                .ToString("X" + Math.Clamp(obj.SerialDigits, 1, 12), CultureInfo.InvariantCulture),
+            "date" => CustomTextFormats.FormatDate(now, obj.CustomFormat),
+            "time" => CustomTextFormats.FormatTime(now, obj.CustomFormat),
+            "serial" => CustomTextFormats.FormatSerial(obj, labelIndex, hex: false),
+            "hexserial" => CustomTextFormats.FormatSerial(obj, labelIndex, hex: true),
             _ => raw
         };
     }
@@ -320,7 +328,10 @@ internal static class FormtecRecords
             var off = start + 0x53 + i * 16;
             if (off + 16 > end) break;
             var enabled = data[off + 11];
-            var color = enabled == 0 ? ColorRefCss(BitConverter.ToUInt32(data, off + 12)) : null;
+            var raw = BitConverter.ToUInt32(data, off + 12);
+            // 마지막 열만 색을 주면 앞 열에 05 00 00 FF 가 온다. COLORREF가 아니라
+            // 참조하면, 상위 바이트가 0이 아니다. 그대로 쓰면 #050000 검정처럼 보인다.
+            var color = enabled == 0 && IsColorRef(raw) ? ColorRefCss(raw) : null;
             if (i < rows)
                 obj.TableRowFills.Add(color);
             else
@@ -328,7 +339,10 @@ internal static class FormtecRecords
         }
 
         obj.EnsureTableSize();
-        EditorLog.Info($"폼텍 표: {rows}x{cols} bg={obj.BackgroundFill} stroke={obj.Stroke}");
+        EditorLog.Info(
+            $"폼텍 표: {rows}x{cols} bg={obj.BackgroundFill} stroke={obj.Stroke} " +
+            $"rows=[{string.Join(",", obj.TableRowFills.Select(c => c ?? "-"))}] " +
+            $"cols=[{string.Join(",", obj.TableColFills.Select(c => c ?? "-"))}]");
     }
 
     /// <summary>
@@ -468,10 +482,9 @@ internal static class FormtecRecords
     }
 
     /// <summary>
-    /// 닫힌 도형(사각/원/둥근사각). geometry 41바이트 다음:
-    /// +0x29 COLORREF 채우기, +0x2E COLORREF 선색, +0x33 Extended80 선굵기.
-    /// +0x2D는 채우기 투명이 아니다. 「여러가지 사각형」에서 흰 채우기=1, 초록/하늘/보라=0.
-    /// 0을 투명으로 보면 아래 3칸 채우기가 빠지고 속성 투명이 켜진다. 채우기는 항상 +0x29.
+    /// 닫힌 도형. type 0x04=사각(직각·둥근 공통), 0x05=원. 0x0E는 그라데이션이지 둥근사각이 아니다.
+    /// +0x29 채우기, +0x2D 플래그, +0x2E 선색, +0x33 선굵기.
+    /// 둥근 모서리는 +0x4B/+0x55 Extended80(mm). 직각=0, 둥근사각 샘플=2.0.
     /// </summary>
     private static void ApplyClosedShape(DesignObject obj, byte[] data, int start, int end)
     {
@@ -501,7 +514,23 @@ internal static class FormtecRecords
                 obj.StrokeWidth = (float)Math.Clamp(thick, 0.15, 8);
         }
 
-        EditorLog.Info($"폼텍 도형: fill={obj.Fill} flag={flag:X2} stroke={obj.Stroke} w={obj.StrokeWidth:0.###}");
+        if (obj.ShapeKind is ShapeKind.Rect or ShapeKind.RoundRect
+            && start + 0x55 + 10 <= end)
+        {
+            var rx = Extended80.ReadStandard(data.AsSpan(start + 0x4B, 10));
+            var ry = Extended80.ReadStandard(data.AsSpan(start + 0x55, 10));
+            var radius = Math.Max(rx, ry);
+            if (radius is > 0.05 and < 80)
+            {
+                obj.Type = ObjectType.Shape;
+                obj.ShapeKind = ShapeKind.RoundRect;
+                obj.CornerRadiusMm = (float)Math.Clamp(radius, 0.1, 40);
+            }
+        }
+
+        EditorLog.Info(
+            $"폼텍 도형: kind={obj.ShapeKind} fill={obj.Fill} flag={flag:X2} " +
+            $"stroke={obj.Stroke} w={obj.StrokeWidth:0.###} r={obj.CornerRadiusMm:0.###}");
     }
 
     private static void ApplyLineOrArrow(DesignObject obj, byte[] data, int start, int end)
@@ -890,24 +919,31 @@ internal static class FormtecRecords
     private static void ApplyExtended(DesignObject obj, byte[] data, int start, int end)
     {
         obj.TextMode = TextMode.Extended;
+        obj.TextWrap = "char";
+        obj.RichText = null;
         if (start + 0x4F + 47 > end) return;
         var rtfLen = (int)BitConverter.ToUInt32(data, start + 0x4B);
         var rtfOff = start + 0x4F;
         if (rtfLen < 6 || rtfOff + rtfLen > data.Length) return;
-        var rtf = Encoding.ASCII.GetString(data, rtfOff, rtfLen);
-        obj.Text = SanitizeImportedText(ExtractRtfPlain(rtf));
-        obj.TextWrap = "char";
-        if (Regex.IsMatch(rtf, @"\\fs(\d+)"))
+        if (FormtecRtf.TryParse(data, rtfOff, rtfLen, out var paras, out var plain))
         {
-            var fs = Regex.Match(rtf, @"\\fs(\d+)");
-            if (int.TryParse(fs.Groups[1].Value, out var half))
-                obj.FontSize = PtToMm((uint)Math.Max(1, half / 2));
+            obj.RichText = paras;
+            obj.Text = SanitizeImportedText(plain);
+            var spans = paras.SelectMany(p => p.Spans).Count();
+            EditorLog.Info($"폼텍 확장문자열: RTF {rtfLen}b 문단={paras.Count} 구간={spans} (박스 전체 서식 아님)");
+            return;
         }
-        if (rtf.Contains("\\b") && !rtf.Contains("\\b0")) obj.Bold = true;
-        if (rtf.Contains("\\i") && !rtf.Contains("\\i0")) obj.Italic = true;
-        var color = Regex.Match(rtf, @"\\red(\d+)\\green(\d+)\\blue(\d+)");
-        if (color.Success)
-            obj.Fill = RgbCss(byte.Parse(color.Groups[1].Value), byte.Parse(color.Groups[2].Value), byte.Parse(color.Groups[3].Value));
+
+        var rtf = Encoding.Latin1.GetString(data, rtfOff, rtfLen);
+        obj.Text = SanitizeImportedText(ExtractRtfPlain(rtf));
+    }
+
+    /// <summary>type 0x00 + +0x47의 0x2711. N=0 빈 상자도 텍스트 항목이다.</summary>
+    internal static bool HasPlainTextRecord(byte[] data, int start, int end)
+    {
+        var marker = start + 0x47;
+        if (!Is2711(data, marker) || marker + 8 > end) return false;
+        return BitConverter.ToUInt32(data, marker + 4) <= 100_000;
     }
 
     private static void ApplyPlainText(DesignObject obj, byte[] data, int start, int end)
@@ -915,11 +951,18 @@ internal static class FormtecRecords
         var marker = start + 0x47;
         if (!Is2711(data, marker) || marker + 8 > end) return;
         var n = (int)BitConverter.ToUInt32(data, marker + 4);
-        if (n is <= 0 or > 100_000) return;
-        var textBytes = n * 2;
-        if (marker + 8 + textBytes > data.Length) return;
-        obj.Text = SanitizeImportedText(Encoding.Unicode.GetString(data, marker + 8, textBytes));
-        var p = marker + 8 + textBytes;
+        if (n is < 0 or > 100_000) return;
+        if (n == 0)
+        {
+            obj.Text = "";
+        }
+        else
+        {
+            var textBytes = n * 2;
+            if (marker + 8 + textBytes > data.Length) return;
+            obj.Text = SanitizeImportedText(Encoding.Unicode.GetString(data, marker + 8, textBytes));
+        }
+        var p = marker + 8 + n * 2;
         if (p + 28 > data.Length) return;
         ApplyTextStyleHead(obj, data, p);
         var f = (int)BitConverter.ToUInt32(data, p + 24);
@@ -972,23 +1015,12 @@ internal static class FormtecRecords
         if (m.Groups[1].Success)
         {
             obj.CustomKind = "date";
-            obj.CustomFormat = m.Groups[1].Value switch
-            {
-                "1" => "yy-MM-dd",
-                "3" => "yyyy-MM-dd dddd",
-                "4" => "dddd, MM, dd, yyyy",
-                _ => "yyyy-MM-dd"
-            };
+            obj.CustomFormat = CustomTextFormats.NormalizeDate(m.Groups[1].Value);
         }
         else if (m.Groups[2].Success)
         {
             obj.CustomKind = "time";
-            obj.CustomFormat = m.Groups[2].Value switch
-            {
-                "2" => "tt hh mm",
-                "3" => "HH mm ss",
-                _ => "HH mm"
-            };
+            obj.CustomFormat = CustomTextFormats.NormalizeTime(m.Groups[2].Value);
         }
         else if (m.Value.Contains("HEX", StringComparison.Ordinal))
             obj.CustomKind = "hexserial";
@@ -996,38 +1028,15 @@ internal static class FormtecRecords
             obj.CustomKind = "serial";
     }
 
-    private static string ExpandTokens(string raw, DesignObject obj, int labelIndex)
+    private static string ExpandTokens(string raw, DesignObject obj, int labelIndex, DateTime clock)
     {
-        var clock = DateTime.Now;
-        var weekdays = new[] { "일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일" };
         return CustomToken.Replace(raw, m =>
         {
             if (m.Groups[1].Success)
-            {
-                return int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture) switch
-                {
-                    1 => clock.ToString("yy-MM-dd", CultureInfo.InvariantCulture),
-                    3 => clock.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + " " + weekdays[(int)clock.DayOfWeek],
-                    4 => $"{weekdays[(int)clock.DayOfWeek]}, {clock:MM}, {clock:dd}, {clock:yyyy}",
-                    _ => clock.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
-                };
-            }
-
+                return CustomTextFormats.FormatDate(clock, m.Groups[1].Value);
             if (m.Groups[2].Success)
-            {
-                return int.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture) switch
-                {
-                    2 => clock.ToString("(tt) hh mm", CultureInfo.GetCultureInfo("en-US")),
-                    3 => clock.ToString("HH mm ss", CultureInfo.InvariantCulture),
-                    _ => clock.ToString("HH mm", CultureInfo.InvariantCulture)
-                };
-            }
-
-            var value = obj.SerialStart + labelIndex * Math.Max(1, obj.SerialStep);
-            var digits = Math.Clamp(obj.SerialDigits, 1, 12);
-            if (m.Value.Contains("HEX", StringComparison.Ordinal))
-                return value.ToString($"X{digits}", CultureInfo.InvariantCulture);
-            return value.ToString($"D{digits}", CultureInfo.InvariantCulture);
+                return CustomTextFormats.FormatTime(clock, m.Groups[2].Value);
+            return CustomTextFormats.FormatSerial(obj, labelIndex, m.Value.Contains("HEX", StringComparison.Ordinal));
         });
     }
 
@@ -1237,6 +1246,7 @@ internal static class FormtecRecords
     private static string AlignH(byte v) => v switch { 1 => "right", 2 => "center", _ => "left" };
     private static float PtToMm(uint pt) => Math.Clamp(pt * 0.3528f, 1.4f, 28f);
     private static string RgbCss(byte r, byte g, byte b) => $"#{r:x2}{g:x2}{b:x2}";
+    private static bool IsColorRef(uint c) => (c & 0xFF000000) == 0;
     private static string ColorRefCss(uint c)
         => $"#{c & 0xFF:x2}{(c >> 8) & 0xFF:x2}{(c >> 16) & 0xFF:x2}";
 }
