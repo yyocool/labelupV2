@@ -376,6 +376,10 @@ final class LabiDesignService
         ])));
 
         $editorQuery = [];
+        $sku = trim((string) ($product['sku'] ?? ''));
+        if ($sku !== '') {
+            $editorQuery['sku'] = $sku;
+        }
         if ($w !== null && $h !== null) {
             $editorQuery['w'] = rtrim(rtrim(sprintf('%.2f', (float) $w), '0'), '.');
             $editorQuery['h'] = rtrim(rtrim(sprintf('%.2f', (float) $h), '0'), '.');

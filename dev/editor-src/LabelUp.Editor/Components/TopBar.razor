@@ -32,6 +32,10 @@
           <img src="/assets/labi-icon.png" alt="" width="18" height="18" />
           <span>라비AI</span>
         </button>
+        <button type="button" class="ed-topbar__vendor" data-tut="import-fab" title="애니라벨·아이라벨·폼텍 파일 가져오기" aria-label="타사포맷" @onclick="OpenVendor">
+          <svg class="ed-topbar__vendor-ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3.3 1.8h5.6c.3 0 .6.1.8.4l2.6 2.7c.2.2.3.5.3.8v7.5c0 .7-.6 1.2-1.3 1.2H3.3c-.7 0-1.2-.5-1.2-1.2V3c0-.7.5-1.2 1.2-1.2Zm.5 1.4v9.6h7.9V6.1H9.2c-.4 0-.7-.3-.7-.7V3.2H3.8Zm5.6.5v1.7h1.7L9.4 3.7ZM4.8 9.4h2.1V8.1c0-.4.5-.6.8-.3l2.3 2c.2.2.2.6 0 .8l-2.3 2c-.3.3-.8 0-.8-.3v-1.3H4.8a.7.7 0 0 1 0-1.4Z"/></svg>
+          <span>타사포맷</span>
+        </button>
       </div>
       <div class="ed-topbar__saved @(Session.Dirty ? "is-unsaved" : "is-saved")">
         @(Session.Dirty ? "● 수정됨" : "● 저장됨")
@@ -88,17 +92,13 @@
       데이터 가져오기
       <InputFile OnChange="OnDataFile" accept=".csv,.txt,.xlsx,.xls" />
     </label>
-    <button type="button" class="ed-btn" data-tut="preview-btn" @onclick="OpenPrintPreview">
-      <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 3.2c3.2 0 5.8 2.3 6.7 4.3a.8.8 0 0 1 0 .6C13.8 10.1 11.2 12.8 8 12.8S2.2 10.1 1.3 8.1a.8.8 0 0 1 0-.6C2.2 5.5 4.8 3.2 8 3.2Zm0 1.5c-2.4 0-4.5 1.7-5.4 3.3.9 1.6 3 3.3 5.4 3.3s4.5-1.7 5.4-3.3C12.5 6.4 10.4 4.7 8 4.7Zm0 1.3A2 2 0 1 1 8 10a2 2 0 0 1 0-4Z"/></svg>
-      미리보기
-    </button>
     <button type="button" class="ed-btn" data-tut="save" @onclick="SaveDesign">
       <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3.4 2.2h7.1c.2 0 .5.1.6.3l2.4 2.4c.2.2.3.4.3.6v8.1c0 .7-.6 1.2-1.2 1.2H3.4c-.7 0-1.2-.5-1.2-1.2V3.4c0-.7.5-1.2 1.2-1.2Zm.6 1.4v3.4h6.2V3.6H4Zm8.2 3.2-1.4-1.4v2.2c0 .4-.3.6-.6.6H3.8a.6.6 0 0 1-.6-.6V3.6h-.4v9.2h.8V9.4c0-.4.3-.6.6-.6h7.6c.4 0 .6.2.6.6v3.4h.8V6.8ZM5 10h6v2.4H5V10Z"/></svg>
       저장하기
     </button>
     <button type="button" class="ed-btn ed-btn--primary" data-tut="export" @onclick="OpenExport">
       <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4.2 2.2h7.6c.6 0 1 .4 1 .9V5h.6A1.6 1.6 0 0 1 15 6.6v4.2A1.4 1.4 0 0 1 13.6 12h-.8v1.8c0 .6-.5 1-1 .9H4.2c-.6 0-1-.4-1-.9V12h-.8A1.4 1.4 0 0 1 1 10.8V6.6A1.6 1.6 0 0 1 2.6 5h.6V3.1c0-.5.4-.9 1-.9ZM5 3.6v1.4h6V3.6H5Zm-.8 8.4v1.6h7.6V12H4.2Zm8.6-5.6a.8.8 0 1 0 0 1.6.8.8 0 0 0 0-1.6Z"/></svg>
-      편집기에서 출력
+      미리보기/프린트
     </button>
     <a class="ed-btn" data-tut="exit" href="/" title="편집기 나가기">
       <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3.4 2.2h5.2c.7 0 1.2.5 1.2 1.2v2h-1.4V3.6H3.6v8.8h4.8V10.6h1.4v2.2c0 .7-.5 1.2-1.2 1.2H3.4c-.7 0-1.2-.5-1.2-1.2V3.4c0-.7.5-1.2 1.2-1.2Zm7.4 3.1 2.4 2.4c.3.3.3.7 0 1L10.8 11a.7.7 0 0 1-1.2-.5V9.2H6.6a.7.7 0 0 1 0-1.4h3V5.8a.7.7 0 0 1 1.2-.5Z"/></svg>
@@ -250,6 +250,12 @@
     {
         CloseMobileMenu();
         Session.OpenDialog(EditorDialog.LabiAi);
+    }
+
+    private void OpenVendor()
+    {
+        CloseMobileMenu();
+        Session.OpenDialog(EditorDialog.VendorPicker);
     }
 
     private void OpenShop()

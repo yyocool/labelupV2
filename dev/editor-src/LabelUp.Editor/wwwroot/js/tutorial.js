@@ -27,9 +27,9 @@
       id: 'tools',
       selector: '[data-tut="float-tools"]',
       title: '플로팅 도구바',
-      description: '선택·텍스트·이미지·도형과 용지·템플릿·타사포맷이 왼쪽에 모여 있어요.',
+      description: '선택·텍스트·이미지·도형과 내 디자인·데이터 가져오기, 용지·템플릿이 왼쪽에 모여 있어요.',
       effect: '자주 쓰는 도구에 빠르게 접근합니다.',
-      speech: '왼쪽 도구바예요. 타사포맷도 여기에 있어요.',
+      speech: '왼쪽 도구바예요. 용지선택 위에 내 디자인과 데이터 가져오기가 있어요.',
       wait: 3000,
       cursor: true
     },
@@ -63,6 +63,26 @@
       effect: '눈금과 격자가 어긋나지 않아 정확하게 배치할 수 있습니다.',
       speech: '그리드는 눈금자와 같은 규격으로 맞춰져 있어요.',
       wait: 2600,
+      cursor: true
+    },
+    {
+      id: 'mydesign',
+      selector: '[data-tut="mydesign"]',
+      title: '내 디자인',
+      description: '왼쪽 도구바 용지선택 위에서 저장해 둔 내 프로젝트를 불러옵니다.',
+      effect: '작업 연속성을 유지합니다.',
+      speech: '내 디자인에서 최근 작업을 불러올 수 있어요.',
+      wait: 2400,
+      cursor: true
+    },
+    {
+      id: 'data-import',
+      selector: '[data-tut="data-import"]',
+      title: '데이터 가져오기',
+      description: '내 디자인 아래, 용지선택 위에서 엑셀·CSV를 올려 라벨 데이터를 연결합니다.',
+      effect: '가변 데이터 라벨을 빠르게 시작합니다.',
+      speech: '데이터 가져오기로 표를 올릴 수 있어요.',
+      wait: 2400,
       cursor: true
     },
     {
@@ -181,9 +201,9 @@
       id: 'import-fab',
       selector: '[data-tut="import-fab"]',
       title: '타사포맷',
-      description: '왼쪽 도구바의 타사포맷을 누르면 변환 창만 열립니다.',
+      description: '제목 옆 라비AI 다음의 타사포맷을 누르면 변환 창만 열립니다.',
       effect: '폼텍·아이라벨·애니라벨 파일을 바로 올립니다.',
-      speech: '도구바의 타사포맷을 눌러 변환 창을 열게요.',
+      speech: '라비AI 옆의 타사포맷을 눌러 변환 창을 열게요.',
       wait: 2400,
       cursor: true,
       click: true,
@@ -215,9 +235,9 @@
       id: 'topbar-actions',
       selector: '[data-tut="topbar-actions"]',
       title: '상단 작업 버튼',
-      description: '라벨쇼핑, 내디자인, 데이터 가져오기, 미리보기, 저장하기, 출력, 나가기가 아이콘과 함께 오른쪽 위에 있어요.',
+      description: '라벨쇼핑, 저장하기, 미리보기/프린트, 나가기가 아이콘과 함께 오른쪽 위에 있어요.',
       effect: '자주 쓰는 작업을 상단에서 바로 실행합니다.',
-      speech: '상단 오른쪽 버튼들입니다. 미리보기 다음에 저장하기가 있어요.',
+      speech: '상단 오른쪽 버튼들입니다. 저장하기 다음에 미리보기/프린트가 있어요.',
       wait: 2800,
       cursor: true,
       action: 'closeVendorPicker'
@@ -234,45 +254,12 @@
       action: 'closeVendorPicker'
     },
     {
-      id: 'mydesign',
-      selector: '[data-tut="mydesign"]',
-      title: '내디자인',
-      description: '저장해 둔 내 프로젝트를 불러와 이어서 편집합니다.',
-      effect: '작업 연속성을 유지합니다.',
-      speech: '내디자인에서 최근 작업을 불러올 수 있어요.',
-      wait: 2400,
-      cursor: true,
-      action: 'closeVendorPicker'
-    },
-    {
-      id: 'data-import',
-      selector: '[data-tut="data-import"]',
-      title: '데이터 가져오기',
-      description: '엑셀·CSV 파일을 올려 라벨에 연결할 데이터를 가져옵니다.',
-      effect: '가변 데이터 라벨을 빠르게 시작합니다.',
-      speech: '데이터 가져오기로 표를 올릴 수 있어요.',
-      wait: 2400,
-      cursor: true,
-      action: 'closeVendorPicker'
-    },
-    {
-      id: 'preview-btn',
-      selector: '[data-tut="preview-btn"]',
-      title: '미리보기',
-      description: '인쇄 미리보기 창을 열어 시트 배치를 확인합니다.',
-      effect: '출력 전에 결과를 검증합니다.',
-      speech: '미리보기 버튼입니다.',
-      wait: 2200,
-      cursor: true,
-      action: 'closeVendorPicker'
-    },
-    {
       id: 'save',
       selector: '[data-tut="save"]',
       title: '저장하기',
-      description: '미리보기 바로 옆에 있어요. 작업 내용은 초안으로 저장됩니다.',
+      description: '라벨쇼핑 옆에 있어요. 작업 내용은 초안으로 저장됩니다.',
       effect: '작업 손실을 줄입니다.',
-      speech: '미리보기 다음의 저장하기를 눌러 초안을 남겨 두세요.',
+      speech: '저장하기를 눌러 초안을 남겨 두세요.',
       wait: 2600,
       cursor: true,
       action: 'closeVendorPicker'
@@ -280,10 +267,10 @@
     {
       id: 'export',
       selector: '[data-tut="export"]',
-      title: '편집기에서 출력',
-      description: '미리보기와 같은 출력 창에서 인쇄하거나 PNG를 저장합니다.',
-      effect: '완성된 라벨을 바로 출력합니다.',
-      speech: '편집기에서 출력 버튼이에요.',
+      title: '미리보기/프린트',
+      description: '인쇄 미리보기 창에서 시트 배치를 확인하고 인쇄하거나 PNG를 저장합니다.',
+      effect: '완성된 라벨을 바로 확인하고 출력합니다.',
+      speech: '미리보기/프린트 버튼이에요.',
       wait: 2400,
       cursor: true,
       action: 'closeVendorPicker'
@@ -348,7 +335,7 @@
       id: 'm-menu',
       selector: '.ed-m-more',
       title: '☰ 메뉴',
-      description: '오른쪽 위 ☰을 누르면 라벨쇼핑, 저장, 인쇄 미리보기, 출력, 나가기가 열립니다.',
+      description: '오른쪽 위 ☰을 누르면 라벨쇼핑, 저장, 미리보기/프린트, 나가기가 열립니다.',
       effect: '자주 쓰는 작업을 한곳에서 실행합니다.',
       speech: '메뉴 버튼을 눌러 볼게요.',
       wait: 2600,
@@ -360,7 +347,7 @@
       id: 'm-menu-items',
       selector: '[data-tut="topbar-actions"]',
       title: '메뉴 서랍',
-      description: '여기서 저장하기와 편집기에서 출력을 할 수 있어요. 바깥을 누르거나 메뉴 닫기를 누르면 접힙니다.',
+      description: '여기서 저장하기와 미리보기/프린트를 할 수 있어요. 바깥을 누르거나 메뉴 닫기를 누르면 접힙니다.',
       effect: '상단을 간결하게 유지하면서 기능은 그대로입니다.',
       speech: '저장과 출력은 이 메뉴 안에 있어요.',
       wait: 3000,
@@ -371,7 +358,7 @@
       id: 'm-preview-btn',
       selector: '.ed-m-preview',
       title: '시트 버튼',
-      description: '용지 칸 배치를 보려면 시트를 누르세요. PC의 오른쪽 위 미리보기와 같아요.',
+      description: '용지 칸 배치를 보려면 시트를 누르세요. PC의 오른쪽 시트 미리보기와 같아요.',
       effect: '필요할 때만 아래에서 미리보기가 올라옵니다.',
       speech: '시트 버튼을 눌러 미리보기를 열게요.',
       wait: 2600,
@@ -417,7 +404,7 @@
       id: 'm-tools',
       selector: '[data-tut="float-tools"]',
       title: '하단 도구바',
-      description: '텍스트·이미지·도형과 용지선택·템플릿·타사포맷을 가로로 밀어 고릅니다.',
+      description: '텍스트·이미지·도형과 용지선택·템플릿을 가로로 밀어 고릅니다.',
       effect: '엄지로 바로 추가할 수 있습니다.',
       speech: '도구는 화면 아래에 모아 두었어요.',
       wait: 2800,
@@ -428,7 +415,7 @@
       id: 'm-vendor',
       selector: '[data-tut="import-fab"]',
       title: '타사포맷',
-      description: '하단 도구바의 타사포맷으로 폼텍·아이라벨·애니라벨 파일을 올립니다.',
+      description: '상단 라비AI 옆의 타사포맷으로 폼텍·아이라벨·애니라벨 파일을 올립니다.',
       effect: '변환 창만 바로 열립니다.',
       speech: '타사포맷 버튼이에요.',
       wait: 2400,
@@ -553,7 +540,7 @@
         if (h) h.textContent = '휴대폰에서 편집하는 법, 같이 볼까요?';
         if (p) p.textContent = '클라우드 저장·라비AI, 시트·레이어, 두 손가락 확대·이동을 짧게 안내해요.';
       } else if (p) {
-        p.textContent = '클라우드 저장·라비AI, 오른쪽 미리보기·레이어, 도구바와 타사포맷을 가상 커서와 함께 둘러봐요.';
+        p.textContent = '클라우드 저장·라비AI·타사포맷, 오른쪽 미리보기·레이어와 왼쪽 도구바를 가상 커서와 함께 둘러봐요.';
       }
     }
     var reopen = document.querySelector('.ed-tut-reopen');

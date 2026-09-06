@@ -481,6 +481,41 @@ window.labelUpEditor = {
   bindLabi: function (dotnet) {
     this._labiDotNet = dotnet;
   },
+  bindLabiDialogChrome: function () {
+    if (this._labiChromeBound) return;
+    this._labiChromeBound = true;
+    var src = '/assets/labi-icon.png';
+    var decorate = function () {
+      var card = document.querySelector('.ed-modal__card--labi');
+      if (!card) return;
+      var head = card.querySelector('.ed-modal__head');
+      if (head && !head.querySelector('.ed-modal__head-labi')) {
+        var h3 = head.querySelector('h3');
+        if (h3) {
+          var box = h3.parentElement;
+          box.classList.add('ed-modal__head-title');
+          if (!box.querySelector('.ed-modal__head-copy')) {
+            var copy = document.createElement('div');
+            copy.className = 'ed-modal__head-copy';
+            while (box.firstChild) copy.appendChild(box.firstChild);
+            box.appendChild(copy);
+          }
+          var img = document.createElement('img');
+          img.className = 'ed-modal__head-labi';
+          img.src = src;
+          img.alt = '라비';
+          img.width = 48;
+          img.height = 48;
+          box.insertBefore(img, box.firstChild);
+        }
+      }
+      var innerHead = card.querySelector('.prompt-head');
+      if (innerHead) innerHead.setAttribute('hidden', '');
+    };
+    var mo = new MutationObserver(decorate);
+    mo.observe(document.documentElement, { childList: true, subtree: true });
+    decorate();
+  },
 
   hideBoot: function () {
     var el = document.getElementById('editor-boot');
@@ -598,8 +633,7 @@ window.labelUpEditor = {
         return await self.showSaveAuthPrompt();
       },
       onApplyProduct: function (product) {
-        if (!self._labiDotNet) return;
-        self._labiDotNet.invokeMethodAsync('ApplyLabiProduct', JSON.stringify(product || {}));
+        self.applyLabiProduct(product);
       },
       onApplyClipart: function (clipart) {
         if (!self._labiDotNet) return;
@@ -616,8 +650,215 @@ window.labelUpEditor = {
       onApplyVendor: function (file) {
         if (!self._labiDotNet || !file) return;
         self._labiDotNet.invokeMethodAsync('OnVendorFileFromLabi', file.fileName || 'vendor-import', file.dataUrl || '');
-      }
+      },
     });
+  },
+  enrichLabiProduct: async function (product) {
+    var p = Object.assign({}, product || {});
+    var sku = String(p.sku || p.paperNo || p.paper_no || '').trim().toUpperCase();
+    var id = parseInt(p.id || p.productId || p.product_id || 0, 10) || 0;
+    var spec = [p.spec, p.size, p.name, p.title, p.paper_name].filter(Boolean).join(' ');
+    var takeSize = function (text) {
+      var t = String(text || '');
+      var size = t.match(/([\d.]+)\s*[×xX]\s*([\d.]+)\s*mm/i);
+      if (!size) {
+        var loose = t.match(/([\d.]+)\s*[×xX]\s*([\d.]+)/);
+        if (loose && parseFloat(loose[1]) >= 8 && parseFloat(loose[2]) >= 8) size = loose;
+      }
+      if (size) {
+        p.width_mm = parseFloat(size[1]);
+        p.height_mm = parseFloat(size[2]);
+      }
+    };
+    var takeLabels = function (text) {
+      var n = String(text || '').match(/(\d+)\s*칸/) || String(text || '').match(/장당\s*(\d+)/);
+      if (n) p.labels_per_sheet = parseInt(n[1], 10);
+    };
+    if (p.editor_url || p.editorUrl) {
+      try {
+        var u = new URL(String(p.editor_url || p.editorUrl), location.origin);
+        if (!(parseFloat(p.width_mm || p.widthMm || 0) > 0) && u.searchParams.get('w'))
+          p.width_mm = parseFloat(u.searchParams.get('w'));
+        if (!(parseFloat(p.height_mm || p.heightMm || 0) > 0) && u.searchParams.get('h'))
+          p.height_mm = parseFloat(u.searchParams.get('h'));
+        if (!(parseInt(p.labels_per_sheet || p.labelsPerSheet || 0, 10) > 0) && u.searchParams.get('labels'))
+          p.labels_per_sheet = parseInt(u.searchParams.get('labels'), 10);
+        if (!p.sku && (u.searchParams.get('sku') || u.searchParams.get('paper') || u.searchParams.get('paperNo')))
+          p.sku = u.searchParams.get('sku') || u.searchParams.get('paper') || u.searchParams.get('paperNo');
+        if (!p.shape && u.searchParams.get('shape'))
+          p.shape = u.searchParams.get('shape');
+      } catch (e) { /* ignore bad editor_url */ }
+    }
+    if (!(parseFloat(p.width_mm || p.widthMm || 0) > 0)) takeSize(spec);
+    if (!(parseInt(p.labels_per_sheet || p.labelsPerSheet || 0, 10) > 0)) takeLabels(spec);
+    if (sku) p.sku = p.sku || sku;
+    try {
+      var res = await fetch('/api/shop/editor-papers', { credentials: 'same-origin' });
+      var json = await res.json();
+      var items = (json && json.data && (json.data.items || json.data.Items)) || [];
+      var hit = null;
+      for (var i = 0; i < items.length; i++) {
+        var it = items[i];
+        var itSku = String(it.sku || it.Sku || '').trim().toUpperCase();
+        var itId = parseInt(it.id || it.Id || 0, 10) || 0;
+        if ((id && itId === id) || (sku && itSku === sku)) { hit = it; break; }
+      }
+      if (hit) {
+        p.id = p.id || hit.id || hit.Id;
+        p.sku = p.sku || hit.sku || hit.Sku;
+        p.name = p.name || hit.name || hit.Name;
+        p.shape = p.shape || hit.shape || hit.Shape;
+        if (!(parseFloat(p.width_mm || p.widthMm || 0) > 0))
+          p.width_mm = parseFloat(hit.widthMm || hit.WidthMm || 0);
+        if (!(parseFloat(p.height_mm || p.heightMm || 0) > 0))
+          p.height_mm = parseFloat(hit.heightMm || hit.HeightMm || 0);
+        if (!(parseInt(p.labels_per_sheet || p.labelsPerSheet || 0, 10) > 0))
+          p.labels_per_sheet = parseInt(hit.labelsPerSheet || hit.LabelsPerSheet || 0, 10);
+      }
+    } catch (e) { /* keep parsed spec */ }
+    return p;
+  },
+  buildLabiPaperDocument: function (product) {
+    var w = parseFloat(product.width_mm || product.widthMm || 0);
+    var h = parseFloat(product.height_mm || product.heightMm || 0);
+    if (!(w > 0 && h > 0)) return null;
+    var n = parseInt(product.labels_per_sheet || product.labelsPerSheet || 1, 10) || 1;
+    var gap = 3, pageW = 210, pageH = 297, margin = 5;
+    var maxCols = Math.max(1, Math.floor((pageW - margin * 2 + gap) / (w + gap)));
+    var cols = n === 1 ? 1 : Math.min(n, maxCols);
+    var rows = Math.max(1, Math.ceil(n / cols));
+    var per = cols * rows;
+    var cells = [];
+    var sample = {
+      id: 'labiPaper1',
+      type: 'text',
+      x: w * 0.12,
+      y: h * 0.28,
+      width: w * 0.76,
+      height: h * 0.44,
+      fill: '#7B2840',
+      text: '라벨업',
+      bold: true,
+      fontSize: Math.min(9, Math.max(3.5, h * 0.28)),
+      zIndex: 1,
+      visible: true
+    };
+    for (var i = 0; i < per; i++)
+      cells.push({ index: i, objects: i === 0 ? [sample] : [] });
+    var shape = String(product.shape || '').toLowerCase();
+    var kind = /circle|원형|ellipse/.test(shape) ? 'ellipse' : (/heart|하트/.test(shape) ? 'svg' : 'roundrect');
+    var paperNo = product.sku || product.paperNo || 'CUSTOM';
+    var paperName = product.name || (w + '×' + h + ' mm');
+    return {
+      version: 2,
+      format: 'labelup',
+      name: paperName,
+      widthMm: w,
+      heightMm: h,
+      width: w,
+      height: h,
+      width_mm: w,
+      height_mm: h,
+      paper: {
+        version: 1,
+        paperNo: paperNo,
+        PaperNo: paperNo,
+        name: paperName,
+        category: product.category || 'A4',
+        brand: 'LabelUp',
+        paperWidthMm: pageW,
+        paperHeightMm: pageH,
+        labelWidthMm: w,
+        labelHeightMm: h,
+        LabelWidthMm: w,
+        LabelHeightMm: h,
+        columns: cols,
+        rows: rows,
+        Columns: cols,
+        Rows: rows,
+        leftMarginMm: margin,
+        topMarginMm: margin,
+        rightMarginMm: margin,
+        bottomMarginMm: margin,
+        hGapMm: gap,
+        vGapMm: gap,
+        labelColor: '#FFFFFF',
+        shape: { kind: kind, Kind: kind, cornerRadiusMm: 1.2, CornerRadiusMm: 1.2 }
+      },
+      background: '#FFFFFF',
+      pages: [{ index: 0, cells: cells }]
+    };
+  },
+  applyLabiPaperViaPicker: function (product) {
+    var sku = String(product.sku || '').trim().toUpperCase();
+    var w = parseFloat(product.width_mm || product.widthMm || 0);
+    var h = parseFloat(product.height_mm || product.heightMm || 0);
+    var open = document.querySelector('[data-tut="presets"]');
+    if (!open || document.querySelector('[data-tut="paper-picker-head"]')) return;
+    open.click();
+    var tries = 0;
+    var timer = setInterval(function () {
+      tries++;
+      var cards = document.querySelectorAll('.ed-paper-card');
+      var hit = null;
+      for (var i = 0; i < cards.length; i++) {
+        var t = (cards[i].innerText || '').replace(/\s+/g, ' ');
+        if (sku && t.toUpperCase().indexOf(sku) >= 0) { hit = cards[i]; break; }
+        if (!hit && w > 0 && h > 0 && t.indexOf(String(w)) >= 0 && t.indexOf(String(h)) >= 0)
+          hit = cards[i];
+      }
+      if (hit) {
+        hit.click();
+        clearInterval(timer);
+      } else if (tries > 20) {
+        clearInterval(timer);
+        var closer = document.querySelector('.ed-modal__card--papers .ed-modal__close');
+        if (closer) closer.click();
+      }
+    }, 120);
+  },
+  applyLabiProduct: async function (product) {
+    var self = this;
+    var p = await self.enrichLabiProduct(product || {});
+    var info = {
+      sku: p.sku || p.paperNo || '',
+      w: parseFloat(p.width_mm || p.widthMm || 0) || 0,
+      h: parseFloat(p.height_mm || p.heightMm || 0) || 0,
+      n: parseInt(p.labels_per_sheet || p.labelsPerSheet || 0, 10) || 0
+    };
+    if (typeof self.applySuggestedPaper === 'function') self.applySuggestedPaper(info);
+    var applied = false;
+    if (self._labiDotNet) {
+      var doc = self.buildLabiPaperDocument(p);
+      if (doc) {
+        try {
+          await self._labiDotNet.invokeMethodAsync('ApplyLabiDocument', JSON.stringify(doc));
+          applied = true;
+        } catch (e) { applied = false; }
+      }
+      if (!applied) {
+        try {
+          await self._labiDotNet.invokeMethodAsync('ApplyLabiProduct', JSON.stringify(p));
+          applied = true;
+        } catch (e2) { applied = false; }
+      }
+    }
+    if (typeof self.applySuggestedPaper === 'function') self.applySuggestedPaper(info);
+    var canvasOk = self.labiCanvasMatches(info.w, info.h);
+    if (!applied || !canvasOk) self.applyLabiPaperViaPicker(p);
+    setTimeout(function () {
+      if (typeof self.applySuggestedPaper === 'function') self.applySuggestedPaper(info);
+      if (!self.labiCanvasMatches(info.w, info.h)) self.applyLabiPaperViaPicker(p);
+    }, 480);
+  },
+  labiCanvasMatches: function (w, h) {
+    var skia = document.querySelector('.canvas-stage__skia');
+    if (!skia || !(w > 0 && h > 0)) return true;
+    var r = skia.getBoundingClientRect();
+    if (!(r.height > 20 && r.width > 20)) return true;
+    var ratio = r.width / r.height;
+    var want = w / h;
+    return Math.abs(ratio - want) / want < 0.08;
   },
 
   apiGetJson: async function (path) {
@@ -881,6 +1122,41 @@ window.labelUpEditor = {
         labi.setAttribute('aria-hidden', 'true');
       }
     };
+    var parkVendor = function (vendor) {
+      var row = document.querySelector('.ed-topbar__title-row');
+      var labi = row && (row.querySelector('.ed-topbar__labi:not([data-ed-labi-proxy])') || row.querySelector('.ed-topbar__labi'));
+      if (!row || !labi) return;
+      var natives = row.querySelectorAll('.ed-topbar__vendor:not([data-ed-vendor-proxy])');
+      var proxies = row.querySelectorAll('.ed-topbar__vendor[data-ed-vendor-proxy]');
+      var header = natives[0] || proxies[0] || null;
+      if (natives.length) {
+        proxies.forEach(function (p) { p.remove(); });
+        header = natives[0];
+      } else if (proxies.length > 1) {
+        for (var i = 1; i < proxies.length; i++) proxies[i].remove();
+      }
+      if (!header) {
+        header = document.createElement('button');
+        header.type = 'button';
+        header.className = 'ed-topbar__vendor';
+        header.setAttribute('data-ed-vendor-proxy', '1');
+        header.setAttribute('data-tut', 'import-fab');
+        header.title = '애니라벨·아이라벨·폼텍 파일 가져오기';
+        header.setAttribute('aria-label', '타사포맷');
+        header.innerHTML = '<svg class="ed-topbar__vendor-ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3.3 1.8h5.6c.3 0 .6.1.8.4l2.6 2.7c.2.2.3.5.3.8v7.5c0 .7-.6 1.2-1.3 1.2H3.3c-.7 0-1.2-.5-1.2-1.2V3c0-.7.5-1.2 1.2-1.2Zm.5 1.4v9.6h7.9V6.1H9.2c-.4 0-.7-.3-.7-.7V3.2H3.8Zm5.6.5v1.7h1.7L9.4 3.7ZM4.8 9.4h2.1V8.1c0-.4.5-.6.8-.3l2.3 2c.2.2.2.6 0 .8l-2.3 2c-.3.3-.8 0-.8-.3v-1.3H4.8a.7.7 0 0 1 0-1.4Z"/></svg><span>타사포맷</span>';
+        header.addEventListener('click', function (e) {
+          e.preventDefault();
+          var src = document.querySelector('.ed-corner-fab--vendor');
+          if (src) src.click();
+        });
+      }
+      if (labi.nextElementSibling !== header) labi.after(header);
+      if (vendor && vendor !== header) {
+        vendor.classList.add('is-parked');
+        vendor.removeAttribute('data-tut');
+        vendor.setAttribute('aria-hidden', 'true');
+      }
+    };
     var asItem = function (btn) {
       if (!btn) return;
       btn.classList.add('ed-float-tools__item');
@@ -896,6 +1172,77 @@ window.labelUpEditor = {
       }
       var svg = btn.querySelector('svg.ed-corner-fab__ico');
       if (svg) svg.classList.add('ed-float-tools__ico');
+    };
+    var parkFileActions = function () {
+      var bar = document.querySelector('.ed-float-tools__bar');
+      var paper = document.querySelector('[data-tut="presets"]');
+      var paperGroup = paper && paper.closest('.ed-float-tools__group');
+      if (!bar || !paperGroup) return;
+      var isMobile = !!(document.querySelector('.ed.is-mobile') || document.documentElement.classList.contains('lu-mobile'));
+      var existing = bar.querySelector('.ed-float-tools__group--files');
+      var existingDiv = bar.querySelector('.ed-float-tools__divider--files');
+      if (isMobile) {
+        if (existing) existing.remove();
+        if (existingDiv) existingDiv.remove();
+        return;
+      }
+      var srcDesign = document.querySelector('.ed-topbar__actions [data-tut="mydesign"], .ed-topbar__actions [data-ed-file-src="mydesign"]');
+      var srcData = document.querySelector('.ed-topbar__actions [data-tut="data-import"], .ed-topbar__actions [data-ed-file-src="data-import"]');
+      var retarget = function (el, name) {
+        if (!el) return;
+        if (el.getAttribute('data-tut') === name) {
+          el.setAttribute('data-ed-file-src', name);
+          el.removeAttribute('data-tut');
+        }
+      };
+      if (!srcDesign || !srcData) return;
+      retarget(srcDesign, 'mydesign');
+      retarget(srcData, 'data-import');
+      var group = existing;
+      if (!group) {
+        group = document.createElement('div');
+        group.className = 'ed-float-tools__group ed-float-tools__group--files';
+        group.setAttribute('role', 'group');
+        var mk = function (label, tut, src) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'ed-float-tools__file';
+          btn.setAttribute('data-tut', tut);
+          btn.setAttribute('title', label);
+          var svg = src && src.querySelector ? src.querySelector('svg') : null;
+          btn.innerHTML = (svg ? svg.outerHTML : '') + '<span>' + label + '</span>';
+          btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            var live = document.querySelector('.ed-topbar__actions [data-ed-file-src="' + tut + '"]');
+            if (live) live.click();
+          });
+          return btn;
+        };
+        group.appendChild(mk('내 디자인', 'mydesign', srcDesign));
+        group.appendChild(mk('데이터 가져오기', 'data-import', srcData));
+      }
+      var divider = existingDiv;
+      if (!divider) {
+        divider = document.createElement('span');
+        divider.className = 'ed-float-tools__divider ed-float-tools__divider--files';
+        divider.setAttribute('aria-hidden', 'true');
+      }
+      if (group.nextElementSibling !== divider || divider.nextElementSibling !== paperGroup) {
+        paperGroup.parentNode.insertBefore(group, paperGroup);
+        paperGroup.parentNode.insertBefore(divider, paperGroup);
+      }
+    };
+    var relabelExport = function () {
+      var btn = document.querySelector('[data-tut="export"]');
+      if (!btn) return;
+      var label = '미리보기/프린트';
+      var current = (btn.textContent || '').replace(/\s+/g, ' ').trim();
+      if (current === label) return;
+      var svg = btn.querySelector('svg');
+      btn.textContent = '';
+      if (svg) btn.appendChild(svg);
+      btn.appendChild(document.createTextNode(label));
+      btn.setAttribute('title', label);
     };
     var formatTut = function (btn) {
       if (!btn) return;
@@ -920,9 +1267,11 @@ window.labelUpEditor = {
       var vendor = pickLast('.ed-corner-fab--vendor');
       var tut = pickLast('.ed-tut-reopen');
       parkLabi(labi);
-      asItem(vendor);
+      parkVendor(vendor);
       formatTut(tut);
-      var desired = [vendor, tut].filter(Boolean);
+      parkFileActions();
+      relabelExport();
+      var desired = [tut].filter(Boolean);
       if (!desired.length) return;
       var ok = desired.every(function (el, i) {
         return el.parentElement === bar &&
@@ -1440,10 +1789,10 @@ window.labelUpEditor = {
       return paper ? (paper.textContent || '').trim() : '';
     };
     var resolvePaper = function (cellCount) {
+      if (picked && picked.w > 0 && picked.h > 0)
+        return picked;
       var sku = currentSku();
       var skuKey = sku.toUpperCase();
-      if (picked && picked.w > 0 && (!picked.sku || !sku || picked.sku.toUpperCase() === skuKey || skuKey.indexOf(picked.sku.toUpperCase()) === 0))
-        return picked;
       if (shopBySku && skuKey && shopBySku[skuKey] && shopBySku[skuKey].w > 0)
         return shopBySku[skuKey];
       var specText = ((document.querySelector('.ed-preview__spec') || {}).textContent || '');
@@ -1530,8 +1879,37 @@ window.labelUpEditor = {
       if (paperBtn) {
         var em = paperBtn.querySelector('em');
         if (em) em.textContent = (Math.round(lw * 10) / 10) + '×' + (Math.round(lh * 10) / 10) + ' mm · ' + shown + ' 칸';
+        var strong = paperBtn.querySelector('strong');
+        if (strong && paper.sku) strong.textContent = paper.sku;
       }
+      var sizeEl = document.querySelector('.ed-guides__size');
+      if (sizeEl) sizeEl.textContent = (Math.round(lw * 10) / 10) + '×' + (Math.round(lh * 10) / 10) + ' mm';
       applying = false;
+    };
+    this.applySuggestedPaper = function (info) {
+      if (!info || !(info.w > 0 && info.h > 0)) return;
+      picked = {
+        sku: info.sku || '',
+        w: info.w,
+        h: info.h,
+        n: info.n || 0
+      };
+      var spec = document.querySelector('.ed-preview__spec');
+      if (spec) {
+        var strong = spec.querySelector('strong');
+        if (strong && picked.sku) strong.textContent = picked.sku;
+      }
+      var kicker = document.querySelector('[data-tut="presets"] .ed-float-tools__paper-kicker');
+      var paperBtn = kicker && kicker.parentElement;
+      if (paperBtn && picked.sku) {
+        var strongBtn = paperBtn.querySelector('strong');
+        if (strongBtn) strongBtn.textContent = picked.sku;
+      }
+      loadShop().then(request);
+      request();
+      setTimeout(request, 80);
+      setTimeout(request, 360);
+      setTimeout(request, 900);
     };
     var queued = false;
     var request = function () {
@@ -2520,6 +2898,8 @@ window.labelUpEditor = {
       window.labelUpEditor.bindCanvaToolbar();
     if (window.labelUpEditor && typeof window.labelUpEditor.bindPaperPreviewLayout === 'function')
       window.labelUpEditor.bindPaperPreviewLayout();
+    if (window.labelUpEditor && typeof window.labelUpEditor.bindLabiDialogChrome === 'function')
+      window.labelUpEditor.bindLabiDialogChrome();
   };
   window.addEventListener('resize', apply);
   window.addEventListener('orientationchange', apply);

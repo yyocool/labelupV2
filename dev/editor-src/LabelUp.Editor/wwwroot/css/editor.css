@@ -375,8 +375,40 @@ html[data-ed-save="off"] .ed-autosave:hover {
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.2);
 }
+.ed-topbar__vendor {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 8px 0 6px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+  box-shadow: none;
+}
+.ed-topbar__vendor:hover {
+  background: rgba(255, 255, 255, 0.24);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.ed-topbar__vendor-ico {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  display: block;
+}
 .ed-corner-fab--labi.is-parked,
-.ed-float-tools__bar .ed-corner-fab--labi {
+.ed-float-tools__bar .ed-corner-fab--labi,
+.ed-corner-fab--vendor.is-parked,
+.ed-float-tools__bar .ed-corner-fab--vendor {
   display: none !important;
 }
 @keyframes edCloudPulse {
@@ -1890,11 +1922,73 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   top: 0;
   left: calc(100% + 8px);
 }
-.ed:not(.is-mobile) .ed-float-tools__group--stack {
+.ed:not(.is-mobile) .ed-float-tools__group--files {
   flex-direction: column;
   width: 100%;
   margin-top: auto;
+  gap: 4px;
+}
+.ed:not(.is-mobile) .ed-float-tools__file {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 7px 3px 6px;
+  gap: 4px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ed-muted, #6b635c);
+  cursor: pointer;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+}
+.ed:not(.is-mobile) .ed-float-tools__file:hover {
+  background: rgba(123, 40, 64, 0.08);
+  color: var(--ed-primary, #7B2840);
+}
+.ed:not(.is-mobile) .ed-float-tools__file svg,
+.ed:not(.is-mobile) .ed-float-tools__file .ed-btn__ico {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+.ed:not(.is-mobile) .ed-float-tools__file span {
+  display: block;
+  max-width: 100%;
+  word-break: keep-all;
+}
+.ed:not(.is-mobile) .ed-float-tools__divider--files {
+  display: block;
+  width: auto;
+  height: 2px;
+  margin: 8px 10px 8px;
+  background: #c9bdb0;
+  align-self: stretch;
+  border: 0;
+}
+.ed:not(.is-mobile) .ed-topbar__actions [data-tut="mydesign"],
+.ed:not(.is-mobile) .ed-topbar__actions [data-tut="data-import"],
+.ed:not(.is-mobile) .ed-topbar__actions [data-ed-file-src="mydesign"],
+.ed:not(.is-mobile) .ed-topbar__actions [data-ed-file-src="data-import"] {
+  display: none !important;
+}
+.ed-topbar__actions [data-tut="preview-btn"] {
+  display: none !important;
+}
+.ed:not(.is-mobile) .ed-float-tools__group--stack {
+  flex-direction: column;
+  width: 100%;
+  margin-top: 0;
   gap: 6px;
+}
+.ed:not(.is-mobile) .ed-float-tools__bar:not(:has(.ed-float-tools__group--files)) .ed-float-tools__group--stack {
+  margin-top: auto;
 }
 .ed:not(.is-mobile) .ed-float-tools__paper {
   min-width: 0;
@@ -3069,6 +3163,25 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   align-items: stretch;
   gap: 6px;
 }
+.ed-float-tools__file {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.ed-float-tools__file input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
 .ed-float-tools[data-ed-float-orient="vertical"] .ed-float-tools__group--stack {
   flex-direction: column;
 }
@@ -3354,10 +3467,26 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 .ed-modal__head {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   gap: 12px;
   padding: 16px 18px 12px;
   border-bottom: 1px solid var(--ed-border);
 }
+.ed-modal__head-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+.ed-modal__head-labi {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  object-fit: contain;
+  display: block;
+}
+.ed-modal__head-copy { min-width: 0; }
 .ed-modal__head h3 { margin: 0 0 4px; font-size: 16px; }
 .ed-modal__head p { margin: 0; color: var(--muted); font-size: 12px; }
 .ed-modal__close {
@@ -3912,15 +4041,24 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   border-color: transparent;
   box-shadow: none;
 }
-.ed-labi .prompt-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-  flex: 0 0 auto;
+.ed-labi .prompt-head,
+.ed-labi .prompt-badge {
+  display: none !important;
 }
 .ed-labi .prompt-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ed-labi .prompt-title-labi {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  object-fit: contain;
+  display: block;
+}
+.ed-labi .prompt-title__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
 .ed-labi .prompt-title b { font-size: 15px; font-weight: 900; letter-spacing: -.3px; color: #1c1e2b; }
 .ed-labi .prompt-title span { font-size: 12px; color: #7a7e90; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ed-labi .prompt-badge {
@@ -4471,6 +4609,13 @@ html.is-ed-mobile body {
 }
 .ed.is-mobile .ed-topbar__labi span { display: none; }
 .ed.is-mobile .ed-topbar__labi img { width: 22px; height: 22px; }
+.ed.is-mobile .ed-topbar__vendor {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+}
+.ed.is-mobile .ed-topbar__vendor span { display: none; }
+.ed.is-mobile .ed-topbar__vendor-ico { width: 18px; height: 18px; }
 .ed.is-mobile .ed-topbar__center {
   flex: 0 0 auto;
   gap: 4px;
@@ -4597,6 +4742,10 @@ html.is-ed-mobile body {
   padding: 4px 6px;
 }
 .ed.is-mobile .ed-float-tools__label { font-size: 10px; }
+.ed.is-mobile .ed-float-tools__group--files,
+.ed.is-mobile .ed-float-tools__divider--files {
+  display: none !important;
+}
 .ed.is-mobile .ed-float-tools__paper {
   min-width: 86px;
   padding: 6px 8px;
