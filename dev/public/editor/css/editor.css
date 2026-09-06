@@ -173,8 +173,8 @@ html, body {
   animation: edIn 0.45s var(--ed-ease) both;
 }
 @keyframes edIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* —— Top bar (M-01) —— */

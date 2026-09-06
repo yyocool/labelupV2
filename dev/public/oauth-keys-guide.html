@@ -257,19 +257,35 @@
           </div>
         </article>
         <article class="domain-card">
-          <h3><span class="pill prod">운영</span> 운영 도메인</h3>
-          <p class="base">https://www.labelup.co.kr</p>
+          <h3><span class="pill prod">운영</span> .co.kr</h3>
+          <p class="base">https://www.labelup.co.kr · https://labelup.co.kr</p>
           <div class="urls">
             <span class="mono">https://www.labelup.co.kr/auth/naver/callback</span>
             <span class="mono">https://www.labelup.co.kr/auth/kakao/callback</span>
             <span class="mono">https://www.labelup.co.kr/auth/google/callback</span>
+            <span class="mono">https://labelup.co.kr/auth/naver/callback</span>
+            <span class="mono">https://labelup.co.kr/auth/kakao/callback</span>
+            <span class="mono">https://labelup.co.kr/auth/google/callback</span>
+          </div>
+        </article>
+        <article class="domain-card">
+          <h3><span class="pill prod">운영</span> .kr</h3>
+          <p class="base">https://www.labelup.kr · https://labelup.kr</p>
+          <div class="urls">
+            <span class="mono">https://www.labelup.kr/auth/naver/callback</span>
+            <span class="mono">https://www.labelup.kr/auth/kakao/callback</span>
+            <span class="mono">https://www.labelup.kr/auth/google/callback</span>
+            <span class="mono">https://labelup.kr/auth/naver/callback</span>
+            <span class="mono">https://labelup.kr/auth/kakao/callback</span>
+            <span class="mono">https://labelup.kr/auth/google/callback</span>
           </div>
         </article>
       </div>
       <div class="note" style="margin-top:12px;">
         서비스 URL(사이트 주소)도 가능하면 두 도메인을 모두 등록하세요.<br>
-        개발: <code>http://labelupdev.gagamkorea.kr</code> ·
-        운영: <code>https://www.labelup.co.kr</code>
+        개발: <code>http://labelupdev.gagamkorea.kr</code> · <code>https://labelupdev.gagamkorea.kr</code><br>
+        운영: <code>https://www.labelup.co.kr</code> · <code>https://labelup.co.kr</code> ·
+        <code>https://www.labelup.kr</code> · <code>https://labelup.kr</code>
       </div>
     </section>
 
@@ -304,16 +320,24 @@
             <div>
               <h4>서비스 URL / Callback URL 입력</h4>
               <ul>
-                <li>서비스 URL에 <strong>개발·운영 둘 다</strong> 등록
+                <li>서비스 URL에 <strong>개발·운영 모두</strong> 등록
                   <div style="margin-top:6px; display:grid; gap:4px;">
                     <span class="mono">http://labelupdev.gagamkorea.kr</span>
+                    <span class="mono">https://labelupdev.gagamkorea.kr</span>
                     <span class="mono">https://www.labelup.co.kr</span>
+                    <span class="mono">https://labelup.co.kr</span>
+                    <span class="mono">https://www.labelup.kr</span>
+                    <span class="mono">https://labelup.kr</span>
                   </div>
                 </li>
                 <li>Callback URL에도 <strong>개발·운영 둘 다</strong> 등록
                   <div style="margin-top:6px; display:grid; gap:4px;">
                     <span class="mono">http://labelupdev.gagamkorea.kr/auth/naver/callback</span>
+                    <span class="mono">https://labelupdev.gagamkorea.kr/auth/naver/callback</span>
                     <span class="mono">https://www.labelup.co.kr/auth/naver/callback</span>
+                    <span class="mono">https://labelup.co.kr/auth/naver/callback</span>
+                    <span class="mono">https://www.labelup.kr/auth/naver/callback</span>
+                    <span class="mono">https://labelup.kr/auth/naver/callback</span>
                   </div>
                 </li>
               </ul>
@@ -375,7 +399,11 @@
                 <li>Redirect URI에 <strong>개발·운영 둘 다</strong> 등록
                   <div style="margin-top:6px; display:grid; gap:4px;">
                     <span class="mono">http://labelupdev.gagamkorea.kr/auth/kakao/callback</span>
+                    <span class="mono">https://labelupdev.gagamkorea.kr/auth/kakao/callback</span>
                     <span class="mono">https://www.labelup.co.kr/auth/kakao/callback</span>
+                    <span class="mono">https://labelup.co.kr/auth/kakao/callback</span>
+                    <span class="mono">https://www.labelup.kr/auth/kakao/callback</span>
+                    <span class="mono">https://labelup.kr/auth/kakao/callback</span>
                   </div>
                 </li>
               </ul>
@@ -442,16 +470,24 @@
               <h4>OAuth 클라이언트 ID 만들기</h4>
               <ul>
                 <li>만들기 → 애플리케이션 유형: <strong>웹 애플리케이션</strong></li>
-                <li>승인된 자바스크립트 원본(선택)에 개발·운영 둘 다 등록
+                <li>승인된 자바스크립트 원본에 개발·운영 모두 등록
                   <div style="margin-top:6px; display:grid; gap:4px;">
                     <span class="mono">http://labelupdev.gagamkorea.kr</span>
+                    <span class="mono">https://labelupdev.gagamkorea.kr</span>
                     <span class="mono">https://www.labelup.co.kr</span>
+                    <span class="mono">https://labelup.co.kr</span>
+                    <span class="mono">https://www.labelup.kr</span>
+                    <span class="mono">https://labelup.kr</span>
                   </div>
                 </li>
                 <li>승인된 리디렉션 URI에 <strong>개발·운영 둘 다</strong> 등록
                   <div style="margin-top:6px; display:grid; gap:4px;">
                     <span class="mono">http://labelupdev.gagamkorea.kr/auth/google/callback</span>
+                    <span class="mono">https://labelupdev.gagamkorea.kr/auth/google/callback</span>
                     <span class="mono">https://www.labelup.co.kr/auth/google/callback</span>
+                    <span class="mono">https://labelup.co.kr/auth/google/callback</span>
+                    <span class="mono">https://www.labelup.kr/auth/google/callback</span>
+                    <span class="mono">https://labelup.kr/auth/google/callback</span>
                   </div>
                 </li>
               </ul>

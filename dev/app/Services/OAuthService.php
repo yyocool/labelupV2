@@ -284,13 +284,13 @@ final class OAuthService
 
     private function absoluteUrl(string $path): string
     {
-        $base = rtrim((string) env('APP_URL', ''), '/');
-        if ($base === '') {
+        $host = (string) ($_SERVER['HTTP_HOST'] ?? '');
+        if ($host !== '') {
             $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
                 || ((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-            $scheme = $https ? 'https' : 'http';
-            $host = (string) ($_SERVER['HTTP_HOST'] ?? 'localhost');
-            $base = $scheme . '://' . $host;
+            $base = ($https ? 'https' : 'http') . '://' . $host;
+        } else {
+            $base = rtrim((string) env('APP_URL', ''), '/');
         }
         return $base . '/' . ltrim($path, '/');
     }

@@ -1442,45 +1442,59 @@ window.labelUpEditor = {
       btn.appendChild(document.createTextNode(label));
       btn.setAttribute('title', label);
     };
-    var formatTut = function (btn) {
-      if (!btn) return;
-      btn.classList.add('ed-float-tools__item');
-      if (btn.querySelector('.ed-float-tools__label')) return;
-      btn.textContent = '';
-      var ico = document.createElement('span');
-      ico.className = 'ed-float-tools__ico';
-      ico.setAttribute('aria-hidden', 'true');
-      ico.textContent = '✦';
-      var lab = document.createElement('span');
-      lab.className = 'ed-float-tools__label';
-      lab.textContent = '튜토리얼';
-      btn.appendChild(ico);
-      btn.appendChild(lab);
-      btn.setAttribute('title', '튜토리얼 다시 보기');
+    var parkTut = function (tut) {
+      var bar = document.querySelector('.ed-float-tools__bar');
+      if (!bar) return;
+      var natives = document.querySelectorAll('.ed-tut-reopen:not([data-ed-tut-proxy])');
+      var proxies = bar.querySelectorAll('.ed-tut-reopen[data-ed-tut-proxy]');
+      var src = tut && !tut.getAttribute('data-ed-tut-proxy') ? tut : natives[natives.length - 1];
+      if (proxies.length > 1) {
+        for (var i = 1; i < proxies.length; i++) proxies[i].remove();
+      }
+      var proxy = proxies[0] || null;
+      if (!proxy) {
+        proxy = document.createElement('button');
+        proxy.type = 'button';
+        proxy.className = 'ed-tut-reopen ed-float-tools__item';
+        proxy.setAttribute('data-ed-tut-proxy', '1');
+        proxy.setAttribute('title', '튜토리얼 다시 보기');
+        proxy.innerHTML = '<span class="ed-float-tools__ico" aria-hidden="true">✦</span><span class="ed-float-tools__label">튜토리얼</span>';
+        proxy.addEventListener('click', function (e) {
+          e.preventDefault();
+          var live = document.querySelector('.ed-tut-reopen:not([data-ed-tut-proxy])');
+          if (live) live.click();
+        });
+      }
+      if (proxy.parentElement !== bar || bar.lastElementChild !== proxy) bar.appendChild(proxy);
+      natives.forEach(function (btn) {
+        btn.classList.add('is-parked');
+        btn.setAttribute('aria-hidden', 'true');
+      });
+      if (src && src.parentElement && src.parentElement.closest('.ed-float-tools')) {
+        var host = document.querySelector('[data-ed-root]');
+        if (host) host.appendChild(src);
+      }
+      var trapped = document.querySelector('.ed-float-tools .lu-tut-invite');
+      if (trapped) {
+        var root = document.querySelector('[data-ed-root]') || document.body;
+        root.appendChild(trapped);
+      }
     };
     var dock = function () {
       var bar = document.querySelector('.ed-float-tools__bar');
       if (!bar) return;
       var labi = pickLast('.ed-corner-fab--labi');
       var vendor = pickLast('.ed-corner-fab--vendor');
-      var tut = pickLast('.ed-tut-reopen');
+      var tut = pickLast('.ed-tut-reopen:not([data-ed-tut-proxy])');
       parkLabi(labi);
       parkVendor(vendor);
-      formatTut(tut);
+      parkTut(tut);
       parkFileActions();
       if (window.labelUpEditor && typeof window.labelUpEditor.parkMobileDockButtons === 'function')
         window.labelUpEditor.parkMobileDockButtons();
       if (window.labelUpEditor && typeof window.labelUpEditor.ensureMobileDrawerExtras === 'function')
         window.labelUpEditor.ensureMobileDrawerExtras();
       relabelExport();
-      var desired = [tut].filter(Boolean);
-      if (!desired.length) return;
-      var ok = desired.every(function (el, i) {
-        return el.parentElement === bar &&
-          (i === 0 || desired[i - 1].nextElementSibling === el) &&
-          bar.lastElementChild === desired[desired.length - 1];
-      });
-      if (!ok) desired.forEach(function (el) { bar.appendChild(el); });
     };
     var mo = new MutationObserver(dock);
     var start = function () {

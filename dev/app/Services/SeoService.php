@@ -545,18 +545,18 @@ final class SeoService
 
     public function siteBase(): string
     {
+        $host = (string) ($_SERVER['HTTP_HOST'] ?? '');
+        if ($host !== '') {
+            $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                || ((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')
+                || (string) ($_SERVER['SERVER_PORT'] ?? '') === '443';
+            return ($https ? 'https://' : 'http://') . $host;
+        }
         $base = trim($this->setting('seo.canonical_base'));
         if ($base === '') {
             $base = (string) app_config('url', '');
         }
-        $base = rtrim($base, '/');
-        if ($base === '') {
-            $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-                || (string) ($_SERVER['SERVER_PORT'] ?? '') === '443';
-            $host = (string) ($_SERVER['HTTP_HOST'] ?? 'localhost');
-            $base = ($https ? 'https://' : 'http://') . $host;
-        }
-        return $base;
+        return rtrim($base, '/') ?: 'http://localhost';
     }
 
     public function absoluteUrl(string $path): string
