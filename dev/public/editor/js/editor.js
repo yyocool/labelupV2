@@ -2132,7 +2132,7 @@ window.labelUpEditor = {
         await showPropsFields();
         await fn();
       } finally {
-        await ops.showTab('레이어');
+        if (onLayers) await ops.showTab('레이어');
         if (onLayers) ops.stopFreeze();
       }
     };
@@ -2460,9 +2460,6 @@ window.labelUpEditor = {
       if (document.documentElement.classList.contains('lu-layer-applying')) return;
       var bar = ensureBar();
       if (!bar) return;
-      var panel = document.querySelector('[data-ed-props-panel]');
-      var title = panel && panel.querySelector('.ed-props__title');
-      if (title) title.textContent = '레이어';
       var selected = hasSelection();
       if (selected) {
         document.documentElement.classList.add('lu-ctx-on');
@@ -2478,7 +2475,6 @@ window.labelUpEditor = {
         } finally {
           busy = false;
         }
-        if (activeTab() !== '레이어') ops.showTab('레이어');
         return;
       }
       document.documentElement.classList.remove('lu-ctx-on');
@@ -2486,7 +2482,6 @@ window.labelUpEditor = {
       bar.removeAttribute('data-ready');
       lastKey = '';
       closeOpacityPop();
-      if (activeTab() !== '레이어') ops.showTab('레이어');
     };
     var queued = false;
     var requestSync = function () {
@@ -2517,7 +2512,7 @@ window.labelUpEditor = {
       var meaningful = false;
       for (var i = 0; i < records.length; i++) {
         var t = records[i].target;
-        if (t && t.closest && t.closest('#lu-ctx-bar')) continue;
+        if (t && t.closest && (t.closest('#lu-ctx-bar') || t.closest('[data-ed-props-panel]'))) continue;
         meaningful = true;
         break;
       }

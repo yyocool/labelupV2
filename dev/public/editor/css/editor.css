@@ -1035,6 +1035,12 @@ html.lu-right-stack .ed:not(.is-mobile) .ed-props__inner {
   min-height: 0;
   overflow: hidden;
 }
+html.lu-right-stack .ed:not(.is-mobile) .ed-props__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
 html.lu-right-stack .ed:not(.is-mobile) .ed-props__layers {
   display: flex;
   flex-direction: column;
@@ -1133,8 +1139,6 @@ html.lu-right-stack .ed:not(.is-mobile) .ed-props__layers {
   color: var(--ed-primary);
   border-color: #E8D4DB;
 }
-.ed-props__tab[data-tut="tab-props"] { display: none !important; }
-.ed-props__tabs { display: none !important; }
 
 .ed-ctx-bar {
   position: absolute;
