@@ -178,13 +178,25 @@ $usagePct = min(100, (int) round(($usage['used'] / max(1, $usage['limit'])) * 10
 
   <section class="account-panel card" id="address">
     <h2 class="account-section-title">배송지 관리</h2>
-    <div class="account-address">
-      <span class="account-address-label"><?= e($dash['address']['label']) ?></span>
-      <strong><?= e($dash['address']['name']) ?></strong>
-      <p><?= e($dash['address']['phone']) ?></p>
-      <p><?= e($dash['address']['address']) ?></p>
+    <div id="accountAddressList">
+      <?php foreach (($dash['addresses'] ?? []) as $addr): ?>
+      <article class="account-address" data-address-id="<?= (int) $addr['id'] ?>">
+        <span class="account-address-label"><?= e($addr['label']) ?><?= !empty($addr['is_default']) ? ' · 기본' : '' ?></span>
+        <strong><?= e($addr['recipient_name']) ?></strong>
+        <p><?= e($addr['recipient_phone']) ?></p>
+        <p><?= e($addr['address_line']) ?></p>
+        <div class="account-address-actions">
+          <?php if (empty($addr['is_default'])): ?>
+          <button type="button" class="account-btn account-btn--outline" data-address-default="<?= (int) $addr['id'] ?>">기본</button>
+          <?php endif; ?>
+          <button type="button" class="account-btn account-btn--outline" data-address-edit="<?= (int) $addr['id'] ?>">수정</button>
+          <button type="button" class="account-btn account-btn--danger" data-address-del="<?= (int) $addr['id'] ?>">삭제</button>
+        </div>
+      </article>
+      <?php endforeach; ?>
     </div>
-    <button type="button" class="account-btn account-btn--outline account-btn--block" disabled>＋ 배송지 추가</button>
+    <p class="account-empty" id="accountAddressEmpty" <?= empty($dash['addresses']) ? '' : 'hidden' ?>>저장된 배송지가 없습니다. 자주 쓰는 주소를 등록해 두세요.</p>
+    <button type="button" class="account-btn account-btn--outline account-btn--block" data-address-add>＋ 배송지 추가</button>
   </section>
 
   <section class="account-panel card">

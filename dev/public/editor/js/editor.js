@@ -35,6 +35,8 @@ window.labelUpEditor = {
     el._luGestures = true;
     var pts = new Map();
     var gesture = null;
+    var pan = null;
+    var spaceDown = false;
     function point(e) { return { x: e.clientX, y: e.clientY }; }
     function dist(a, b) {
       var dx = a.x - b.x, dy = a.y - b.y;
@@ -42,45 +44,131 @@ window.labelUpEditor = {
     }
     function mid(a, b) { return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
     function values() { return Array.from(pts.values()); }
+    function isTyping(e) {
+      var t = e.target;
+      if (!t) return false;
+      var tag = (t.tagName || '').toLowerCase();
+      return tag === 'input' || tag === 'textarea' || tag === 'select' || t.isContentEditable;
+    }
+    function labelBox() {
+      var skia = el.querySelector('.canvas-stage__skia');
+      return skia ? skia.getBoundingClientRect() : null;
+    }
+    function isOnGuide(e) {
+      var t = e.target;
+      return !!(t && t.closest && t.closest('.ed-guides__h, .ed-guides__v, .ed-guides__corner, .ed-guides__size'));
+    }
+    function isOutsideLabel(e) {
+      var s = labelBox();
+      if (!s) return true;
+      return e.clientX < s.left || e.clientX > s.right || e.clientY < s.top || e.clientY > s.bottom;
+    }
+    function wantPan(e) {
+      if (e.target && e.target.closest && e.target.closest('.ed-ctx, button, input, textarea, select, a')) return false;
+      if (e.button === 1) return true;
+      if (spaceDown && (e.button === 0 || e.pointerType === 'touch' || e.pointerType === 'pen')) return true;
+      if (e.button !== 0 && e.pointerType !== 'touch' && e.pointerType !== 'pen') return false;
+      return isOnGuide(e) || isOutsideLabel(e);
+    }
+    function applyPan(nextX, nextY) {
+      if (!pan) return;
+      var panX = pan.panX + (nextX - pan.x);
+      var panY = pan.panY + (nextY - pan.y);
+      dotnet.invokeMethodAsync('OnGestureZoomPan', pan.zoom, panX, panY);
+    }
+    function startPan(e) {
+      var sx = e.clientX, sy = e.clientY, id = e.pointerId;
+      try { el.setPointerCapture(id); } catch (err) { /* ignore */ }
+      el.classList.add('is-panning');
+      Promise.resolve(dotnet.invokeMethodAsync('GetViewState')).then(function (st) {
+        if (!st || st.length < 3) return;
+        pan = {
+          id: id,
+          x: sx,
+          y: sy,
+          zoom: Number(st[0]) || 1,
+          panX: Number(st[1]) || 0,
+          panY: Number(st[2]) || 0
+        };
+      }).catch(function () { /* ignore */ });
+    }
+    function endPan(e) {
+      if (e && pan && pan.id !== e.pointerId) return;
+      if (!pan && !el.classList.contains('is-panning')) return;
+      pan = null;
+      el.classList.remove('is-panning');
+      try { if (e) el.releasePointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      dotnet.invokeMethodAsync('OnGestureEnd');
+    }
+    el.querySelectorAll('.ed-pan-rails').forEach(function (n) { n.remove(); });
+    window.addEventListener('keydown', function (e) {
+      if (e.code !== 'Space' || e.repeat || isTyping(e)) return;
+      spaceDown = true;
+      el.classList.add('is-pan-ready');
+      e.preventDefault();
+    });
+    window.addEventListener('keyup', function (e) {
+      if (e.code !== 'Space') return;
+      spaceDown = false;
+      el.classList.remove('is-pan-ready');
+    });
+    window.addEventListener('blur', function () {
+      spaceDown = false;
+      el.classList.remove('is-pan-ready');
+    });
     el.addEventListener('pointerdown', function (e) {
-      if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
-      pts.set(e.pointerId, point(e));
-      if (pts.size === 2) {
-        var pair = values();
-        Promise.resolve(dotnet.invokeMethodAsync('GetViewState')).then(function (st) {
-          if (!st || st.length < 3) return;
-          gesture = {
-            startDist: Math.max(8, dist(pair[0], pair[1])),
-            startMid: mid(pair[0], pair[1]),
-            zoom: Number(st[0]) || 1,
-            panX: Number(st[1]) || 0,
-            panY: Number(st[2]) || 0
-          };
-        }).catch(function () { /* ignore */ });
-        try { e.stopImmediatePropagation(); } catch (err) { /* ignore */ }
+      if (e.pointerType === 'touch' || e.pointerType === 'pen') {
+        pts.set(e.pointerId, point(e));
+        if (pts.size === 2) {
+          endPan(e);
+          var pair = values();
+          Promise.resolve(dotnet.invokeMethodAsync('GetViewState')).then(function (st) {
+            if (!st || st.length < 3) return;
+            gesture = {
+              startDist: Math.max(8, dist(pair[0], pair[1])),
+              startMid: mid(pair[0], pair[1]),
+              zoom: Number(st[0]) || 1,
+              panX: Number(st[1]) || 0,
+              panY: Number(st[2]) || 0
+            };
+          }).catch(function () { /* ignore */ });
+          try { e.stopImmediatePropagation(); } catch (err) { /* ignore */ }
+          return;
+        }
       }
-    }, true);
-    el.addEventListener('pointermove', function (e) {
-      if (!pts.has(e.pointerId)) return;
-      pts.set(e.pointerId, point(e));
-      if (pts.size < 2 || !gesture) return;
+      if (gesture || pts.size >= 2) return;
+      if (!wantPan(e)) return;
       e.preventDefault();
       try { e.stopImmediatePropagation(); } catch (err) { /* ignore */ }
-      var pair = values();
-      var d = Math.max(8, dist(pair[0], pair[1]));
-      var m = mid(pair[0], pair[1]);
-      var zoom = Math.max(0.25, Math.min(8, gesture.zoom * (d / gesture.startDist)));
-      var panX = gesture.panX + (m.x - gesture.startMid.x);
-      var panY = gesture.panY + (m.y - gesture.startMid.y);
-      dotnet.invokeMethodAsync('OnGestureZoomPan', zoom, panX, panY);
+      startPan(e);
+    }, true);
+    el.addEventListener('pointermove', function (e) {
+      if (pts.has(e.pointerId)) pts.set(e.pointerId, point(e));
+      if (pts.size >= 2 && gesture) {
+        e.preventDefault();
+        try { e.stopImmediatePropagation(); } catch (err) { /* ignore */ }
+        var pair = values();
+        var d = Math.max(8, dist(pair[0], pair[1]));
+        var m = mid(pair[0], pair[1]);
+        var zoom = Math.max(0.25, Math.min(8, gesture.zoom * (d / gesture.startDist)));
+        var panX = gesture.panX + (m.x - gesture.startMid.x);
+        var panY = gesture.panY + (m.y - gesture.startMid.y);
+        dotnet.invokeMethodAsync('OnGestureZoomPan', zoom, panX, panY);
+        return;
+      }
+      if (pan && pan.id === e.pointerId) {
+        e.preventDefault();
+        try { e.stopImmediatePropagation(); } catch (err) { /* ignore */ }
+        applyPan(e.clientX, e.clientY);
+      }
     }, { capture: true, passive: false });
     function endPointer(e) {
-      if (!pts.has(e.pointerId)) return;
-      pts.delete(e.pointerId);
+      if (pts.has(e.pointerId)) pts.delete(e.pointerId);
       if (pts.size < 2 && gesture) {
         gesture = null;
         dotnet.invokeMethodAsync('OnGestureEnd');
       }
+      endPan(e);
     }
     el.addEventListener('pointerup', endPointer, true);
     el.addEventListener('pointercancel', endPointer, true);
@@ -531,22 +619,54 @@ window.labelUpEditor = {
     try {
       document.documentElement.classList.toggle('is-ed-mobile', on);
       document.body.classList.toggle('is-ed-mobile', on);
+      if (on) document.documentElement.classList.remove('lu-right-stack');
     } catch (e) { /* ignore */ }
     var root = document.querySelector('[data-ed-root]');
     if (!root) return;
+    var wasMobile = root.classList.contains('is-mobile');
     root.classList.toggle('is-mobile', on);
-    if (!on) {
-      this.ensureMobileChromeButtons();
-      return;
-    }
-    root.classList.remove('is-topbar-auto');
-    root.classList.add('is-topbar-pinned');
-    var dock = root.querySelector('[data-ed-topbar-dock]');
-    if (dock) {
-      dock.classList.remove('is-auto');
-      dock.classList.add('is-pinned');
+    if (on) {
+      root.classList.remove('is-topbar-auto');
+      root.classList.add('is-topbar-pinned');
+      var dock = root.querySelector('[data-ed-topbar-dock]');
+      if (dock) {
+        dock.classList.remove('is-auto');
+        dock.classList.add('is-pinned');
+      }
+      this.resetMobilePanelStyles();
+      if (!wasMobile) this.closeMobileSheets();
+    } else if (wasMobile) {
+      this.closeMobileSheets();
     }
     this.ensureMobileChromeButtons();
+    this.parkMobileDockButtons();
+    this.ensureMobileDrawerExtras();
+  },
+  closeMobileSheets: function () {
+    var root = document.querySelector('[data-ed-root]');
+    var preview = document.querySelector('[data-ed-preview-panel]');
+    var props = document.querySelector('[data-ed-props-panel]');
+    if (preview) preview.classList.remove('is-m-open');
+    if (props) props.classList.remove('is-m-open');
+    if (root) {
+      root.classList.remove('is-preview-open');
+      root.classList.remove('is-props-open');
+    }
+  },
+  resetMobilePanelStyles: function () {
+    ['[data-ed-preview-panel]', '[data-ed-props-panel]', '[data-ed-float-tools]'].forEach(function (sel) {
+      var el = document.querySelector(sel);
+      if (!el) return;
+      el.style.left = '';
+      el.style.top = '';
+      el.style.right = '';
+      el.style.bottom = '';
+      el.style.width = '';
+      el.style.height = '';
+      el.style.minHeight = '';
+      el.style.maxHeight = '';
+      el.style.transform = '';
+    });
   },
   ensureMobileChromeButtons: function () {
     var root = document.querySelector('[data-ed-root]');
@@ -577,6 +697,75 @@ window.labelUpEditor = {
     });
     propsBtn.parentNode.insertBefore(btn, propsBtn);
   },
+  parkMobileDockButtons: function () {
+    var root = document.querySelector('[data-ed-root]');
+    if (!root) return;
+    var header = root.querySelector('.ed-topbar');
+    var more = header && header.querySelector('.ed-m-more');
+    var tools = root.querySelector('[data-ed-float-tools]');
+    var previewBtn = root.querySelector('.ed-m-preview');
+    var propsBtn = root.querySelector('.ed-m-props');
+    var end = root.querySelector('.ed-m-dock-end');
+    if (!previewBtn || !propsBtn) return;
+    if (root.classList.contains('is-mobile') && tools) {
+      if (!end) {
+        end = document.createElement('div');
+        end.className = 'ed-m-dock-end';
+        tools.appendChild(end);
+      } else if (end.parentElement !== tools) {
+        tools.appendChild(end);
+      }
+      if (previewBtn.parentElement !== end) end.appendChild(previewBtn);
+      if (propsBtn.parentElement !== end) end.appendChild(propsBtn);
+      return;
+    }
+    if (end) end.remove();
+    if (!header || !more) return;
+    if (previewBtn.parentElement !== header) more.after(previewBtn);
+    if (propsBtn.parentElement !== header) previewBtn.after(propsBtn);
+  },
+  ensureMobileDrawerExtras: function () {
+    var actions = document.querySelector('.ed-topbar__actions');
+    if (!actions) return;
+    var vendor = actions.querySelector('[data-ed-m-vendor]');
+    var credit = actions.querySelector('[data-ed-m-credit]');
+    var on = !!(document.querySelector('.ed.is-mobile'));
+    if (!on) {
+      if (vendor) vendor.remove();
+      if (credit) credit.remove();
+      return;
+    }
+    var after = actions.querySelector('.ed-m-drawer-close');
+    if (!vendor) {
+      vendor = document.createElement('button');
+      vendor.type = 'button';
+      vendor.className = 'ed-btn';
+      vendor.setAttribute('data-ed-m-vendor', '1');
+      vendor.textContent = '타사포맷';
+      vendor.addEventListener('click', function (e) {
+        e.preventDefault();
+        var src = document.querySelector('.ed-topbar__vendor, .ed-corner-fab--vendor');
+        if (src) src.click();
+      });
+      if (after && after.nextSibling) after.after(vendor);
+      else actions.insertBefore(vendor, actions.firstChild);
+    }
+    if (!credit) {
+      credit = document.createElement('button');
+      credit.type = 'button';
+      credit.className = 'ed-btn';
+      credit.setAttribute('data-ed-m-credit', '1');
+      credit.textContent = '남은 크레딧';
+      credit.addEventListener('click', function (e) {
+        e.preventDefault();
+        var chip = document.getElementById('lu-credit-chip');
+        if (!chip) return;
+        chip.hidden = false;
+        chip.click();
+      });
+      vendor.after(credit);
+    }
+  },
   toggleMobileProps: function () {
     var root = document.querySelector('[data-ed-root]');
     var props = document.querySelector('[data-ed-props-panel]');
@@ -599,6 +788,7 @@ window.labelUpEditor = {
     }
     preview.classList.toggle('is-m-open', open);
     root.classList.toggle('is-preview-open', open);
+    if (open && typeof this.refreshPaperPreview === 'function') this.refreshPaperPreview();
     var props = document.querySelector('[data-ed-props-panel]');
     if (props) props.classList.remove('is-m-open');
     root.classList.remove('is-props-open');
@@ -1178,14 +1368,11 @@ window.labelUpEditor = {
       var paper = document.querySelector('[data-tut="presets"]');
       var paperGroup = paper && paper.closest('.ed-float-tools__group');
       if (!bar || !paperGroup) return;
-      var isMobile = !!(document.querySelector('.ed.is-mobile') || document.documentElement.classList.contains('lu-mobile'));
-      var existing = bar.querySelector('.ed-float-tools__group--files');
-      var existingDiv = bar.querySelector('.ed-float-tools__divider--files');
-      if (isMobile) {
-        if (existing) existing.remove();
-        if (existingDiv) existingDiv.remove();
-        return;
-      }
+      var isMobile = !!(document.querySelector('.ed.is-mobile') || document.documentElement.classList.contains('is-ed-mobile'));
+      var designGroup = bar.querySelector('.ed-float-tools__group--files');
+      var divider = bar.querySelector('.ed-float-tools__divider--files');
+      var stackedData = paperGroup.querySelector('[data-tut="data-import"]');
+      if (isMobile) return;
       var srcDesign = document.querySelector('.ed-topbar__actions [data-tut="mydesign"], .ed-topbar__actions [data-ed-file-src="mydesign"]');
       var srcData = document.querySelector('.ed-topbar__actions [data-tut="data-import"], .ed-topbar__actions [data-ed-file-src="data-import"]');
       var retarget = function (el, name) {
@@ -1198,39 +1385,38 @@ window.labelUpEditor = {
       if (!srcDesign || !srcData) return;
       retarget(srcDesign, 'mydesign');
       retarget(srcData, 'data-import');
-      var group = existing;
-      if (!group) {
-        group = document.createElement('div');
-        group.className = 'ed-float-tools__group ed-float-tools__group--files';
-        group.setAttribute('role', 'group');
-        var mk = function (label, tut, src) {
-          var btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'ed-float-tools__file';
-          btn.setAttribute('data-tut', tut);
-          btn.setAttribute('title', label);
-          var svg = src && src.querySelector ? src.querySelector('svg') : null;
-          btn.innerHTML = (svg ? svg.outerHTML : '') + '<span>' + label + '</span>';
-          btn.addEventListener('click', function (e) {
-            e.preventDefault();
-            var live = document.querySelector('.ed-topbar__actions [data-ed-file-src="' + tut + '"]');
-            if (live) live.click();
-          });
-          return btn;
-        };
-        group.appendChild(mk('내 디자인', 'mydesign', srcDesign));
-        group.appendChild(mk('데이터 가져오기', 'data-import', srcData));
+      var mk = function (label, tut, src) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'ed-float-tools__file';
+        btn.setAttribute('data-tut', tut);
+        btn.setAttribute('title', label);
+        var svg = src && src.querySelector ? src.querySelector('svg') : null;
+        btn.innerHTML = (svg ? svg.outerHTML : '') + '<span>' + label + '</span>';
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          var live = document.querySelector('.ed-topbar__actions [data-ed-file-src="' + tut + '"]');
+          if (live) live.click();
+        });
+        return btn;
+      };
+      var dataBtn = stackedData || (designGroup && designGroup.querySelector('[data-tut="data-import"]'));
+      if (!dataBtn) dataBtn = mk('데이터 가져오기', 'data-import', srcData);
+      if (dataBtn.parentElement !== paperGroup) paperGroup.appendChild(dataBtn);
+      if (!designGroup) {
+        designGroup = document.createElement('div');
+        designGroup.className = 'ed-float-tools__group ed-float-tools__group--files';
+        designGroup.setAttribute('role', 'group');
       }
-      var divider = existingDiv;
+      var designBtn = designGroup.querySelector('[data-tut="mydesign"]');
+      if (!designBtn) designGroup.appendChild(mk('내 디자인', 'mydesign', srcDesign));
       if (!divider) {
         divider = document.createElement('span');
         divider.className = 'ed-float-tools__divider ed-float-tools__divider--files';
         divider.setAttribute('aria-hidden', 'true');
       }
-      if (group.nextElementSibling !== divider || divider.nextElementSibling !== paperGroup) {
-        paperGroup.parentNode.insertBefore(group, paperGroup);
-        paperGroup.parentNode.insertBefore(divider, paperGroup);
-      }
+      if (paperGroup.nextElementSibling !== divider) paperGroup.after(divider);
+      if (divider.nextElementSibling !== designGroup) divider.after(designGroup);
     };
     var relabelExport = function () {
       var btn = document.querySelector('[data-tut="export"]');
@@ -1270,6 +1456,10 @@ window.labelUpEditor = {
       parkVendor(vendor);
       formatTut(tut);
       parkFileActions();
+      if (window.labelUpEditor && typeof window.labelUpEditor.parkMobileDockButtons === 'function')
+        window.labelUpEditor.parkMobileDockButtons();
+      if (window.labelUpEditor && typeof window.labelUpEditor.ensureMobileDrawerExtras === 'function')
+        window.labelUpEditor.ensureMobileDrawerExtras();
       relabelExport();
       var desired = [tut].filter(Boolean);
       if (!desired.length) return;
@@ -1732,6 +1922,7 @@ window.labelUpEditor = {
     this._paperPreviewBound = true;
     var applying = false;
     var picked = null;
+    var pickedAt = 0;
     var shopBySku = null;
     var parseSize = function (text) {
       var t = String(text || '').replace(/\s+/g, ' ');
@@ -1749,13 +1940,19 @@ window.labelUpEditor = {
     };
     var parseCard = function (card) {
       if (!card) return null;
-      var info = parseSize(card.innerText || '');
+      var meta = card.querySelector('.ed-paper-card__meta');
+      var info = parseSize(meta ? meta.innerText : (card.innerText || ''));
       var skuEl = card.querySelector('.ed-paper-card__meta span');
       if (skuEl) {
         var sku = (skuEl.textContent || '').split('·')[0].trim();
         if (sku) info.sku = sku;
       }
       return info.w > 0 ? info : null;
+    };
+    var rememberPicked = function (info) {
+      if (!info || !(info.w > 0 && info.h > 0)) return;
+      picked = info;
+      pickedAt = Date.now();
     };
     var loadShop = function () {
       if (shopBySku) return Promise.resolve(shopBySku);
@@ -1789,10 +1986,14 @@ window.labelUpEditor = {
       return paper ? (paper.textContent || '').trim() : '';
     };
     var resolvePaper = function (cellCount) {
-      if (picked && picked.w > 0 && picked.h > 0)
-        return picked;
       var sku = currentSku();
-      var skuKey = sku.toUpperCase();
+      var skuKey = (sku || '').toUpperCase();
+      var pickedKey = picked && picked.sku ? String(picked.sku).toUpperCase() : '';
+      var fresh = picked && (Date.now() - pickedAt) < 2500;
+      if (picked && picked.w > 0 && picked.h > 0 && (fresh || !skuKey || !pickedKey || skuKey === pickedKey))
+        return picked;
+      if (picked && pickedKey && skuKey && skuKey !== pickedKey && !fresh)
+        picked = null;
       if (shopBySku && skuKey && shopBySku[skuKey] && shopBySku[skuKey].w > 0)
         return shopBySku[skuKey];
       var specText = ((document.querySelector('.ed-preview__spec') || {}).textContent || '');
@@ -1834,6 +2035,7 @@ window.labelUpEditor = {
       var spec = document.querySelector('.ed-preview__spec');
       var page = document.querySelector('.ed-preview__page');
       if (!spec || !page) return;
+      var sheet = page.querySelector('.ed-preview__sheet') || page;
       var cells = page.querySelectorAll('.ed-preview__cell');
       if (!cells.length) return;
       var raw = (spec.textContent || '').replace(/\s+/g, '');
@@ -1841,13 +2043,30 @@ window.labelUpEditor = {
       var paper = resolvePaper(cells.length);
       if (!paper || !(paper.w > 0 && paper.h > 0)) return;
       var want = paper.n > 0 ? paper.n : cells.length;
+      var proto = cells[0];
+      while (page.querySelectorAll('.ed-preview__cell').length < want && proto) {
+        var clone = proto.cloneNode(true);
+        clone.classList.remove('is-selected');
+        clone.setAttribute('data-ed-preview-clone', '1');
+        var img = clone.querySelector('img');
+        if (img) img.remove();
+        var hint = clone.querySelector('.ed-preview__hint');
+        if (!hint) {
+          hint = document.createElement('span');
+          hint.className = 'ed-preview__hint';
+          clone.appendChild(hint);
+        }
+        hint.textContent = String(page.querySelectorAll('.ed-preview__cell').length + 1);
+        sheet.appendChild(clone);
+      }
+      cells = page.querySelectorAll('.ed-preview__cell');
       var lw = paper.w;
       var lh = paper.h;
-      var cs = getComputedStyle(page);
-      var pageW = parseFloat(cs.getPropertyValue('--page-w')) || 210;
-      var pageH = parseFloat(cs.getPropertyValue('--page-h')) || 297;
-      if (pageW < 20) pageW = 210;
-      if (pageH < 20) pageH = 297;
+      var pageW = 210;
+      var pageH = 297;
+      page.style.setProperty('--page-w', String(pageW));
+      page.style.setProperty('--page-h', String(pageH));
+      page.style.setProperty('--page-ar', pageW + ' / ' + pageH);
       var grid = chooseGrid(want, lw, lh, pageW, pageH);
       var scale = grid.scale;
       var left0 = (pageW - grid.usedW * scale) / 2;
@@ -1888,12 +2107,12 @@ window.labelUpEditor = {
     };
     this.applySuggestedPaper = function (info) {
       if (!info || !(info.w > 0 && info.h > 0)) return;
-      picked = {
+      rememberPicked({
         sku: info.sku || '',
         w: info.w,
         h: info.h,
         n: info.n || 0
-      };
+      });
       var spec = document.querySelector('.ed-preview__spec');
       if (spec) {
         var strong = spec.querySelector('strong');
@@ -1920,13 +2139,20 @@ window.labelUpEditor = {
         layout();
       });
     };
+    this.refreshPaperPreview = request;
     document.addEventListener('click', function (e) {
       if (!e.target || !e.target.closest) return;
       var card = e.target.closest('.ed-paper-card');
       if (!card || card.classList.contains('ed-theme-card') || card.classList.contains('ed-project-card')) return;
-      picked = parseCard(card);
+      rememberPicked(parseCard(card));
       var min = document.querySelector('[data-ed-preview-panel].is-minimized .ed-props__min');
       if (min) min.click();
+      var preview = document.querySelector('[data-ed-preview-panel]');
+      if (preview && !preview.classList.contains('is-m-open') && document.querySelector('.ed.is-mobile')) {
+        preview.classList.add('is-m-open');
+        var root = document.querySelector('[data-ed-root]');
+        if (root) root.classList.add('is-preview-open');
+      }
       loadShop().then(request);
       setTimeout(request, 80);
       setTimeout(request, 360);

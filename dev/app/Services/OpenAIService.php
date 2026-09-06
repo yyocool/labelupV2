@@ -210,6 +210,150 @@ PROMPT;
     }
 
     /**
+     * @param array<int, array{role:string, content:mixed}> $messages
+     * @return array{has_foreign:bool, sample:string, lang:string}
+     */
+    public function inspectImageLanguage(array $messages): array
+    {
+        $parts = [];
+        for ($i = count($messages) - 1; $i >= 0; $i--) {
+            if (($messages[$i]['role'] ?? '') !== 'user' || !is_array($messages[$i]['content'] ?? null)) {
+                continue;
+            }
+            foreach ($messages[$i]['content'] as $part) {
+                if (is_array($part) && ($part['type'] ?? '') === 'image_url') {
+                    $parts[] = $part;
+                }
+            }
+            if ($parts !== []) {
+                break;
+            }
+        }
+        if ($parts === []) {
+            return ['has_foreign' => false, 'sample' => '', 'lang' => 'ko'];
+        }
+
+        $parts[] = [
+            'type' => 'text',
+            'text' => '이미지에 보이는 글자를 읽고 JSON만 출력하세요. {"has_foreign":true/false,"lang":"ko|en|ja|zh|other","sample":"가장 긴 외국어 문구 한 줄"}. '
+                . '한글만 있거나 로고성 영문 약어(2~3단어)만 있으면 has_foreign=false. '
+                . '문장·상품명·설명처럼 의미 있는 외국어가 있으면 true.',
+        ];
+
+        $response = $this->chatRequest([
+            ['role' => 'system', 'content' => '당신은 라벨 이미지의 글자 언어를 판별합니다. JSON만 출력합니다.'],
+            ['role' => 'user', 'content' => $parts],
+        ], [
+            'response_format' => ['type' => 'json_object'],
+            'temperature' => 0.1,
+            'max_tokens' => 220,
+        ]);
+
+        $decoded = json_decode((string) ($response['choices'][0]['message']['content'] ?? ''), true);
+        if (!is_array($decoded)) {
+            return ['has_foreign' => false, 'sample' => '', 'lang' => 'ko'];
+        }
+        $sample = trim((string) ($decoded['sample'] ?? ''));
+        if (mb_strlen($sample) > 28) {
+            $sample = mb_substr($sample, 0, 28) . '…';
+        }
+        return [
+            'has_foreign' => !empty($decoded['has_foreign']),
+            'sample' => $sample,
+            'lang' => trim((string) ($decoded['lang'] ?? '')),
+        ];
+    }
+
+    /**
+     * @param array{source_name:string, source_kind:string, columns:array<int,string>, rows:array<int,array<int,string>>, summary?:string} $sheet
+     * @return array{source_name:string, source_kind:string, columns:array<int,string>, rows:array<int,array<int,string>>, summary:string}
+     */
+    public function translateLabelSheet(array $sheet): array
+    {
+        $uniques = [];
+        foreach ($sheet['columns'] ?? [] as $col) {
+            $col = trim((string) $col);
+            if ($col !== '') {
+                $uniques[$col] = true;
+            }
+        }
+        foreach ($sheet['rows'] ?? [] as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            foreach ($row as $cell) {
+                $cell = trim((string) $cell);
+                if ($cell !== '' && !isset($uniques[$cell])) {
+                    $uniques[$cell] = true;
+                }
+                if (count($uniques) >= 180) {
+                    break 2;
+                }
+            }
+        }
+        $list = array_keys($uniques);
+        if ($list === []) {
+            return $sheet;
+        }
+
+        $json = json_encode($list, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $response = $this->chatRequest([
+            ['role' => 'system', 'content' => '당신은 라벨 데이터 번역기입니다. JSON만 출력합니다.'],
+            ['role' => 'user', 'content' => "아래 문자열을 자연스러운 한국어로 번역하세요. JSON만 출력: {\"map\":{\"원문\":\"번역\"}}.\n"
+                . "숫자, 단위(g,ml,mm), SKU, 바코드, URL, 이메일, 모델번호는 그대로 둡니다. 이미 한국어면 그대로 둡니다.\n"
+                . $json],
+        ], [
+            'response_format' => ['type' => 'json_object'],
+            'temperature' => 0.2,
+            'max_tokens' => 2200,
+        ]);
+
+        $decoded = json_decode((string) ($response['choices'][0]['message']['content'] ?? ''), true);
+        $map = is_array($decoded['map'] ?? null) ? $decoded['map'] : [];
+        $apply = static function (string $value) use ($map): string {
+            $key = trim($value);
+            if ($key === '' || !isset($map[$key])) {
+                return $value;
+            }
+            $out = trim((string) $map[$key]);
+            return $out !== '' ? $out : $value;
+        };
+
+        $sheet['columns'] = array_map($apply, $sheet['columns'] ?? []);
+        $sheet['rows'] = array_map(static function ($row) use ($apply) {
+            if (!is_array($row)) {
+                return $row;
+            }
+            return array_map(static fn ($cell) => $apply((string) $cell), $row);
+        }, $sheet['rows'] ?? []);
+
+        return $this->refreshSheetSummary($sheet);
+    }
+
+    /**
+     * @param array{source_name:string, source_kind:string, columns:array<int,string>, rows:array<int,array<int,string>>, summary?:string} $sheet
+     * @return array{source_name:string, source_kind:string, columns:array<int,string>, rows:array<int,array<int,string>>, summary:string}
+     */
+    private function refreshSheetSummary(array $sheet): array
+    {
+        $cols = $sheet['columns'] ?? [];
+        $rows = $sheet['rows'] ?? [];
+        $preview = array_slice($rows, 0, 6);
+        $lines = ['| ' . implode(' | ', $cols) . ' |', '| ' . implode(' | ', array_fill(0, max(1, count($cols)), '---')) . ' |'];
+        foreach ($preview as $row) {
+            $lines[] = '| ' . implode(' | ', is_array($row) ? $row : []) . ' |';
+        }
+        $sheet['summary'] = sprintf(
+            "파일: %s\n열 %d개 · 행 %d개\n\n%s",
+            (string) ($sheet['source_name'] ?? ''),
+            count($cols),
+            count($rows),
+            implode("\n", $lines)
+        );
+        return $sheet;
+    }
+
+    /**
      * @return array{url:string, prompt:string, title:string}
      */
     public function generateClipart(string $prompt): array

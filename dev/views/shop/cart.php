@@ -40,11 +40,34 @@
       <div class="shop-cart-total"><dt>결제 예정</dt><dd id="cartTotal"><?= e($shopService->formatPrice($cart['total'])) ?></dd></div>
     </dl>
     <p class="shop-cart-note">5만원 이상 구매 시 배송비 무료</p>
-    <form id="shopCheckoutForm" class="shop-checkout-form">
-      <label>이름<input name="customer_name" required maxlength="80" value="<?= e((string) ($authUser['name'] ?? '')) ?>"></label>
-      <label>이메일<input type="email" name="customer_email" required maxlength="190" value="<?= e((string) ($authUser['email'] ?? '')) ?>"></label>
-      <label>연락처<input name="customer_phone" required maxlength="30" value="<?= e((string) ($authUser['phone'] ?? '')) ?>" placeholder="010-0000-0000"></label>
-      <label>배송지<textarea name="shipping_address" required maxlength="500" rows="3" placeholder="주소와 상세주소를 입력하세요"></textarea></label>
+    <form id="shopCheckoutForm" class="shop-checkout-form" data-checkout-address>
+      <fieldset class="lu-checkout-block">
+        <legend>구매자</legend>
+        <label>이름<input name="customer_name" required maxlength="80" value="<?= e((string) ($authUser['name'] ?? '')) ?>"></label>
+        <label>이메일<input type="email" name="customer_email" required maxlength="190" value="<?= e((string) ($authUser['email'] ?? '')) ?>"></label>
+        <label>연락처<input name="customer_phone" required maxlength="30" value="<?= e((string) ($authUser['phone'] ?? '')) ?>" placeholder="010-0000-0000"></label>
+      </fieldset>
+      <fieldset class="lu-checkout-block">
+        <legend>수취인</legend>
+        <div class="lu-checkout-block__tools">
+          <label class="lu-check"><input type="checkbox" data-same-as-buyer> 구매자와 동일</label>
+          <button type="button" class="lu-addr-book-btn" data-addr-book-open>주소 불러오기</button>
+        </div>
+        <label>수취인 이름<input name="shipping_name" required maxlength="80" placeholder="받는 분 이름"></label>
+        <label>수취인 연락처<input name="shipping_phone" required maxlength="30" placeholder="010-0000-0000"></label>
+        <div class="lu-addr" data-daum-address>
+          <span class="lu-addr__legend">배송지</span>
+          <div class="lu-addr__row">
+            <input type="text" name="shipping_zip" data-addr-zip readonly required maxlength="10" placeholder="우편번호" autocomplete="postal-code">
+            <button type="button" class="lu-addr__search" data-addr-search>주소 검색</button>
+          </div>
+          <input type="text" name="shipping_base" data-addr-base readonly required maxlength="300" placeholder="주소 검색으로 선택하세요">
+          <input type="text" name="shipping_detail" data-addr-detail maxlength="200" placeholder="상세주소 (동·호수 등)">
+          <textarea name="shipping_address" data-addr-combined hidden maxlength="500"></textarea>
+        </div>
+        <label class="lu-check"><input type="checkbox" name="save_address" value="1"> 이 주소를 배송지에 저장</label>
+        <input type="text" name="address_label" maxlength="40" placeholder="배송지 이름 (집, 회사 등)">
+      </fieldset>
       <label>배송 메모<textarea name="shipping_memo" maxlength="255" rows="2" placeholder="문 앞, 경비실 등"></textarea></label>
       <button type="submit" class="shop-btn shop-btn--primary shop-btn--block">주문 접수</button>
     </form>

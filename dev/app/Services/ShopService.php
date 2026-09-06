@@ -211,18 +211,30 @@ final class ShopService
         $name = trim((string) ($payload['customer_name'] ?? ($user['name'] ?? '')));
         $email = trim((string) ($payload['customer_email'] ?? ($user['email'] ?? '')));
         $phone = trim((string) ($payload['customer_phone'] ?? ($user['phone'] ?? '')));
+        $shipName = trim((string) ($payload['shipping_name'] ?? ''));
+        $shipPhone = trim((string) ($payload['shipping_phone'] ?? ''));
+        $zip = trim((string) ($payload['shipping_zip'] ?? ''));
+        $base = trim((string) ($payload['shipping_base'] ?? ''));
+        $detail = trim((string) ($payload['shipping_detail'] ?? ''));
         $address = trim((string) ($payload['shipping_address'] ?? ''));
+        if ($address === '' && ($zip !== '' || $base !== '')) {
+            $address = trim(implode(' ', array_filter([$zip, $base, $detail], static fn ($v) => $v !== '')));
+        }
         $memo = trim((string) ($payload['shipping_memo'] ?? ''));
-        if ($name === '' || $email === '' || $phone === '' || $address === '') {
-            throw new RuntimeException('주문자 이름, 이메일, 연락처, 배송지를 모두 입력해 주세요.');
+        if ($name === '' || $email === '' || $phone === '') {
+            throw new RuntimeException('구매자 이름, 이메일, 연락처를 모두 입력해 주세요.');
+        }
+        if ($shipName === '' || $shipPhone === '' || $address === '') {
+            throw new RuntimeException('수취인 이름, 연락처, 배송지를 모두 입력해 주세요.');
         }
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             throw new RuntimeException('올바른 이메일을 입력해 주세요.');
         }
 
+        $userId = isset($user['id']) ? (int) $user['id'] : 0;
         $summary = $this->cartSummary();
         $created = $this->repo->createCustomerOrder([
-            'user_id' => isset($user['id']) ? (int) $user['id'] : null,
+            'user_id' => $userId > 0 ? $userId : null,
             'customer_name' => $name,
             'customer_email' => $email,
             'customer_phone' => $phone,
@@ -230,11 +242,20 @@ final class ShopService
             'shipping_fee' => $summary['shipping_fee'],
             'discount_amount' => 0,
             'total_amount' => $summary['total'],
-            'shipping_name' => $name,
-            'shipping_phone' => $phone,
+            'shipping_name' => $shipName,
+            'shipping_phone' => $shipPhone,
             'shipping_address' => $address,
             'shipping_memo' => $memo !== '' ? $memo : null,
         ], $items);
+        if ($userId > 0) {
+            (new UserAddressService())->saveFromCheckout($userId, array_merge($payload, [
+                'shipping_name' => $shipName,
+                'shipping_phone' => $shipPhone,
+                'shipping_zip' => $zip,
+                'shipping_base' => $base !== '' ? $base : $address,
+                'shipping_detail' => $detail,
+            ]));
+        }
         $this->clearCart();
 
         return [

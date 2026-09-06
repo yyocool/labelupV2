@@ -32,6 +32,7 @@ use App\Controllers\AiAdminController;
 use App\Controllers\Api\AiAdminApiController;
 use App\Controllers\Api\AiChatApiController;
 use App\Controllers\Api\AiExamplePromptApiController;
+use App\Controllers\Api\AccountAddressApiController;
 use App\Controllers\Api\AuthApiController;
 use App\Controllers\Api\EditorTemplateApiController;
 use App\Controllers\Api\EditorWorkspaceApiController;
@@ -147,6 +148,7 @@ final class Router
         $editorTemplateApi = new EditorTemplateApiController();
         $shopPublic = new ShopController();
         $shopPublicApi = new ShopApiController();
+        $accountAddressApi = new AccountAddressApiController();
         $seoAdmin = new SeoAdminController();
         $seoAdminApi = new SeoAdminApiController();
         $seoPublic = new SeoPublicController();
@@ -326,6 +328,11 @@ final class Router
         $router->post('/api/shop/cart/update', [$shopPublicApi, 'updateCart']);
         $router->post('/api/shop/cart/remove', [$shopPublicApi, 'removeCart']);
         $router->post('/api/shop/checkout', [$shopPublicApi, 'checkout']);
+
+        $router->get('/api/account/addresses', [$accountAddressApi, 'index']);
+        $router->post('/api/account/addresses/save', [$accountAddressApi, 'save']);
+        $router->post('/api/account/addresses/delete', [$accountAddressApi, 'delete']);
+        $router->post('/api/account/addresses/default', [$accountAddressApi, 'setDefault']);
 
         return $router;
     }

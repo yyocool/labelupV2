@@ -76,7 +76,8 @@ final class AccountService
             'recentOrders' => $this->formatOrders($orders),
             'templates' => $this->sampleTemplates(),
             'brands' => $this->sampleBrands($user),
-            'address' => $this->defaultAddress($user),
+            'addresses' => (new UserAddressService())->list($userId),
+            'address' => $this->defaultAddress($user, $userId),
             'tools' => [
                 ['label' => '라벨 편집', 'ic' => '✎', 'href' => url('editor/')],
                 ['label' => '엑셀 데이터 연동', 'ic' => '⌘', 'href' => '#', 'disabled' => true],
@@ -139,13 +140,22 @@ final class AccountService
     }
 
     /** @param array<string, mixed> $user */
-    private function defaultAddress(array $user): array
+    private function defaultAddress(array $user, int $userId = 0): array
     {
+        $saved = $userId > 0 ? (new UserAddressService())->defaultAddress($userId) : null;
+        if ($saved) {
+            return [
+                'label' => (string) ($saved['label'] ?? '기본 배송지'),
+                'name' => (string) ($saved['recipient_name'] ?? ''),
+                'phone' => (string) ($saved['recipient_phone'] ?? ''),
+                'address' => (string) ($saved['address_line'] ?? ''),
+            ];
+        }
         return [
             'label' => '기본 배송지',
-            'name' => (string) ($user['name'] ?? '수령인'),
-            'phone' => (string) ($user['phone'] ?? '010-0000-0000'),
-            'address' => '서울특별시 강남구 테헤란로 123, 4층 (샘플)',
+            'name' => (string) ($user['name'] ?? ''),
+            'phone' => (string) ($user['phone'] ?? ''),
+            'address' => '',
         ];
     }
 

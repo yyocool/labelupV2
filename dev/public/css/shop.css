@@ -259,9 +259,68 @@
 .shop-cart-total{padding-top:10px;border-top:1px solid #f0f0f5;font-size:15px}
 .shop-cart-total dd{color:var(--accent);font-size:18px}
 .shop-cart-note{margin:10px 0 14px;font-size:11px;color:var(--muted)}
-.shop-checkout-form{display:grid;gap:8px;margin-bottom:10px}
+.shop-checkout-form{display:grid;gap:10px;margin-bottom:10px}
 .shop-checkout-form label{display:grid;gap:4px;font-size:12px;font-weight:700;color:#4e5163}
 .shop-checkout-form input,.shop-checkout-form textarea{border:1px solid #e6e5ee;border-radius:10px;padding:8px 10px;font:inherit}
+.lu-checkout-block{border:1px solid #efe6e8;border-radius:14px;padding:12px;margin:0;display:grid;gap:8px;min-width:0}
+.lu-checkout-block legend{padding:0 6px;font-size:13px;font-weight:800;color:#1c1a22}
+.lu-checkout-block__tools{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.lu-check{display:flex!important;align-items:center;gap:6px;grid-template-columns:none!important;font-size:12px;font-weight:700;color:#5b6070}
+.lu-check input{width:auto;margin:0;padding:0}
+.lu-addr-book-btn{
+  border:1px solid #eadfe3;border-radius:10px;padding:7px 10px;background:#fff;color:#7B2840;
+  font:inherit;font-size:12px;font-weight:800;cursor:pointer
+}
+.lu-addr-book-layer{
+  position:fixed;inset:0;z-index:12500;background:rgba(46,42,39,.42);
+  display:grid;place-items:center;padding:16px
+}
+.lu-addr-book-layer[hidden]{display:none}
+.lu-addr-book-layer__card{width:min(440px,100%);background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 16px 48px rgba(46,42,39,.24)}
+.lu-addr-book-layer__head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #eee}
+.lu-addr-book-layer__close{border:0;background:transparent;font-size:22px;line-height:1;cursor:pointer;color:#6b6570}
+.lu-addr-book-layer__body{padding:14px;max-height:min(70vh,560px);overflow:auto}
+.lu-addr-book-list{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:8px}
+.lu-addr-book-item{
+  width:100%;text-align:left;border:1px solid #efe6e8;border-radius:12px;padding:12px;background:#fff;cursor:pointer
+}
+.lu-addr-book-item:hover{border-color:#e4d2d7;background:#fcfafb}
+.lu-addr-book-item em{display:block;font-style:normal;font-size:11px;font-weight:800;color:#7B2840}
+.lu-addr-book-item strong{display:block;margin:4px 0 2px}
+.lu-addr-book-item span{display:block;font-size:12px;color:#6b6570;line-height:1.45}
+.lu-addr-book-empty{margin:8px 0 14px;color:#8a8490;font-size:13px}
+.lu-addr-book-add,.lu-addr-book-form__actions button[type=submit]{
+  width:100%;border:0;border-radius:10px;padding:10px;background:#7B2840;color:#fff;font-weight:800;cursor:pointer
+}
+.lu-addr-book-form{display:grid;gap:8px}
+.lu-addr-book-form label{display:grid;gap:4px;font-size:12px;font-weight:700;color:#4e5163}
+.lu-addr-book-form input{border:1px solid #e6e5ee;border-radius:10px;padding:8px 10px;font:inherit}
+.lu-addr-book-form__actions{display:flex;gap:8px}
+.lu-addr-book-form__actions button[type=button]{flex:0 0 auto;border:1px solid #e6e5ee;border-radius:10px;padding:10px 14px;background:#fff;cursor:pointer}
+body.lu-addr-book-open{overflow:hidden}
+.lu-addr{display:grid;gap:6px}
+.lu-addr__legend{font-size:12px;font-weight:700;color:#4e5163}
+.lu-addr__row{display:grid;grid-template-columns:1fr auto;gap:6px}
+.lu-addr input{border:1px solid #e6e5ee;border-radius:10px;padding:8px 10px;font:inherit;background:#fff}
+.lu-addr input[readonly]{background:#f7f6f4;cursor:pointer}
+.lu-addr__search{
+  border:0;border-radius:10px;padding:0 12px;font:inherit;font-size:12px;font-weight:800;
+  background:#7B2840;color:#fff;cursor:pointer;white-space:nowrap
+}
+.lu-addr__search:hover{filter:brightness(1.06)}
+.lu-addr__combined{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+.lu-postcode-layer{
+  position:fixed;inset:0;z-index:13000;background:rgba(46,42,39,.42);
+  display:grid;place-items:center;padding:16px
+}
+.lu-postcode-layer[hidden]{display:none}
+.lu-postcode-layer__card{background:#fff;border-radius:14px;overflow:hidden;max-width:100%;box-shadow:0 16px 48px rgba(46,42,39,.24)}
+.lu-postcode-layer__head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #eee}
+.lu-postcode-layer__head strong{font-size:15px}
+.lu-postcode-layer__close{border:0;background:transparent;font-size:22px;line-height:1;cursor:pointer;color:#6b6570}
+.lu-postcode-layer__body{width:100%;background:#fff}
+.lu-postcode-layer__loading{margin:0;padding:28px 16px;text-align:center;color:#6b6570;font-size:13px}
+body.lu-postcode-open{overflow:hidden}
 
 /* 플로팅 바 / FAB */
 .shop-float-bar{

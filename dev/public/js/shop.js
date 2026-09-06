@@ -158,6 +158,22 @@ function bindCartPage() {
   checkoutForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const fd = new FormData(checkoutForm);
+    const zip = String(fd.get('shipping_zip') || '').trim();
+    const base = String(fd.get('shipping_base') || '').trim();
+    const detail = String(fd.get('shipping_detail') || '').trim();
+    const address = (window.LabelUpAddress && typeof window.LabelUpAddress.combine === 'function')
+      ? window.LabelUpAddress.combine(zip, base, detail)
+      : [zip, base, detail].filter(Boolean).join(' ');
+    const shipName = String(fd.get('shipping_name') || '').trim();
+    const shipPhone = String(fd.get('shipping_phone') || '').trim();
+    if (!shipName || !shipPhone) {
+      showShopToast('수취인 이름과 연락처를 입력해 주세요.');
+      return;
+    }
+    if (!zip || !base) {
+      showShopToast('주소 검색으로 배송지를 선택해 주세요.');
+      return;
+    }
     const submit = checkoutForm.querySelector('button[type="submit"]');
     if (submit) submit.disabled = true;
     try {
@@ -165,8 +181,15 @@ function bindCartPage() {
         customer_name: String(fd.get('customer_name') || ''),
         customer_email: String(fd.get('customer_email') || ''),
         customer_phone: String(fd.get('customer_phone') || ''),
-        shipping_address: String(fd.get('shipping_address') || ''),
+        shipping_name: shipName,
+        shipping_phone: shipPhone,
+        shipping_zip: zip,
+        shipping_base: base,
+        shipping_detail: detail,
+        shipping_address: address,
         shipping_memo: String(fd.get('shipping_memo') || ''),
+        save_address: fd.get('save_address') === '1',
+        address_label: String(fd.get('address_label') || ''),
       });
       const orderNo = res.data?.order_no || '';
       showShopToast(res.message || '주문이 접수되었습니다.');

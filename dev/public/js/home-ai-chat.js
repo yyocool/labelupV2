@@ -823,7 +823,7 @@ window.LabelUpLabiChat = {
     list.forEach((choice) => {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = `ai-choice-btn${choice.id === 'generate_template' ? ' ai-choice-btn--tpl' : ''}`;
+      btn.className = `ai-choice-btn${choice.id === 'generate_template' || choice.id === 'translate_yes' ? ' ai-choice-btn--tpl' : ''}`;
       btn.innerHTML = `
         <strong>${escapeHtml(choice.title || '')}</strong>
         <span>${escapeHtml(choice.desc || '')}</span>`;
@@ -835,7 +835,7 @@ window.LabelUpLabiChat = {
           el.classList.toggle('is-picked', el === btn);
         });
         if (typeof onChoice === 'function') onChoice(choice.id);
-        else chooseImageMode(choice.id);
+        else chooseLabiIntent(choice.id);
       });
       wrap.appendChild(btn);
     });
@@ -1183,6 +1183,9 @@ window.LabelUpLabiChat = {
   }
 
   function typingHintForText(text) {
+    if (/번역해|번역해서|원문 그대로/.test(text || '')) {
+      return '선택하신 대로 라벨을 구성하는 중…';
+    }
     if (/첨부 파일|분석|엑셀|워드|xlsx|docx|csv/.test(text || '')) {
       return '첨부 표를 읽고 데이터 라벨을 구성하는 중…';
     }
@@ -1199,7 +1202,7 @@ window.LabelUpLabiChat = {
   }
 
   function typingModeFor(text, forceIntent) {
-    if (forceIntent === 'generate_data_template') return 'template';
+    if (forceIntent === 'generate_data_template' || forceIntent === 'translate_yes' || forceIntent === 'translate_no') return 'template';
     if (forceIntent === 'generate_template' || isTemplateRequest(text)) return 'template';
     if (forceIntent === 'generate_clipart' || isClipartRequest(text)) return 'draw';
     return 'chat';
@@ -1257,8 +1260,18 @@ window.LabelUpLabiChat = {
   }
 
   async function chooseImageMode(intent) {
+    return chooseLabiIntent(intent);
+  }
+
+  async function chooseLabiIntent(intent) {
     if (!(await requireLogin()) || sending) return;
-    const label = intent === 'generate_template' ? '템플릿 만들어 주세요' : '클립아트로 그려 주세요';
+    const labels = {
+      generate_template: '템플릿 만들어 주세요',
+      generate_clipart: '클립아트로 그려 주세요',
+      translate_yes: '네, 한국어로 번역해 주세요',
+      translate_no: '아니요, 원문 그대로 만들어 주세요',
+    };
+    const label = labels[intent] || '이걸로 진행해 주세요';
     appendMessage('user', label);
     history.push({ role: 'user', content: label });
     await requestLabi(intent);
