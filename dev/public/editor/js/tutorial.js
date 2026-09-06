@@ -7,6 +7,7 @@
 
   var SPEEDS = [0.75, 1, 1.25, 1.5];
   var STORAGE_SKIP = 'lu-ed-tutorial-skip';
+  var STORAGE_SKIP_M = 'lu-ed-tutorial-skip-m';
   /** 전체 진행 배율 (클수록 느림). 요청: 기존 대비 절반 속도 → 2 */
   var PACE = 2;
   /** 한 설명이 끝난 뒤 다음으로 넘어가기 전 쉬는 시간(ms) */
@@ -17,7 +18,7 @@
       id: 'welcome',
       selector: '[data-tut="topbar"]',
       title: '라벨 편집기에 오신 걸 환영해요',
-      description: '상단 바에서 제목 수정, 줌, 그리드, 미리보기·저장하기·출력, 나가기를 할 수 있어요. 버튼마다 아이콘이 붙어 있어요.',
+      description: '제목 옆에 클라우드 저장과 라비AI가 있고, 오른쪽에서 쇼핑·저장·출력을 할 수 있어요.',
       effect: '편집기 전체 흐름을 한눈에 파악합니다.',
       speech: '라벨 편집기에 오신 걸 환영해요. 상단 바부터 살펴볼게요.',
       wait: 2800
@@ -26,9 +27,9 @@
       id: 'tools',
       selector: '[data-tut="float-tools"]',
       title: '플로팅 도구바',
-      description: '선택·텍스트·이미지·도형 도구가 모여 있어요. 드래그하면 모서리에 자석처럼 붙습니다.',
+      description: '선택·텍스트·이미지·도형과 내 디자인·데이터 가져오기, 용지·템플릿이 왼쪽에 모여 있어요.',
       effect: '자주 쓰는 도구에 빠르게 접근합니다.',
-      speech: '왼쪽의 플로팅 도구바예요. 드래그해서 원하는 모서리로 옮길 수 있어요.',
+      speech: '왼쪽 도구바예요. 용지선택 위에 내 디자인과 데이터 가져오기가 있어요.',
       wait: 3000,
       cursor: true
     },
@@ -62,6 +63,26 @@
       effect: '눈금과 격자가 어긋나지 않아 정확하게 배치할 수 있습니다.',
       speech: '그리드는 눈금자와 같은 규격으로 맞춰져 있어요.',
       wait: 2600,
+      cursor: true
+    },
+    {
+      id: 'mydesign',
+      selector: '[data-tut="mydesign"]',
+      title: '내 디자인',
+      description: '왼쪽 도구바 용지선택 위에서 저장해 둔 내 프로젝트를 불러옵니다.',
+      effect: '작업 연속성을 유지합니다.',
+      speech: '내 디자인에서 최근 작업을 불러올 수 있어요.',
+      wait: 2400,
+      cursor: true
+    },
+    {
+      id: 'data-import',
+      selector: '[data-tut="data-import"]',
+      title: '데이터 가져오기',
+      description: '내 디자인 아래, 용지선택 위에서 엑셀·CSV를 올려 라벨 데이터를 연결합니다.',
+      effect: '가변 데이터 라벨을 빠르게 시작합니다.',
+      speech: '데이터 가져오기로 표를 올릴 수 있어요.',
+      wait: 2400,
       cursor: true
     },
     {
@@ -124,11 +145,11 @@
     },
     {
       id: 'props',
-      selector: '[data-tut="props"]',
-      title: '속성 · 레이어 패널',
-      description: '선택한 객체의 위치·크기·색상·텍스트를 수정하고, 레이어 순서를 관리해요.',
-      effect: '정밀한 스타일 조정이 가능합니다.',
-      speech: '오른쪽 속성 패널에서 세부 값을 수정하세요.',
+      selector: '[data-tut="canvas"]',
+      title: '선택 속성 막대',
+      description: '객체를 고르면 격자 위에서 글꼴·색·크기·투명도를 바로 바꿀 수 있어요. 투명도는 체크무늬를 누른 뒤 세로로 조절합니다.',
+      effect: '선택한 객체만 심플하게 조절합니다.',
+      speech: '객체를 고르면 격자 위에서 속성을 바로 바꿔요.',
       wait: 3000,
       cursor: true,
       action: 'expandProps'
@@ -136,10 +157,10 @@
     {
       id: 'layers',
       selector: '[data-tut="tab-layers"]',
-      title: '레이어 탭',
-      description: '레이어 탭으로 전환하면 객체 목록을 보고 선택할 수 있어요.',
-      effect: '겹친 객체도 쉽게 고를 수 있습니다.',
-      speech: '레이어 탭을 열어볼게요.',
+      title: '레이어',
+      description: '오른쪽 아래 레이어에서 객체를 고르고, 드래그해서 순서를 바꿀 수 있어요.',
+      effect: '겹친 객체도 쉽게 고르고 순서를 맞춥니다.',
+      speech: '오른쪽 아래가 레이어 상자예요.',
       wait: 2200,
       cursor: true,
       click: true,
@@ -149,20 +170,30 @@
       id: 'preview',
       selector: '[data-tut="preview"]',
       title: '시트 미리보기',
-      description: '지금 편집 중인 라벨이 용지 시트에 어떻게 배치되는지, 실제 디자인 그대로 보여줍니다.',
+      description: '오른쪽 위 미리보기는 선택한 용지의 칸 수와 비율을 그대로 보여 줍니다.',
       effect: '출력 전 배치와 디자인을 검증합니다.',
-      speech: '미리보기에는 실제 라벨 레이아웃이 그대로 표시됩니다.',
+      speech: '오른쪽 위 미리보기예요. 용지 규격에 맞춰 칸이 보여요.',
       wait: 3200,
       cursor: true,
       action: 'expandPreview'
     },
     {
+      id: 'cloud-save',
+      selector: '.ed-autosave',
+      title: '클라우드 저장',
+      description: '제목 옆 구름으로 자동저장을 켜고 끕니다. 켜두면 주기적으로 계정에 보관해요.',
+      effect: '작업 손실을 줄입니다.',
+      speech: '제목 옆 구름이 클라우드 저장이에요.',
+      wait: 2400,
+      cursor: true
+    },
+    {
       id: 'labi-fab',
       selector: '[data-tut="labi-fab"]',
       title: '라비AI',
-      description: '우측 하단 라비AI로 원하는 라벨을 말로 만들 수 있어요.',
+      description: '제목 옆 클라우드 저장 다음의 라비AI로 원하는 라벨을 말로 만들 수 있어요.',
       effect: '아이디어만 말해도 초안을 시작할 수 있습니다.',
-      speech: '우측 하단의 라비AI 버튼이에요.',
+      speech: '클라우드 저장 옆의 라비AI 버튼이에요.',
       wait: 2600,
       cursor: true
     },
@@ -170,9 +201,9 @@
       id: 'import-fab',
       selector: '[data-tut="import-fab"]',
       title: '타사포맷',
-      description: '우측 하단 타사포맷 버튼을 누르면 라비AI처럼 변환 창만 열립니다.',
+      description: '제목 옆 라비AI 다음의 타사포맷을 누르면 변환 창만 열립니다.',
       effect: '폼텍·아이라벨·애니라벨 파일을 바로 올립니다.',
-      speech: '타사포맷 버튼을 눌러 변환 창을 열게요.',
+      speech: '라비AI 옆의 타사포맷을 눌러 변환 창을 열게요.',
       wait: 2400,
       cursor: true,
       click: true,
@@ -204,9 +235,9 @@
       id: 'topbar-actions',
       selector: '[data-tut="topbar-actions"]',
       title: '상단 작업 버튼',
-      description: '라벨쇼핑, 내디자인, 데이터 가져오기, 미리보기, 저장하기, 출력, 나가기가 아이콘과 함께 오른쪽 위에 있어요.',
+      description: '라벨쇼핑, 저장하기, 미리보기/프린트, 나가기가 아이콘과 함께 오른쪽 위에 있어요.',
       effect: '자주 쓰는 작업을 상단에서 바로 실행합니다.',
-      speech: '상단 오른쪽 버튼들입니다. 미리보기 다음에 저장하기가 있어요.',
+      speech: '상단 오른쪽 버튼들입니다. 저장하기 다음에 미리보기/프린트가 있어요.',
       wait: 2800,
       cursor: true,
       action: 'closeVendorPicker'
@@ -223,45 +254,12 @@
       action: 'closeVendorPicker'
     },
     {
-      id: 'mydesign',
-      selector: '[data-tut="mydesign"]',
-      title: '내디자인',
-      description: '저장해 둔 내 프로젝트를 불러와 이어서 편집합니다.',
-      effect: '작업 연속성을 유지합니다.',
-      speech: '내디자인에서 최근 작업을 불러올 수 있어요.',
-      wait: 2400,
-      cursor: true,
-      action: 'closeVendorPicker'
-    },
-    {
-      id: 'data-import',
-      selector: '[data-tut="data-import"]',
-      title: '데이터 가져오기',
-      description: '엑셀·CSV 파일을 올려 라벨에 연결할 데이터를 가져옵니다.',
-      effect: '가변 데이터 라벨을 빠르게 시작합니다.',
-      speech: '데이터 가져오기로 표를 올릴 수 있어요.',
-      wait: 2400,
-      cursor: true,
-      action: 'closeVendorPicker'
-    },
-    {
-      id: 'preview-btn',
-      selector: '[data-tut="preview-btn"]',
-      title: '미리보기',
-      description: '인쇄 미리보기 창을 열어 시트 배치를 확인합니다.',
-      effect: '출력 전에 결과를 검증합니다.',
-      speech: '미리보기 버튼입니다.',
-      wait: 2200,
-      cursor: true,
-      action: 'closeVendorPicker'
-    },
-    {
       id: 'save',
       selector: '[data-tut="save"]',
       title: '저장하기',
-      description: '미리보기 바로 옆에 있어요. 작업 내용은 초안으로 저장됩니다.',
+      description: '라벨쇼핑 옆에 있어요. 작업 내용은 초안으로 저장됩니다.',
       effect: '작업 손실을 줄입니다.',
-      speech: '미리보기 다음의 저장하기를 눌러 초안을 남겨 두세요.',
+      speech: '저장하기를 눌러 초안을 남겨 두세요.',
       wait: 2600,
       cursor: true,
       action: 'closeVendorPicker'
@@ -269,10 +267,10 @@
     {
       id: 'export',
       selector: '[data-tut="export"]',
-      title: '편집기에서 출력',
-      description: '미리보기와 같은 출력 창에서 인쇄하거나 PNG를 저장합니다.',
-      effect: '완성된 라벨을 바로 출력합니다.',
-      speech: '편집기에서 출력 버튼이에요.',
+      title: '미리보기/프린트',
+      description: '인쇄 미리보기 창에서 시트 배치를 확인하고 인쇄하거나 PNG를 저장합니다.',
+      effect: '완성된 라벨을 바로 확인하고 출력합니다.',
+      speech: '미리보기/프린트 버튼이에요.',
       wait: 2400,
       cursor: true,
       action: 'closeVendorPicker'
@@ -292,16 +290,266 @@
       id: 'done',
       selector: '[data-tut="topbar"]',
       title: '튜토리얼 완료!',
-      description: '이제 직접 디자인을 시작해 보세요. 좌측 하단 ✦ 튜토리얼로 언제든 다시 볼 수 있어요.',
+      description: '이제 직접 디자인을 시작해 보세요. 왼쪽 도구바의 튜토리얼에서 언제든 다시 볼 수 있어요.',
       effect: '실전 편집으로 바로 이어갑니다.',
       speech: '튜토리얼이 끝났어요. 멋진 라벨을 만들어 보세요!',
       wait: 3200,
       action: 'closeVendorPicker'
     }
   ];
+
+  var MOBILE_STEPS = [
+    {
+      id: 'm-welcome',
+      selector: '[data-tut="topbar"]',
+      title: '휴대폰 편집기예요',
+      description: '제목 옆에 클라우드 저장과 라비AI가 있어요. 저장·출력은 ☰, 시트·레이어는 옆 버튼으로 엽니다.',
+      effect: '작은 화면에서도 캔버스를 가리지 않습니다.',
+      speech: '휴대폰용 편집기예요. 상단부터 살펴볼게요.',
+      wait: 2800,
+      action: 'closeMobileOverlays'
+    },
+    {
+      id: 'm-cloud',
+      selector: '.ed-autosave',
+      title: '클라우드 저장',
+      description: '구름 아이콘으로 자동저장을 켜고 끌 수 있어요. 켜두면 주기적으로 계정에 보관합니다.',
+      effect: '작업 손실을 줄입니다.',
+      speech: '제목 옆 구름이 클라우드 저장이에요.',
+      wait: 2400,
+      cursor: true,
+      action: 'closeMobileOverlays'
+    },
+    {
+      id: 'm-labi',
+      selector: '[data-tut="labi-fab"]',
+      title: '라비AI',
+      description: '클라우드 저장 다음의 라비AI로 원하는 라벨을 말로 만들 수 있어요.',
+      effect: '아이디어만 말해도 초안을 시작합니다.',
+      speech: '구름 옆 라비AI 버튼이에요.',
+      wait: 2400,
+      cursor: true,
+      action: 'closeMobileOverlays'
+    },
+    {
+      id: 'm-menu',
+      selector: '.ed-m-more',
+      title: '☰ 메뉴',
+      description: '오른쪽 위 ☰을 누르면 라벨쇼핑, 저장, 미리보기/프린트, 나가기가 열립니다.',
+      effect: '자주 쓰는 작업을 한곳에서 실행합니다.',
+      speech: '메뉴 버튼을 눌러 볼게요.',
+      wait: 2600,
+      cursor: true,
+      click: true,
+      action: 'openMobileMenu'
+    },
+    {
+      id: 'm-menu-items',
+      selector: '[data-tut="topbar-actions"]',
+      title: '메뉴 서랍',
+      description: '여기서 저장하기와 미리보기/프린트를 할 수 있어요. 바깥을 누르거나 메뉴 닫기를 누르면 접힙니다.',
+      effect: '상단을 간결하게 유지하면서 기능은 그대로입니다.',
+      speech: '저장과 출력은 이 메뉴 안에 있어요.',
+      wait: 3000,
+      cursor: true,
+      action: 'openMobileMenu'
+    },
+    {
+      id: 'm-preview-btn',
+      selector: '.ed-m-preview',
+      title: '시트 버튼',
+      description: '용지 칸 배치를 보려면 시트를 누르세요. PC의 오른쪽 시트 미리보기와 같아요.',
+      effect: '필요할 때만 아래에서 미리보기가 올라옵니다.',
+      speech: '시트 버튼을 눌러 미리보기를 열게요.',
+      wait: 2600,
+      cursor: true,
+      click: true,
+      action: 'openMobilePreview'
+    },
+    {
+      id: 'm-preview-sheet',
+      selector: '[data-tut="preview"]',
+      title: '시트 미리보기',
+      description: '선택한 용지의 칸 수와 비율이 그대로 보여요. 바깥을 누르면 닫힙니다.',
+      effect: '출력 전 배치를 휴대폰에서도 확인합니다.',
+      speech: '아래 시트에서 라벨 배치를 확인해요.',
+      wait: 3000,
+      cursor: true,
+      action: 'openMobilePreview'
+    },
+    {
+      id: 'm-props-btn',
+      selector: '.ed-m-props',
+      title: '레이어 버튼',
+      description: '객체 목록과 순서는 레이어에서 보고, 글꼴·색은 격자 위 속성 막대에서 바꿔요.',
+      effect: 'PC의 오른쪽 아래 레이어 상자와 같은 역할입니다.',
+      speech: '레이어 버튼을 눌러 볼게요.',
+      wait: 2600,
+      cursor: true,
+      click: true,
+      action: 'openMobileProps'
+    },
+    {
+      id: 'm-layers',
+      selector: '[data-tut="props"]',
+      title: '레이어 시트',
+      description: '아래에서 객체를 고르고, 줄을 드래그하면 순서가 바뀝니다. 바깥을 누르면 닫혀요.',
+      effect: '겹친 객체도 한 손으로 고를 수 있습니다.',
+      speech: '아래 레이어에서 순서를 바꿀 수 있어요.',
+      wait: 3000,
+      cursor: true,
+      action: 'openMobileProps'
+    },
+    {
+      id: 'm-tools',
+      selector: '[data-tut="float-tools"]',
+      title: '하단 도구바',
+      description: '텍스트·이미지·도형과 용지선택·템플릿을 가로로 밀어 고릅니다.',
+      effect: '엄지로 바로 추가할 수 있습니다.',
+      speech: '도구는 화면 아래에 모아 두었어요.',
+      wait: 2800,
+      cursor: true,
+      action: 'closeMobileOverlays'
+    },
+    {
+      id: 'm-vendor',
+      selector: '[data-tut="import-fab"]',
+      title: '타사포맷',
+      description: '상단 라비AI 옆의 타사포맷으로 폼텍·아이라벨·애니라벨 파일을 올립니다.',
+      effect: '변환 창만 바로 열립니다.',
+      speech: '타사포맷 버튼이에요.',
+      wait: 2400,
+      cursor: true,
+      action: 'closeMobileOverlays'
+    },
+    {
+      id: 'm-canvas',
+      selector: '[data-tut="canvas"]',
+      title: '한 손가락으로 편집',
+      description: '객체를 탭하면 선택되고, 끌면 이동합니다. 모서리 핸들을 잡아 크기를 바꿀 수 있어요.',
+      effect: '손가락 맞춤 여유를 두고 잡히도록 했습니다.',
+      speech: '한 손가락으로 고르고 옮기면 됩니다.',
+      wait: 2800,
+      cursor: true,
+      action: 'closeMobileOverlays'
+    },
+    {
+      id: 'm-pinch',
+      selector: '[data-tut="canvas"]',
+      title: '두 손가락으로 확대',
+      description: '캔버스 위에서 두 손가락을 벌리거나 오므리면 줌이 바뀝니다. 마우스 휠 대신 이 제스처를 쓰세요.',
+      effect: '라벨 디테일을 크게 보고 다시 맞출 수 있습니다.',
+      speech: '두 손가락을 벌리면 확대돼요.',
+      wait: 3200,
+      demo: 'pinch',
+      action: 'closeMobileOverlays'
+    },
+    {
+      id: 'm-pan',
+      selector: '[data-tut="canvas"]',
+      title: '두 손가락으로 이동',
+      description: '두 손가락을 붙인 채 밀면 라벨이 함께 움직여 화면 밖 영역도 볼 수 있어요.',
+      effect: '확대한 뒤에도 원하는 위치로 옮깁니다.',
+      speech: '두 손가락으로 밀면 화면이 이동해요.',
+      wait: 3000,
+      demo: 'pan',
+      action: 'closeMobileOverlays'
+    },
+    {
+      id: 'm-longpress',
+      selector: '[data-tut="canvas"]',
+      title: '길게 누르기',
+      description: '같은 자리를 잠시 누르고 있으면 삭제 등 빠른 메뉴가 열립니다. 움직이면 취소돼요.',
+      effect: '오른쪽 클릭 대신 쓰는 모바일 메뉴입니다.',
+      speech: '길게 누르면 빠른 메뉴가 열려요.',
+      wait: 3200,
+      demo: 'longpress',
+      action: 'closeMobileOverlays'
+    },
+    {
+      id: 'm-zoom',
+      selector: '[data-tut="zoom"]',
+      title: '줌 숫자',
+      description: '핀치로 조절한 배율은 위쪽 숫자에 보여요.',
+      effect: '현재 확대 상태를 바로 확인합니다.',
+      speech: '줌 숫자는 상단 가운데에 있어요.',
+      wait: 2400,
+      cursor: true
+    },
+    {
+      id: 'm-done',
+      selector: '[data-tut="topbar"]',
+      title: '이제 직접 만들어 보세요',
+      description: '하단 도구바의 튜토리얼에서 언제든 다시 볼 수 있어요.',
+      effect: '실전 편집으로 바로 이어갑니다.',
+      speech: '모바일 튜토리얼이 끝났어요. 멋진 라벨을 만들어 보세요!',
+      wait: 3000,
+      action: 'closeMobileOverlays'
+    }
+  ];
   function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
   function isTouch() {
     return window.matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
+  }
+  function isMobileTour() {
+    try {
+      if (window.labelUpEditor && typeof window.labelUpEditor.isMobileEditor === 'function')
+        return !!window.labelUpEditor.isMobileEditor();
+    } catch (e) { /* ignore */ }
+    return window.matchMedia('(max-width: 900px)').matches;
+  }
+  function skipKey() {
+    return isMobileTour() ? STORAGE_SKIP_M : STORAGE_SKIP;
+  }
+  function setMobileMenuOpen(on) {
+    var actions = document.querySelector('.ed-topbar__actions');
+    var open = !!(actions && actions.classList.contains('is-open'));
+    if (on && !open) {
+      var more = document.querySelector('.ed-m-more');
+      if (more) more.click();
+    } else if (!on && open) {
+      var closer = document.querySelector('.ed-m-drawer-close');
+      if (closer) closer.click();
+    }
+  }
+  function setMobilePropsOpen(on) {
+    var props = document.querySelector('[data-ed-props-panel]');
+    var open = !!(props && props.classList.contains('is-m-open'));
+    if (on === open) return;
+    if (window.labelUpEditor && typeof window.labelUpEditor.toggleMobileProps === 'function')
+      window.labelUpEditor.toggleMobileProps();
+  }
+  function setMobilePreviewOpen(on) {
+    var preview = document.querySelector('[data-ed-preview-panel]');
+    var open = !!(preview && preview.classList.contains('is-m-open'));
+    if (on === open) return;
+    if (window.labelUpEditor && typeof window.labelUpEditor.toggleMobilePreview === 'function')
+      window.labelUpEditor.toggleMobilePreview();
+  }
+  function closeMobileOverlays() {
+    setMobileMenuOpen(false);
+    setMobilePropsOpen(false);
+    setMobilePreviewOpen(false);
+  }
+  function patchMobileInvite() {
+    var card = document.querySelector('.lu-tut-invite__card');
+    if (card) {
+      var h = card.querySelector('h3');
+      var p = card.querySelector('p');
+      if (isMobileTour()) {
+        if (h) h.textContent = '휴대폰에서 편집하는 법, 같이 볼까요?';
+        if (p) p.textContent = '클라우드 저장·라비AI, 시트·레이어, 두 손가락 확대·이동을 짧게 안내해요.';
+      } else if (p) {
+        p.textContent = '클라우드 저장·라비AI·타사포맷, 오른쪽 미리보기·레이어와 왼쪽 도구바를 가상 커서와 함께 둘러봐요.';
+      }
+    }
+    var reopen = document.querySelector('.ed-tut-reopen');
+    if (reopen) {
+      var lab = reopen.querySelector('.ed-float-tools__label');
+      if (lab) lab.textContent = '튜토리얼';
+      else reopen.textContent = '✦ 튜토리얼';
+      reopen.setAttribute('title', '모바일 튜토리얼 다시 보기');
+    }
   }
 
   function Tutorial() {
@@ -319,6 +567,7 @@
     this._ignoreUserUntil = 0;
     this._built = false;
     this._speechUtter = null;
+    this.mobile = false;
   }
 
   Tutorial.prototype.mount = function (rootSel, dotNet) {
@@ -329,6 +578,21 @@
       this._bindKeys();
       this._bindUserInterrupt();
       this._built = true;
+    }
+    this._applyTrack();
+    patchMobileInvite();
+    setTimeout(patchMobileInvite, 80);
+    setTimeout(patchMobileInvite, 400);
+    setTimeout(patchMobileInvite, 1200);
+  };
+
+  Tutorial.prototype._applyTrack = function () {
+    this.mobile = isMobileTour();
+    this.steps = this.mobile ? MOBILE_STEPS : STEPS;
+    if (this.host) {
+      this.host.classList.toggle('is-mobile-tour', this.mobile);
+      var title = this.host.querySelector('.lu-tut__ctrl-top strong');
+      if (title) title.textContent = this.mobile ? '모바일 튜토리얼' : '튜토리얼';
     }
   };
 
@@ -355,6 +619,12 @@
         '<span class="lu-tut__cursor-ripple"></span>' +
       '</div>' +
       '<div class="lu-tut__caption" data-tut-caption hidden></div>' +
+      '<div class="lu-tut__demo" data-tut-demo hidden>' +
+        '<i class="lu-tut__finger lu-tut__finger--a"></i>' +
+        '<i class="lu-tut__finger lu-tut__finger--b"></i>' +
+        '<b class="lu-tut__hold"></b>' +
+        '<span class="lu-tut__demo-label" data-tut-demo-label></span>' +
+      '</div>' +
       '<div class="lu-tut__toast" data-tut-toast hidden></div>' +
       '<div class="lu-tut__ctrl" data-tut-ctrl hidden>' +
         '<div class="lu-tut__ctrl-top">' +
@@ -392,6 +662,8 @@
       cursor: host.querySelector('[data-tut-cursor]'),
       caption: host.querySelector('[data-tut-caption]'),
       toast: host.querySelector('[data-tut-toast]'),
+      demo: host.querySelector('[data-tut-demo]'),
+      demoLabel: host.querySelector('[data-tut-demo-label]'),
       ctrl: host.querySelector('[data-tut-ctrl]'),
       title: host.querySelector('[data-tut-title]'),
       desc: host.querySelector('[data-tut-desc]'),
@@ -485,6 +757,7 @@
     this.els.tip.classList.remove('is-shown');
     this.els.ctrl.hidden = !on;
     this.els.caption.hidden = true;
+    if (this.els.demo) this.els.demo.hidden = true;
     if (!on) {
       this.els.cursor.hidden = true;
       this.els.toast.hidden = true;
@@ -493,6 +766,8 @@
   };
 
   Tutorial.prototype.start = function (fromIndex) {
+    this._applyTrack();
+    patchMobileInvite();
     this.index = typeof fromIndex === 'number' ? fromIndex : 0;
     this.playing = true;
     this.paused = false;
@@ -514,7 +789,7 @@
     this.paused = false;
     this._setVisible(false);
     this._updatePlayBtn();
-    try { localStorage.setItem(STORAGE_SKIP, '1'); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(skipKey(), '1'); } catch (e) { /* ignore */ }
   };
 
   Tutorial.prototype.pause = function (reason) {
@@ -622,6 +897,7 @@
     this.els.tip.classList.remove('is-shown');
     this.els.caption.hidden = true;
     this.els.spot.hidden = true;
+    if (this.els.demo) this.els.demo.hidden = true;
     this._stopSpeech();
 
     this._ignoreUserUntil = Date.now() + 900;
@@ -631,6 +907,9 @@
       if (step.action === 'openImport' || step.action === 'openPaperPicker' ||
           step.action === 'openVendorPicker' || step.action === 'closeVendorPicker' ||
           step.action === 'closeVendorPickerThenImport' ||
+          step.action === 'openMobileMenu' || step.action === 'openMobileProps' ||
+          step.action === 'openMobilePreview' ||
+          step.action === 'closeMobileProps' || step.action === 'closeMobileOverlays' ||
           (step.action && (step.action.indexOf('importTab:') === 0 || step.action.indexOf('paperTab:') === 0))) {
         settle = (420 * PACE) / self.speed;
       }
@@ -647,6 +926,7 @@
       }
       return self._ensureVisible(el, step).then(function () {
         self._highlight(el);
+        self._showDemo(step, el);
         if (step.cursor) {
           return self._moveCursor(el, !!step.click);
         }
@@ -654,7 +934,6 @@
       }).then(function () {
         self._fillTipContent(step, false);
         self._placeTip(el);
-        self._revealTip();
         if (self.voiceOn) self._speak(step.speech || step.description);
         if (!self.paused) self._scheduleAdvance();
       });
@@ -688,7 +967,7 @@
           if (btn) btn.click();
         }
       }
-      if (step.action === 'expandPreview' || step.id === 'preview') {
+      if (step.action === 'expandPreview' || step.id === 'preview' || step.action === 'openMobilePreview') {
         var preview = document.querySelector('[data-ed-preview-panel]');
         if (preview && preview.classList.contains('is-minimized')) {
           var pbtn = preview.querySelector('.ed-props__min');
@@ -709,6 +988,9 @@
       step.action === 'openPaperPicker' || step.action === 'closePaperPicker' ||
       step.action === 'openVendorPicker' || step.action === 'closeVendorPicker' ||
       step.action === 'closeVendorPickerThenImport' ||
+      step.action === 'openMobileMenu' || step.action === 'openMobileProps' ||
+      step.action === 'openMobilePreview' ||
+      step.action === 'closeMobileProps' || step.action === 'closeMobileOverlays' ||
       step.action.indexOf('importTab:') === 0 || step.action.indexOf('paperTab:') === 0;
     this._ignoreUserUntil = Date.now() + (needsDom ? 2800 : 1200);
     var runLocal = function () { return self._fallbackAction(step.action); };
@@ -783,6 +1065,21 @@
       var tabId = action.split(':')[1];
       var tabBtn = document.querySelector('[data-tut="import-tab-' + tabId + '"]');
       if (tabBtn) tabBtn.click();
+    } else if (action === 'openMobileMenu') {
+      closeMobileOverlays();
+      setMobileMenuOpen(true);
+    } else if (action === 'openMobileProps') {
+      setMobileMenuOpen(false);
+      setMobilePreviewOpen(false);
+      setMobilePropsOpen(true);
+    } else if (action === 'openMobilePreview') {
+      setMobileMenuOpen(false);
+      setMobilePropsOpen(false);
+      setMobilePreviewOpen(true);
+    } else if (action === 'closeMobileProps') {
+      setMobilePropsOpen(false);
+    } else if (action === 'closeMobileOverlays') {
+      closeMobileOverlays();
     }
     return this._wait(200 * PACE);
   };
@@ -804,6 +1101,17 @@
     tip.style.visibility = 'hidden';
     tip.hidden = false;
     tip.classList.remove('is-shown');
+    if (this.mobile) {
+      tip.style.left = '12px';
+      tip.style.right = '12px';
+      tip.style.width = 'auto';
+      tip.style.top = 'auto';
+      tip.style.bottom = '158px';
+      tip.style.transform = '';
+      tip.style.visibility = '';
+      tip.hidden = true;
+      return;
+    }
     var r = el.getBoundingClientRect();
     var tw = tip.offsetWidth || 300;
     var th = tip.offsetHeight || 160;
@@ -814,10 +1122,37 @@
     if (top + th > window.innerHeight - 100) top = window.innerHeight - th - 100;
     if (top < 12) top = 12;
     tip.style.left = left + 'px';
+    tip.style.right = '';
+    tip.style.width = '';
+    tip.style.bottom = '';
     tip.style.top = top + 'px';
     tip.style.transform = '';
     tip.style.visibility = '';
     tip.hidden = true;
+  };
+
+  Tutorial.prototype._showDemo = function (step, el) {
+    var demo = this.els.demo;
+    if (!demo) return;
+    demo.className = 'lu-tut__demo';
+    if (!step.demo) {
+      demo.hidden = true;
+      return;
+    }
+    var r = el ? el.getBoundingClientRect() : { left: 40, top: 120, width: window.innerWidth - 80, height: 220 };
+    var w = Math.max(120, Math.min(220, r.width * 0.55));
+    var h = Math.max(120, Math.min(180, r.height * 0.4));
+    demo.style.left = (r.left + (r.width - w) / 2) + 'px';
+    demo.style.top = (r.top + (r.height - h) / 2) + 'px';
+    demo.style.width = w + 'px';
+    demo.style.height = h + 'px';
+    demo.classList.add('is-' + step.demo);
+    demo.hidden = false;
+    if (this.els.demoLabel) {
+      this.els.demoLabel.textContent = step.demo === 'pinch' ? '벌리기 / 오므리기'
+        : step.demo === 'pan' ? '두 손가락으로 밀기'
+        : '잠시 누르기';
+    }
   };
 
   Tutorial.prototype._placeTipCenter = function () {
@@ -827,6 +1162,10 @@
     tip.classList.remove('is-shown');
     this.els.spot.hidden = true;
     this.els.overlay.hidden = false;
+    if (this.mobile) {
+      this._placeTip(null);
+      return;
+    }
     tip.style.transform = '';
     var tw = tip.offsetWidth || 300;
     tip.style.left = ((window.innerWidth - tw) / 2) + 'px';
@@ -910,14 +1249,14 @@
 
   Tutorial.prototype.shouldAutoOffer = function () {
     try {
-      return localStorage.getItem(STORAGE_SKIP) !== '1';
+      return localStorage.getItem(skipKey()) !== '1';
     } catch (e) {
       return true;
     }
   };
 
   Tutorial.prototype.markSkipped = function () {
-    try { localStorage.setItem(STORAGE_SKIP, '1'); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(skipKey(), '1'); } catch (e) { /* ignore */ }
   };
 
   var instance = new Tutorial();
@@ -929,6 +1268,7 @@
     stop: function () { instance.stop(); },
     shouldAutoOffer: function () { return instance.shouldAutoOffer(); },
     markSkipped: function () { instance.markSkipped(); },
-    isActive: function () { return instance.playing; }
+    isActive: function () { return instance.playing; },
+    isMobileTour: function () { return isMobileTour(); }
   };
 })();

@@ -109,6 +109,22 @@ function admin_pagination_window(int $page, int $pages, int $window = 7): array
     return range($start, $end);
 }
 
+function format_ai_krw(float|int|string|null $amount): string
+{
+    $n = (float) $amount;
+    if ($n <= 0) {
+        return '0';
+    }
+    if ($n < 1) {
+        $text = rtrim(rtrim(number_format($n, 4, '.', ''), '0'), '.');
+        return $text === '' ? '0' : $text;
+    }
+    if (abs($n - round($n)) < 0.005) {
+        return number_format((int) round($n));
+    }
+    return number_format($n, 2);
+}
+
 /**
  * Build admin pagination href for a page number.
  * @param array<string, scalar|null> $params query params excluding page
@@ -198,7 +214,10 @@ function admin_menu_catalog(): array
         ['key' => 'content-cliparts', 'label' => '클립아트관리', 'href' => 'admin/content/cliparts', 'group' => '컨텐츠관리', 'ic' => '✦'],
         ['key' => 'content-user-designs', 'label' => '사용자디자인', 'href' => 'admin/content/user-designs', 'group' => '컨텐츠관리', 'ic' => '★'],
         ['key' => 'content-templates', 'label' => '템플릿관리', 'href' => 'admin/content/templates', 'group' => '컨텐츠관리', 'ic' => '▦'],
+        ['key' => 'content-product-detail-pages', 'label' => '상세페이지관리', 'href' => 'admin/content/product-detail-pages', 'group' => '컨텐츠관리', 'ic' => '▣'],
         ['key' => 'ai-example-prompts', 'label' => '예시프롬프트 관리', 'href' => 'admin/ai/example-prompts', 'group' => 'AI 관리', 'ic' => '✦'],
+        ['key' => 'ai-token-logs', 'label' => '토큰사용로그', 'href' => 'admin/ai/token-logs', 'group' => 'AI 관리', 'ic' => '◎'],
+        ['key' => 'ai-member-usage', 'label' => '회원별 사용', 'href' => 'admin/ai/member-usage', 'group' => 'AI 관리', 'ic' => '◇'],
         ['key' => 'ai-usage', 'label' => '사용량 통계', 'href' => 'admin/ai/usage', 'group' => 'AI 관리', 'ic' => '▣'],
         ['key' => 'users', 'label' => '회원 관리', 'href' => 'admin/users', 'group' => '운영관리', 'ic' => '◎'],
         ['key' => 'settings', 'label' => '운영설정', 'href' => 'admin/settings', 'group' => '운영관리', 'ic' => '⚙'],

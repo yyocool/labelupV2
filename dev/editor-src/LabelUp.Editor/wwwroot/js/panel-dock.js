@@ -462,67 +462,85 @@
     };
   }
 
+  function isMobileEditor() {
+    return window.labelUpEditor && typeof window.labelUpEditor.isMobileEditor === 'function'
+      ? window.labelUpEditor.isMobileEditor()
+      : window.matchMedia('(max-width: 900px)').matches;
+  }
+
+  function pinRightStack(root) {
+    if (isMobileEditor()) {
+      document.documentElement.classList.remove('lu-right-stack');
+      return;
+    }
+    document.documentElement.classList.add('lu-right-stack');
+    const preview = root.querySelector('[data-ed-preview-panel]');
+    const props = root.querySelector('[data-ed-props-panel]');
+    const first = root.getAttribute('data-lu-right-stack') !== '1';
+    [preview, props].forEach(function (el) {
+      if (!el) return;
+      if (first && el.classList.contains('is-minimized')) {
+        const btn = el.querySelector('.ed-props__min');
+        if (btn) btn.click();
+      }
+      if (el.style.left || el.style.top || el.style.height || el.style.right || el.style.transform) {
+        el.style.left = '';
+        el.style.top = '';
+        el.style.right = '';
+        el.style.bottom = '';
+        el.style.width = '';
+        el.style.height = '';
+        el.style.transform = '';
+      }
+      el.classList.remove('is-dragging', 'is-moved', 'is-snapping', 'is-magnet-near');
+    });
+    if (!first) return;
+    root.setAttribute('data-lu-right-stack', '1');
+    const mo = new MutationObserver(function () {
+      if (isMobileEditor()) {
+        document.documentElement.classList.remove('lu-right-stack');
+        return;
+      }
+      pinRightStack(root);
+    });
+    if (preview) mo.observe(preview, { attributes: true, attributeFilter: ['style'] });
+    if (props) mo.observe(props, { attributes: true, attributeFilter: ['style'] });
+    window.addEventListener('resize', function () {
+      if (!isMobileEditor()) document.documentElement.classList.add('lu-right-stack');
+      else document.documentElement.classList.remove('lu-right-stack');
+    });
+  }
+
+  function resetMobileChrome(root) {
+    [root.querySelector('[data-ed-float-tools]'), root.querySelector('[data-ed-props-panel]'), root.querySelector('[data-ed-preview-panel]')]
+      .forEach(function (el) {
+        if (!el) return;
+        el.style.left = '';
+        el.style.top = '';
+        el.style.right = '';
+        el.style.bottom = '';
+        el.style.width = '';
+        el.style.height = '';
+        el.style.transform = '';
+      });
+  }
+
   function init(rootSelector) {
     const root = document.querySelector(rootSelector || '[data-ed-root]');
     if (!root) return;
 
-    bindFloatTools(root);
-
-    const propsApi = bindPanel(root, {
-      panelSelector: '[data-ed-props-panel]',
-      handleSelector: '[data-ed-props-handle]',
-      minSelector: '.ed-props__min',
-      boundAttr: 'data-ed-props-bound',
-      defaultSnap: 'tr',
-      storageKey: 'lu-ed-props-snap',
-      stretchToBottom: true
-    });
-
-    const previewApi = bindPanel(root, {
-      panelSelector: '[data-ed-preview-panel]',
-      handleSelector: '[data-ed-preview-handle]',
-      minSelector: '.ed-props__min',
-      boundAttr: 'data-ed-preview-bound',
-      defaultSnap: 'tl',
-      storageKey: 'lu-ed-preview-snap',
-      stretchToBottom: true,
-      preserveHeight: true,
-      getExtraTargets: function () {
-        const body = root.querySelector('[data-ed-body]');
-        const props = root.querySelector('[data-ed-props-panel]');
-        return stackPropsTarget(root, body, props);
-      },
-      onDragEnd: function () {
-        // keep stack available after move
-      }
-    });
-
-    // When props moves/minimizes, restack preview if docked under props
-    const restack = function () {
-      if (!previewApi) return;
-      if (previewApi.getSnapId() === 'stack-props') {
-        previewApi.applySnap('stack-props', true);
-      }
-    };
-
-    const propsPanel = root.querySelector('[data-ed-props-panel]');
-    if (propsPanel) {
-      const syncPropsHeight = function () {
-        if (propsApi && typeof propsApi.applyHeight === 'function') propsApi.applyHeight();
-        restack();
-      };
-      const minBtn = propsPanel.querySelector('.ed-props__min');
-      if (minBtn) minBtn.addEventListener('click', function () {
-        setTimeout(syncPropsHeight, 0);
-        requestAnimationFrame(function () { requestAnimationFrame(syncPropsHeight); });
-      });
-      new MutationObserver(syncPropsHeight).observe(propsPanel, { attributes: true, attributeFilter: ['class'] });
+    if (isMobileEditor()) {
+      resetMobileChrome(root);
+    } else {
+      resetMobileChrome(root);
     }
 
-    window.addEventListener('resize', function () {
-      if (propsApi && propsApi.getSnapId() !== 'free') propsApi.applySnap(propsApi.getSnapId(), true);
-      restack();
-    });
+    const mobile = isMobileEditor();
+    const propsApi = null;
+    const previewApi = null;
+    if (!mobile) pinRightStack(root);
+
+    const restack = function () { };
 
     // Import overlay (타사포맷 플로팅 버튼 등에서 연다)
     const overlay = root.querySelector('[data-ed-import-overlay]');

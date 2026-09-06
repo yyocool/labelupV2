@@ -154,6 +154,10 @@ final class LabiDesignService
             'prompt_tokens' => $usageView['prompt_tokens'] ?? ($usage['prompt_tokens'] ?? null),
             'completion_tokens' => $usageView['completion_tokens'] ?? ($usage['completion_tokens'] ?? null),
             'total_tokens' => $usageView['total_tokens'] ?? ($usage['total_tokens'] ?? null),
+            'cost_usd' => $usageView['usd'] ?? null,
+            'cost_krw' => $usageView['krw'] ?? null,
+            'agent' => $usageView['agent'] ?? null,
+            'difficulty' => $usageView['difficulty'] ?? $difficulty,
             'has_image' => self::messagesHaveImage($messages),
             'clipart_id' => $clipartId,
             'status' => 'ok',
@@ -222,6 +226,10 @@ final class LabiDesignService
             'prompt_tokens' => $usageView['prompt_tokens'] ?? ($usage['prompt_tokens'] ?? null),
             'completion_tokens' => $usageView['completion_tokens'] ?? ($usage['completion_tokens'] ?? null),
             'total_tokens' => $usageView['total_tokens'] ?? ($usage['total_tokens'] ?? null),
+            'cost_usd' => $usageView['usd'] ?? null,
+            'cost_krw' => $usageView['krw'] ?? null,
+            'agent' => $usageView['agent'] ?? null,
+            'difficulty' => $usageView['difficulty'] ?? $difficulty,
             'has_image' => false,
             'clipart_id' => null,
             'status' => 'ok',
@@ -368,6 +376,10 @@ final class LabiDesignService
         ])));
 
         $editorQuery = [];
+        $sku = trim((string) ($product['sku'] ?? ''));
+        if ($sku !== '') {
+            $editorQuery['sku'] = $sku;
+        }
         if ($w !== null && $h !== null) {
             $editorQuery['w'] = rtrim(rtrim(sprintf('%.2f', (float) $w), '0'), '.');
             $editorQuery['h'] = rtrim(rtrim(sprintf('%.2f', (float) $h), '0'), '.');

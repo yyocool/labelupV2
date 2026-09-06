@@ -761,20 +761,33 @@
             var w = ReadFloat(root, "width_mm", "widthMm", "w", "width");
             var h = ReadFloat(root, "height_mm", "heightMm", "h", "height");
             var labels = ReadInt(root, "labels_per_sheet", "labelsPerSheet", "labels");
+            var productId = ReadInt(root, "id", "productId", "product_id");
 
             await Papers.EnsureLoadedAsync();
+            ShopPaperItem? shop = null;
+            if (productId is > 0)
+                shop = Papers.ShopPapers.FirstOrDefault(p => p.Id == productId.Value);
+            if (shop is null && !string.IsNullOrWhiteSpace(sku))
+                shop = Papers.ShopPapers.FirstOrDefault(p =>
+                    string.Equals(p.Sku, sku, StringComparison.OrdinalIgnoreCase));
+
             PaperSpec? paper = null;
-            if (!string.IsNullOrWhiteSpace(sku))
-                paper = Papers.Find(sku);
+            if (shop is not null)
+                paper = Papers.FromShopProduct(shop);
             if (paper is null && w is > 0 && h is > 0)
-                paper = Papers.FindBestMatch(w.Value, h.Value, labels)
-                        ?? Papers.CreateFromSize(w.Value, h.Value, labels ?? 1, shape, name);
+                paper = Papers.CreateFromSize(w.Value, h.Value, labels ?? shop?.LabelsPerSheet ?? 1, shape, name);
+            if (paper is null && !string.IsNullOrWhiteSpace(sku))
+                paper = Papers.Find(sku)?.Clone();
             if (paper is null)
             {
                 Session.Status = "추천 상품 규격을 적용하지 못했습니다";
                 Session.Notify();
                 return;
             }
+            if (!string.IsNullOrWhiteSpace(sku))
+                paper.PaperNo = sku!;
+            if (w is > 0) paper.LabelWidthMm = w.Value;
+            if (h is > 0) paper.LabelHeightMm = h.Value;
 
             History.Push(Session.Document);
             Session.ApplyPaper(paper);

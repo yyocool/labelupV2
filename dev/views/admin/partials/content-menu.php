@@ -3,10 +3,11 @@ $contentMenus = [
     ['key' => 'content-cliparts', 'label' => '클립아트관리', 'href' => 'admin/content/cliparts', 'ic' => '✦'],
     ['key' => 'content-user-designs', 'label' => '사용자디자인', 'href' => 'admin/content/user-designs', 'ic' => '★'],
     ['key' => 'content-templates', 'label' => '템플릿관리', 'href' => 'admin/content/templates', 'ic' => '▦'],
+    ['key' => 'content-product-detail-pages', 'label' => '상세페이지관리', 'href' => 'admin/content/product-detail-pages', 'ic' => '▣'],
 ];
 $contentMenus = admin_filter_menu_items($contentMenus);
 $isContentOpen = ($menuGroup ?? '') === 'content'
-    || in_array((string) ($activeMenu ?? ''), ['content-cliparts', 'content-user-designs', 'content-templates'], true);
+    || in_array((string) ($activeMenu ?? ''), ['content-cliparts', 'content-user-designs', 'content-templates', 'content-product-detail-pages'], true);
 if ($contentMenus === []) {
     return;
 }

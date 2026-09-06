@@ -15,22 +15,17 @@
      @onclick="Session.CloseDialog">
   <div class="ed-modal__card ed-modal__card--labi ed-labi" @onclick:stopPropagation="true">
     <header class="ed-modal__head">
-      <div>
-        <h3>라비와 라벨 만들기</h3>
-        <p>원하는 라벨을 말하면 상품·클립아트·엑셀 템플릿을 이 편집기에 바로 넣을 수 있어요.</p>
+      <div class="ed-modal__head-title">
+        <img class="ed-modal__head-labi" src="/assets/labi-icon.png" alt="라비" width="48" height="48" />
+        <div class="ed-modal__head-copy">
+          <h3>라비와 라벨 만들기</h3>
+          <p>원하는 라벨을 말하면 상품·클립아트·엑셀 템플릿을 이 편집기에 바로 넣을 수 있어요.</p>
+        </div>
       </div>
       <button type="button" class="ed-modal__close" @onclick="Session.CloseDialog">×</button>
     </header>
     <div class="ed-modal__body ed-labi__body">
       <section class="prompt" id="aiPromptPanel">
-        <div class="prompt-head">
-          <div class="prompt-title">
-            <b>라비와 라벨 만들기</b>
-            <span>원하는 라벨을 말로 설명하면 디자인을 바로 제안해요</span>
-          </div>
-          <span class="prompt-badge">AI DESIGN</span>
-        </div>
-
         <div class="ai-chat-log" id="aiChatLog" hidden aria-live="polite"></div>
 
         <div class="prompt-composer">

@@ -510,6 +510,7 @@
 .admin-filter-bar .admin-input{height:38px;min-width:140px;flex:1}
 .admin-filter-bar .admin-input--search{flex:2;min-width:220px}
 .admin-filter-bar .admin-select{height:38px;min-width:140px;padding:0 10px;border-radius:10px}
+.admin-filter-bar .admin-input[type="date"]{min-width:140px;flex:0 0 auto}
 .admin-meta-line{margin:0 0 12px;font-size:13px;color:#6b7280}
 .admin-pager{display:flex;align-items:center;gap:10px;margin-top:18px}
 .admin-form-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;width:100%;box-sizing:border-box}

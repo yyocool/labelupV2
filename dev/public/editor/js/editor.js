@@ -14,6 +14,7 @@ window.labelUpEditor = {
     return { w: w, h: h, x: x, y: y };
   },
   bindCanvasStage: function (el, dotnet) {
+    if (dotnet) this._canvasHost = dotnet;
     if (!el || el._luStageBound) return;
     el._luStageBound = true;
     var apply = function () {
@@ -27,6 +28,62 @@ window.labelUpEditor = {
     } catch (e) { /* ignore */ }
     window.addEventListener('resize', apply);
     requestAnimationFrame(function () { requestAnimationFrame(apply); });
+    window.labelUpEditor.bindCanvasGestures(el, dotnet);
+  },
+  bindCanvasGestures: function (el, dotnet) {
+    if (!el || el._luGestures || !dotnet) return;
+    el._luGestures = true;
+    var pts = new Map();
+    var gesture = null;
+    function point(e) { return { x: e.clientX, y: e.clientY }; }
+    function dist(a, b) {
+      var dx = a.x - b.x, dy = a.y - b.y;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+    function mid(a, b) { return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
+    function values() { return Array.from(pts.values()); }
+    el.addEventListener('pointerdown', function (e) {
+      if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
+      pts.set(e.pointerId, point(e));
+      if (pts.size === 2) {
+        var pair = values();
+        Promise.resolve(dotnet.invokeMethodAsync('GetViewState')).then(function (st) {
+          if (!st || st.length < 3) return;
+          gesture = {
+            startDist: Math.max(8, dist(pair[0], pair[1])),
+            startMid: mid(pair[0], pair[1]),
+            zoom: Number(st[0]) || 1,
+            panX: Number(st[1]) || 0,
+            panY: Number(st[2]) || 0
+          };
+        }).catch(function () { /* ignore */ });
+        try { e.stopImmediatePropagation(); } catch (err) { /* ignore */ }
+      }
+    }, true);
+    el.addEventListener('pointermove', function (e) {
+      if (!pts.has(e.pointerId)) return;
+      pts.set(e.pointerId, point(e));
+      if (pts.size < 2 || !gesture) return;
+      e.preventDefault();
+      try { e.stopImmediatePropagation(); } catch (err) { /* ignore */ }
+      var pair = values();
+      var d = Math.max(8, dist(pair[0], pair[1]));
+      var m = mid(pair[0], pair[1]);
+      var zoom = Math.max(0.25, Math.min(8, gesture.zoom * (d / gesture.startDist)));
+      var panX = gesture.panX + (m.x - gesture.startMid.x);
+      var panY = gesture.panY + (m.y - gesture.startMid.y);
+      dotnet.invokeMethodAsync('OnGestureZoomPan', zoom, panX, panY);
+    }, { capture: true, passive: false });
+    function endPointer(e) {
+      if (!pts.has(e.pointerId)) return;
+      pts.delete(e.pointerId);
+      if (pts.size < 2 && gesture) {
+        gesture = null;
+        dotnet.invokeMethodAsync('OnGestureEnd');
+      }
+    }
+    el.addEventListener('pointerup', endPointer, true);
+    el.addEventListener('pointercancel', endPointer, true);
   },
   takePendingClipart: function () {
     try {
@@ -436,6 +493,41 @@ window.labelUpEditor = {
   bindLabi: function (dotnet) {
     this._labiDotNet = dotnet;
   },
+  bindLabiDialogChrome: function () {
+    if (this._labiChromeBound) return;
+    this._labiChromeBound = true;
+    var src = '/assets/labi-icon.png';
+    var decorate = function () {
+      var card = document.querySelector('.ed-modal__card--labi');
+      if (!card) return;
+      var head = card.querySelector('.ed-modal__head');
+      if (head && !head.querySelector('.ed-modal__head-labi')) {
+        var h3 = head.querySelector('h3');
+        if (h3) {
+          var box = h3.parentElement;
+          box.classList.add('ed-modal__head-title');
+          if (!box.querySelector('.ed-modal__head-copy')) {
+            var copy = document.createElement('div');
+            copy.className = 'ed-modal__head-copy';
+            while (box.firstChild) copy.appendChild(box.firstChild);
+            box.appendChild(copy);
+          }
+          var img = document.createElement('img');
+          img.className = 'ed-modal__head-labi';
+          img.src = src;
+          img.alt = '라비';
+          img.width = 48;
+          img.height = 48;
+          box.insertBefore(img, box.firstChild);
+        }
+      }
+      var innerHead = card.querySelector('.prompt-head');
+      if (innerHead) innerHead.setAttribute('hidden', '');
+    };
+    var mo = new MutationObserver(decorate);
+    mo.observe(document.documentElement, { childList: true, subtree: true });
+    decorate();
+  },
 
   hideBoot: function () {
     var el = document.getElementById('editor-boot');
@@ -444,6 +536,84 @@ window.labelUpEditor = {
     el.setAttribute('hidden', '');
     el.setAttribute('aria-busy', 'false');
     try { document.documentElement.classList.add('editor-ready'); } catch (e) { /* ignore */ }
+    this.applyMobileChrome();
+  },
+  applyMobileChrome: function () {
+    var on = this.isMobileEditor();
+    try {
+      document.documentElement.classList.toggle('is-ed-mobile', on);
+      document.body.classList.toggle('is-ed-mobile', on);
+    } catch (e) { /* ignore */ }
+    var root = document.querySelector('[data-ed-root]');
+    if (!root) return;
+    root.classList.toggle('is-mobile', on);
+    if (!on) {
+      this.ensureMobileChromeButtons();
+      return;
+    }
+    root.classList.remove('is-topbar-auto');
+    root.classList.add('is-topbar-pinned');
+    var dock = root.querySelector('[data-ed-topbar-dock]');
+    if (dock) {
+      dock.classList.remove('is-auto');
+      dock.classList.add('is-pinned');
+    }
+    this.ensureMobileChromeButtons();
+  },
+  ensureMobileChromeButtons: function () {
+    var root = document.querySelector('[data-ed-root]');
+    var proxy = document.querySelector('.ed-m-preview[data-ed-preview-proxy]');
+    if (!root || !root.classList.contains('is-mobile')) {
+      if (proxy) proxy.remove();
+      return;
+    }
+    var propsBtn = root.querySelector('.ed-m-props');
+    if (propsBtn && /속성/.test((propsBtn.textContent || '').trim())) {
+      propsBtn.textContent = '레이어';
+      propsBtn.setAttribute('title', '레이어');
+      propsBtn.setAttribute('aria-label', '레이어 패널');
+    }
+    if (root.querySelector('.ed-m-preview')) return;
+    if (!propsBtn) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ed-chip ed-m-preview';
+    btn.setAttribute('data-ed-preview-proxy', '1');
+    btn.title = '시트 미리보기';
+    btn.setAttribute('aria-label', '시트 미리보기');
+    btn.textContent = '시트';
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (window.labelUpEditor && typeof window.labelUpEditor.toggleMobilePreview === 'function')
+        window.labelUpEditor.toggleMobilePreview();
+    });
+    propsBtn.parentNode.insertBefore(btn, propsBtn);
+  },
+  toggleMobileProps: function () {
+    var root = document.querySelector('[data-ed-root]');
+    var props = document.querySelector('[data-ed-props-panel]');
+    if (!root || !props) return;
+    var open = !props.classList.contains('is-m-open');
+    props.classList.toggle('is-m-open', open);
+    root.classList.toggle('is-props-open', open);
+    var preview = document.querySelector('[data-ed-preview-panel]');
+    if (preview) preview.classList.remove('is-m-open');
+    root.classList.remove('is-preview-open');
+  },
+  toggleMobilePreview: function () {
+    var root = document.querySelector('[data-ed-root]');
+    var preview = document.querySelector('[data-ed-preview-panel]');
+    if (!root || !preview) return;
+    var open = !preview.classList.contains('is-m-open');
+    if (open && preview.classList.contains('is-minimized')) {
+      var min = preview.querySelector('.ed-props__min');
+      if (min) min.click();
+    }
+    preview.classList.toggle('is-m-open', open);
+    root.classList.toggle('is-preview-open', open);
+    var props = document.querySelector('[data-ed-props-panel]');
+    if (props) props.classList.remove('is-m-open');
+    root.classList.remove('is-props-open');
   },
 
   mountLabiChat: async function () {
@@ -475,8 +645,7 @@ window.labelUpEditor = {
         return await self.showSaveAuthPrompt();
       },
       onApplyProduct: function (product) {
-        if (!self._labiDotNet) return;
-        self._labiDotNet.invokeMethodAsync('ApplyLabiProduct', JSON.stringify(product || {}));
+        self.applyLabiProduct(product);
       },
       onApplyClipart: function (clipart) {
         if (!self._labiDotNet) return;
@@ -493,8 +662,215 @@ window.labelUpEditor = {
       onApplyVendor: function (file) {
         if (!self._labiDotNet || !file) return;
         self._labiDotNet.invokeMethodAsync('OnVendorFileFromLabi', file.fileName || 'vendor-import', file.dataUrl || '');
-      }
+      },
     });
+  },
+  enrichLabiProduct: async function (product) {
+    var p = Object.assign({}, product || {});
+    var sku = String(p.sku || p.paperNo || p.paper_no || '').trim().toUpperCase();
+    var id = parseInt(p.id || p.productId || p.product_id || 0, 10) || 0;
+    var spec = [p.spec, p.size, p.name, p.title, p.paper_name].filter(Boolean).join(' ');
+    var takeSize = function (text) {
+      var t = String(text || '');
+      var size = t.match(/([\d.]+)\s*[×xX]\s*([\d.]+)\s*mm/i);
+      if (!size) {
+        var loose = t.match(/([\d.]+)\s*[×xX]\s*([\d.]+)/);
+        if (loose && parseFloat(loose[1]) >= 8 && parseFloat(loose[2]) >= 8) size = loose;
+      }
+      if (size) {
+        p.width_mm = parseFloat(size[1]);
+        p.height_mm = parseFloat(size[2]);
+      }
+    };
+    var takeLabels = function (text) {
+      var n = String(text || '').match(/(\d+)\s*칸/) || String(text || '').match(/장당\s*(\d+)/);
+      if (n) p.labels_per_sheet = parseInt(n[1], 10);
+    };
+    if (p.editor_url || p.editorUrl) {
+      try {
+        var u = new URL(String(p.editor_url || p.editorUrl), location.origin);
+        if (!(parseFloat(p.width_mm || p.widthMm || 0) > 0) && u.searchParams.get('w'))
+          p.width_mm = parseFloat(u.searchParams.get('w'));
+        if (!(parseFloat(p.height_mm || p.heightMm || 0) > 0) && u.searchParams.get('h'))
+          p.height_mm = parseFloat(u.searchParams.get('h'));
+        if (!(parseInt(p.labels_per_sheet || p.labelsPerSheet || 0, 10) > 0) && u.searchParams.get('labels'))
+          p.labels_per_sheet = parseInt(u.searchParams.get('labels'), 10);
+        if (!p.sku && (u.searchParams.get('sku') || u.searchParams.get('paper') || u.searchParams.get('paperNo')))
+          p.sku = u.searchParams.get('sku') || u.searchParams.get('paper') || u.searchParams.get('paperNo');
+        if (!p.shape && u.searchParams.get('shape'))
+          p.shape = u.searchParams.get('shape');
+      } catch (e) { /* ignore bad editor_url */ }
+    }
+    if (!(parseFloat(p.width_mm || p.widthMm || 0) > 0)) takeSize(spec);
+    if (!(parseInt(p.labels_per_sheet || p.labelsPerSheet || 0, 10) > 0)) takeLabels(spec);
+    if (sku) p.sku = p.sku || sku;
+    try {
+      var res = await fetch('/api/shop/editor-papers', { credentials: 'same-origin' });
+      var json = await res.json();
+      var items = (json && json.data && (json.data.items || json.data.Items)) || [];
+      var hit = null;
+      for (var i = 0; i < items.length; i++) {
+        var it = items[i];
+        var itSku = String(it.sku || it.Sku || '').trim().toUpperCase();
+        var itId = parseInt(it.id || it.Id || 0, 10) || 0;
+        if ((id && itId === id) || (sku && itSku === sku)) { hit = it; break; }
+      }
+      if (hit) {
+        p.id = p.id || hit.id || hit.Id;
+        p.sku = p.sku || hit.sku || hit.Sku;
+        p.name = p.name || hit.name || hit.Name;
+        p.shape = p.shape || hit.shape || hit.Shape;
+        if (!(parseFloat(p.width_mm || p.widthMm || 0) > 0))
+          p.width_mm = parseFloat(hit.widthMm || hit.WidthMm || 0);
+        if (!(parseFloat(p.height_mm || p.heightMm || 0) > 0))
+          p.height_mm = parseFloat(hit.heightMm || hit.HeightMm || 0);
+        if (!(parseInt(p.labels_per_sheet || p.labelsPerSheet || 0, 10) > 0))
+          p.labels_per_sheet = parseInt(hit.labelsPerSheet || hit.LabelsPerSheet || 0, 10);
+      }
+    } catch (e) { /* keep parsed spec */ }
+    return p;
+  },
+  buildLabiPaperDocument: function (product) {
+    var w = parseFloat(product.width_mm || product.widthMm || 0);
+    var h = parseFloat(product.height_mm || product.heightMm || 0);
+    if (!(w > 0 && h > 0)) return null;
+    var n = parseInt(product.labels_per_sheet || product.labelsPerSheet || 1, 10) || 1;
+    var gap = 3, pageW = 210, pageH = 297, margin = 5;
+    var maxCols = Math.max(1, Math.floor((pageW - margin * 2 + gap) / (w + gap)));
+    var cols = n === 1 ? 1 : Math.min(n, maxCols);
+    var rows = Math.max(1, Math.ceil(n / cols));
+    var per = cols * rows;
+    var cells = [];
+    var sample = {
+      id: 'labiPaper1',
+      type: 'text',
+      x: w * 0.12,
+      y: h * 0.28,
+      width: w * 0.76,
+      height: h * 0.44,
+      fill: '#7B2840',
+      text: '라벨업',
+      bold: true,
+      fontSize: Math.min(9, Math.max(3.5, h * 0.28)),
+      zIndex: 1,
+      visible: true
+    };
+    for (var i = 0; i < per; i++)
+      cells.push({ index: i, objects: i === 0 ? [sample] : [] });
+    var shape = String(product.shape || '').toLowerCase();
+    var kind = /circle|원형|ellipse/.test(shape) ? 'ellipse' : (/heart|하트/.test(shape) ? 'svg' : 'roundrect');
+    var paperNo = product.sku || product.paperNo || 'CUSTOM';
+    var paperName = product.name || (w + '×' + h + ' mm');
+    return {
+      version: 2,
+      format: 'labelup',
+      name: paperName,
+      widthMm: w,
+      heightMm: h,
+      width: w,
+      height: h,
+      width_mm: w,
+      height_mm: h,
+      paper: {
+        version: 1,
+        paperNo: paperNo,
+        PaperNo: paperNo,
+        name: paperName,
+        category: product.category || 'A4',
+        brand: 'LabelUp',
+        paperWidthMm: pageW,
+        paperHeightMm: pageH,
+        labelWidthMm: w,
+        labelHeightMm: h,
+        LabelWidthMm: w,
+        LabelHeightMm: h,
+        columns: cols,
+        rows: rows,
+        Columns: cols,
+        Rows: rows,
+        leftMarginMm: margin,
+        topMarginMm: margin,
+        rightMarginMm: margin,
+        bottomMarginMm: margin,
+        hGapMm: gap,
+        vGapMm: gap,
+        labelColor: '#FFFFFF',
+        shape: { kind: kind, Kind: kind, cornerRadiusMm: 1.2, CornerRadiusMm: 1.2 }
+      },
+      background: '#FFFFFF',
+      pages: [{ index: 0, cells: cells }]
+    };
+  },
+  applyLabiPaperViaPicker: function (product) {
+    var sku = String(product.sku || '').trim().toUpperCase();
+    var w = parseFloat(product.width_mm || product.widthMm || 0);
+    var h = parseFloat(product.height_mm || product.heightMm || 0);
+    var open = document.querySelector('[data-tut="presets"]');
+    if (!open || document.querySelector('[data-tut="paper-picker-head"]')) return;
+    open.click();
+    var tries = 0;
+    var timer = setInterval(function () {
+      tries++;
+      var cards = document.querySelectorAll('.ed-paper-card');
+      var hit = null;
+      for (var i = 0; i < cards.length; i++) {
+        var t = (cards[i].innerText || '').replace(/\s+/g, ' ');
+        if (sku && t.toUpperCase().indexOf(sku) >= 0) { hit = cards[i]; break; }
+        if (!hit && w > 0 && h > 0 && t.indexOf(String(w)) >= 0 && t.indexOf(String(h)) >= 0)
+          hit = cards[i];
+      }
+      if (hit) {
+        hit.click();
+        clearInterval(timer);
+      } else if (tries > 20) {
+        clearInterval(timer);
+        var closer = document.querySelector('.ed-modal__card--papers .ed-modal__close');
+        if (closer) closer.click();
+      }
+    }, 120);
+  },
+  applyLabiProduct: async function (product) {
+    var self = this;
+    var p = await self.enrichLabiProduct(product || {});
+    var info = {
+      sku: p.sku || p.paperNo || '',
+      w: parseFloat(p.width_mm || p.widthMm || 0) || 0,
+      h: parseFloat(p.height_mm || p.heightMm || 0) || 0,
+      n: parseInt(p.labels_per_sheet || p.labelsPerSheet || 0, 10) || 0
+    };
+    if (typeof self.applySuggestedPaper === 'function') self.applySuggestedPaper(info);
+    var applied = false;
+    if (self._labiDotNet) {
+      var doc = self.buildLabiPaperDocument(p);
+      if (doc) {
+        try {
+          await self._labiDotNet.invokeMethodAsync('ApplyLabiDocument', JSON.stringify(doc));
+          applied = true;
+        } catch (e) { applied = false; }
+      }
+      if (!applied) {
+        try {
+          await self._labiDotNet.invokeMethodAsync('ApplyLabiProduct', JSON.stringify(p));
+          applied = true;
+        } catch (e2) { applied = false; }
+      }
+    }
+    if (typeof self.applySuggestedPaper === 'function') self.applySuggestedPaper(info);
+    var canvasOk = self.labiCanvasMatches(info.w, info.h);
+    if (!applied || !canvasOk) self.applyLabiPaperViaPicker(p);
+    setTimeout(function () {
+      if (typeof self.applySuggestedPaper === 'function') self.applySuggestedPaper(info);
+      if (!self.labiCanvasMatches(info.w, info.h)) self.applyLabiPaperViaPicker(p);
+    }, 480);
+  },
+  labiCanvasMatches: function (w, h) {
+    var skia = document.querySelector('.canvas-stage__skia');
+    if (!skia || !(w > 0 && h > 0)) return true;
+    var r = skia.getBoundingClientRect();
+    if (!(r.height > 20 && r.width > 20)) return true;
+    var ratio = r.width / r.height;
+    var want = w / h;
+    return Math.abs(ratio - want) / want < 0.08;
   },
 
   apiGetJson: async function (path) {
@@ -599,8 +975,16 @@ window.labelUpEditor = {
     return json.data || null;
   },
 
+  isMobileEditor: function () {
+    try {
+      return window.matchMedia('(max-width: 900px), ((pointer: coarse) and (max-width: 1180px))').matches;
+    } catch (e) {
+      return Math.min(window.innerWidth || 0, window.innerHeight || 0) <= 900;
+    }
+  },
   getTopBarPinned: function () {
     try {
+      if (window.labelUpEditor.isMobileEditor()) return true;
       var v = localStorage.getItem('labelup.topbar.pinned');
       if (v === null) return true;
       return v === '1';
@@ -616,6 +1000,1777 @@ window.labelUpEditor = {
   },
   setAutoSave: function (on) {
     try { localStorage.setItem('labelup.autosave', on ? '1' : '0'); } catch (e) { /* ignore */ }
+  },
+  bindZoomSlider: function () {
+    if (this._zoomSliderBound) return;
+    this._zoomSliderBound = true;
+    var MIN = 25;
+    var MAX = 800;
+    var dragging = false;
+
+    function readPct(box) {
+      var span = box.querySelector('.ed-zoom__pct') || box.querySelector('span');
+      var n = parseFloat(((span && span.textContent) || '').replace(/[^\d.]/g, ''));
+      return isFinite(n) ? n : 100;
+    }
+
+    function applyZoom(percent, end) {
+      var host = window.labelUpEditor._canvasHost;
+      var zoom = Math.max(0.25, Math.min(8, percent / 100));
+      if (!host) return;
+      Promise.resolve(host.invokeMethodAsync('GetViewState')).then(function (st) {
+        var panX = st && st.length > 1 ? Number(st[1]) || 0 : 0;
+        var panY = st && st.length > 2 ? Number(st[2]) || 0 : 0;
+        return host.invokeMethodAsync('OnGestureZoomPan', zoom, panX, panY).then(function () {
+          if (end) return host.invokeMethodAsync('OnGestureEnd');
+        });
+      }).catch(function () { /* ignore */ });
+    }
+
+    function enhance(box) {
+      if (!box || box.querySelector('.ed-zoom__slider')) return;
+      var span = box.querySelector('span');
+      if (span) span.classList.add('ed-zoom__pct');
+      var wrap = document.createElement('div');
+      wrap.className = 'ed-zoom__slider-wrap';
+      var input = document.createElement('input');
+      input.type = 'range';
+      input.className = 'ed-zoom__slider';
+      input.min = String(MIN);
+      input.max = String(MAX);
+      input.step = '1';
+      input.setAttribute('aria-label', '확대/축소');
+      input.value = String(Math.round(Math.max(MIN, Math.min(MAX, readPct(box)))));
+      wrap.appendChild(input);
+      box.insertBefore(wrap, span || null);
+
+      input.addEventListener('pointerdown', function () { dragging = true; });
+      input.addEventListener('input', function () {
+        dragging = true;
+        var pct = Number(input.value);
+        if (span) span.textContent = Math.round(pct) + '%';
+        applyZoom(pct, false);
+      });
+      function finish() {
+        var pct = Number(input.value);
+        if (span) span.textContent = Math.round(pct) + '%';
+        applyZoom(pct, true);
+        dragging = false;
+      }
+      input.addEventListener('change', finish);
+      input.addEventListener('pointerup', finish);
+      input.addEventListener('pointercancel', finish);
+    }
+
+    function sync() {
+      var box = document.querySelector('.ed-zoom');
+      if (!box) return;
+      enhance(box);
+      if (dragging) return;
+      var input = box.querySelector('.ed-zoom__slider');
+      if (!input || document.activeElement === input) return;
+      input.value = String(Math.round(Math.max(MIN, Math.min(MAX, readPct(box)))));
+    }
+
+    var mo = new MutationObserver(sync);
+    var start = function () {
+      sync();
+      var root = document.querySelector('.ed-topbar') || document.body;
+      mo.observe(root, { subtree: true, childList: true, characterData: true });
+    };
+    if (document.querySelector('.ed-zoom')) start();
+    else {
+      var wait = new MutationObserver(function () {
+        if (document.querySelector('.ed-zoom')) {
+          wait.disconnect();
+          start();
+        }
+      });
+      wait.observe(document.documentElement, { childList: true, subtree: true });
+    }
+  },
+  bindTutorialDock: function () {
+    if (this._tutorialDockBound) return;
+    this._tutorialDockBound = true;
+    var pickLast = function (sel) {
+      var all = document.querySelectorAll(sel);
+      if (!all.length) return null;
+      var keep = all[all.length - 1];
+      all.forEach(function (b) { if (b !== keep) b.remove(); });
+      return keep;
+    };
+    var parkLabi = function (labi) {
+      var row = document.querySelector('.ed-topbar__title-row');
+      var cloud = row && row.querySelector('.ed-autosave');
+      if (!row || !cloud) return;
+      var natives = row.querySelectorAll('.ed-topbar__labi:not([data-ed-labi-proxy])');
+      var proxies = row.querySelectorAll('.ed-topbar__labi[data-ed-labi-proxy]');
+      var header = natives[0] || proxies[0] || null;
+      if (natives.length) {
+        proxies.forEach(function (p) { p.remove(); });
+        header = natives[0];
+      } else if (proxies.length > 1) {
+        for (var i = 1; i < proxies.length; i++) proxies[i].remove();
+      }
+      if (!header) {
+        header = document.createElement('button');
+        header.type = 'button';
+        header.className = 'ed-topbar__labi';
+        header.setAttribute('data-ed-labi-proxy', '1');
+        header.setAttribute('data-tut', 'labi-fab');
+        header.title = '라비와 라벨 만들기';
+        header.setAttribute('aria-label', '라비AI');
+        header.innerHTML = '<img src="/assets/labi-icon.png" alt="" width="18" height="18"><span>라비AI</span>';
+        header.addEventListener('click', function (e) {
+          e.preventDefault();
+          var src = document.querySelector('.ed-corner-fab--labi');
+          if (src) src.click();
+        });
+      }
+      if (cloud.nextElementSibling !== header) cloud.after(header);
+      if (labi && labi !== header) {
+        labi.classList.add('is-parked');
+        labi.removeAttribute('data-tut');
+        labi.setAttribute('aria-hidden', 'true');
+      }
+    };
+    var parkVendor = function (vendor) {
+      var row = document.querySelector('.ed-topbar__title-row');
+      var labi = row && (row.querySelector('.ed-topbar__labi:not([data-ed-labi-proxy])') || row.querySelector('.ed-topbar__labi'));
+      if (!row || !labi) return;
+      var natives = row.querySelectorAll('.ed-topbar__vendor:not([data-ed-vendor-proxy])');
+      var proxies = row.querySelectorAll('.ed-topbar__vendor[data-ed-vendor-proxy]');
+      var header = natives[0] || proxies[0] || null;
+      if (natives.length) {
+        proxies.forEach(function (p) { p.remove(); });
+        header = natives[0];
+      } else if (proxies.length > 1) {
+        for (var i = 1; i < proxies.length; i++) proxies[i].remove();
+      }
+      if (!header) {
+        header = document.createElement('button');
+        header.type = 'button';
+        header.className = 'ed-topbar__vendor';
+        header.setAttribute('data-ed-vendor-proxy', '1');
+        header.setAttribute('data-tut', 'import-fab');
+        header.title = '애니라벨·아이라벨·폼텍 파일 가져오기';
+        header.setAttribute('aria-label', '타사포맷');
+        header.innerHTML = '<svg class="ed-topbar__vendor-ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3.3 1.8h5.6c.3 0 .6.1.8.4l2.6 2.7c.2.2.3.5.3.8v7.5c0 .7-.6 1.2-1.3 1.2H3.3c-.7 0-1.2-.5-1.2-1.2V3c0-.7.5-1.2 1.2-1.2Zm.5 1.4v9.6h7.9V6.1H9.2c-.4 0-.7-.3-.7-.7V3.2H3.8Zm5.6.5v1.7h1.7L9.4 3.7ZM4.8 9.4h2.1V8.1c0-.4.5-.6.8-.3l2.3 2c.2.2.2.6 0 .8l-2.3 2c-.3.3-.8 0-.8-.3v-1.3H4.8a.7.7 0 0 1 0-1.4Z"/></svg><span>타사포맷</span>';
+        header.addEventListener('click', function (e) {
+          e.preventDefault();
+          var src = document.querySelector('.ed-corner-fab--vendor');
+          if (src) src.click();
+        });
+      }
+      if (labi.nextElementSibling !== header) labi.after(header);
+      if (vendor && vendor !== header) {
+        vendor.classList.add('is-parked');
+        vendor.removeAttribute('data-tut');
+        vendor.setAttribute('aria-hidden', 'true');
+      }
+    };
+    var asItem = function (btn) {
+      if (!btn) return;
+      btn.classList.add('ed-float-tools__item');
+      var span = btn.querySelector('span:not(.ed-float-tools__ico)');
+      if (span) span.classList.add('ed-float-tools__label');
+      var img = btn.querySelector('img');
+      if (img && !img.closest('.ed-float-tools__ico')) {
+        var wrap = document.createElement('span');
+        wrap.className = 'ed-float-tools__ico';
+        wrap.setAttribute('aria-hidden', 'true');
+        img.parentNode.insertBefore(wrap, img);
+        wrap.appendChild(img);
+      }
+      var svg = btn.querySelector('svg.ed-corner-fab__ico');
+      if (svg) svg.classList.add('ed-float-tools__ico');
+    };
+    var parkFileActions = function () {
+      var bar = document.querySelector('.ed-float-tools__bar');
+      var paper = document.querySelector('[data-tut="presets"]');
+      var paperGroup = paper && paper.closest('.ed-float-tools__group');
+      if (!bar || !paperGroup) return;
+      var isMobile = !!(document.querySelector('.ed.is-mobile') || document.documentElement.classList.contains('lu-mobile'));
+      var existing = bar.querySelector('.ed-float-tools__group--files');
+      var existingDiv = bar.querySelector('.ed-float-tools__divider--files');
+      if (isMobile) {
+        if (existing) existing.remove();
+        if (existingDiv) existingDiv.remove();
+        return;
+      }
+      var srcDesign = document.querySelector('.ed-topbar__actions [data-tut="mydesign"], .ed-topbar__actions [data-ed-file-src="mydesign"]');
+      var srcData = document.querySelector('.ed-topbar__actions [data-tut="data-import"], .ed-topbar__actions [data-ed-file-src="data-import"]');
+      var retarget = function (el, name) {
+        if (!el) return;
+        if (el.getAttribute('data-tut') === name) {
+          el.setAttribute('data-ed-file-src', name);
+          el.removeAttribute('data-tut');
+        }
+      };
+      if (!srcDesign || !srcData) return;
+      retarget(srcDesign, 'mydesign');
+      retarget(srcData, 'data-import');
+      var group = existing;
+      if (!group) {
+        group = document.createElement('div');
+        group.className = 'ed-float-tools__group ed-float-tools__group--files';
+        group.setAttribute('role', 'group');
+        var mk = function (label, tut, src) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'ed-float-tools__file';
+          btn.setAttribute('data-tut', tut);
+          btn.setAttribute('title', label);
+          var svg = src && src.querySelector ? src.querySelector('svg') : null;
+          btn.innerHTML = (svg ? svg.outerHTML : '') + '<span>' + label + '</span>';
+          btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            var live = document.querySelector('.ed-topbar__actions [data-ed-file-src="' + tut + '"]');
+            if (live) live.click();
+          });
+          return btn;
+        };
+        group.appendChild(mk('내 디자인', 'mydesign', srcDesign));
+        group.appendChild(mk('데이터 가져오기', 'data-import', srcData));
+      }
+      var divider = existingDiv;
+      if (!divider) {
+        divider = document.createElement('span');
+        divider.className = 'ed-float-tools__divider ed-float-tools__divider--files';
+        divider.setAttribute('aria-hidden', 'true');
+      }
+      if (group.nextElementSibling !== divider || divider.nextElementSibling !== paperGroup) {
+        paperGroup.parentNode.insertBefore(group, paperGroup);
+        paperGroup.parentNode.insertBefore(divider, paperGroup);
+      }
+    };
+    var relabelExport = function () {
+      var btn = document.querySelector('[data-tut="export"]');
+      if (!btn) return;
+      var label = '미리보기/프린트';
+      var current = (btn.textContent || '').replace(/\s+/g, ' ').trim();
+      if (current === label) return;
+      var svg = btn.querySelector('svg');
+      btn.textContent = '';
+      if (svg) btn.appendChild(svg);
+      btn.appendChild(document.createTextNode(label));
+      btn.setAttribute('title', label);
+    };
+    var formatTut = function (btn) {
+      if (!btn) return;
+      btn.classList.add('ed-float-tools__item');
+      if (btn.querySelector('.ed-float-tools__label')) return;
+      btn.textContent = '';
+      var ico = document.createElement('span');
+      ico.className = 'ed-float-tools__ico';
+      ico.setAttribute('aria-hidden', 'true');
+      ico.textContent = '✦';
+      var lab = document.createElement('span');
+      lab.className = 'ed-float-tools__label';
+      lab.textContent = '튜토리얼';
+      btn.appendChild(ico);
+      btn.appendChild(lab);
+      btn.setAttribute('title', '튜토리얼 다시 보기');
+    };
+    var dock = function () {
+      var bar = document.querySelector('.ed-float-tools__bar');
+      if (!bar) return;
+      var labi = pickLast('.ed-corner-fab--labi');
+      var vendor = pickLast('.ed-corner-fab--vendor');
+      var tut = pickLast('.ed-tut-reopen');
+      parkLabi(labi);
+      parkVendor(vendor);
+      formatTut(tut);
+      parkFileActions();
+      relabelExport();
+      var desired = [tut].filter(Boolean);
+      if (!desired.length) return;
+      var ok = desired.every(function (el, i) {
+        return el.parentElement === bar &&
+          (i === 0 || desired[i - 1].nextElementSibling === el) &&
+          bar.lastElementChild === desired[desired.length - 1];
+      });
+      if (!ok) desired.forEach(function (el) { bar.appendChild(el); });
+    };
+    var mo = new MutationObserver(dock);
+    var start = function () {
+      dock();
+      mo.observe(document.body, { childList: true, subtree: true });
+    };
+    if (document.querySelector('.ed-float-tools__bar')) start();
+    else {
+      var wait = new MutationObserver(function () {
+        if (document.querySelector('.ed-float-tools__bar')) {
+          wait.disconnect();
+          start();
+        }
+      });
+      wait.observe(document.documentElement, { childList: true, subtree: true });
+    }
+  },
+  ensureLayerOps: function () {
+    if (this._layerOps) return this._layerOps;
+    var wait = function (ms) {
+      return new Promise(function (resolve) { setTimeout(resolve, ms); });
+    };
+    var tabByName = function (name) {
+      var tabs = document.querySelectorAll('.ed-props__tab');
+      for (var i = 0; i < tabs.length; i++) {
+        if ((tabs[i].textContent || '').replace(/\s+/g, '') === name) return tabs[i];
+      }
+      return null;
+    };
+    var showTab = async function (name) {
+      var tab = tabByName(name);
+      if (tab && !tab.classList.contains('is-active')) {
+        tab.click();
+        await wait(80);
+      }
+      return tab;
+    };
+    var expandProps = async function () {
+      var panel = document.querySelector('[data-ed-props-panel]');
+      if (panel && panel.classList.contains('is-minimized')) {
+        var min = panel.querySelector('.ed-props__min');
+        if (min) min.click();
+        await wait(60);
+      }
+    };
+    var readZ = function (el) {
+      var em = el && el.querySelector ? el.querySelector('em') : null;
+      var m = ((em && em.textContent) || '').match(/-?\d+/);
+      return m ? parseInt(m[0], 10) : 0;
+    };
+    var layerRows = function () {
+      return Array.prototype.slice.call(document.querySelectorAll('[data-ed-props-panel] .ed-layer-item')).map(function (el) {
+        var nameEl = el.querySelector('span:nth-child(2)');
+        return {
+          el: el,
+          z: readZ(el),
+          active: el.classList.contains('is-active'),
+          name: ((nameEl && nameEl.textContent) || '').trim(),
+          key: (el.textContent || '').replace(/\s+/g, ' ').trim()
+        };
+      });
+    };
+    var freezeEl = null;
+    var freezePanel = null;
+    var startFreeze = function (order) {
+      stopFreeze();
+      var panel = document.querySelector('[data-ed-props-panel]');
+      var inner = panel && panel.querySelector('.ed-props__inner');
+      var list = panel && panel.querySelector('.ed-props__layers');
+      var src = inner || panel;
+      if (!src) return;
+      freezePanel = panel;
+      var box = src.getBoundingClientRect();
+      if (panel) {
+        var pb = panel.getBoundingClientRect();
+        panel.style.width = pb.width + 'px';
+        panel.style.height = pb.height + 'px';
+        panel.style.maxHeight = pb.height + 'px';
+        panel.style.overflow = 'hidden';
+      }
+      document.documentElement.classList.add('lu-layer-applying');
+      freezeEl = document.createElement('div');
+      freezeEl.id = 'lu-layer-freeze';
+      freezeEl.className = 'ed-layer-freeze';
+      freezeEl.setAttribute('aria-hidden', 'true');
+      freezeEl.style.top = box.top + 'px';
+      freezeEl.style.left = box.left + 'px';
+      freezeEl.style.width = box.width + 'px';
+      freezeEl.style.height = box.height + 'px';
+      var tabs = panel && panel.querySelector('.ed-props__tabs');
+      if (tabs) {
+        var t = tabs.cloneNode(true);
+        Array.prototype.forEach.call(t.querySelectorAll('.ed-props__tab'), function (b) {
+          b.classList.toggle('is-active', (b.textContent || '').replace(/\s+/g, '') === '레이어');
+        });
+        freezeEl.appendChild(t);
+      }
+      var body = document.createElement('div');
+      body.className = 'ed-layer-freeze__list';
+      var items = list ? Array.prototype.slice.call(list.querySelectorAll('.ed-layer-item')) : [];
+      var pick = function (name) {
+        for (var i = 0; i < items.length; i++) {
+          var n = ((items[i].querySelector('span:nth-child(2)') || {}).textContent || '').trim();
+          if (n === name) return items[i];
+        }
+        return null;
+      };
+      if (order && order.length) {
+        order.forEach(function (info) {
+          var match = pick(info.name);
+          if (match) body.appendChild(match.cloneNode(true));
+        });
+      } else {
+        items.forEach(function (el) { body.appendChild(el.cloneNode(true)); });
+      }
+      freezeEl.appendChild(body);
+      document.body.appendChild(freezeEl);
+    };
+    var stopFreeze = function () {
+      document.documentElement.classList.remove('lu-layer-applying');
+      if (freezeEl) {
+        freezeEl.remove();
+        freezeEl = null;
+      }
+      if (freezePanel) {
+        freezePanel.style.width = '';
+        freezePanel.style.height = '';
+        freezePanel.style.maxHeight = '';
+        freezePanel.style.overflow = '';
+        freezePanel = null;
+      }
+    };
+    var findZInput = function () {
+      var labels = document.querySelectorAll('[data-ed-props-panel] .ed-field');
+      for (var i = 0; i < labels.length; i++) {
+        if (((labels[i].textContent || '').indexOf('Z-Index') === -1)) continue;
+        var input = labels[i].querySelector('input[type="number"]');
+        if (input) return input;
+      }
+      return null;
+    };
+    var setSelectedZ = async function (z) {
+      await showTab('속성');
+      var input = findZInput();
+      if (!input) return false;
+      var desc = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
+      if (desc && desc.set) desc.set.call(input, String(z));
+      else input.value = String(z);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      await wait(90);
+      return true;
+    };
+    var findRow = function (pred) {
+      var rows = layerRows();
+      for (var i = 0; i < rows.length; i++) if (pred(rows[i], i)) return rows[i];
+      return null;
+    };
+    var selectRow = async function (pred) {
+      await showTab('레이어');
+      var hit = findRow(pred);
+      if (!hit) return null;
+      hit.el.click();
+      await wait(430);
+      return hit;
+    };
+    this._layerOps = {
+      wait: wait,
+      showTab: showTab,
+      expandProps: expandProps,
+      readZ: readZ,
+      layerRows: layerRows,
+      setSelectedZ: setSelectedZ,
+      findRow: findRow,
+      selectRow: selectRow,
+      startFreeze: startFreeze,
+      stopFreeze: stopFreeze
+    };
+    return this._layerOps;
+  },
+  bindLayerNudge: function () {
+    if (this._layerNudgeBound) return;
+    this._layerNudgeBound = true;
+    var self = this;
+    var ops = this.ensureLayerOps();
+    var clickLayerByZ = async function (z, preferInactive) {
+      var hit = await ops.selectRow(function (row) {
+        if (row.z !== z) return false;
+        if (preferInactive && row.active) return false;
+        return true;
+      });
+      if (hit) return true;
+      hit = await ops.selectRow(function (row) { return row.z === z; });
+      return !!hit;
+    };
+    var nudge = async function (forward) {
+      if (self._layerBusy) return;
+      var bar = document.querySelector('.ed-float-bar');
+      if (bar && bar.querySelector('button[disabled][title="' + (forward ? '앞으로' : '뒤로') + '"]')) return;
+      self._layerBusy = true;
+      try {
+        await ops.expandProps();
+        var prevTab = document.querySelector('.ed-props__tab.is-active');
+        var prevName = prevTab ? (prevTab.textContent || '').replace(/\s+/g, '') : '속성';
+        await ops.showTab('레이어');
+        var rows = ops.layerRows();
+        if (rows.length < 2) return;
+        var actives = [];
+        for (var i = 0; i < rows.length; i++) if (rows[i].active) actives.push(i);
+        if (!actives.length) return;
+        var edge = forward ? actives[0] : actives[actives.length - 1];
+        var neighbor = forward ? edge - 1 : edge + 1;
+        if (neighbor < 0 || neighbor >= rows.length) return;
+        var selZ = rows[edge].z;
+        var neiZ = rows[neighbor].z;
+        var preview = rows.map(function (r) { return { name: r.name, z: r.z }; });
+        var tmp = preview[edge];
+        preview[edge] = preview[neighbor];
+        preview[neighbor] = tmp;
+        ops.startFreeze(preview);
+        rows[edge].el.click();
+        await ops.wait(430);
+        var temp = 100000 + Math.abs(selZ) + Math.abs(neiZ);
+        if (!await ops.setSelectedZ(temp)) return;
+        if (!await clickLayerByZ(neiZ, true)) return;
+        if (!await ops.setSelectedZ(selZ)) return;
+        if (!await clickLayerByZ(temp, false)) return;
+        if (!await ops.setSelectedZ(neiZ === selZ ? (selZ + (forward ? 1 : -1)) : neiZ)) return;
+        await ops.showTab(prevName === '레이어' ? '레이어' : '속성');
+      } finally {
+        ops.stopFreeze();
+        self._layerBusy = false;
+      }
+    };
+    document.addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest && e.target.closest('.ed-float-bar button');
+      if (!btn) return;
+      var title = btn.getAttribute('title') || '';
+      if (title !== '앞으로' && title !== '뒤로') return;
+      if (btn.disabled) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      nudge(title === '앞으로');
+    }, true);
+  },
+  bindLayerDrag: function () {
+    if (this._layerDragBound) return;
+    this._layerDragBound = true;
+    var self = this;
+    var ops = this.ensureLayerOps();
+    var drag = null;
+    var line = null;
+    var ghost = null;
+    var THRESH = 6;
+
+    var ensureLine = function () {
+      if (line && line.isConnected) return line;
+      line = document.createElement('div');
+      line.className = 'ed-layer-drop';
+      line.hidden = true;
+      document.body.appendChild(line);
+      return line;
+    };
+    var listEl = function () {
+      return document.querySelector('.ed-props__layers');
+    };
+    var decorate = function () {
+      var list = listEl();
+      if (!list) return;
+      list.setAttribute('data-lu-layer-sort', '1');
+      if (!list.getAttribute('title'))
+        list.setAttribute('title', '드래그해서 레이어 순서를 바꿀 수 있습니다');
+    };
+    var dropIndexAt = function (clientY, from) {
+      var items = Array.prototype.slice.call(document.querySelectorAll('.ed-props__layers > .ed-layer-item'));
+      if (!items.length) return from;
+      var others = items.filter(function (_, i) { return i !== from; });
+      var to = others.length;
+      for (var i = 0; i < others.length; i++) {
+        var r = others[i].getBoundingClientRect();
+        if (clientY < r.top + r.height / 2) { to = i; break; }
+      }
+      return to;
+    };
+    var startGhost = function (item, e) {
+      killGhost();
+      var r = item.getBoundingClientRect();
+      ghost = item.cloneNode(true);
+      ghost.classList.add('ed-layer-ghost');
+      ghost.classList.remove('is-dragging', 'is-active');
+      ghost.setAttribute('aria-hidden', 'true');
+      ghost.style.width = r.width + 'px';
+      ghost.style.height = r.height + 'px';
+      ghost.style.left = r.left + 'px';
+      ghost.style.top = r.top + 'px';
+      document.body.appendChild(ghost);
+      drag.offX = e.clientX - r.left;
+      drag.offY = e.clientY - r.top;
+    };
+    var moveGhost = function (e) {
+      if (!ghost) return;
+      ghost.style.left = (e.clientX - (drag.offX || 0)) + 'px';
+      ghost.style.top = (e.clientY - (drag.offY || 0)) + 'px';
+    };
+    var killGhost = function () {
+      if (ghost && ghost.parentNode) ghost.parentNode.removeChild(ghost);
+      ghost = null;
+    };
+    var placeLine = function (to, from) {
+      var list = listEl();
+      var items = Array.prototype.slice.call(document.querySelectorAll('.ed-props__layers > .ed-layer-item'));
+      if (!list || !items.length) return;
+      var others = items.filter(function (_, i) { return i !== from; });
+      var marker = ensureLine();
+      var box = list.getBoundingClientRect();
+      var y;
+      if (!others.length) y = box.top + 8;
+      else if (to <= 0) y = others[0].getBoundingClientRect().top;
+      else if (to >= others.length) y = others[others.length - 1].getBoundingClientRect().bottom;
+      else y = others[to].getBoundingClientRect().top;
+      marker.style.top = (y - 1) + 'px';
+      marker.style.left = (box.left + 10) + 'px';
+      marker.style.width = Math.max(40, box.width - 20) + 'px';
+      marker.hidden = false;
+    };
+    var applyMove = async function (from, to, snapshot) {
+      if (from === to) return;
+      var order = snapshot.slice();
+      var moved = order.splice(from, 1)[0];
+      order.splice(to, 0, moved);
+      var above = to > 0 ? order[to - 1] : null;
+      var below = to < order.length - 1 ? order[to + 1] : null;
+      var others = order.filter(function (r) { return r !== moved; });
+      var target = null;
+      var useShift = false;
+      if (!above) target = Math.max.apply(null, others.map(function (r) { return r.z; })) + 1;
+      else if (!below) target = Math.min.apply(null, others.map(function (r) { return r.z; })) - 1;
+      else if (above.z - below.z >= 2) target = below.z + 1;
+      else useShift = true;
+      ops.startFreeze(order);
+      try {
+        if (useShift) {
+          var oldAbove = above.z;
+          var prefix = order.slice(0, to);
+          if (!await ops.selectRow(function (row) { return row.name === moved.name && row.z === moved.z; })) return;
+          if (!await ops.setSelectedZ(100000)) return;
+          for (var i = 0; i < prefix.length; i++) {
+            var p = prefix[i];
+            if (!await ops.selectRow(function (row) { return row.name === p.name && row.z === p.z; })) return;
+            if (!await ops.setSelectedZ(p.z + 1)) return;
+            p.z += 1;
+          }
+          if (!await ops.selectRow(function (row) { return row.z === 100000; })) return;
+          await ops.setSelectedZ(oldAbove);
+        } else if (target !== moved.z) {
+          if (!await ops.selectRow(function (row) { return row.name === moved.name && row.z === moved.z; })) {
+            if (!await ops.selectRow(function (row) { return row.active; })) return;
+          }
+          await ops.setSelectedZ(target);
+        }
+        await ops.showTab('레이어');
+      } finally {
+        ops.stopFreeze();
+      }
+    };
+
+    document.addEventListener('pointerdown', function (e) {
+      if (e.button !== 0 || self._layerBusy) return;
+      var item = e.target && e.target.closest && e.target.closest('.ed-props__layers > .ed-layer-item');
+      if (!item) return;
+      var items = Array.prototype.slice.call(document.querySelectorAll('.ed-props__layers > .ed-layer-item'));
+      if (items.length < 2) return;
+      var from = items.indexOf(item);
+      if (from < 0) return;
+      drag = {
+        item: item,
+        from: from,
+        to: from,
+        startX: e.clientX,
+        startY: e.clientY,
+        dragging: false,
+        snapshot: ops.layerRows().map(function (r) { return { name: r.name, z: r.z }; })
+      };
+    }, true);
+
+    document.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      var dx = e.clientX - drag.startX;
+      var dy = e.clientY - drag.startY;
+      if (!drag.dragging) {
+        if (Math.abs(dx) < THRESH && Math.abs(dy) < THRESH) return;
+        drag.dragging = true;
+        drag.item.classList.add('is-dragging');
+        startGhost(drag.item, e);
+        var list = listEl();
+        if (list) list.classList.add('is-reordering');
+        try { drag.item.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      }
+      e.preventDefault();
+      moveGhost(e);
+      drag.to = dropIndexAt(e.clientY, drag.from);
+      placeLine(drag.to, drag.from);
+    }, true);
+
+    document.addEventListener('pointerup', function (e) {
+      if (!drag) return;
+      var s = drag;
+      drag = null;
+      s.item.classList.remove('is-dragging');
+      killGhost();
+      var list = listEl();
+      if (list) list.classList.remove('is-reordering');
+      if (line) line.hidden = true;
+      if (!s.dragging) return;
+      e.preventDefault();
+      s.item.setAttribute('data-lu-dragged', '1');
+      if (s.to === s.from || self._layerBusy) return;
+      self._layerBusy = true;
+      applyMove(s.from, s.to, s.snapshot).finally(function () {
+        self._layerBusy = false;
+      });
+    }, true);
+
+    document.addEventListener('click', function (e) {
+      var item = e.target && e.target.closest && e.target.closest('.ed-layer-item');
+      if (!item || item.getAttribute('data-lu-dragged') !== '1') return;
+      item.removeAttribute('data-lu-dragged');
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }, true);
+
+    var mo = new MutationObserver(decorate);
+    var start = function () {
+      decorate();
+      var root = document.querySelector('[data-ed-props-panel]') || document.body;
+      mo.observe(root, { childList: true, subtree: true });
+    };
+    if (document.querySelector('[data-ed-props-panel]')) start();
+    else {
+      var waitMo = new MutationObserver(function () {
+        if (document.querySelector('[data-ed-props-panel]')) {
+          waitMo.disconnect();
+          start();
+        }
+      });
+      waitMo.observe(document.documentElement, { childList: true, subtree: true });
+    }
+  },
+  bindPaperPreviewLayout: function () {
+    if (this._paperPreviewBound) return;
+    this._paperPreviewBound = true;
+    var applying = false;
+    var picked = null;
+    var shopBySku = null;
+    var parseSize = function (text) {
+      var t = String(text || '').replace(/\s+/g, ' ');
+      var size = t.match(/([\d.]+)\s*[×x]\s*([\d.]+)\s*mm/i);
+      var labels = t.match(/시트당\s*(\d+)\s*칸/) || t.match(/(\d+)\s*칸/);
+      var sku = '';
+      var skuHit = t.match(/\b([A-Z]{1,4}\d{2,4}[A-Z]?(?:-\d+)?)\b/);
+      if (skuHit) sku = skuHit[1];
+      return {
+        sku: sku,
+        w: size ? parseFloat(size[1]) : 0,
+        h: size ? parseFloat(size[2]) : 0,
+        n: labels ? parseInt(labels[1], 10) : 0
+      };
+    };
+    var parseCard = function (card) {
+      if (!card) return null;
+      var info = parseSize(card.innerText || '');
+      var skuEl = card.querySelector('.ed-paper-card__meta span');
+      if (skuEl) {
+        var sku = (skuEl.textContent || '').split('·')[0].trim();
+        if (sku) info.sku = sku;
+      }
+      return info.w > 0 ? info : null;
+    };
+    var loadShop = function () {
+      if (shopBySku) return Promise.resolve(shopBySku);
+      return fetch('/api/shop/editor-papers', { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          shopBySku = {};
+          var items = (j && j.data && (j.data.items || j.data.Items)) || [];
+          for (var i = 0; i < items.length; i++) {
+            var it = items[i];
+            var sku = String(it.sku || it.Sku || '').trim().toUpperCase();
+            if (!sku) continue;
+            shopBySku[sku] = {
+              sku: sku,
+              w: parseFloat(it.widthMm || it.WidthMm || 0) || 0,
+              h: parseFloat(it.heightMm || it.HeightMm || 0) || 0,
+              n: parseInt(it.labelsPerSheet || it.LabelsPerSheet || 0, 10) || 0
+            };
+          }
+          return shopBySku;
+        })
+        .catch(function () {
+          shopBySku = {};
+          return shopBySku;
+        });
+    };
+    var currentSku = function () {
+      var strong = document.querySelector('.ed-preview__spec strong');
+      if (strong && (strong.textContent || '').trim()) return (strong.textContent || '').trim();
+      var paper = document.querySelector('[data-tut="presets"] strong');
+      return paper ? (paper.textContent || '').trim() : '';
+    };
+    var resolvePaper = function (cellCount) {
+      if (picked && picked.w > 0 && picked.h > 0)
+        return picked;
+      var sku = currentSku();
+      var skuKey = sku.toUpperCase();
+      if (shopBySku && skuKey && shopBySku[skuKey] && shopBySku[skuKey].w > 0)
+        return shopBySku[skuKey];
+      var specText = ((document.querySelector('.ed-preview__spec') || {}).textContent || '');
+      var parsed = parseSize(specText);
+      if (parsed.w > 0) {
+        if (!parsed.n) parsed.n = cellCount;
+        parsed.sku = sku;
+        return parsed;
+      }
+      return null;
+    };
+    var chooseGrid = function (n, lw, lh, pageW, pageH) {
+      var gap = 3;
+      var best = null;
+      for (var cols = 1; cols <= n; cols++) {
+        var rows = Math.ceil(n / cols);
+        var unused = cols * rows - n;
+        var usedW = cols * lw + Math.max(0, cols - 1) * gap;
+        var usedH = rows * lh + Math.max(0, rows - 1) * gap;
+        var scale = Math.min(1, (pageW - 8) / usedW, (pageH - 8) / usedH);
+        if (!(scale > 0 && isFinite(scale))) continue;
+        var fill = usedW / pageW;
+        var score = unused * 12 + (1 - scale) * 8 + Math.abs(fill - 0.62) * 18;
+        if (!best || score < best.score)
+          best = { cols: cols, rows: rows, usedW: usedW, usedH: usedH, scale: scale, gap: gap, score: score };
+      }
+      if (best) return best;
+      var fallbackCols = n >= 4 ? 2 : 1;
+      return {
+        cols: fallbackCols,
+        rows: Math.ceil(n / fallbackCols),
+        usedW: fallbackCols * lw,
+        usedH: Math.ceil(n / fallbackCols) * lh,
+        scale: 1,
+        gap: gap
+      };
+    };
+    var layout = function () {
+      var spec = document.querySelector('.ed-preview__spec');
+      var page = document.querySelector('.ed-preview__page');
+      if (!spec || !page) return;
+      var cells = page.querySelectorAll('.ed-preview__cell');
+      if (!cells.length) return;
+      var raw = (spec.textContent || '').replace(/\s+/g, '');
+      if (/불규칙/.test(raw)) return;
+      var paper = resolvePaper(cells.length);
+      if (!paper || !(paper.w > 0 && paper.h > 0)) return;
+      var want = paper.n > 0 ? paper.n : cells.length;
+      var lw = paper.w;
+      var lh = paper.h;
+      var cs = getComputedStyle(page);
+      var pageW = parseFloat(cs.getPropertyValue('--page-w')) || 210;
+      var pageH = parseFloat(cs.getPropertyValue('--page-h')) || 297;
+      if (pageW < 20) pageW = 210;
+      if (pageH < 20) pageH = 297;
+      var grid = chooseGrid(want, lw, lh, pageW, pageH);
+      var scale = grid.scale;
+      var left0 = (pageW - grid.usedW * scale) / 2;
+      var top0 = (pageH - grid.usedH * scale) / 2;
+      applying = true;
+      for (var i = 0; i < cells.length; i++) {
+        var el = cells[i];
+        if (i >= want) {
+          el.style.setProperty('display', 'none', 'important');
+          continue;
+        }
+        el.style.removeProperty('display');
+        var c = i % grid.cols;
+        var r = Math.floor(i / grid.cols);
+        el.style.setProperty('left', ((left0 + c * (lw + grid.gap) * scale) / pageW * 100).toFixed(3) + '%', 'important');
+        el.style.setProperty('top', ((top0 + r * (lh + grid.gap) * scale) / pageH * 100).toFixed(3) + '%', 'important');
+        el.style.setProperty('width', (lw * scale / pageW * 100).toFixed(3) + '%', 'important');
+        el.style.setProperty('height', (lh * scale / pageH * 100).toFixed(3) + '%', 'important');
+      }
+      var shown = Math.min(cells.length, want);
+      var metaEl = document.querySelector('.ed-preview__sheet-meta');
+      if (metaEl) {
+        var nw = Math.round(lw * 10) / 10;
+        var nh = Math.round(lh * 10) / 10;
+        metaEl.textContent = grid.cols + '×' + grid.rows + ' · ' + shown + '칸 · ' + nw + '×' + nh + ' mm';
+      }
+      var kicker = document.querySelector('[data-tut="presets"] .ed-float-tools__paper-kicker');
+      var paperBtn = kicker && kicker.parentElement;
+      if (paperBtn) {
+        var em = paperBtn.querySelector('em');
+        if (em) em.textContent = (Math.round(lw * 10) / 10) + '×' + (Math.round(lh * 10) / 10) + ' mm · ' + shown + ' 칸';
+        var strong = paperBtn.querySelector('strong');
+        if (strong && paper.sku) strong.textContent = paper.sku;
+      }
+      var sizeEl = document.querySelector('.ed-guides__size');
+      if (sizeEl) sizeEl.textContent = (Math.round(lw * 10) / 10) + '×' + (Math.round(lh * 10) / 10) + ' mm';
+      applying = false;
+    };
+    this.applySuggestedPaper = function (info) {
+      if (!info || !(info.w > 0 && info.h > 0)) return;
+      picked = {
+        sku: info.sku || '',
+        w: info.w,
+        h: info.h,
+        n: info.n || 0
+      };
+      var spec = document.querySelector('.ed-preview__spec');
+      if (spec) {
+        var strong = spec.querySelector('strong');
+        if (strong && picked.sku) strong.textContent = picked.sku;
+      }
+      var kicker = document.querySelector('[data-tut="presets"] .ed-float-tools__paper-kicker');
+      var paperBtn = kicker && kicker.parentElement;
+      if (paperBtn && picked.sku) {
+        var strongBtn = paperBtn.querySelector('strong');
+        if (strongBtn) strongBtn.textContent = picked.sku;
+      }
+      loadShop().then(request);
+      request();
+      setTimeout(request, 80);
+      setTimeout(request, 360);
+      setTimeout(request, 900);
+    };
+    var queued = false;
+    var request = function () {
+      if (queued || applying) return;
+      queued = true;
+      requestAnimationFrame(function () {
+        queued = false;
+        layout();
+      });
+    };
+    document.addEventListener('click', function (e) {
+      if (!e.target || !e.target.closest) return;
+      var card = e.target.closest('.ed-paper-card');
+      if (!card || card.classList.contains('ed-theme-card') || card.classList.contains('ed-project-card')) return;
+      picked = parseCard(card);
+      var min = document.querySelector('[data-ed-preview-panel].is-minimized .ed-props__min');
+      if (min) min.click();
+      loadShop().then(request);
+      setTimeout(request, 80);
+      setTimeout(request, 360);
+      setTimeout(request, 900);
+      setTimeout(request, 1600);
+    }, true);
+    var mo = new MutationObserver(function () {
+      if (!applying) request();
+    });
+    var start = function () {
+      loadShop().then(request);
+      var root = document.querySelector('[data-ed-preview-panel]') || document.body;
+      mo.observe(root, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['style', 'class'] });
+    };
+    if (document.querySelector('[data-ed-preview-panel], [data-ed-root]')) start();
+    else {
+      var wait = new MutationObserver(function () {
+        if (document.querySelector('[data-ed-preview-panel], [data-ed-root]')) {
+          wait.disconnect();
+          start();
+        }
+      });
+      wait.observe(document.documentElement, { childList: true, subtree: true });
+    }
+  },
+  bindCanvaToolbar: function () {
+    if (this._canvaToolbarBound) return;
+    this._canvaToolbarBound = true;
+    var ops = this.ensureLayerOps();
+    var busy = false;
+    var populating = false;
+    var lastKey = '';
+
+    var hasSelection = function () {
+      var bar = document.querySelector('.ed-float-bar');
+      if (bar) {
+        var btns = bar.querySelectorAll('button');
+        for (var i = 0; i < btns.length; i++) {
+          if (!btns[i].disabled) return true;
+        }
+      }
+      return !!document.querySelector('.ed-layer-item.is-active');
+    };
+    var activeTab = function () {
+      var t = document.querySelector('[data-ed-props-panel] .ed-props__tab.is-active');
+      return t ? (t.textContent || '').replace(/\s+/g, '') : '';
+    };
+    var tabByName = function (name) {
+      var tabs = document.querySelectorAll('.ed-props__tab');
+      for (var i = 0; i < tabs.length; i++) {
+        if ((tabs[i].textContent || '').replace(/\s+/g, '') === name) return tabs[i];
+      }
+      return null;
+    };
+    var showPropsFields = async function () {
+      var panel = document.querySelector('[data-ed-props-panel]');
+      if (!panel) return false;
+      if (panel.classList.contains('is-minimized')) {
+        var min = panel.querySelector('.ed-props__min');
+        if (min) min.click();
+        await ops.wait(40);
+      }
+      var tab = tabByName('속성');
+      var tabs = document.querySelector('.ed-props__tabs');
+      if (tab) {
+        if (tabs) tabs.style.setProperty('display', 'flex', 'important');
+        tab.style.setProperty('display', 'inline-block', 'important');
+        if (!tab.classList.contains('is-active')) {
+          tab.click();
+          await ops.wait(140);
+        }
+        tab.style.removeProperty('display');
+        if (tabs) tabs.style.removeProperty('display');
+      }
+      return !!document.querySelector('[data-ed-props-panel] .ed-props__body:not(.ed-props__layers)');
+    };
+    var groupByLabel = function (re) {
+      var groups = document.querySelectorAll('[data-ed-props-panel] .ed-field-group');
+      for (var i = 0; i < groups.length; i++) {
+        var lab = groups[i].querySelector('.ed-field-label');
+        if (re.test(((lab && lab.textContent) || '').replace(/\s+/g, ''))) return groups[i];
+      }
+      return null;
+    };
+    var fieldLabel = function (el) {
+      var parts = [];
+      if (!el) return '';
+      for (var n = el.firstChild; n; n = n.nextSibling) {
+        if (n.nodeType === 3) {
+          parts.push(n.textContent);
+          continue;
+        }
+        if (n.nodeType === 1 && n.tagName === 'SPAN') {
+          parts.push(n.textContent);
+          continue;
+        }
+        break;
+      }
+      return parts.join('').replace(/\s+/g, '');
+    };
+    var fieldByText = function (re, root) {
+      var fields = root && root.querySelectorAll
+        ? root.querySelectorAll('.ed-field')
+        : document.querySelectorAll('[data-ed-props-panel] .ed-field');
+      for (var i = 0; i < fields.length; i++) {
+        var t = fieldLabel(fields[i]) || (fields[i].textContent || '').replace(/\s+/g, '');
+        if (re.test(t)) return fields[i];
+      }
+      return null;
+    };
+    var setValue = function (el, value) {
+      if (!el) return;
+      var proto = el.tagName === 'SELECT' ? window.HTMLSelectElement.prototype : window.HTMLInputElement.prototype;
+      var desc = Object.getOwnPropertyDescriptor(proto, 'value');
+      if (desc && desc.set) desc.set.call(el, String(value));
+      else el.value = String(value);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    var clickFloat = function (name) {
+      var btns = document.querySelectorAll('.ed-float-bar button');
+      for (var i = 0; i < btns.length; i++) {
+        var t = (btns[i].getAttribute('title') || '') + (btns[i].textContent || '');
+        if (t.indexOf(name) !== -1 && !btns[i].disabled) {
+          btns[i].click();
+          return;
+        }
+      }
+    };
+    var fillColor = function () {
+      var g = groupByLabel(/^채우기$/);
+      return g ? g.querySelector('input[type="color"]') : null;
+    };
+    var strokeColor = function () {
+      var g = groupByLabel(/^(선|프레임)$/);
+      return g ? g.querySelector('input[type="color"]') : null;
+    };
+    var strokeWidth = function () {
+      var f = fieldByText(/^굵기/);
+      return f ? f.querySelector('input[type="number"]') : null;
+    };
+    var fontSelect = function () {
+      var f = fieldByText(/^(폰트|글꼴)(?!크기)/);
+      if (f && f.querySelector('select')) return f.querySelector('select');
+      var g = groupByLabel(/텍스트/);
+      if (!g) return null;
+      var selects = g.querySelectorAll('select');
+      for (var i = 0; i < selects.length; i++) {
+        var host = selects[i].closest('.ed-field') || selects[i].parentElement;
+        var t = fieldLabel(host);
+        if (/표현|워드아트|종류|가로정렬|세로정렬/.test(t)) continue;
+        if (/폰트|글꼴/.test(t) || selects[i].options.length > 8) return selects[i];
+      }
+      return null;
+    };
+    var fontSize = function () {
+      var listed = document.querySelector('[data-ed-props-panel] input[list="ed-font-pt"], [data-ed-props-panel] input[list="ed-barcode-font-pt"]');
+      if (listed) return listed;
+      var g = groupByLabel(/텍스트/);
+      var f = fieldByText(/^(폰트크기|글자크기|크기\(pt\)|크기pt|크기)$/, g);
+      return f ? f.querySelector('input[type="number"]') : null;
+    };
+    var alignSelect = function () {
+      var f = fieldByText(/^가로정렬/);
+      return f ? f.querySelector('select') : null;
+    };
+    var opacityInput = function () {
+      var f = fieldByText(/^투명도/);
+      return f ? f.querySelector('input[type="number"]') : null;
+    };
+    var imageFit = function () {
+      var f = fieldByText(/^맞춤/);
+      return f ? f.querySelector('select') : null;
+    };
+    var isImageSel = function () {
+      return !!groupByLabel(/이미지/) || /이미지/.test(selectionKey());
+    };
+    var checkByText = function (re) {
+      var f = fieldByText(re);
+      return f ? f.querySelector('input[type="checkbox"]') : null;
+    };
+    var selectionKey = function () {
+      var row = document.querySelector('.ed-layer-item.is-active');
+      if (row) return (row.textContent || '').replace(/\s+/g, ' ').trim();
+      return hasSelection() ? '*' : '';
+    };
+    var withPropsFields = async function (fn) {
+      var onLayers = activeTab() !== '속성';
+      if (onLayers) ops.startFreeze();
+      try {
+        await showPropsFields();
+        await fn();
+      } finally {
+        await ops.showTab('레이어');
+        if (onLayers) ops.stopFreeze();
+      }
+    };
+
+    var opValue = 1;
+    var opOpen = false;
+    var opDragging = false;
+    var opApplyTimer = 0;
+    var ensureOpacityPop = function () {
+      var pop = document.getElementById('lu-ctx-op');
+      if (pop) return pop;
+      pop = document.createElement('div');
+      pop.id = 'lu-ctx-op';
+      pop.className = 'ed-ctx-op';
+      pop.hidden = true;
+      pop.innerHTML =
+        '<div class="ed-ctx-op__pct">100%</div>' +
+        '<div class="ed-ctx-op__track" data-op-track>' +
+          '<div class="ed-ctx-op__fill"></div>' +
+          '<div class="ed-ctx-op__thumb"></div>' +
+        '</div>';
+      document.body.appendChild(pop);
+      var onMove = function (e) {
+        if (!opDragging) return;
+        e.preventDefault();
+        setOpacityFromY(e.clientY, false);
+      };
+      var onUp = function () {
+        if (!opDragging) return;
+        opDragging = false;
+        applyOpacity(opValue, true);
+        document.removeEventListener('pointermove', onMove, true);
+        document.removeEventListener('pointerup', onUp, true);
+      };
+      pop.addEventListener('pointerdown', function (e) {
+        var track = pop.querySelector('[data-op-track]');
+        if (!track) return;
+        e.preventDefault();
+        e.stopPropagation();
+        opDragging = true;
+        setOpacityFromY(e.clientY, false);
+        document.addEventListener('pointermove', onMove, true);
+        document.addEventListener('pointerup', onUp, true);
+      });
+      return pop;
+    };
+    var paintOpacity = function (value) {
+      opValue = Math.max(0, Math.min(1, value));
+      var pct = Math.round(opValue * 100);
+      var pop = document.getElementById('lu-ctx-op');
+      if (pop) {
+        var label = pop.querySelector('.ed-ctx-op__pct');
+        var fill = pop.querySelector('.ed-ctx-op__fill');
+        var thumb = pop.querySelector('.ed-ctx-op__thumb');
+        if (label) label.textContent = pct + '%';
+        if (fill) fill.style.height = pct + '%';
+        if (thumb) thumb.style.top = (100 - pct) + '%';
+      }
+      var tint = document.querySelector('#lu-ctx-bar .ed-ctx-bar__op-tint');
+      if (tint) tint.setAttribute('opacity', String(0.18 + opValue * 0.62));
+      var btn = document.querySelector('#lu-ctx-bar [data-act="opacity-toggle"]');
+      if (btn) btn.title = '투명도 ' + pct + '%';
+    };
+    var applyOpacity = function (value, immediate) {
+      paintOpacity(value);
+      var write = function () {
+        var src = opacityInput();
+        var next = String(Math.round(opValue * 100) / 100);
+        if (src) setValue(src, next);
+        else withPropsFields(function () { setValue(opacityInput(), next); });
+      };
+      if (immediate) {
+        if (opApplyTimer) {
+          clearTimeout(opApplyTimer);
+          opApplyTimer = 0;
+        }
+        write();
+        return;
+      }
+      if (opApplyTimer) return;
+      opApplyTimer = setTimeout(function () {
+        opApplyTimer = 0;
+        write();
+      }, 80);
+    };
+    var setOpacityFromY = function (clientY, immediate) {
+      var pop = ensureOpacityPop();
+      var track = pop.querySelector('[data-op-track]');
+      if (!track) return;
+      var r = track.getBoundingClientRect();
+      var t = (clientY - r.top) / Math.max(1, r.height);
+      applyOpacity(1 - Math.max(0, Math.min(1, t)), immediate);
+    };
+    var placeOpacityPop = function (anchor) {
+      var pop = ensureOpacityPop();
+      if (!anchor) return;
+      var r = anchor.getBoundingClientRect();
+      pop.style.left = Math.round(r.left + r.width / 2 - 24) + 'px';
+      pop.style.top = Math.round(r.bottom + 8) + 'px';
+      pop.hidden = false;
+      requestAnimationFrame(function () {
+        var pr = pop.getBoundingClientRect();
+        if (pr.bottom > window.innerHeight - 10) {
+          pop.style.top = Math.round(r.top - 8 - pr.height) + 'px';
+        }
+        if (pr.left < 8) pop.style.left = '8px';
+        if (pr.right > window.innerWidth - 8)
+          pop.style.left = Math.round(window.innerWidth - 8 - pr.width) + 'px';
+      });
+    };
+    var closeOpacityPop = function () {
+      opOpen = false;
+      opDragging = false;
+      var pop = document.getElementById('lu-ctx-op');
+      if (pop) pop.hidden = true;
+      var btn = document.querySelector('#lu-ctx-bar [data-act="opacity-toggle"]');
+      if (btn) btn.classList.remove('is-on');
+    };
+    var openOpacityPop = function (anchor) {
+      ensureOpacityPop();
+      opOpen = true;
+      paintOpacity(opValue);
+      placeOpacityPop(anchor);
+      if (anchor) anchor.classList.add('is-on');
+    };
+    var mountOpacitySlot = function (bar) {
+      var slot = bar.querySelector('[data-slot="opacity"]');
+      if (!slot || slot.querySelector('[data-act="opacity-toggle"]')) return;
+      slot.innerHTML =
+        '<button type="button" class="ed-ctx-bar__op" data-act="opacity-toggle" title="투명도">' +
+          '<svg class="ed-ctx-bar__op-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+            '<defs><pattern id="lu-op-chk2" width="4" height="4" patternUnits="userSpaceOnUse">' +
+              '<rect width="4" height="4" fill="#d8cfd3"/>' +
+              '<rect width="2" height="2" fill="#fff"/>' +
+              '<rect x="2" y="2" width="2" height="2" fill="#fff"/>' +
+            '</pattern></defs>' +
+            '<rect x="3" y="3" width="18" height="18" rx="4" fill="url(#lu-op-chk2)"/>' +
+            '<rect class="ed-ctx-bar__op-tint" x="3" y="3" width="18" height="18" rx="4" fill="currentColor"/>' +
+          '</svg>' +
+        '</button>';
+    };
+
+    var ensureBar = function () {
+      var host = document.querySelector('[data-ed-workspace]') ||
+        document.querySelector('[data-ed-body]') ||
+        document.querySelector('[data-ed-root]');
+      if (!host) return null;
+      var bar = document.getElementById('lu-ctx-bar');
+      if (bar) {
+        mountOpacitySlot(bar);
+        return bar;
+      }
+      bar = document.createElement('div');
+      bar.id = 'lu-ctx-bar';
+      bar.className = 'ed-ctx-bar';
+      bar.hidden = true;
+      bar.innerHTML =
+        '<div class="ed-ctx-bar__row">' +
+          '<span class="ed-ctx-bar__slot" data-slot="fill">' +
+            '<input type="color" data-act="fill" title="채우기" />' +
+          '</span>' +
+          '<span class="ed-ctx-bar__slot" data-slot="stroke">' +
+            '<input type="color" data-act="stroke" title="테두리 색" />' +
+            '<em class="ed-ctx-bar__lab">테두리</em>' +
+            '<input type="number" data-act="sw" min="0" step="0.05" title="테두리 굵기(mm)" />' +
+          '</span>' +
+          '<span class="ed-ctx-bar__slot" data-slot="fit">' +
+            '<select data-act="fit" title="이미지 맞춤">' +
+              '<option value="contain">맞춤</option>' +
+              '<option value="cover">채우기</option>' +
+              '<option value="stretch">늘리기</option>' +
+            '</select>' +
+          '</span>' +
+          '<span class="ed-ctx-bar__div" data-slot="color-div"></span>' +
+          '<span class="ed-ctx-bar__slot" data-slot="font">' +
+            '<select data-act="font" title="글꼴"></select>' +
+            '<input type="number" data-act="fs" min="4" max="200" step="0.5" title="크기" />' +
+            '<button type="button" data-act="bold" title="굵게">B</button>' +
+            '<button type="button" data-act="italic" title="기울임"><i>I</i></button>' +
+            '<button type="button" data-act="underline" title="밑줄"><u>U</u></button>' +
+            '<button type="button" data-act="align-left" title="왼쪽">좌</button>' +
+            '<button type="button" data-act="align-center" title="가운데">중</button>' +
+            '<button type="button" data-act="align-right" title="오른쪽">우</button>' +
+          '</span>' +
+          '<span class="ed-ctx-bar__div" data-slot="font-div"></span>' +
+          '<button type="button" data-act="flip">뒤집기</button>' +
+          '<span class="ed-ctx-bar__slot" data-slot="opacity">' +
+            '<button type="button" class="ed-ctx-bar__op" data-act="opacity-toggle" title="투명도">' +
+              '<svg class="ed-ctx-bar__op-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+                '<defs><pattern id="lu-op-chk" width="4" height="4" patternUnits="userSpaceOnUse">' +
+                  '<rect width="4" height="4" fill="#d8cfd3"/>' +
+                  '<rect width="2" height="2" fill="#fff"/>' +
+                  '<rect x="2" y="2" width="2" height="2" fill="#fff"/>' +
+                '</pattern></defs>' +
+                '<rect x="3" y="3" width="18" height="18" rx="4" fill="url(#lu-op-chk)"/>' +
+                '<rect class="ed-ctx-bar__op-tint" x="3" y="3" width="18" height="18" rx="4" fill="currentColor"/>' +
+              '</svg>' +
+            '</button>' +
+          '</span>' +
+          '<button type="button" data-act="lock" title="잠금">잠금</button>' +
+          '<span class="ed-ctx-bar__div"></span>' +
+          '<button type="button" data-act="fwd">앞으로</button>' +
+          '<button type="button" data-act="back">뒤로</button>' +
+          '<button type="button" data-act="dup" title="복제">⧉</button>' +
+          '<button type="button" data-act="del" title="삭제">🗑</button>' +
+        '</div>';
+      host.appendChild(bar);
+      mountOpacitySlot(bar);
+      bar.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+      bar.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+      bar.addEventListener('click', function (e) {
+        var btn = e.target && e.target.closest ? e.target.closest('[data-act]') : null;
+        if (!btn || btn.tagName === 'INPUT' || btn.tagName === 'SELECT') return;
+        var act = btn.getAttribute('data-act');
+        if (act === 'opacity-toggle') {
+          if (opOpen) closeOpacityPop();
+          else openOpacityPop(btn);
+          return;
+        }
+        if (act === 'fwd') return clickFloat('앞으로');
+        if (act === 'back') return clickFloat('뒤로');
+        if (act === 'dup') return clickFloat('복제');
+        if (act === 'del') return clickFloat('삭제');
+        withPropsFields(function () {
+          if (act.indexOf('align-') === 0) {
+            var map = { 'align-left': 'left', 'align-center': 'center', 'align-right': 'right' };
+            setValue(alignSelect(), map[act]);
+          } else {
+            var box = checkByText(act === 'bold' ? /^굵게$/ : act === 'italic' ? /^기울임$/ : act === 'underline' ? /^밑줄$/ : act === 'flip' ? /반전/ : /속성잠금|잠금/);
+            if (box) box.click();
+          }
+          populate(bar);
+        });
+      });
+      bar.addEventListener('change', function (e) {
+        var el = e.target;
+        if (!el || !el.getAttribute) return;
+        var act = el.getAttribute('data-act');
+        if (!act) return;
+        withPropsFields(function () {
+          if (act === 'font') setValue(fontSelect(), el.value);
+          else if (act === 'fill') setValue(fillColor(), el.value);
+          else if (act === 'stroke') setValue(strokeColor(), el.value);
+          else if (act === 'sw') setValue(strokeWidth(), el.value);
+          else if (act === 'fs') setValue(fontSize(), el.value);
+          else if (act === 'fit') setValue(imageFit(), el.value);
+          populate(bar);
+        });
+      });
+      return bar;
+    };
+    var toggleSlot = function (bar, name, on) {
+      var el = bar.querySelector('[data-slot="' + name + '"]');
+      if (el) el.hidden = !on;
+    };
+    var populate = function (bar) {
+      populating = true;
+      try {
+        var fc = fillColor();
+        var sc = strokeColor();
+        var sw = strokeWidth();
+        var fsSel = fontSelect();
+        var fs = fontSize();
+        var al = alignSelect();
+        var op = opacityInput();
+        var fit = imageFit();
+        var img = isImageSel();
+        var fillEl = bar.querySelector('[data-act="fill"]');
+        var strokeEl = bar.querySelector('[data-act="stroke"]');
+        var swEl = bar.querySelector('[data-act="sw"]');
+        var fontEl = bar.querySelector('[data-act="font"]');
+        var sizeEl = bar.querySelector('[data-act="fs"]');
+        var fitEl = bar.querySelector('[data-act="fit"]');
+        toggleSlot(bar, 'fill', !!fc && !img);
+        toggleSlot(bar, 'stroke', !!(sc || sw));
+        toggleSlot(bar, 'fit', !!fit);
+        toggleSlot(bar, 'color-div', !!(fc || sc || sw || fit));
+        var hasText = !!(fsSel || fs || checkByText(/^굵게$/));
+        toggleSlot(bar, 'font', hasText);
+        toggleSlot(bar, 'font-div', hasText);
+        toggleSlot(bar, 'opacity', !!op);
+        if (fillEl && fc) fillEl.value = fc.value;
+        if (strokeEl && sc) strokeEl.value = sc.value;
+        if (swEl) {
+          swEl.hidden = !sw;
+          if (sw) swEl.value = sw.value;
+        }
+        if (fontEl) {
+          fontEl.hidden = !fsSel;
+          if (fsSel) {
+            fontEl.innerHTML = fsSel.innerHTML;
+            fontEl.value = fsSel.value;
+          }
+        }
+        if (sizeEl) {
+          sizeEl.hidden = !fs;
+          if (fs) sizeEl.value = fs.value;
+        }
+        if (op && !opDragging) paintOpacity(parseFloat(op.value || '1') || 0);
+        if (fitEl) {
+          fitEl.hidden = !fit;
+          if (fit) fitEl.value = fit.value;
+        }
+        [['bold', /^굵게$/], ['italic', /^기울임$/], ['underline', /^밑줄$/], ['flip', /반전/], ['lock', /속성잠금|잠금/]].forEach(function (pair) {
+          var btn = bar.querySelector('[data-act="' + pair[0] + '"]');
+          var box = checkByText(pair[1]);
+          if (btn) {
+            btn.hidden = !box;
+            btn.classList.toggle('is-on', !!(box && box.checked));
+          }
+        });
+        ['left', 'center', 'right'].forEach(function (v) {
+          var btn = bar.querySelector('[data-act="align-' + v + '"]');
+          if (btn) {
+            btn.hidden = !al;
+            btn.classList.toggle('is-on', !!(al && al.value === v));
+          }
+        });
+      } finally {
+        populating = false;
+      }
+    };
+
+    var sync = async function () {
+      if (document.documentElement.classList.contains('lu-layer-applying')) return;
+      var bar = ensureBar();
+      if (!bar) return;
+      var panel = document.querySelector('[data-ed-props-panel]');
+      var title = panel && panel.querySelector('.ed-props__title');
+      if (title) title.textContent = '레이어';
+      var selected = hasSelection();
+      if (selected) {
+        document.documentElement.classList.add('lu-ctx-on');
+        bar.hidden = false;
+        var key = selectionKey();
+        if (busy) return;
+        if (key && key === lastKey && bar.getAttribute('data-ready') === '1') return;
+        busy = true;
+        try {
+          await withPropsFields(function () { populate(bar); });
+          lastKey = key;
+          bar.setAttribute('data-ready', '1');
+        } finally {
+          busy = false;
+        }
+        if (activeTab() !== '레이어') ops.showTab('레이어');
+        return;
+      }
+      document.documentElement.classList.remove('lu-ctx-on');
+      bar.hidden = true;
+      bar.removeAttribute('data-ready');
+      lastKey = '';
+      closeOpacityPop();
+      if (activeTab() !== '레이어') ops.showTab('레이어');
+    };
+    var queued = false;
+    var requestSync = function () {
+      if (queued || populating) return;
+      queued = true;
+      setTimeout(function () {
+        queued = false;
+        sync();
+      }, 50);
+    };
+
+    document.addEventListener('pointerup', function (e) {
+      if (e.target && e.target.closest && e.target.closest('[data-tut="canvas"], .canvas-stage, .ed-layer-item')) {
+        setTimeout(requestSync, 30);
+      }
+    }, true);
+    document.addEventListener('pointerdown', function (e) {
+      if (!opOpen || opDragging) return;
+      var t = e.target;
+      if (t && t.closest && (t.closest('#lu-ctx-op') || t.closest('[data-act="opacity-toggle"]'))) return;
+      closeOpacityPop();
+    }, true);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && opOpen) closeOpacityPop();
+    });
+
+    var mo = new MutationObserver(function (records) {
+      var meaningful = false;
+      for (var i = 0; i < records.length; i++) {
+        var t = records[i].target;
+        if (t && t.closest && t.closest('#lu-ctx-bar')) continue;
+        meaningful = true;
+        break;
+      }
+      if (meaningful) requestSync();
+    });
+    var start = function () {
+      ensureBar();
+      requestSync();
+      var root = document.querySelector('[data-ed-root]') || document.body;
+      mo.observe(root, { subtree: true, childList: true, attributes: true, attributeFilter: ['disabled', 'class'] });
+    };
+    if (document.querySelector('[data-ed-root], .ed-float-bar, [data-ed-workspace]')) start();
+    else {
+      var wait = new MutationObserver(function () {
+        if (document.querySelector('[data-ed-root], .ed-float-bar, [data-ed-workspace]')) {
+          wait.disconnect();
+          start();
+        }
+      });
+      wait.observe(document.documentElement, { childList: true, subtree: true });
+    }
+  },
+  bindCreditBadge: function () {
+    if (this._creditBadgeBound) return;
+    this._creditBadgeBound = true;
+    var self = this;
+    var state = { balance: 0, page: 1, pages: 1, items: [], loaded: false, guest: false };
+
+    var fmt = function (n) {
+      var v = Number(n) || 0;
+      return v.toLocaleString('ko-KR') + ' C';
+    };
+    var when = function (s) {
+      return String(s || '').replace('T', ' ').slice(0, 16);
+    };
+
+    var ensureChip = function () {
+      var host = document.querySelector('[data-ed-root]') || document.querySelector('.ed');
+      if (!host) return null;
+      var chip = document.getElementById('lu-credit-chip');
+      if (chip) return chip;
+      chip = document.createElement('button');
+      chip.id = 'lu-credit-chip';
+      chip.type = 'button';
+      chip.className = 'ed-credit-chip';
+      chip.hidden = true;
+      chip.innerHTML = '<span class="ed-credit-chip__ic" aria-hidden="true">C</span>' +
+        '<span class="ed-credit-chip__meta"><em>남은 크레딧</em><strong>0 C</strong></span>';
+      host.appendChild(chip);
+      chip.addEventListener('click', function () {
+        if (state.guest) {
+          self.showSaveAuthPrompt().then(function (ok) {
+            if (ok) load(1, true);
+          });
+          return;
+        }
+        openModal();
+      });
+      return chip;
+    };
+
+    var renderChip = function () {
+      var chip = ensureChip();
+      if (!chip) return;
+      var strong = chip.querySelector('strong');
+      var em = chip.querySelector('em');
+      if (state.guest) {
+        chip.hidden = false;
+        chip.classList.add('is-guest');
+        chip.title = '로그인하면 남은 크레딧을 볼 수 있습니다';
+        if (em) em.textContent = '크레딧';
+        if (strong) strong.textContent = '로그인';
+        return;
+      }
+      chip.classList.remove('is-guest');
+      chip.hidden = false;
+      chip.title = '크레딧 사용 이력 보기';
+      if (em) em.textContent = '남은 크레딧';
+      if (strong) strong.textContent = fmt(state.balance);
+    };
+
+    var rowHtml = function (item) {
+      var amt = Number(item.amount) || 0;
+      var plus = amt >= 0;
+      return '<div class="ed-credit-row">' +
+        '<div><strong>' + escapeHtml(item.description || item.tx_type_label || '크레딧') + '</strong>' +
+        '<span>' + escapeHtml(when(item.created_at)) + ' · ' + escapeHtml(item.tx_type_label || '') +
+        (item.source_label ? ' · ' + escapeHtml(item.source_label) : '') + '</span></div>' +
+        '<b class="' + (plus ? 'is-plus' : 'is-minus') + '">' + (plus ? '+' : '') + fmt(amt) + '</b></div>';
+    };
+
+    var escapeHtml = function (s) {
+      return String(s).replace(/[&<>"']/g, function (ch) {
+        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch];
+      });
+    };
+
+    var renderModal = function () {
+      var box = document.getElementById('lu-credit-modal');
+      if (!box) return;
+      var bal = box.querySelector('[data-credit-balance]');
+      var list = box.querySelector('[data-credit-list]');
+      var more = box.querySelector('[data-credit-more]');
+      if (bal) bal.textContent = fmt(state.balance);
+      if (list) {
+        if (!state.items.length) {
+          list.innerHTML = '<p class="ed-credit-empty">크레딧 사용·적립 내역이 없습니다.</p>';
+        } else {
+          list.innerHTML = state.items.map(rowHtml).join('');
+        }
+      }
+      if (more) more.hidden = state.page >= state.pages;
+    };
+
+    var openModal = function () {
+      var existing = document.getElementById('lu-credit-modal');
+      if (existing) existing.remove();
+      var root = document.createElement('div');
+      root.id = 'lu-credit-modal';
+      root.className = 'ed-modal ed-credit-modal';
+      root.innerHTML = '<div class="ed-modal__card ed-modal__card--confirm ed-credit-modal__card" role="dialog" aria-modal="true" aria-labelledby="lu-credit-title">' +
+        '<div class="ed-modal__head"><div><h3 id="lu-credit-title">크레딧 사용 이력</h3>' +
+        '<p>남은 크레딧 <strong data-credit-balance>0 C</strong></p></div>' +
+        '<button type="button" class="ed-modal__close" data-credit-close aria-label="닫기">×</button></div>' +
+        '<div class="ed-modal__body"><div class="ed-credit-list" data-credit-list></div>' +
+        '<button type="button" class="ed-credit-more" data-credit-more hidden>더 보기</button></div>' +
+        '<div class="ed-modal__foot"><a class="ed-btn" href="/account#credits">내 계정에서 보기</a>' +
+        '<button type="button" class="ed-btn ed-btn--primary" data-credit-close>닫기</button></div></div>';
+      document.body.appendChild(root);
+      renderModal();
+      if (!state.loaded || !state.items.length) load(1, false);
+      var close = function () { root.remove(); };
+      root.addEventListener('click', function (e) {
+        if (e.target === root || (e.target.closest && e.target.closest('[data-credit-close]'))) close();
+        if (e.target.closest && e.target.closest('[data-credit-more]')) load(state.page + 1, false);
+      });
+    };
+
+    var load = async function (page, reset) {
+      try {
+        var raw = await self.apiGetJson('/api/credit/me?page=' + page + '&per_page=20');
+        var data = JSON.parse(raw || '{}');
+        state.guest = false;
+        state.balance = Number(data.balance) || 0;
+        state.page = Number(data.page) || page;
+        state.pages = Number(data.pages) || 1;
+        var next = Array.isArray(data.items) ? data.items : [];
+        state.items = reset || page <= 1 ? next : state.items.concat(next);
+        state.loaded = true;
+        renderChip();
+        renderModal();
+      } catch (err) {
+        if (err && err.status === 401) {
+          state.guest = true;
+          state.loaded = true;
+          renderChip();
+          return;
+        }
+        var chip = ensureChip();
+        if (chip) {
+          chip.hidden = false;
+          chip.title = (err && err.message) || '크레딧을 불러오지 못했습니다';
+        }
+      }
+    };
+
+    var start = function () {
+      ensureChip();
+      load(1, true);
+    };
+    if (document.querySelector('[data-ed-root], .ed')) start();
+    else {
+      var wait = new MutationObserver(function () {
+        if (document.querySelector('[data-ed-root], .ed')) {
+          wait.disconnect();
+          start();
+        }
+      });
+      wait.observe(document.documentElement, { childList: true, subtree: true });
+    }
+  },
+  bindCloudSave: function () {
+    if (this._cloudSaveBound) return;
+    this._cloudSaveBound = true;
+    var tips = {
+      saved: '클라우드에 저장됨',
+      unsaved: '수정됨 · 자동저장을 기다립니다',
+      saving: '클라우드에 저장하는 중…',
+      error: '저장에 실패했습니다',
+      off: '자동저장 꺼짐 · 클릭하면 켭니다'
+    };
+    var sync = function () {
+      var label = document.querySelector('.ed-autosave');
+      var saved = document.querySelector('.ed-topbar__saved');
+      if (!label) return;
+      var text = ((saved && saved.textContent) || '').replace(/\s+/g, ' ').trim();
+      var current = document.documentElement.getAttribute('data-ed-save');
+      var authOpen = !!document.getElementById('lu-save-auth-gate');
+      var state = 'saved';
+      if (/실패/.test(text)) state = 'error';
+      else if (authOpen) state = (saved && saved.classList.contains('is-unsaved')) ? 'unsaved' : 'saved';
+      else if (current === 'saving' && !/저장됨|자동저장됨|실패|초안/.test(text)) state = 'saving';
+      else if (/수정됨/.test(text) || (saved && saved.classList.contains('is-unsaved'))) state = 'unsaved';
+      else if (/저장됨|자동저장됨|초안/.test(text) || (saved && saved.classList.contains('is-saved'))) state = 'saved';
+      if (state !== 'saving' && state !== 'error' && !label.classList.contains('is-on'))
+        state = 'off';
+      document.documentElement.setAttribute('data-ed-save', state);
+      var extra = text.replace(/^●\s*(저장됨|수정됨)\s*/g, '').trim();
+      var tip = tips[state];
+      if (extra && extra !== tip && !/^(저장됨|수정됨|준비됨)$/.test(extra) && tip.indexOf(extra) === -1)
+        tip += ' · ' + extra;
+      label.title = tip;
+      label.setAttribute('aria-label', tip);
+    };
+    document.addEventListener('click', function (e) {
+      if (!e.target || !e.target.closest) return;
+      if (e.target.closest('.ed-autosave')) {
+        setTimeout(sync, 0);
+        setTimeout(sync, 80);
+        return;
+      }
+      if (e.target.closest('[data-tut="save"]')) {
+        document.documentElement.setAttribute('data-ed-save', 'saving');
+        var label = document.querySelector('.ed-autosave');
+        if (label) {
+          label.title = tips.saving;
+          label.setAttribute('aria-label', tips.saving);
+        }
+        setTimeout(sync, 50);
+        setTimeout(sync, 600);
+        setTimeout(sync, 2000);
+      }
+    }, true);
+    var mo = new MutationObserver(sync);
+    var start = function () {
+      sync();
+      var root = document.querySelector('.ed-topbar') || document.body;
+      mo.observe(root, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class'] });
+      var bodyWatch = new MutationObserver(function () {
+        if (document.getElementById('lu-save-auth-gate')) sync();
+      });
+      bodyWatch.observe(document.body, { childList: true });
+    };
+    if (document.querySelector('.ed-autosave')) start();
+    else {
+      var wait = new MutationObserver(function () {
+        if (document.querySelector('.ed-autosave')) {
+          wait.disconnect();
+          start();
+        }
+      });
+      wait.observe(document.documentElement, { childList: true, subtree: true });
+    }
   },
 
   setProjectId: function (id) {
@@ -734,3 +2889,60 @@ window.labelUpEditor = {
     });
   }
 };
+
+(function () {
+  var apply = function () {
+    if (window.labelUpEditor && typeof window.labelUpEditor.applyMobileChrome === 'function')
+      window.labelUpEditor.applyMobileChrome();
+    if (window.labelUpEditor && typeof window.labelUpEditor.bindCloudSave === 'function')
+      window.labelUpEditor.bindCloudSave();
+    if (window.labelUpEditor && typeof window.labelUpEditor.bindZoomSlider === 'function')
+      window.labelUpEditor.bindZoomSlider();
+    if (window.labelUpEditor && typeof window.labelUpEditor.bindTutorialDock === 'function')
+      window.labelUpEditor.bindTutorialDock();
+    if (window.labelUpEditor && typeof window.labelUpEditor.bindLayerNudge === 'function')
+      window.labelUpEditor.bindLayerNudge();
+    if (window.labelUpEditor && typeof window.labelUpEditor.bindLayerDrag === 'function')
+      window.labelUpEditor.bindLayerDrag();
+    if (window.labelUpEditor && typeof window.labelUpEditor.bindCreditBadge === 'function')
+      window.labelUpEditor.bindCreditBadge();
+    if (window.labelUpEditor && typeof window.labelUpEditor.bindCanvaToolbar === 'function')
+      window.labelUpEditor.bindCanvaToolbar();
+    if (window.labelUpEditor && typeof window.labelUpEditor.bindPaperPreviewLayout === 'function')
+      window.labelUpEditor.bindPaperPreviewLayout();
+    if (window.labelUpEditor && typeof window.labelUpEditor.bindLabiDialogChrome === 'function')
+      window.labelUpEditor.bindLabiDialogChrome();
+  };
+  window.addEventListener('resize', apply);
+  window.addEventListener('orientationchange', apply);
+  document.addEventListener('click', function (e) {
+    var root = document.querySelector('[data-ed-root]');
+    var props = document.querySelector('[data-ed-props-panel]');
+    var preview = document.querySelector('[data-ed-preview-panel]');
+    var t = e.target && e.target.closest ? e.target.closest('.ed.is-mobile .ed-props__min') : null;
+    if (t) {
+      if (t.closest && t.closest('[data-ed-preview-panel]')) {
+        if (preview) preview.classList.remove('is-m-open');
+        if (root) root.classList.remove('is-preview-open');
+        return;
+      }
+      if (props) props.classList.remove('is-m-open');
+      if (root) root.classList.remove('is-props-open');
+      return;
+    }
+    if (root && root.classList.contains('is-props-open') && props) {
+      if (e.target.closest && (e.target.closest('[data-ed-props-panel]') || e.target.closest('.ed-m-props'))) return;
+      props.classList.remove('is-m-open');
+      root.classList.remove('is-props-open');
+    }
+    if (root && root.classList.contains('is-preview-open') && preview) {
+      if (e.target.closest && (e.target.closest('[data-ed-preview-panel]') || e.target.closest('.ed-m-preview'))) return;
+      preview.classList.remove('is-m-open');
+      root.classList.remove('is-preview-open');
+    }
+  });
+  if (document.readyState === 'loading')
+    document.addEventListener('DOMContentLoaded', apply);
+  else
+    apply();
+})();

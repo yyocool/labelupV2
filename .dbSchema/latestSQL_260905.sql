@@ -1,0 +1,729 @@
+-- latestSQL_260827.sql (MySQL 5.5 compatible) ? Phase 1 + Phase 2
+
+CREATE TABLE IF NOT EXISTS migrations (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    migration VARCHAR(255) NOT NULL,
+    batch INT UNSIGNED NOT NULL DEFAULT 1,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    deleted_at DATETIME NULL,
+    UNIQUE KEY uk_migrations_name (migration)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS app_settings (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    setting_key VARCHAR(100) NOT NULL,
+    setting_value TEXT NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    deleted_at DATETIME NULL,
+    UNIQUE KEY uk_app_settings_key (setting_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS users (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(190) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role ENUM('member','admin') NOT NULL DEFAULT 'member',
+    grade_id BIGINT UNSIGNED NULL,
+    is_super_admin TINYINT(1) NOT NULL DEFAULT 0,
+    status ENUM('active','inactive','withdrawn') NOT NULL DEFAULT 'active',
+    email_verified_at DATETIME NULL,
+    last_login_at DATETIME NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    deleted_at DATETIME NULL,
+    UNIQUE KEY uk_users_email (email),
+    KEY idx_users_role (role),
+    KEY idx_users_status (status),
+    KEY idx_users_grade_id (grade_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS member_grades (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(80) NOT NULL,
+    slug VARCHAR(50) NOT NULL,
+    description VARCHAR(255) NULL,
+    color VARCHAR(20) NOT NULL DEFAULT '#7B2D3E',
+    sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+    is_default TINYINT(1) NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uk_member_grades_slug (slug),
+    KEY idx_member_grades_sort (sort_order, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+INSERT INTO member_grades (name, slug, description, color, sort_order, is_default, is_active, created_at, updated_at) VALUES
+('일반', 'general', '기본 회원등급입니다.', '#6B7280', 10, 1, 1, NOW(), NOW()),
+('실버', 'silver', '꾸준히 이용하는 회원에게 적용되는 등급입니다.', '#8A94A6', 20, 0, 1, NOW(), NOW()),
+('골드', 'gold', '우수 회원에게 적용되는 등급입니다.', '#C9A227', 30, 0, 1, NOW(), NOW()),
+('VIP', 'vip', '최상위 회원등급입니다.', '#7B2D3E', 40, 0, 1, NOW(), NOW())
+ON DUPLICATE KEY UPDATE name = VALUES(name);
+
+CREATE TABLE IF NOT EXISTS user_profiles (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    name VARCHAR(100) NOT NULL DEFAULT '',
+    phone VARCHAR(30) NULL,
+    company VARCHAR(150) NULL,
+    avatar VARCHAR(255) NULL,
+    locale VARCHAR(10) NOT NULL DEFAULT 'ko',
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    deleted_at DATETIME NULL,
+    UNIQUE KEY uk_user_profiles_user_id (user_id),
+    KEY idx_user_profiles_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS user_login_logs (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NULL,
+    email VARCHAR(190) NULL,
+    ip_address VARCHAR(45) NULL,
+    user_agent VARCHAR(500) NULL,
+    success TINYINT(1) NOT NULL DEFAULT 0,
+    message VARCHAR(255) NULL,
+    created_at DATETIME NULL,
+    KEY idx_login_logs_user_id (user_id),
+    KEY idx_login_logs_email (email),
+    KEY idx_login_logs_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS user_oauth_accounts (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    provider ENUM('kakao','naver','google') NOT NULL,
+    provider_user_id VARCHAR(190) NOT NULL,
+    provider_email VARCHAR(190) NULL,
+    access_token TEXT NULL,
+    refresh_token TEXT NULL,
+    token_expires_at DATETIME NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    deleted_at DATETIME NULL,
+    UNIQUE KEY uk_oauth_provider_user (provider, provider_user_id),
+    KEY idx_oauth_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS user_remember_tokens (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    context VARCHAR(10) NOT NULL DEFAULT 'user',
+    token_hash CHAR(64) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    created_at DATETIME NULL,
+    UNIQUE KEY uk_remember_token_hash (token_hash),
+    KEY idx_remember_user_id (user_id),
+    KEY idx_remember_user_context (user_id, context),
+    KEY idx_remember_expires (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS legal_documents (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    doc_key VARCHAR(50) NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    content MEDIUMTEXT NOT NULL,
+    version INT UNSIGNED NOT NULL DEFAULT 1,
+    is_required TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uk_legal_documents_key (doc_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+CREATE TABLE IF NOT EXISTS shop_categories (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    slug VARCHAR(100) NOT NULL,
+    image_path VARCHAR(255) NULL,
+    sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uk_shop_categories_slug (slug)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS label_specs (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    kind ENUM('label','tag') NOT NULL DEFAULT 'label',
+    image_path VARCHAR(255) NULL,
+    width_mm DECIMAL(8,2) NOT NULL,
+    height_mm DECIMAL(8,2) NOT NULL,
+    material VARCHAR(80) NOT NULL DEFAULT '',
+    shape ENUM('rect','round','custom') NOT NULL DEFAULT 'rect',
+    labels_per_sheet INT UNSIGNED NULL,
+    description VARCHAR(500) NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS shop_products (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    category_id BIGINT UNSIGNED NOT NULL,
+    spec_id BIGINT UNSIGNED NULL,
+    name VARCHAR(200) NOT NULL,
+    sku VARCHAR(80) NOT NULL,
+    price INT UNSIGNED NOT NULL DEFAULT 0,
+    sale_price INT UNSIGNED NULL,
+    stock_qty INT NOT NULL DEFAULT 0,
+    status ENUM('draft','active','soldout','hidden') NOT NULL DEFAULT 'draft',
+    thumbnail VARCHAR(255) NULL,
+    description TEXT NULL,
+    meta_json TEXT NULL,
+    compat_formtec VARCHAR(80) NULL,
+    compat_ilabel VARCHAR(80) NULL,
+    compat_anylabel VARCHAR(80) NULL,
+    sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uk_shop_products_sku (sku),
+    KEY idx_shop_products_category (category_id),
+    KEY idx_shop_products_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS shop_product_detail_pages (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    product_id BIGINT UNSIGNED NOT NULL,
+    status ENUM('draft','published') NOT NULL DEFAULT 'draft',
+    title VARCHAR(200) NULL,
+    html_content LONGTEXT NULL,
+    generated_at DATETIME NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uk_shop_product_detail_pages_product (product_id),
+    KEY idx_shop_product_detail_pages_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS shop_product_images (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    product_id BIGINT UNSIGNED NOT NULL,
+    image_path VARCHAR(255) NOT NULL,
+    sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+    is_primary TINYINT(1) NOT NULL DEFAULT 0,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    KEY idx_shop_product_images_product (product_id),
+    KEY idx_shop_product_images_sort (product_id, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS shop_orders (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    order_no VARCHAR(30) NOT NULL,
+    user_id BIGINT UNSIGNED NULL,
+    customer_name VARCHAR(100) NOT NULL,
+    customer_email VARCHAR(190) NOT NULL,
+    customer_phone VARCHAR(30) NULL,
+    status ENUM('pending','paid','preparing','shipping','delivered','cancelled','refunded') NOT NULL DEFAULT 'pending',
+    payment_status ENUM('pending','paid','failed','refunded') NOT NULL DEFAULT 'pending',
+    subtotal INT UNSIGNED NOT NULL DEFAULT 0,
+    shipping_fee INT UNSIGNED NOT NULL DEFAULT 0,
+    discount_amount INT UNSIGNED NOT NULL DEFAULT 0,
+    total_amount INT UNSIGNED NOT NULL DEFAULT 0,
+    shipping_name VARCHAR(100) NULL,
+    shipping_phone VARCHAR(30) NULL,
+    shipping_address VARCHAR(500) NULL,
+    shipping_memo VARCHAR(255) NULL,
+    carrier VARCHAR(50) NULL,
+    tracking_no VARCHAR(80) NULL,
+    admin_memo TEXT NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uk_shop_orders_no (order_no),
+    KEY idx_shop_orders_status (status),
+    KEY idx_shop_orders_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS shop_order_items (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    order_id BIGINT UNSIGNED NOT NULL,
+    product_id BIGINT UNSIGNED NULL,
+    product_name VARCHAR(200) NOT NULL,
+    sku VARCHAR(80) NOT NULL,
+    qty INT UNSIGNED NOT NULL DEFAULT 1,
+    unit_price INT UNSIGNED NOT NULL DEFAULT 0,
+    line_total INT UNSIGNED NOT NULL DEFAULT 0,
+    KEY idx_shop_order_items_order (order_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS shop_coupons (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(50) NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    discount_type ENUM('percent','fixed') NOT NULL DEFAULT 'fixed',
+    discount_value INT UNSIGNED NOT NULL DEFAULT 0,
+    min_order_amount INT UNSIGNED NOT NULL DEFAULT 0,
+    max_uses INT UNSIGNED NULL,
+    used_count INT UNSIGNED NOT NULL DEFAULT 0,
+    starts_at DATETIME NULL,
+    ends_at DATETIME NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uk_shop_coupons_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS shop_banners (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(150) NOT NULL,
+    subtitle VARCHAR(255) NULL,
+    image_url VARCHAR(255) NULL,
+    link_url VARCHAR(255) NULL,
+    sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+INSERT INTO shop_categories (name, slug, sort_order, is_active, created_at, updated_at) VALUES
+('????', 'label-paper', 1, 1, NOW(), NOW()),
+('???', 'thermal-paper', 2, 1, NOW(), NOW()),
+('??????', 'packaging', 3, 1, NOW(), NOW()),
+('??????????, 'supplies', 4, 1, NOW(), NOW())
+ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at);
+
+INSERT INTO label_specs (name, width_mm, height_mm, material, shape, labels_per_sheet, description, is_active, created_at, updated_at) VALUES
+('50x30mm ????', 50.00, 30.00, '????', 'rect', 40, '???????????? ???', 1, NOW(), NOW()),
+('100x50mm ????', 100.00, 50.00, '????', 'rect', 21, '?????? ???', 1, NOW(), NOW()),
+('40mm ???', 40.00, 40.00, 'PP', 'round', 35, '???????????, 1, NOW(), NOW()),
+('80x80mm ???', 80.00, 80.00, '???', 'rect', 12, '?????? ???', 1, NOW(), NOW()),
+('A4 ???? 210x297', 210.00, 297.00, '????', 'rect', 1, '?? ?????, 1, NOW(), NOW())
+ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at);
+
+INSERT INTO shop_products (category_id, spec_id, name, sku, price, sale_price, stock_qty, status, description, sort_order, created_at, updated_at) VALUES
+(1, 1, '50x30 ???? 500??, 'LBL-5030-500', 18500, 16900, 120, 'active', 'A4 40??? ??? ????', 1, NOW(), NOW()),
+(1, 2, '100x50 ???? 250??, 'LBL-10050-250', 22000, NULL, 85, 'active', '?????????? ????', 2, NOW(), NOW()),
+(1, 3, '40mm ??? PP 700??, 'LBL-R40-700', 15800, 14200, 200, 'active', '??????? PP ???', 3, NOW(), NOW()),
+(2, 4, '80x80 ????? 500??, 'THM-8080-500', 32000, 29500, 45, 'active', '?????? ?? ???', 4, NOW(), NOW()),
+(3, NULL, '?????????????????', 'PKG-START-01', 12000, NULL, 30, 'active', '??? ???? + ????????', 5, NOW(), NOW()),
+(4, 5, 'A4 ?? ??? 100??, 'CUS-A4-100', 45000, NULL, 0, 'soldout', '?? ?? ??? ???', 6, NOW(), NOW())
+ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at);
+
+INSERT INTO shop_coupons (code, name, discount_type, discount_value, min_order_amount, max_uses, used_count, starts_at, ends_at, is_active, created_at, updated_at) VALUES
+('WELCOME10', '??? ???10%', 'percent', 10, 10000, 500, 12, '2026-01-01 00:00:00', '2026-12-31 23:59:59', 1, NOW(), NOW()),
+('LABEL3000', '3,000?????', 'fixed', 3000, 30000, 200, 8, '2026-06-01 00:00:00', '2026-09-30 23:59:59', 1, NOW(), NOW()),
+('VIP15', 'VIP 15% ???', 'percent', 15, 50000, 50, 3, '2026-01-01 00:00:00', '2026-12-31 23:59:59', 1, NOW(), NOW())
+ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at);
+
+INSERT INTO shop_banners (title, subtitle, image_url, link_url, sort_order, is_active, created_at, updated_at) VALUES
+('??? ??? ????, '??? ?????+ ???? 15% ???', '/assets/hero-tall-1.webp', '/', 1, 1, NOW(), NOW()),
+('??? ??? ??? ??', 'WELCOME10 ????10% ???', '/assets/hero-tall-2.webp', '/register', 2, 1, NOW(), NOW()),
+('?? ??? ???', '?????????? ?? ??', '/assets/hero-tall-3.webp', '/', 3, 1, NOW(), NOW())
+ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at);
+
+INSERT INTO shop_orders (order_no, user_id, customer_name, customer_email, customer_phone, status, payment_status, subtotal, shipping_fee, discount_amount, total_amount, shipping_name, shipping_phone, shipping_address, shipping_memo, carrier, tracking_no, created_at, updated_at) VALUES
+('LU202608270001', 1, '????', 'label.sample1@example.com', '010-1234-5678', 'delivered', 'paid', 33700, 3000, 3000, 33700, '????', '010-1234-5678', '???????????????????123 4??, '???? ??', 'CJ???????, '123456789012', DATE_SUB(NOW(), INTERVAL 5 DAY), NOW()),
+('LU202608270002', NULL, '??????', 'sticker@example.com', '010-9876-5432', 'shipping', 'paid', 22000, 3000, 0, 25000, '??????', '010-9876-5432', '??????????????????45', NULL, '?????????, '987654321098', DATE_SUB(NOW(), INTERVAL 2 DAY), NOW()),
+('LU202608270003', NULL, '????, 'parcel@example.com', '010-5555-7777', 'preparing', 'paid', 47400, 0, 4740, 42660, '????, '010-5555-7777', '???????? ?????????????99', '?? ?? ???, NULL, NULL, DATE_SUB(NOW(), INTERVAL 1 DAY), NOW()),
+('LU202608270004', NULL, '????, 'cafe@example.com', '010-2222-3333', 'pending', 'pending', 15800, 3000, 0, 18800, '????, '010-2222-3333', '???????? ??????????? 200', NULL, NULL, NULL, NOW(), NOW())
+ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at);
+
+INSERT INTO shop_order_items (order_id, product_id, product_name, sku, qty, unit_price, line_total) VALUES
+(1, 1, '50x30 ???? 500??, 'LBL-5030-500', 2, 16900, 33800),
+(2, 2, '100x50 ???? 250??, 'LBL-10050-250', 1, 22000, 22000),
+(3, 4, '80x80 ????? 500??, 'THM-8080-500', 1, 29500, 29500),
+(3, 3, '40mm ??? PP 700??, 'LBL-R40-700', 1, 14200, 14200),
+(4, 3, '40mm ??? PP 700??, 'LBL-R40-700', 1, 14200, 14200);
+
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    token VARCHAR(64) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    used_at DATETIME NULL,
+    created_at DATETIME NULL,
+    UNIQUE KEY uk_password_reset_tokens_token (token),
+    KEY idx_password_reset_tokens_user_id (user_id),
+    KEY idx_password_reset_tokens_expires_at (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+CREATE TABLE IF NOT EXISTS credit_reward_rules (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(50) NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    description VARCHAR(500) NULL,
+    credit_amount INT NOT NULL DEFAULT 0,
+    trigger_type ENUM('signup','daily_login','design_complete','referral','purchase_code','event','manual') NOT NULL DEFAULT 'event',
+    daily_limit INT UNSIGNED NULL,
+    max_total_per_user INT UNSIGNED NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uk_credit_reward_rules_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS user_credits (
+    user_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+    balance INT NOT NULL DEFAULT 0,
+    updated_at DATETIME NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS credit_transactions (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    amount INT NOT NULL,
+    balance_after INT NOT NULL DEFAULT 0,
+    tx_type ENUM('earn','spend','adjust','refund') NOT NULL DEFAULT 'earn',
+    source ENUM('reward','purchase_code','admin','order','system') NOT NULL DEFAULT 'system',
+    source_ref VARCHAR(100) NULL,
+    description VARCHAR(255) NOT NULL DEFAULT '',
+    admin_id BIGINT UNSIGNED NULL,
+    created_at DATETIME NULL,
+    KEY idx_credit_tx_user_id (user_id),
+    KEY idx_credit_tx_created_at (created_at),
+    KEY idx_credit_tx_source (source)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS purchase_credit_products (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    sku VARCHAR(80) NOT NULL,
+    credit_amount INT UNSIGNED NOT NULL DEFAULT 0,
+    description VARCHAR(500) NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uk_purchase_credit_products_sku (sku)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS purchase_credit_codes (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    product_id BIGINT UNSIGNED NOT NULL,
+    code VARCHAR(32) NOT NULL,
+    batch_no VARCHAR(50) NULL,
+    is_redeemed TINYINT(1) NOT NULL DEFAULT 0,
+    redeemed_by_user_id BIGINT UNSIGNED NULL,
+    redeemed_at DATETIME NULL,
+    created_at DATETIME NULL,
+    UNIQUE KEY uk_purchase_credit_codes_code (code),
+    KEY idx_purchase_credit_codes_product (product_id),
+    KEY idx_purchase_credit_codes_redeemed (is_redeemed, redeemed_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS user_cs_logs (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    admin_id BIGINT UNSIGNED NULL,
+    category ENUM('inquiry','complaint','refund','account','technical','other') NOT NULL DEFAULT 'inquiry',
+    subject VARCHAR(200) NOT NULL,
+    content TEXT NULL,
+    status ENUM('open','in_progress','resolved') NOT NULL DEFAULT 'open',
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    KEY idx_user_cs_logs_user_id (user_id),
+    KEY idx_user_cs_logs_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+INSERT INTO credit_reward_rules (code, name, description, credit_amount, trigger_type, daily_limit, max_total_per_user, is_active, sort_order, created_at, updated_at) VALUES
+('SIGNUP_WELCOME', '????????? ?????, '??? ?????1?????, 500, 'signup', NULL, 1, 1, 1, NOW(), NOW()),
+('DAILY_LOGIN', '??? ??? ??', '??? 1???????????, 10, 'daily_login', 1, NULL, 1, 2, NOW(), NOW()),
+('DESIGN_COMPLETE', '???????? ??', '??? ???????????? ??, 50, 'design_complete', 5, NULL, 1, 3, NOW(), NOW()),
+('REFERRAL', '?? ?? ??', '?????????? ??, 300, 'referral', NULL, 10, 1, 4, NOW(), NOW()),
+('EVENT_BONUS', '?????????, '??? ???????? ???', 100, 'event', NULL, NULL, 1, 5, NOW(), NOW())
+ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at);
+
+INSERT INTO purchase_credit_products (name, sku, credit_amount, description, is_active, created_at, updated_at) VALUES
+('??????????????', 'PKG-CREDIT-START', 1000, '???????? ??? ?? ?????', 1, NOW(), NOW()),
+('????? ???? ???', 'PKG-CREDIT-PREM', 2500, '????? ???? ????', 1, NOW(), NOW()),
+('A4 ?? ??? 100??, 'PKG-CREDIT-A4', 5000, '?? ??? ??? ?? ?????, 1, NOW(), NOW())
+ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at);
+
+INSERT INTO purchase_credit_codes (product_id, code, batch_no, is_redeemed, created_at) VALUES
+(1, 'LU-START-2026-A001', 'BATCH-202608', 0, NOW()),
+(1, 'LU-START-2026-A002', 'BATCH-202608', 0, NOW()),
+(2, 'LU-PREM-2026-B001', 'BATCH-202608', 0, NOW()),
+(3, 'LU-A4-2026-C001', 'BATCH-202608', 1, NOW())
+ON DUPLICATE KEY UPDATE batch_no = VALUES(batch_no);
+
+UPDATE purchase_credit_codes SET redeemed_by_user_id = 1, redeemed_at = DATE_SUB(NOW(), INTERVAL 3 DAY) WHERE code = 'LU-A4-2026-C001';
+
+INSERT INTO credit_transactions (user_id, amount, balance_after, tx_type, source, source_ref, description, created_at) VALUES
+(1, 500, 500, 'earn', 'reward', 'SIGNUP_WELCOME', '????????? ?????, DATE_SUB(NOW(), INTERVAL 30 DAY)),
+(1, 5000, 5500, 'earn', 'purchase_code', 'LU-A4-2026-C001', 'A4 ?? ??? 100???? ?? ???', DATE_SUB(NOW(), INTERVAL 3 DAY)),
+(1, -200, 5300, 'spend', 'order', 'design-export', 'AI ??? ??????', DATE_SUB(NOW(), INTERVAL 1 DAY))
+ON DUPLICATE KEY UPDATE description = VALUES(description);
+
+INSERT INTO user_credits (user_id, balance, updated_at) VALUES (1, 5300, NOW())
+ON DUPLICATE KEY UPDATE balance = VALUES(balance), updated_at = VALUES(updated_at);
+
+INSERT INTO user_cs_logs (user_id, admin_id, category, subject, content, status, created_at, updated_at) VALUES
+(1, 1, 'inquiry', '?? ??? ??', '???????? ?? ???????? ???', 'resolved', DATE_SUB(NOW(), INTERVAL 7 DAY), NOW()),
+(1, 1, 'technical', '????????????', '?????????????????? ??', 'in_progress', DATE_SUB(NOW(), INTERVAL 2 DAY), NOW())
+ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at);
+CREATE TABLE IF NOT EXISTS home_hero_slides (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(150) NOT NULL DEFAULT '',
+    alt_text VARCHAR(255) NOT NULL DEFAULT '',
+    image_url VARCHAR(255) NOT NULL,
+    link_url VARCHAR(255) NULL,
+    sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    KEY idx_home_hero_slides_active_sort (is_active, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+INSERT INTO home_hero_slides (title, alt_text, image_url, link_url, sort_order, is_active, created_at, updated_at) VALUES
+('??? ?????? ?????? ????, '??? ????? ????? ????QR ?? ???', '/assets/hero-tall-1.webp', '/', 1, 1, NOW(), NOW()),
+('??? ???????', '?????????????', '/assets/hero-tall-2.webp', '/', 2, 1, NOW(), NOW()),
+('????? QR ???', '????QR ??? ???', '/assets/hero-tall-3.webp', '/', 3, 1, NOW(), NOW())
+ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at);
+
+CREATE TABLE IF NOT EXISTS clipart_categories (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    slug VARCHAR(100) NOT NULL,
+    description VARCHAR(255) NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uk_clipart_categories_slug (slug),
+    KEY idx_clipart_categories_active (is_active, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS cliparts (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    category_id BIGINT UNSIGNED NULL,
+    title VARCHAR(150) NOT NULL,
+    image_path VARCHAR(255) NOT NULL,
+    hashtags TEXT NULL,
+    description VARCHAR(500) NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    source VARCHAR(20) NOT NULL DEFAULT 'upload',
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    KEY idx_cliparts_category (category_id),
+    KEY idx_cliparts_active (is_active, sort_order),
+    KEY idx_cliparts_title (title)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS clipart_tags (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(80) NOT NULL,
+    slug VARCHAR(80) NOT NULL,
+    created_at DATETIME NULL,
+    UNIQUE KEY uk_clipart_tags_slug (slug),
+    UNIQUE KEY uk_clipart_tags_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS clipart_tag_map (
+    clipart_id BIGINT UNSIGNED NOT NULL,
+    tag_id BIGINT UNSIGNED NOT NULL,
+    PRIMARY KEY (clipart_id, tag_id),
+    KEY idx_clipart_tag_map_tag (tag_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS event_popups (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(150) NOT NULL DEFAULT '',
+    image_url VARCHAR(255) NOT NULL DEFAULT '',
+    link_url VARCHAR(255) NULL,
+    content TEXT NULL,
+    start_at DATETIME NULL,
+    end_at DATETIME NULL,
+    hide_days INT UNSIGNED NOT NULL DEFAULT 1,
+    sort_order INT NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    KEY idx_event_popups_active_sort (is_active, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS user_editor_workspaces (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    title VARCHAR(200) NOT NULL DEFAULT '',
+    document_json LONGTEXT NOT NULL,
+    ui_json MEDIUMTEXT NULL,
+    preview_path VARCHAR(500) NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    KEY idx_user_editor_workspaces_updated (updated_at),
+    KEY idx_user_editor_workspaces_user_updated (user_id, updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS user_ai_cliparts (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    title VARCHAR(200) NOT NULL DEFAULT '',
+    prompt TEXT NULL,
+    image_url VARCHAR(500) NOT NULL,
+    file_name VARCHAR(180) NULL,
+    review_status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    review_note VARCHAR(500) NULL,
+    reviewed_at DATETIME NULL,
+    reviewed_by BIGINT UNSIGNED NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    KEY idx_user_ai_cliparts_user (user_id, id),
+    KEY idx_user_ai_cliparts_status (review_status, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS label_templates (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    slug VARCHAR(80) NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    tags VARCHAR(255) NULL,
+    description VARCHAR(500) NULL,
+    tone VARCHAR(16) NOT NULL DEFAULT '#7B2840',
+    paper_no VARCHAR(40) NULL,
+    paper_w_mm DECIMAL(8,2) NOT NULL DEFAULT 70.00,
+    paper_h_mm DECIMAL(8,2) NOT NULL DEFAULT 36.00,
+    paper_shape VARCHAR(20) NOT NULL DEFAULT 'rect',
+    document_json LONGTEXT NOT NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uk_label_templates_slug (slug),
+    KEY idx_label_templates_cat (category, is_active, sort_order),
+    KEY idx_label_templates_active (is_active, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS faq_categories (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    slug VARCHAR(100) NOT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uk_faq_categories_slug (slug),
+    KEY idx_faq_categories_active_sort (is_active, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS faqs (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    category_id BIGINT UNSIGNED NOT NULL,
+    question VARCHAR(300) NOT NULL,
+    answer MEDIUMTEXT NOT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    KEY idx_faqs_category (category_id, is_active, sort_order),
+    KEY idx_faqs_active_sort (is_active, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS ai_example_prompts (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    label VARCHAR(40) NOT NULL,
+    prompt_text VARCHAR(500) NOT NULL,
+    surface VARCHAR(16) NOT NULL DEFAULT 'both',
+    sort_order INT NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    KEY idx_ai_example_prompts_active_sort (is_active, surface, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS ai_usage_logs (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    surface VARCHAR(16) NOT NULL DEFAULT 'unknown',
+    intent VARCHAR(32) NULL,
+    agent VARCHAR(32) NULL,
+    difficulty VARCHAR(16) NULL,
+    model VARCHAR(80) NULL,
+    prompt_tokens INT UNSIGNED NULL,
+    completion_tokens INT UNSIGNED NULL,
+    total_tokens INT UNSIGNED NULL,
+    cost_usd DECIMAL(12,6) NULL,
+    cost_krw DECIMAL(14,4) NULL,
+    has_image TINYINT(1) NOT NULL DEFAULT 0,
+    clipart_id BIGINT UNSIGNED NULL,
+    status VARCHAR(16) NOT NULL DEFAULT 'ok',
+    error_message VARCHAR(255) NULL,
+    created_at DATETIME NULL,
+    KEY idx_ai_usage_created (created_at),
+    KEY idx_ai_usage_user_created (user_id, created_at),
+    KEY idx_ai_usage_intent (intent, created_at),
+    KEY idx_ai_usage_surface (surface, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS admin_favorites (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    admin_user_id BIGINT UNSIGNED NOT NULL,
+    slot TINYINT UNSIGNED NOT NULL,
+    menu_key VARCHAR(64) NOT NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uk_admin_fav_slot (admin_user_id, slot),
+    UNIQUE KEY uk_admin_fav_menu (admin_user_id, menu_key),
+    KEY idx_admin_fav_user (admin_user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS admin_alert_cursors (
+    admin_user_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+    last_seen_order_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    last_seen_inquiry_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    updated_at DATETIME NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS user_inquiries (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NULL,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(190) NOT NULL,
+    subject VARCHAR(200) NOT NULL,
+    content TEXT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'open',
+    admin_memo TEXT NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    KEY idx_user_inquiries_status (status),
+    KEY idx_user_inquiries_created (created_at),
+    KEY idx_user_inquiries_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS admin_menu_permissions (
+    admin_user_id BIGINT UNSIGNED NOT NULL,
+    menu_key VARCHAR(64) NOT NULL,
+    created_at DATETIME NULL,
+    PRIMARY KEY (admin_user_id, menu_key),
+    KEY idx_admin_menu_perm_key (menu_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS seo_settings (
+    setting_key VARCHAR(80) NOT NULL,
+    setting_value MEDIUMTEXT NULL,
+    updated_at DATETIME NULL,
+    PRIMARY KEY (setting_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS seo_pages (
+    page_key VARCHAR(80) NOT NULL,
+    label VARCHAR(80) NOT NULL,
+    path_pattern VARCHAR(180) NOT NULL,
+    title VARCHAR(180) NULL,
+    description TEXT NULL,
+    keywords VARCHAR(500) NULL,
+    og_title VARCHAR(180) NULL,
+    og_description TEXT NULL,
+    og_image VARCHAR(500) NULL,
+    og_type VARCHAR(40) NULL,
+    robots VARCHAR(80) NULL,
+    canonical_path VARCHAR(255) NULL,
+    noindex TINYINT(1) NOT NULL DEFAULT 0,
+    sitemap_include TINYINT(1) NOT NULL DEFAULT 1,
+    sitemap_changefreq VARCHAR(20) NOT NULL DEFAULT 'weekly',
+    sitemap_priority DECIMAL(2,1) NOT NULL DEFAULT 0.5,
+    extra_head TEXT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    updated_at DATETIME NULL,
+    PRIMARY KEY (page_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS marketing_files (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    filename VARCHAR(180) NOT NULL,
+    content MEDIUMTEXT NOT NULL,
+    file_kind VARCHAR(20) NOT NULL DEFAULT 'html',
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uk_marketing_files_name (filename)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;

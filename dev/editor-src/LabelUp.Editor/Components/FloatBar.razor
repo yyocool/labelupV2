@@ -17,26 +17,16 @@
 
     private void BringForward()
     {
-        var list = Session.CurrentCell.Objects;
-        var i = list.FindIndex(x => x.Id == Session.SelectedId);
-        if (i < 0 || i >= list.Count - 1) return;
+        if (Session.SelectedIds.Count == 0) return;
         History.Push(Session.Document);
-        (list[i], list[i + 1]) = (list[i + 1], list[i]);
-        list[i].ZIndex++;
-        Session.Dirty = true;
-        Session.Notify();
+        Session.BringSelectionForward();
     }
 
     private void SendBackward()
     {
-        var list = Session.CurrentCell.Objects;
-        var i = list.FindIndex(x => x.Id == Session.SelectedId);
-        if (i <= 0) return;
+        if (Session.SelectedIds.Count == 0) return;
         History.Push(Session.Document);
-        (list[i], list[i - 1]) = (list[i - 1], list[i]);
-        list[i].ZIndex--;
-        Session.Dirty = true;
-        Session.Notify();
+        Session.SendSelectionBackward();
     }
 
     private void Duplicate()

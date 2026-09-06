@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>라벨업 소셜 로그인 검수·운영 전환 요청서</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f4f1ec;
+      --card: #fffdf9;
+      --ink: #1f2430;
+      --muted: #5c6475;
+      --line: #e7e0d6;
+      --accent: #7b2840;
+      --naver: #03c75a;
+      --kakao: #fee500;
+      --google: #4285f4;
+      --ok: #0f7a45;
+      --warn: #9a5b00;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Pretendard, "Apple SD Gothic Neo", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(900px 420px at 10% -10%, rgba(123,40,64,.12), transparent 60%),
+        radial-gradient(700px 380px at 100% 0%, rgba(66,133,244,.08), transparent 55%),
+        var(--bg);
+      line-height: 1.65;
+    }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 40px 20px 80px; }
+    .hero {
+      padding: 28px 28px 24px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: linear-gradient(165deg, #fff 0%, var(--card) 100%);
+      box-shadow: 0 18px 40px rgba(40, 30, 20, .06);
+    }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 800; letter-spacing: .04em;
+      color: var(--accent); text-transform: uppercase;
+    }
+    h1 { margin: 10px 0 8px; font-size: clamp(26px, 4vw, 38px); line-height: 1.25; letter-spacing: -.02em; }
+    .lead { margin: 0; color: var(--muted); font-size: 16px; max-width: 68ch; }
+    .meta {
+      margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px;
+    }
+    .chip {
+      font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 999px;
+      background: #fff; border: 1px solid var(--line); color: var(--muted);
+    }
+    .summary {
+      display: grid; gap: 12px;
+      grid-template-columns: repeat(3, 1fr);
+      margin-top: 22px;
+    }
+    .summary article {
+      padding: 14px 14px 12px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+    .summary h2 { margin: 0 0 6px; font-size: 14px; }
+    .summary p { margin: 0; font-size: 12px; color: var(--muted); }
+    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .dot.naver { background: var(--naver); }
+    .dot.kakao { background: var(--kakao); border: 1px solid #d6bd00; }
+    .dot.google { background: var(--google); }
+
+    .section { margin-top: 28px; }
+    .section > h2 {
+      margin: 0 0 12px;
+      font-size: 22px;
+      letter-spacing: -.02em;
+    }
+    .section > h3 {
+      margin: 18px 0 8px;
+      font-size: 16px;
+    }
+    .note {
+      padding: 14px 16px;
+      border-left: 4px solid var(--accent);
+      background: rgba(123,40,64,.06);
+      border-radius: 0 14px 14px 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .note.warn { border-left-color: #c47b00; background: #fff6e6; }
+    .note.ok { border-left-color: var(--ok); background: #f3fbf6; }
+    .note strong { color: var(--ink); }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .box {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+    }
+    .box h3 { margin: 0 0 8px; font-size: 14px; }
+    .box ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 14px; }
+    .box li + li { margin-top: 5px; }
+    .who { font-size: 11px; font-weight: 800; letter-spacing: .03em; color: var(--accent); }
+
+    .card {
+      margin-top: 16px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .card-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #fff, #faf7f2);
+    }
+    .card-head h3 { margin: 0; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+    .badge {
+      font-size: 11px; font-weight: 800; padding: 4px 8px; border-radius: 999px;
+      background: #f3ece4; color: var(--muted);
+    }
+    .steps { padding: 8px 8px 16px; }
+    .step {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 12px;
+      padding: 14px 12px;
+      border-radius: 16px;
+    }
+    .step + .step { margin-top: 4px; }
+    .num {
+      width: 42px; height: 42px; border-radius: 14px;
+      display: grid; place-items: center;
+      font-weight: 800; color: #fff;
+      background: var(--accent);
+    }
+    .step.naver .num { background: var(--naver); }
+    .step.kakao .num { background: #3c1e1e; color: var(--kakao); }
+    .step.google .num { background: var(--google); }
+    .step h4 { margin: 0 0 4px; font-size: 15px; }
+    .step p, .step li { margin: 0; color: var(--muted); font-size: 14px; }
+    .step ul { margin: 8px 0 0; padding-left: 18px; }
+    .step li + li { margin-top: 4px; }
+    code, .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12.5px;
+      background: #f3f0ea;
+      padding: 2px 6px;
+      border-radius: 6px;
+      word-break: break-all;
+    }
+    a { color: var(--accent); font-weight: 700; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      background: #fff;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+    }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: #faf7f2; color: var(--muted); font-size: 12px; }
+    tr:last-child td { border-bottom: 0; }
+    .need { color: var(--accent); font-weight: 800; }
+    .dev { color: var(--ok); font-weight: 700; }
+
+    .checklist { display: grid; gap: 8px; margin-top: 12px; }
+    .checklist label {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff;
+      font-size: 14px;
+    }
+    .checklist input { margin-top: 3px; }
+
+    .copy-box {
+      margin-top: 28px;
+      padding: 20px;
+      border-radius: 20px;
+      border: 1px dashed #c9b8a8;
+      background: #fffaf3;
+    }
+    .copy-box h2 { margin: 0 0 8px; font-size: 18px; }
+    .copy-box p { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+    textarea {
+      width: 100%;
+      min-height: 260px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: #fff;
+      color: var(--ink);
+    }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    button {
+      border: 0; border-radius: 12px; padding: 12px 16px;
+      background: var(--accent); color: #fff; font-weight: 800; cursor: pointer;
+    }
+    button.secondary { background: #2a2d3a; }
+    .hint { font-size: 12px; color: var(--warn); margin-top: 8px; }
+
+    @media (max-width: 760px) {
+      .summary, .split { grid-template-columns: 1fr; }
+      .wrap { padding: 24px 14px 60px; }
+      .hero { padding: 20px; }
+    }
+    @media print {
+      body { background: #fff; }
+      .actions, button { display: none !important; }
+      .hero, .card, .box { box-shadow: none; }
+      .wrap { padding: 0; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="eyebrow">LabelUp · Client Request</div>
+      <h1>소셜 로그인 실서비스 전환<br>고객사 요청 사항</h1>
+      <p class="lead">
+        개발 연동은 완료되었습니다. 지금은 각 플랫폼이 <strong>개발/테스트 모드</strong>라서
+        등록된 계정만 로그인됩니다. <strong>모든 회원이 네이버·카카오·구글로 가입/로그인</strong>하려면
+        아래 검수·게시를 <strong>고객사 담당자(콘솔 권한 보유자)</strong>가 진행해 주셔야 합니다.
+      </p>
+      <div class="meta">
+        <span class="chip">대상 서비스: 라벨업</span>
+        <span class="chip">운영: https://www.labelup.co.kr</span>
+        <span class="chip">개발: http://labelupdev.gagamkorea.kr</span>
+      </div>
+      <div class="summary">
+        <article>
+          <h2><span class="dot naver"></span> 네이버</h2>
+          <p>개발 중 → 검수 요청 → 서비스 적용</p>
+        </article>
+        <article>
+          <h2><span class="dot kakao"></span> 카카오</h2>
+          <p>비즈앱 전환 + 동의항목 검수</p>
+        </article>
+        <article>
+          <h2><span class="dot google"></span> 구글</h2>
+          <p>OAuth 동의 화면 프로덕션 게시</p>
+        </article>
+      </div>
+    </header>
+
+    <section class="section">
+      <h2>1. 역할 구분</h2>
+      <div class="split">
+        <div class="box">
+          <div class="who">CUSTOMER</div>
+          <h3>고객사에서 해 주실 일</h3>
+          <ul>
+            <li>네이버·카카오·구글 개발자 콘솔 로그인 (앱 소유 계정)</li>
+            <li>사업자·로고·약관 URL 등 검수 자료 준비</li>
+            <li>각 플랫폼 검수 신청 / 프로덕션 게시</li>
+            <li>검수 보완 요청이 오면 회신</li>
+            <li>완료 후 상태(또는 운영용 키)를 개발사에 회신</li>
+          </ul>
+        </div>
+        <div class="box">
+          <div class="who">DEVELOPER</div>
+          <h3>개발사에서 이미 한 일 / 이어서 할 일</h3>
+          <ul>
+            <li>로그인·회원가입 화면과 콜백 연동 완료</li>
+            <li>개발 서버에 네이버·구글 키 적용 완료</li>
+            <li>콜백 URL 안내 및 서버 반영</li>
+            <li>검수 통과 후 운영 서버 <code>.env</code> 적용</li>
+            <li>운영 도메인에서 실로그인 점검</li>
+          </ul>
+        </div>
+      </div>
+      <div class="note warn" style="margin-top:14px">
+        <strong>지금 막히는 현상:</strong> 네이버 앱 <code>labelup_dev</code>가 <strong>개발 중</strong> 상태입니다.
+        개발 중에는 콘솔에 등록한 네이버 아이디만 로그인됩니다. 일반 회원 오픈은 검수 통과가 필요합니다.
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>2. 세 곳 공통으로 미리 준비할 자료</h2>
+      <p class="note">검수 화면에서 빠지면 반려되는 항목입니다. 운영 사이트(<code>https://www.labelup.co.kr</code>) 기준으로 준비해 주세요. 가능하면 <strong>https</strong> 주소만 사용합니다.</p>
+      <div class="note warn" style="margin-top:12px">
+        <strong>약관 URL은 지금 검수에 바로 쓸 수 없습니다.</strong>
+        내용은 관리자 운영설정에 있으나, 공개 주소는 <code>/api/legal/privacy</code>, <code>/api/legal/terms</code>처럼 JSON만 내려줍니다.
+        네이버·카카오·구글은 사람이 읽는 웹페이지를 요구하므로, 고객사에서 문구를 확정해 주시면 개발사가
+        <code>https://www.labelup.co.kr/legal/privacy</code>,
+        <code>https://www.labelup.co.kr/legal/terms</code>
+        형태의 공개 HTML을 만들어 드리겠습니다. 이미 회사 홈페이지에 약관이 있으면 그 URL을 쓰셔도 됩니다.
+      </div>
+      <table>
+        <thead>
+          <tr><th>자료</th><th>용도</th><th>담당</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>사업자등록증 / 사업자등록번호</td>
+            <td>카카오 비즈앱, 네이버 검수, 구글 개발자 정보</td>
+            <td class="need">고객사</td>
+          </tr>
+          <tr>
+            <td>서비스 공식 로고 (PNG, 배경 없는 정사각 권장)</td>
+            <td>앱 아이콘·검수 제출용. 최소 512×512 권장</td>
+            <td class="need">고객사</td>
+          </tr>
+          <tr>
+            <td>서비스명·한 줄 소개</td>
+            <td>예: 라벨업 — 라벨 디자인·출력 서비스</td>
+            <td class="need">고객사</td>
+          </tr>
+          <tr>
+            <td>대표 홈페이지</td>
+            <td><code>https://www.labelup.co.kr</code></td>
+            <td class="dev">확정</td>
+          </tr>
+          <tr>
+            <td>개인정보 처리방침 URL</td>
+            <td>로그인 없이 열리는 <strong>HTML 페이지</strong>. JSON API는 반려됩니다</td>
+            <td class="need">고객사 (내용 확정)</td>
+          </tr>
+          <tr>
+            <td>이용약관 URL</td>
+            <td>네이버·구글 검수/게시에 필요. 동일하게 공개 HTML</td>
+            <td class="need">고객사 (내용 확정)</td>
+          </tr>
+          <tr>
+            <td>고객지원 이메일 / 담당자 연락처</td>
+            <td>콘솔 개발자 연락처, 검수 보완 회신</td>
+            <td class="need">고객사</td>
+          </tr>
+          <tr>
+            <td>개인정보 이용 목적 문구</td>
+            <td>「회원 식별 및 로그인, 주문·작업공간 연결」</td>
+            <td class="dev">초안 제공</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <h2>3. 네이버 — 검수 통과 (서비스 적용)</h2>
+      <div class="card">
+        <div class="card-head">
+          <h3><span class="dot naver"></span> developers.naver.com</h3>
+          <span class="badge">현재: 개발 중 · 등록 아이디만 로그인</span>
+        </div>
+        <div class="steps">
+          <div class="step naver">
+            <div class="num">1</div>
+            <div>
+              <h4>애플리케이션 확인</h4>
+              <p><a href="https://developers.naver.com/apps/#/list" target="_blank" rel="noopener">내 애플리케이션</a>에서 <code>labelup_dev</code>를 엽니다. 운영 오픈용이면 앱 이름을 <strong>라벨업</strong>으로 바꾸거나, 운영 전용 앱을 새로 만드는 것을 권장합니다.</p>
+            </div>
+          </div>
+          <div class="step naver">
+            <div class="num">2</div>
+            <div>
+              <h4>서비스 URL / Callback 재확인</h4>
+              <ul>
+                <li>서비스 URL: <code>https://www.labelup.co.kr</code> (개발 도메인도 유지 가능)</li>
+                <li>Callback: <code>https://www.labelup.co.kr/auth/naver/callback</code></li>
+                <li>개발용: <code>http://labelupdev.gagamkorea.kr/auth/naver/callback</code></li>
+              </ul>
+            </div>
+          </div>
+          <div class="step naver">
+            <div class="num">3</div>
+            <div>
+              <h4>제공 정보(동의항목)</h4>
+              <p>회원이름, <strong>이메일</strong>을 사용합니다. 이메일 미제공 시 자동 가입이 불완전해집니다. 사용 목적에는 아래를 적어 주세요.</p>
+              <p style="margin-top:8px"><code>회원 식별, 로그인, 주문·라벨 작업공간 연결</code></p>
+            </div>
+          </div>
+          <div class="step naver">
+            <div class="num">4</div>
+            <div>
+              <h4>서비스 정보 입력</h4>
+              <ul>
+                <li>서비스 로고, 카테고리, 서비스 소개</li>
+                <li>개인정보 처리방침 URL, 이용약관 URL</li>
+                <li>고객센터 연락처</li>
+              </ul>
+            </div>
+          </div>
+          <div class="step naver">
+            <div class="num">5</div>
+            <div>
+              <h4>검수 요청</h4>
+              <p>애플리케이션 상세에서 <strong>검수 요청 / 서비스 적용</strong>을 제출합니다. 통과 전에는 테스트 계정만 됩니다. 검수에는 보통 수일~2주가 걸립니다.</p>
+            </div>
+          </div>
+          <div class="step naver">
+            <div class="num">6</div>
+            <div>
+              <h4>검수 전까지 내부 테스트</h4>
+              <p>멤버관리(또는 테스트 계정)에 담당자 네이버 아이디를 등록하면, 검수 전에도 그 계정으로는 로그인할 수 있습니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>4. 카카오 — 비즈앱 + 동의항목 검수</h2>
+      <div class="card">
+        <div class="card-head">
+          <h3><span class="dot kakao"></span> developers.kakao.com</h3>
+          <span class="badge">REST API 키 전달 후 버튼 활성화</span>
+        </div>
+        <div class="steps">
+          <div class="step kakao">
+            <div class="num">1</div>
+            <div>
+              <h4>앱 키 확인 (아직 미전달)</h4>
+              <p>앱 설정 → 앱 키에서 <strong>REST API 키</strong>를 복사해 개발사에 보내 주세요. JavaScript 키가 아닙니다. Client Secret도 사용 중이면 함께 보내 주세요.</p>
+            </div>
+          </div>
+          <div class="step kakao">
+            <div class="num">2</div>
+            <div>
+              <h4>비즈 앱 전환</h4>
+              <ul>
+                <li>앱 설정 → 비즈니스에서 <strong>사업자 정보 등록</strong></li>
+                <li>사업자등록번호로 카카오 비즈니스 채널/비즈앱 연결</li>
+                <li>일반 앱 상태로는 실서비스 검수가 제한되는 경우가 많습니다</li>
+              </ul>
+            </div>
+          </div>
+          <div class="step kakao">
+            <div class="num">3</div>
+            <div>
+              <h4>카카오 로그인 · Redirect URI</h4>
+              <ul>
+                <li>제품 설정 → 카카오 로그인 → 활성화 ON</li>
+                <li><code>https://www.labelup.co.kr/auth/kakao/callback</code></li>
+                <li><code>http://labelupdev.gagamkorea.kr/auth/kakao/callback</code></li>
+              </ul>
+            </div>
+          </div>
+          <div class="step kakao">
+            <div class="num">4</div>
+            <div>
+              <h4>동의 항목</h4>
+              <ul>
+                <li>닉네임: 필수 또는 선택</li>
+                <li><strong>카카오계정(이메일)</strong>: 필수 권장. 필수로 두면 검수 대상이 됩니다</li>
+                <li>개인정보 처리방침 URL 등록</li>
+              </ul>
+            </div>
+          </div>
+          <div class="step kakao">
+            <div class="num">5</div>
+            <div>
+              <h4>동의항목 검수 제출</h4>
+              <p>카카오 로그인 → 동의 항목에서 <strong>검수 요청</strong>을 올립니다. 서비스 설명, 이메일이 필요한 이유, 실제 동작 화면(로그인 버튼·동의창) 캡처를 첨부하면 통과가 빠릅니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>5. 구글 — OAuth 동의 화면 프로덕션 게시</h2>
+      <div class="card">
+        <div class="card-head">
+          <h3><span class="dot google"></span> console.cloud.google.com</h3>
+          <span class="badge">테스트 모드면 테스트 사용자만 로그인</span>
+        </div>
+        <div class="steps">
+          <div class="step google">
+            <div class="num">1</div>
+            <div>
+              <h4>OAuth 동의 화면 열기</h4>
+              <p><a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" rel="noopener">API 및 서비스 → OAuth 동의 화면</a>. User Type은 <strong>외부</strong>입니다.</p>
+            </div>
+          </div>
+          <div class="step google">
+            <div class="num">2</div>
+            <div>
+              <h4>앱 정보 입력</h4>
+              <ul>
+                <li>앱 이름: 라벨업</li>
+                <li>사용자 지원 이메일, 개발자 연락처 이메일</li>
+                <li>앱 로고 (권장)</li>
+                <li>앱 도메인: <code>labelup.co.kr</code></li>
+                <li>홈페이지: <code>https://www.labelup.co.kr</code></li>
+                <li>개인정보처리방침 / 이용약관 URL (https)</li>
+              </ul>
+            </div>
+          </div>
+          <div class="step google">
+            <div class="num">3</div>
+            <div>
+              <h4>범위(Scopes) 확인</h4>
+              <p>현재 연동은 <code>openid</code>, <code>email</code>, <code>profile</code>만 사용합니다. 민감 범위가 아니라 브랜드 전체 검증 없이 <strong>프로덕션 게시</strong>가 가능합니다. 미인증 앱은 처음 로그인 시 경고가 뜰 수 있으나, 게시 후 일반 계정으로 진행됩니다.</p>
+            </div>
+          </div>
+          <div class="step google">
+            <div class="num">4</div>
+            <div>
+              <h4>리디렉션 URI 확인</h4>
+              <ul>
+                <li><code>https://www.labelup.co.kr/auth/google/callback</code></li>
+                <li><code>http://labelupdev.gagamkorea.kr/auth/google/callback</code></li>
+              </ul>
+            </div>
+          </div>
+          <div class="step google">
+            <div class="num">5</div>
+            <div>
+              <h4>게시(Publish)</h4>
+              <p>동의 화면 상태가 <strong>테스트</strong>이면 테스트 사용자만 됩니다. <strong>프로덕션으로 게시</strong>를 눌러 게시 완료로 바꿉니다. 게시 전 내부 확인용으로만 쓰려면 테스트 사용자에 담당자 지메일을 추가하면 됩니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>6. 검수 통과 후 개발사에 회신할 내용</h2>
+      <div class="note ok">키를 새로 발급하지 않았고 상태만 바뀌었다면, 아래 체크만 보내 주셔도 됩니다. 운영 전용 앱을 새로 만들었다면 Client ID/Secret을 다시 보내 주세요.</div>
+      <div class="checklist">
+        <label><input type="checkbox"> 네이버: 검수 통과(또는 서비스 적용) 완료</label>
+        <label><input type="checkbox"> 카카오: REST API 키 전달 + 비즈앱 + 동의항목 검수 완료</label>
+        <label><input type="checkbox"> 구글: OAuth 동의 화면 프로덕션 게시 완료</label>
+        <label><input type="checkbox"> 운영 콜백 3개가 그대로인지 재확인했다</label>
+        <label><input type="checkbox"> (해당 시) 운영 전용 앱의 새 키를 개발사에 전달했다</label>
+      </div>
+    </section>
+
+    <section class="copy-box">
+      <h2>고객사 → 개발사 회신 템플릿</h2>
+      <p>검수/게시 진행 후 빈칸만 채워 보내 주세요.</p>
+      <textarea id="msgTpl" readonly>[소셜 로그인 운영 전환 회신]
+
+1) 네이버
+상태: 검수 신청 / 검수 중 / 통과 (택1)
+앱 이름:
+비고:
+
+2) 카카오
+상태: 비즈앱 전환 / 검수 신청 / 통과 (택1)
+KAKAO_REST_API_KEY=
+KAKAO_CLIENT_SECRET=
+비고:
+
+3) 구글
+상태: 테스트 / 프로덕션 게시 완료 (택1)
+비고:
+
+4) 약관 URL (https)
+개인정보 처리방침:
+이용약관:
+
+5) 운영 전용 앱을 새로 만든 경우
+NAVER_CLIENT_ID=
+NAVER_CLIENT_SECRET=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+</textarea>
+      <div class="actions">
+        <button type="button" id="copyBtn">템플릿 복사</button>
+        <button type="button" class="secondary" id="printBtn">인쇄 / PDF 저장</button>
+      </div>
+      <p class="hint" id="copyHint" hidden>복사되었습니다. 메일이나 메신저에 붙여넣기 하세요.</p>
+    </section>
+
+    <section class="section">
+      <div class="note">
+        <strong>개발사 참고:</strong> 검수·게시는 콘솔 소유자만 할 수 있습니다. 통과 확인이 오면 운영 서버
+        <code>APP_URL=https://www.labelup.co.kr</code> 과 소셜 키를 넣고 실로그인을 점검합니다.
+        이 파일은 독립 문서이며 서비스 메뉴와 연결되어 있지 않습니다.
+      </div>
+    </section>
+  </div>
+  <script>
+    document.getElementById('copyBtn').addEventListener('click', async () => {
+      const text = document.getElementById('msgTpl').value;
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch (e) {
+        const el = document.getElementById('msgTpl');
+        el.focus();
+        el.select();
+        document.execCommand('copy');
+      }
+      const hint = document.getElementById('copyHint');
+      hint.hidden = false;
+      setTimeout(() => { hint.hidden = true; }, 2500);
+    });
+    document.getElementById('printBtn').addEventListener('click', () => window.print());
+  </script>
+</body>
+</html>
