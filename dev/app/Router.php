@@ -224,6 +224,7 @@ final class Router
         $router->post('/api/auth/login', [$authApi, 'login']);
         $router->post('/api/auth/logout', [$authApi, 'logout']);
         $router->get('/api/auth/me', [$authApi, 'me']);
+        $router->get('/api/auth/oauth', [$authApi, 'oauthProviders']);
         $router->get('/api/credit/me', [$creditApi, 'me']);
         $router->get('/api/auth/check-email', [$authApi, 'checkEmail']);
         $router->post('/api/auth/profile', [$authApi, 'updateProfile']);

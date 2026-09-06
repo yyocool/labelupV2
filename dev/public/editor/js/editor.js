@@ -3020,8 +3020,52 @@ window.labelUpEditor = {
   showSaveAuthPrompt: function () {
     var self = this;
     return new Promise(function (resolve) {
+      (async function () {
       var existing = document.getElementById('lu-save-auth-gate');
       if (existing) existing.remove();
+
+      var oauthEnabled = { naver: true, kakao: true, google: true };
+      try {
+        var oauthRes = await fetch(self.apiUrl('/api/auth/oauth'), {
+          method: 'GET',
+          credentials: 'same-origin',
+          headers: { 'Accept': 'application/json' }
+        });
+        var oauthJson = await oauthRes.json().catch(function () { return null; });
+        if (oauthJson && oauthJson.data) {
+          oauthEnabled.naver = !!oauthJson.data.naver;
+          oauthEnabled.kakao = !!oauthJson.data.kakao;
+          oauthEnabled.google = !!oauthJson.data.google;
+        }
+      } catch (e) { /* keep defaults */ }
+
+      var returnPath = '/editor/';
+      try {
+        returnPath = window.location.pathname + window.location.search;
+        if (!returnPath || returnPath.charAt(0) !== '/') returnPath = '/editor/';
+      } catch (e) { /* ignore */ }
+      var redirectQ = '?redirect=' + encodeURIComponent(returnPath);
+      var divider = '<div class="lu-auth-gate__divider"><span>또는</span></div>';
+      var socialHtml = function (mode) {
+        var verb = mode === 'register' ? '가입' : '로그인';
+        var row = mode === 'register' ? ' lu-auth-gate__social--row' : '';
+        var compact = mode === 'register' ? ' lu-auth-gate__social-btn--compact' : '';
+        var providers = [
+          { key: 'naver', label: '네이버로 ' + verb, icon: '/assets/icon-naver.svg' },
+          { key: 'kakao', label: '카카오로 ' + verb, icon: '/assets/icon-kakao.svg' },
+          { key: 'google', label: '구글로 ' + verb, icon: '/assets/icon-google.svg' }
+        ];
+        return '<div class="lu-auth-gate__social' + row + '">' + providers.map(function (p) {
+          if (oauthEnabled[p.key]) {
+            return '<a class="lu-auth-gate__social-btn' + compact + '" href="' + self.apiUrl('/auth/' + p.key) + redirectQ + '">' +
+              '<img src="' + p.icon + '" alt="">' +
+              '<span>' + p.label + '</span></a>';
+          }
+          return '<button type="button" class="lu-auth-gate__social-btn' + compact + '" disabled title="키 설정 후 이용 가능">' +
+            '<img src="' + p.icon + '" alt="">' +
+            '<span>' + p.label + '</span></button>';
+        }).join('') + '</div>';
+      };
 
       var root = document.createElement('div');
       root.id = 'lu-save-auth-gate';
@@ -3049,8 +3093,12 @@ window.labelUpEditor = {
         '    <label>비밀번호<input type="password" name="password" required autocomplete="current-password" placeholder="비밀번호"></label>' +
         '    <p class="lu-auth-gate__error" hidden></p>' +
         '    <button type="submit" class="lu-auth-gate__submit">로그인하고 저장하기</button>' +
+        divider +
+        socialHtml('login') +
         '  </form>' +
         '  <form class="lu-auth-gate__form" data-lu-auth-form="register" hidden>' +
+        socialHtml('register') +
+        divider +
         '    <label>이름<input type="text" name="name" required autocomplete="name" placeholder="이름"></label>' +
         '    <label>이메일<input type="email" name="email" required autocomplete="email" placeholder="you@email.com"></label>' +
         '    <label>비밀번호<input type="password" name="password" required minlength="8" autocomplete="new-password" placeholder="8자 이상"></label>' +
@@ -3121,6 +3169,7 @@ window.labelUpEditor = {
           submitForm(form, form.getAttribute('data-lu-auth-form'));
         });
       });
+      })();
     });
   }
 };

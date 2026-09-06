@@ -3895,6 +3895,8 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   position: relative;
   z-index: 1;
   width: min(420px, 100%);
+  max-height: min(92vh, 820px);
+  overflow-y: auto;
   background: linear-gradient(180deg, #fff 0%, #fbf6f8 100%);
   border-radius: 22px;
   border: 1px solid #eadfe4;
@@ -4033,6 +4035,76 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   box-shadow: 0 10px 22px rgba(123, 40, 64, .28);
 }
 .lu-auth-gate__submit:disabled { opacity: .6; cursor: wait; }
+.lu-auth-gate__divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0 12px;
+  color: #8a7380;
+  font-size: 12px;
+  font-weight: 700;
+}
+.lu-auth-gate__divider::before,
+.lu-auth-gate__divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #eadfe4;
+}
+.lu-auth-gate__social {
+  display: grid;
+  gap: 8px;
+}
+.lu-auth-gate__social--row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.lu-auth-gate__social-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid #e6d8de;
+  border-radius: 12px;
+  background: #fff;
+  color: #3a1f2a;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.lu-auth-gate__social-btn img {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.lu-auth-gate__social-btn:not(:disabled):hover {
+  background: #fbf6f8;
+  border-color: #d4a7b6;
+}
+.lu-auth-gate__social-btn:disabled {
+  opacity: .72;
+  cursor: not-allowed;
+}
+.lu-auth-gate__social-btn--compact {
+  height: 44px;
+  padding: 0 8px;
+  font-size: 12px;
+  gap: 6px;
+}
+.lu-auth-gate__social-btn--compact span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 380px) {
+  .lu-auth-gate__social--row { grid-template-columns: 1fr; }
+}
 .lu-auth-gate__foot {
   margin: 14px 0 0;
   text-align: center;
