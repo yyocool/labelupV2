@@ -259,7 +259,7 @@ html, body {
   align-items: center;
   gap: 8px;
   min-width: 200px;
-  max-width: 460px;
+  max-width: 560px;
 }
 .ed-topbar__file-meta {
   position: relative;
@@ -343,6 +343,41 @@ html[data-ed-save="off"] .ed-autosave {
 }
 html[data-ed-save="off"] .ed-autosave:hover {
   color: rgba(255, 255, 255, 0.7);
+}
+.ed-topbar__labi {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 8px 0 4px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+  box-shadow: none;
+}
+.ed-topbar__labi:hover {
+  background: rgba(255, 255, 255, 0.24);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.ed-topbar__labi img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+}
+.ed-corner-fab--labi.is-parked,
+.ed-float-tools__bar .ed-corner-fab--labi {
+  display: none !important;
 }
 @keyframes edCloudPulse {
   0%, 100% { opacity: 1; transform: scale(1); }
@@ -4418,6 +4453,8 @@ html.is-ed-mobile body {
 .ed.is-mobile .ed-topbar__status,
 .ed.is-mobile .ed-chip--pin { display: none; }
 .ed.is-mobile .ed-autosave { display: inline-flex; }
+.ed.is-mobile .ed-topbar__labi { width: 28px; padding: 0; }
+.ed.is-mobile .ed-topbar__labi span { display: none; }
 .ed.is-mobile .ed-topbar__center {
   flex: 0 0 auto;
   gap: 4px;

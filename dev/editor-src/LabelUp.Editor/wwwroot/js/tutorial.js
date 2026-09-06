@@ -161,9 +161,9 @@
       id: 'labi-fab',
       selector: '[data-tut="labi-fab"]',
       title: '라비AI',
-      description: '우측 하단 라비AI로 원하는 라벨을 말로 만들 수 있어요.',
+      description: '제목 옆 클라우드 저장 다음의 라비AI로 원하는 라벨을 말로 만들 수 있어요.',
       effect: '아이디어만 말해도 초안을 시작할 수 있습니다.',
-      speech: '우측 하단의 라비AI 버튼이에요.',
+      speech: '클라우드 저장 옆의 라비AI 버튼이에요.',
       wait: 2600,
       cursor: true
     },

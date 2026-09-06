@@ -797,6 +797,41 @@ window.labelUpEditor = {
       all.forEach(function (b) { if (b !== keep) b.remove(); });
       return keep;
     };
+    var parkLabi = function (labi) {
+      var row = document.querySelector('.ed-topbar__title-row');
+      var cloud = row && row.querySelector('.ed-autosave');
+      if (!row || !cloud) return;
+      var natives = row.querySelectorAll('.ed-topbar__labi:not([data-ed-labi-proxy])');
+      var proxies = row.querySelectorAll('.ed-topbar__labi[data-ed-labi-proxy]');
+      var header = natives[0] || proxies[0] || null;
+      if (natives.length) {
+        proxies.forEach(function (p) { p.remove(); });
+        header = natives[0];
+      } else if (proxies.length > 1) {
+        for (var i = 1; i < proxies.length; i++) proxies[i].remove();
+      }
+      if (!header) {
+        header = document.createElement('button');
+        header.type = 'button';
+        header.className = 'ed-topbar__labi';
+        header.setAttribute('data-ed-labi-proxy', '1');
+        header.setAttribute('data-tut', 'labi-fab');
+        header.title = '라비와 라벨 만들기';
+        header.setAttribute('aria-label', '라비AI');
+        header.innerHTML = '<img src="/assets/labi-icon.png" alt="" width="18" height="18"><span>라비AI</span>';
+        header.addEventListener('click', function (e) {
+          e.preventDefault();
+          var src = document.querySelector('.ed-corner-fab--labi');
+          if (src) src.click();
+        });
+      }
+      if (cloud.nextElementSibling !== header) cloud.after(header);
+      if (labi && labi !== header) {
+        labi.classList.add('is-parked');
+        labi.removeAttribute('data-tut');
+        labi.setAttribute('aria-hidden', 'true');
+      }
+    };
     var asItem = function (btn) {
       if (!btn) return;
       btn.classList.add('ed-float-tools__item');
@@ -835,10 +870,10 @@ window.labelUpEditor = {
       var labi = pickLast('.ed-corner-fab--labi');
       var vendor = pickLast('.ed-corner-fab--vendor');
       var tut = pickLast('.ed-tut-reopen');
-      asItem(labi);
+      parkLabi(labi);
       asItem(vendor);
       formatTut(tut);
-      var desired = [labi, vendor, tut].filter(Boolean);
+      var desired = [vendor, tut].filter(Boolean);
       if (!desired.length) return;
       var ok = desired.every(function (el, i) {
         return el.parentElement === bar &&
