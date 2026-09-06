@@ -64,6 +64,38 @@
   {
     var hasSel = Session.SelectedIds.Count > 0;
     <div class="ed-ctx" style="@($"left:{_ctxX}px;top:{_ctxY}px")" @onpointerdown:stopPropagation="true" @oncontextmenu:preventDefault="true">
+      @if (_ctxTable is { } table)
+      {
+        table.EnsureTableSize();
+        <div class="ed-ctx__cap">@( _ctxCell is { } loc ? $"표 {loc.Row + 1}행 {loc.Col + 1}열" : "표" )</div>
+        @if (_ctxCell is { } cell)
+        {
+          <label class="ed-ctx__row">
+            이 셀 배경
+            <input type="color" value="@ColorUtil.ToHtmlColor(table.GetTableCellFill(cell.Row, cell.Col), CtxWhite)" @onchange="e => CtxSetCellFill(e)" />
+            <button type="button" class="ed-ctx__clear" @onclick="CtxClearCellFill">지우기</button>
+          </label>
+          <label class="ed-ctx__row">
+            이 행 배경
+            <input type="color" value="@ColorUtil.ToHtmlColor(table.TableRowFills.ElementAtOrDefault(cell.Row), CtxWhite)" @onchange="e => CtxSetRowFill(e)" />
+            <button type="button" class="ed-ctx__clear" @onclick="CtxClearRowFill">지우기</button>
+          </label>
+          <label class="ed-ctx__row">
+            이 열 배경
+            <input type="color" value="@ColorUtil.ToHtmlColor(table.TableColFills.ElementAtOrDefault(cell.Col), CtxWhite)" @onchange="e => CtxSetColFill(e)" />
+            <button type="button" class="ed-ctx__clear" @onclick="CtxClearColFill">지우기</button>
+          </label>
+        }
+        <label class="ed-ctx__row">
+          테두리 색
+          <input type="color" value="@ColorUtil.ToHtmlColor(table.Stroke, CtxBlack)" @onchange="e => CtxSetStroke(e)" />
+        </label>
+        <label class="ed-ctx__row">
+          테두리 굵기
+          <input type="number" min="0.08" max="4" step="0.05" value="@table.TableBorderWidth.ToString("0.##")" @onchange="e => CtxSetBorderWidth(e)" />
+        </label>
+        <div class="ed-ctx__sep"></div>
+      }
       <button type="button" disabled="@(!hasSel)" @onclick="CtxDelete">항목삭제</button>
       <button type="button" disabled="@(!hasSel)" @onclick="CtxCopy">항목 복사</button>
       <button type="button" @onclick="CtxPaste">붙여넣기</button>
@@ -92,6 +124,8 @@
     private float _mx1, _my1, _mx2, _my2;
     private bool _ctxOpen;
     private float _ctxX, _ctxY;
+    private DesignObject? _ctxTable;
+    private (int Row, int Col)? _ctxCell;
     private const float Ruler = EditorSession.RulerPx;
     private const float Gap = EditorSession.RulerGapPx;
 
@@ -201,8 +235,21 @@
     private void OnContextMenu(MouseEventArgs e)
     {
         var p = StagePoint(e);
-        _ctxX = p.X;
-        _ctxY = p.Y;
+        OpenContextAt(p.X, p.Y);
+    }
+
+    private void OpenContextAt(float sx, float sy)
+    {
+        _ctxX = sx;
+        _ctxY = sy;
+        var (dx, dy) = ScreenToDoc(sx, sy);
+        var hit = HitTest.HitObject(Session.CurrentCell.Objects, dx, dy);
+        if (hit != null && !Session.SelectedIds.Contains(hit.Id))
+            Session.Select(hit.Id);
+        _ctxTable = hit is { Type: ObjectType.Table } ? hit
+            : Session.Selected is { Type: ObjectType.Table } selected ? selected
+            : null;
+        _ctxCell = _ctxTable is null ? null : HitTest.HitTableCell(_ctxTable, dx, dy);
         _ctxOpen = true;
     }
 
@@ -570,9 +617,7 @@
         if (e.Button == 2)
         {
             CancelLongPress();
-            _ctxX = _lastX;
-            _ctxY = _lastY;
-            _ctxOpen = true;
+            OpenContextAt(_lastX, _lastY);
             return;
         }
 
@@ -732,6 +777,82 @@
     {
         var delta = e.DeltaY < 0 ? 0.08f : -0.08f;
         Session.SetZoom(Session.Zoom + delta);
+    }
+
+    private const string CtxWhite = "#ffffff";
+    private const string CtxBlack = "#000000";
+
+    private void CtxSetCellFill(ChangeEventArgs e)
+    {
+        if (_ctxTable is null || _ctxCell is not { } cell) return;
+        History.Push(Session.Document);
+        _ctxTable.SetTableCellFill(cell.Row, cell.Col, ColorUtil.ToHtmlColor(e.Value?.ToString(), "#ffffff"));
+        Session.Dirty = true;
+        Session.Notify();
+    }
+
+    private void CtxClearCellFill()
+    {
+        if (_ctxTable is null || _ctxCell is not { } cell) return;
+        History.Push(Session.Document);
+        _ctxTable.SetTableCellFill(cell.Row, cell.Col, null);
+        Session.Dirty = true;
+        Session.Notify();
+    }
+
+    private void CtxSetRowFill(ChangeEventArgs e)
+    {
+        if (_ctxTable is null || _ctxCell is not { } cell) return;
+        History.Push(Session.Document);
+        _ctxTable.SetTableRowFill(cell.Row, ColorUtil.ToHtmlColor(e.Value?.ToString(), "#ffffff"));
+        Session.Dirty = true;
+        Session.Notify();
+    }
+
+    private void CtxClearRowFill()
+    {
+        if (_ctxTable is null || _ctxCell is not { } cell) return;
+        History.Push(Session.Document);
+        _ctxTable.SetTableRowFill(cell.Row, null);
+        Session.Dirty = true;
+        Session.Notify();
+    }
+
+    private void CtxSetColFill(ChangeEventArgs e)
+    {
+        if (_ctxTable is null || _ctxCell is not { } cell) return;
+        History.Push(Session.Document);
+        _ctxTable.SetTableColFill(cell.Col, ColorUtil.ToHtmlColor(e.Value?.ToString(), "#ffffff"));
+        Session.Dirty = true;
+        Session.Notify();
+    }
+
+    private void CtxClearColFill()
+    {
+        if (_ctxTable is null || _ctxCell is not { } cell) return;
+        History.Push(Session.Document);
+        _ctxTable.SetTableColFill(cell.Col, null);
+        Session.Dirty = true;
+        Session.Notify();
+    }
+
+    private void CtxSetStroke(ChangeEventArgs e)
+    {
+        if (_ctxTable is null) return;
+        History.Push(Session.Document);
+        _ctxTable.Stroke = ColorUtil.ToHtmlColor(e.Value?.ToString(), "#000000");
+        Session.Dirty = true;
+        Session.Notify();
+    }
+
+    private void CtxSetBorderWidth(ChangeEventArgs e)
+    {
+        if (_ctxTable is null) return;
+        if (!float.TryParse(e.Value?.ToString(), out var w)) return;
+        History.Push(Session.Document);
+        _ctxTable.TableBorderWidth = Math.Clamp(w, 0.08f, 4f);
+        Session.Dirty = true;
+        Session.Notify();
     }
 
     private void CtxDelete()

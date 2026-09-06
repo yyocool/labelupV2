@@ -221,6 +221,44 @@ public sealed class LabelDocument
             AddPage();
     }
 
+    public int EnsureCustomSerialLabels(IReadOnlyList<DesignObject> prototype)
+    {
+        EnsureStructure();
+        var total = CustomTextFormats.TotalLabels(prototype);
+        if (total <= 0) return 0;
+        var per = Math.Max(1, Paper.LabelsPerPage);
+        var pages = Math.Max(1, (int)Math.Ceiling(total / (double)per));
+        while (Pages.Count < pages)
+            AddPage();
+        while (Pages.Count > pages)
+            Pages.RemoveAt(Pages.Count - 1);
+        for (var i = 0; i < Pages.Count; i++)
+            Pages[i].Index = i;
+
+        var copies = prototype.Select(o => o.Clone()).ToList();
+        var index = 0;
+        foreach (var page in Pages)
+        {
+            page.EnsureCellCount(per);
+            foreach (var cell in page.Cells)
+            {
+                if (index < total)
+                {
+                    cell.Objects = copies.Select(o =>
+                    {
+                        var c = o.Clone();
+                        c.Id = Guid.NewGuid().ToString("N");
+                        return c;
+                    }).ToList();
+                }
+                else
+                    cell.Objects.Clear();
+                index++;
+            }
+        }
+        return total;
+    }
+
     public void EnsurePagesForData()
     {
         EnsureStructure();

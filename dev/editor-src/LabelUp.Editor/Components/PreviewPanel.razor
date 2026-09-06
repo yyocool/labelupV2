@@ -34,8 +34,9 @@
             {
               var idx = slot.Index;
               var url = ThumbAt(idx);
+              var shaped = slot.Shape?.Kind == "svg" || Session.Document.Paper.Shape.Kind is "svg" or "ellipse" or "circle";
               <button type="button"
-                      class="ed-preview__cell @(IsRound ? "is-round" : null) @(idx == Session.LabelIndex ? "is-selected" : null)"
+                      class="ed-preview__cell @(IsRound ? "is-round" : null) @(shaped ? "is-shaped" : null) @(idx == Session.LabelIndex ? "is-selected" : null)"
                       style="@SlotBoxStyle(slot)"
                       @onclick="() => SelectCell(idx)">
                 @if (!string.IsNullOrEmpty(url))
@@ -139,7 +140,8 @@
         foreach (var o in cell.Objects)
         {
             h = HashCode.Combine(h, o.Type, o.X, o.Y, o.Width, o.Height);
-            h = HashCode.Combine(h, o.Rotation, o.ImageData?.Length ?? 0, o.Text, o.Visible);
+            h = HashCode.Combine(h, o.Rotation, o.ImageData?.Length ?? 0, o.Text, o.Visible, o.RichText?.Count ?? 0);
+            h = HashCode.Combine(h, o.CustomKind, o.CustomFormat, o.SerialStart, o.SerialStep, o.SerialDigits, o.SerialRepeat);
         }
         return h.ToString("X8");
     }
@@ -170,7 +172,7 @@
             doc.EnsureStructure();
             if (!Fonts.IsReady) return;
 
-            var gen = $"{Session.DocumentEpoch}|{doc.Paper.PaperNo}|{doc.Paper.Shape.Kind}|{doc.Background}|{doc.Pages.Count}|{Session.PageIndex}|{doc.Data?.RowCount}";
+            var gen = $"{Session.DocumentEpoch}|{doc.Paper.PaperNo}|{doc.Paper.Shape.Kind}|{doc.Paper.CustomSlots?.Count}|{doc.Background}|{doc.Pages.Count}|{Session.PageIndex}|{doc.Data?.RowCount}";
             if (force || gen != _thumbGen)
             {
                 _thumbs.Clear();
@@ -186,20 +188,23 @@
             {
                 var key = Key(Session.PageIndex, i);
                 var cell = page.Cells[i];
-                if (cell.Objects.Count == 0)
+                var slot = slotList.Find(s => s.Index == i);
+                var hasShape = slot.Shape is { Kind: "svg" } || doc.Paper.Shape.Kind is "svg" or "ellipse" or "circle";
+                if (cell.Objects.Count == 0 && !hasShape)
                 {
                     _thumbs.Remove(key);
                     _thumbSig.Remove(key);
                     continue;
                 }
 
-                var sig = CellSig(cell);
+                var sig = cell.Objects.Count == 0 ? $"shape|{slot.W:0.##}x{slot.H:0.##}" : CellSig(cell);
                 if (!force && _thumbSig.TryGetValue(key, out var prev) && prev == sig && _thumbs.ContainsKey(key))
                     continue;
 
                 try
                 {
-                    if (cell.Objects.All(o => o.Type is ObjectType.Image or ObjectType.Clipart)
+                    if (cell.Objects.Count > 0
+                        && cell.Objects.All(o => o.Type is ObjectType.Image or ObjectType.Clipart)
                         && TryImageThumb(cell, out var imageThumb))
                     {
                         _thumbs[key] = imageThumb;
@@ -209,7 +214,6 @@
                     }
 
                     var global = Session.PageIndex * per + i;
-                    var slot = slotList.Find(s => s.Index == i);
                     var bytes = DocumentRenderer.ExportPng(
                         doc, cell, 48f, o => Session.ResolveObjectText(o, global),
                         slot.W > 0 ? slot.W : null, slot.H > 0 ? slot.H : null, 62);

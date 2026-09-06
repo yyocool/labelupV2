@@ -134,7 +134,8 @@ public static class DocumentRenderer
     {
         var w = widthMm ?? doc.WidthMm;
         var h = heightMm ?? doc.HeightMm;
-        using var clip = CreateLabelPath(doc.Paper.Shape, w, h);
+        var shape = doc.Paper.ShapeFor(cell.Index);
+        using var clip = CreateLabelPath(shape, w, h);
         canvas.Save();
         canvas.ClipPath(clip, SKClipOperation.Intersect, antialias: true);
 
@@ -154,10 +155,23 @@ public static class DocumentRenderer
             canvas.DrawPath(clip, border);
         }
 
-        DrawGuides(canvas, doc.Paper.Shape, w, h);
+        DrawGuides(canvas, shape, w, h);
 
         foreach (var obj in cell.OrderedObjects())
             DrawObject(canvas, obj, resolve);
+
+        if (forExport && cell.Objects.Count == 0 && shape.Kind is "svg" or "ellipse" or "circle")
+        {
+            using var outline = new SKPaint
+            {
+                Color = new SKColor(0x2E, 0x2A, 0x27),
+                IsAntialias = true,
+                Style = SKPaintStyle.Stroke,
+                StrokeWidth = 0.28f,
+                StrokeJoin = SKStrokeJoin.Round
+            };
+            canvas.DrawPath(clip, outline);
+        }
 
         canvas.Restore();
     }
@@ -516,12 +530,25 @@ public static class DocumentRenderer
         canvas.DrawPath(path, stroke);
     }
 
+    /// <summary>변환 여백. 0이면 우리 박스는 거의 붙이고, 폼텍 변환은 2mm.</summary>
+    private static float TextPadX(DesignObject obj)
+        => obj.TextPaddingXMm > 0.01f
+            ? obj.TextPaddingXMm
+            : Math.Clamp(obj.Width * 0.015f, 0.08f, 0.35f);
+
     private static void DrawText(SKCanvas canvas, DesignObject obj, string text, byte alpha)
     {
         if (!obj.BackgroundTransparent && !string.IsNullOrWhiteSpace(obj.BackgroundFill))
         {
             using var bg = new SKPaint { Color = ColorUtil.Parse(obj.BackgroundFill, alpha), IsAntialias = true };
             canvas.DrawRect(0, 0, obj.Width, obj.Height, bg);
+        }
+
+        if (obj.TextMode == TextMode.Extended && obj.RichText is { Count: > 0 }
+            && (text == obj.Text || string.IsNullOrEmpty(text)))
+        {
+            DrawRichText(canvas, obj, obj.RichText, alpha);
+            return;
         }
 
         text = string.IsNullOrEmpty(text) ? " " : StripInvisibleFormat(text);
@@ -561,10 +588,8 @@ public static class DocumentRenderer
             return;
         }
 
-        // 폼텍은 박스 폭으로 줄바꿈한다. 좌우 1mm씩 빼면 세로 박스(7.1mm·10pt)에
-        // '세로' 두 글자가 안 들어가 한 글자씩 쌓이고 위가 잘린다.
-        var inset = Math.Clamp(obj.Width * 0.015f, 0.08f, 0.35f);
-        var maxW = Math.Max(0.3f, obj.Width);
+        var inset = TextPadX(obj);
+        var maxW = Math.Max(0.3f, obj.Width - inset * 2f);
         var lines = WrapText(text, font, obj.FontFamily, obj.Bold, maxW, obj.TextWrap);
         var lineH = obj.FontSize * Math.Max(0.62f, obj.LineHeight);
         var totalH = lineH * lines.Count;
@@ -585,7 +610,7 @@ public static class DocumentRenderer
             {
                 "left" => inset,
                 "right" => obj.Width - tw - inset,
-                _ => (obj.Width - tw) / 2f
+                _ => inset + (maxW - tw) / 2f
             };
             var y = startY + i * lineH;
             DrawGlyph(canvas, obj, line, x, y, SKTextAlign.Left, font, paint, alpha);
@@ -603,6 +628,203 @@ public static class DocumentRenderer
         }
         canvas.Restore();
         canvas.Restore();
+    }
+
+    private static void DrawRichText(SKCanvas canvas, DesignObject obj, List<TextParagraph> paragraphs, byte alpha)
+    {
+        if (!obj.BackgroundTransparent && !string.IsNullOrWhiteSpace(obj.BackgroundFill))
+        {
+            using var bg = new SKPaint { Color = ColorUtil.Parse(obj.BackgroundFill, alpha), IsAntialias = true };
+            canvas.DrawRect(0, 0, obj.Width, obj.Height, bg);
+        }
+
+        canvas.Save();
+        if (obj.FlipHorizontal)
+        {
+            canvas.Translate(obj.Width, 0);
+            canvas.Scale(-1, 1);
+        }
+
+        var inset = TextPadX(obj);
+        var maxW = Math.Max(0.3f, obj.Width - inset * 2f);
+        var lines = WrapRich(paragraphs, maxW, obj.TextWrap);
+        if (lines.Count == 0)
+        {
+            canvas.Restore();
+            return;
+        }
+
+        var totalH = 0f;
+        foreach (var line in lines)
+            totalH += line.Height;
+        float y = obj.VerticalAlign switch
+        {
+            "top" => 0,
+            "bottom" => obj.Height - totalH,
+            _ => (obj.Height - totalH) / 2f
+        };
+
+        canvas.Save();
+        canvas.ClipRect(new SKRect(0, 0, obj.Width, obj.Height));
+        foreach (var line in lines)
+        {
+            var extra = Math.Max(0, maxW - line.Width);
+            float x = line.Align switch
+            {
+                "right" => obj.Width - line.Width - inset,
+                "center" => inset + (maxW - line.Width) / 2f,
+                _ => inset
+            };
+            var justify = line.Align == "justify" && !line.LastInParagraph && line.Glyphs > 1;
+            var gap = justify ? extra / Math.Max(1, line.Glyphs - 1) : 0f;
+            var baseline = y + line.Height * 0.78f;
+            foreach (var frag in line.Frags)
+            {
+                using var paint = new SKPaint { Color = ColorUtil.Parse(frag.Span.Fill, alpha), IsAntialias = true };
+                using var font = new SKFont(ResolveTypeface(frag.Span.FontFamily, frag.Span.Bold, frag.Span.Italic), frag.Span.FontSize);
+                if (justify && frag.Text.Length > 1)
+                {
+                    foreach (var rune in frag.Text.EnumerateRunes())
+                    {
+                        var ch = rune.ToString();
+                        DrawGlyph(canvas, WithSpan(obj, frag.Span), ch, x, baseline, SKTextAlign.Left, font, paint, alpha);
+                        x += MeasureLine(font, frag.Span.FontFamily, frag.Span.Bold, ch) + gap;
+                    }
+                }
+                else
+                {
+                    DrawGlyph(canvas, WithSpan(obj, frag.Span), frag.Text, x, baseline, SKTextAlign.Left, font, paint, alpha);
+                    if (frag.Span.Underline || frag.Span.Strikeout)
+                    {
+                        using var lp = new SKPaint
+                        {
+                            Color = ColorUtil.Parse(frag.Span.Fill, alpha),
+                            StrokeWidth = Math.Max(0.15f, frag.Span.FontSize * 0.06f),
+                            IsAntialias = true
+                        };
+                        if (frag.Span.Underline)
+                            canvas.DrawLine(x, baseline + 0.4f, x + frag.Width, baseline + 0.4f, lp);
+                        if (frag.Span.Strikeout)
+                            canvas.DrawLine(x, baseline - frag.Span.FontSize * 0.35f, x + frag.Width, baseline - frag.Span.FontSize * 0.35f, lp);
+                    }
+                    x += frag.Width + (justify ? gap * Math.Max(0, frag.Text.Length) : 0);
+                }
+            }
+            y += line.Height;
+        }
+        canvas.Restore();
+        canvas.Restore();
+    }
+
+    private static DesignObject WithSpan(DesignObject obj, TextSpan span)
+        => new()
+        {
+            FontFamily = span.FontFamily,
+            FontSize = span.FontSize,
+            Bold = span.Bold,
+            Italic = span.Italic,
+            Fill = span.Fill,
+            Shadow = obj.Shadow,
+            Outline = obj.Outline
+        };
+
+    private readonly record struct RichFrag(TextSpan Span, string Text, float Width);
+    private sealed class RichLine
+    {
+        public List<RichFrag> Frags { get; } = [];
+        public float Width;
+        public float Height;
+        public string Align = "left";
+        public bool LastInParagraph;
+        public int Glyphs;
+    }
+
+    private static List<RichLine> WrapRich(List<TextParagraph> paragraphs, float maxWidth, string? mode)
+    {
+        var word = string.Equals(mode, "word", StringComparison.OrdinalIgnoreCase);
+        var lines = new List<RichLine>();
+        foreach (var para in paragraphs)
+        {
+            var line = NewRichLine(para.Align);
+            if (para.Spans.Count == 0)
+            {
+                line.Height = 3.5f * 1.2f;
+                line.LastInParagraph = true;
+                lines.Add(line);
+                continue;
+            }
+
+            foreach (var span in para.Spans)
+            {
+                var text = span.Text ?? "";
+                if (text.Length == 0) continue;
+                using var font = new SKFont(ResolveTypeface(span.FontFamily, span.Bold, span.Italic), span.FontSize);
+                var i = 0;
+                while (i < text.Length)
+                {
+                    var take = 0;
+                    var w = 0f;
+                    while (i + take < text.Length)
+                    {
+                        var next = text.Substring(i, take + 1);
+                        var nw = MeasureLine(font, span.FontFamily, span.Bold, next);
+                        if (line.Width + nw > maxWidth + 0.35f && (line.Frags.Count > 0 || take > 0))
+                            break;
+                        take++;
+                        w = nw;
+                    }
+
+                    if (take == 0)
+                    {
+                        if (line.Frags.Count > 0)
+                        {
+                            FlushRich(lines, line, last: false);
+                            line = NewRichLine(para.Align);
+                            continue;
+                        }
+                        take = 1;
+                        w = MeasureLine(font, span.FontFamily, span.Bold, text.Substring(i, 1));
+                    }
+
+                    if (word && take < text.Length - i)
+                    {
+                        var chunk = text.Substring(i, take);
+                        var cut = LastBreak(chunk);
+                        if (cut > 0)
+                        {
+                            take = cut;
+                            w = MeasureLine(font, span.FontFamily, span.Bold, text.Substring(i, take));
+                        }
+                    }
+
+                    var piece = text.Substring(i, take);
+                    line.Frags.Add(new RichFrag(span, piece, w));
+                    line.Width += w;
+                    line.Height = Math.Max(line.Height, span.FontSize * Math.Max(0.62f, 1.2f));
+                    line.Glyphs += piece.Length;
+                    i += take;
+                    if (i < text.Length)
+                    {
+                        FlushRich(lines, line, last: false);
+                        line = NewRichLine(para.Align);
+                    }
+                }
+            }
+
+            line.LastInParagraph = true;
+            FlushRich(lines, line, last: true);
+        }
+        return lines;
+    }
+
+    private static RichLine NewRichLine(string align) => new() { Align = align, Height = 3.5f * 1.2f };
+
+    private static void FlushRich(List<RichLine> lines, RichLine line, bool last)
+    {
+        line.LastInParagraph = last;
+        if (line.Frags.Count == 0 && !last)
+            return;
+        lines.Add(line);
     }
 
     private static List<string> WrapText(string text, SKFont font, string? family, bool bold, float maxWidth, string? mode)
@@ -915,11 +1137,12 @@ public static class DocumentRenderer
         var rows = Math.Max(1, (int)Math.Floor(obj.Height / lineH));
         var cols = (int)Math.Ceiling(chars.Length / (double)rows);
         var totalW = cols * colW;
+        var pad = TextPadX(obj);
         var startX = obj.TextAlign switch
         {
-            "left" => 0.4f,
-            "right" => Math.Max(0.4f, obj.Width - totalW),
-            _ => Math.Max(0, (obj.Width - totalW) / 2f)
+            "left" => pad,
+            "right" => Math.Max(pad, obj.Width - totalW - pad),
+            _ => pad + Math.Max(0, (obj.Width - pad * 2f - totalW) / 2f)
         };
         var startY = obj.VerticalAlign switch
         {
@@ -1301,7 +1524,7 @@ public static class DocumentRenderer
                 Style = SKPaintStyle.Stroke,
                 StrokeWidth = 0.18f
             })
-            using (var path = CreateLabelPath(paper.Shape, slot.W, slot.H))
+            using (var path = CreateLabelPath(paper.ShapeFor(slot), slot.W, slot.H))
             {
                 canvas.DrawPath(path, outline);
             }

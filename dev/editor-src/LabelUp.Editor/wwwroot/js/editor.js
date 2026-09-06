@@ -433,10 +433,15 @@ window.labelUpEditor = {
       console.error('[LabelUp] downloadText', e);
     }
   },
-  printImage: function (dataUrl, title) {
+  printImages: function (dataUrls, title) {
+    var urls = Array.isArray(dataUrls) ? dataUrls.filter(Boolean) : [dataUrls];
+    if (urls.length === 0) return;
+    var imgs = urls.map(function (u, i) {
+      return '<img class="p" src="' + u + '" alt="print ' + (i + 1) + '" />';
+    }).join('');
     var html = '<!doctype html><html><head><title>' + (title || '인쇄') + '</title>'
-      + '<style>@page{margin:8mm}html,body{margin:0;background:#fff}img{width:100%;display:block}</style></head><body>'
-      + '<img id="p" src="' + dataUrl + '" alt="print" /></body></html>';
+      + '<style>@page{margin:8mm}html,body{margin:0;background:#fff}img{width:100%;display:block;page-break-after:always}img:last-child{page-break-after:auto}</style></head><body>'
+      + imgs + '</body></html>';
     var iframe = document.getElementById('lu-print-frame');
     if (!iframe) {
       iframe = document.createElement('iframe');
@@ -456,9 +461,16 @@ window.labelUpEditor = {
     var run = function () {
       try { win.focus(); win.print(); } catch (e) { console.error('[LabelUp] print', e); }
     };
-    var img = win.document.getElementById('p');
-    if (img && !img.complete) img.onload = run;
-    else setTimeout(run, 200);
+    var pending = win.document.querySelectorAll('img.p');
+    var left = pending.length;
+    if (left === 0) { setTimeout(run, 200); return; }
+    pending.forEach(function (img) {
+      if (img.complete) { if (--left === 0) run(); }
+      else img.onload = function () { if (--left === 0) run(); };
+    });
+  },
+  printImage: function (dataUrl, title) {
+    this.printImages([dataUrl], title);
   },
   openImport: function (tabId) {
     var el = document.querySelector('[data-ed-import-overlay]');
@@ -2346,7 +2358,7 @@ window.labelUpEditor = {
         await showPropsFields();
         await fn();
       } finally {
-        await ops.showTab('레이어');
+        if (onLayers) await ops.showTab('레이어');
         if (onLayers) ops.stopFreeze();
       }
     };
@@ -2674,9 +2686,6 @@ window.labelUpEditor = {
       if (document.documentElement.classList.contains('lu-layer-applying')) return;
       var bar = ensureBar();
       if (!bar) return;
-      var panel = document.querySelector('[data-ed-props-panel]');
-      var title = panel && panel.querySelector('.ed-props__title');
-      if (title) title.textContent = '레이어';
       var selected = hasSelection();
       if (selected) {
         document.documentElement.classList.add('lu-ctx-on');
@@ -2692,7 +2701,6 @@ window.labelUpEditor = {
         } finally {
           busy = false;
         }
-        if (activeTab() !== '레이어') ops.showTab('레이어');
         return;
       }
       document.documentElement.classList.remove('lu-ctx-on');
@@ -2700,7 +2708,6 @@ window.labelUpEditor = {
       bar.removeAttribute('data-ready');
       lastKey = '';
       closeOpacityPop();
-      if (activeTab() !== '레이어') ops.showTab('레이어');
     };
     var queued = false;
     var requestSync = function () {
@@ -2731,7 +2738,7 @@ window.labelUpEditor = {
       var meaningful = false;
       for (var i = 0; i < records.length; i++) {
         var t = records[i].target;
-        if (t && t.closest && t.closest('#lu-ctx-bar')) continue;
+        if (t && t.closest && (t.closest('#lu-ctx-bar') || t.closest('[data-ed-props-panel]'))) continue;
         meaningful = true;
         break;
       }

@@ -1132,6 +1132,7 @@ internal static class FormtecImporter
         var tPaper = importSw.ElapsedMilliseconds;
         if (TryReadSpecialSlots(dgf, Math.Max(1, cols) * Math.Max(1, rows), pw, ph, out var slots))
         {
+            var shaped = ApplyFormtecSlotShapes(paperNo, slots, papers.FormtecWmf);
             paper.CustomSlots = slots;
             paper.LabelWidthMm = slots[0].W;
             paper.LabelHeightMm = slots[0].H;
@@ -1139,7 +1140,10 @@ internal static class FormtecImporter
             paper.Shape.Svg = null;
             paper.Shape.Guides = null;
             paper.Shape.GuideSvg = null;
-            EditorLog.Info($"폼텍 불규칙 배치: {slots.Count}칸 (격자 {cols}×{rows} 대신 개별 X/Y/H/W)");
+            EditorLog.Info(
+                shaped > 0
+                    ? $"폼텍 불규칙 배치: {slots.Count}칸 + 칸별 WMF {shaped}/{slots.Count} ({paperNo}_##.wmf)"
+                    : $"폼텍 불규칙 배치: {slots.Count}칸 (격자 {cols}×{rows} 대신 개별 X/Y/H/W)");
         }
         else if (TryApplyFormtecCircle(dgf, paper))
         {
@@ -1471,7 +1475,7 @@ internal static class FormtecImporter
 
     private static DesignObject? Map(byte[] data, int geom, int start, int end, byte type, float x, float y, float w, float h)
     {
-        var strings = type is 0x09 or 0x18 or 0x0F
+        var strings = type is 0x09 or 0x18 or 0x0F or 0x00
             ? []
             : ExternalImportService.ExtractPrintable(data, start, Math.Min(end, start + 4000), 1);
         switch (type)
@@ -1495,7 +1499,7 @@ internal static class FormtecImporter
                     return grad;
                 }
                 var closed = ExternalImportService.Shape(
-                    type == 0x05 ? ShapeKind.Ellipse : type == 0x0E ? ShapeKind.RoundRect : ShapeKind.Rect,
+                    type == 0x05 ? ShapeKind.Ellipse : ShapeKind.Rect,
                     x, y, w, h);
                 FormtecRecords.Apply(closed, data, geom, end, type);
                 return closed;
@@ -1533,17 +1537,25 @@ internal static class FormtecImporter
                 table.EnsureTableSize();
                 return table;
             case 0x00:
+                if (!FormtecRecords.HasPlainTextRecord(data, geom, end))
+                    return null;
+                var empty = ExternalImportService.TextAt(x, y, w, h, "");
+                empty.Text = "";
+                FormtecRecords.Apply(empty, data, geom, end, type);
+                return empty;
             case 0x06:
             case 0x0A:
             case 0x0B:
             case 0x16:
                 var text = type switch
                 {
-                    0x0A or 0x0B or 0x16 or 0x00 => null,
+                    0x0A or 0x0B or 0x16 => null,
                     _ => ReadDgfText(data, start, end)
                 } ?? strings.FirstOrDefault();
                 var o = ExternalImportService.TextAt(x, y, w, h, text ?? "", type == 0x06, type == 0x06 ? (text ?? "").Trim('[', ']') : null);
                 FormtecRecords.Apply(o, data, geom, end, type);
+                if (type == 0x06)
+                    o.TextPaddingXMm = FormtecRecords.ImportedTextPaddingXMm;
                 if (string.IsNullOrWhiteSpace(o.Text))
                 {
                     if (string.IsNullOrWhiteSpace(text)) return null;
@@ -1641,6 +1653,7 @@ internal static class FormtecImporter
 
     /// <summary>
     /// 불규칙 용지: 슬래시 숫자열 N개짜리 중 값이 큰 4줄 = X, Y, Height, Width.
+    /// 0/1뿐 아니라 4/4/4/… 같은 상수 플래그 행은 건너뛴다. PPK-3350이 이 형식.
     /// md_formtec/DGZ_DGF_용지헤더_구조_분석.md §11.
     /// </summary>
     private static bool TryReadSpecialSlots(byte[] data, int count, float pw, float ph, out List<LabelSlot> slots)
@@ -1657,7 +1670,7 @@ internal static class FormtecImporter
                 if (float.TryParse(part, NumberStyles.Float, CultureInfo.InvariantCulture, out var n))
                     vals.Add(n);
             }
-            if (vals.Count == count && vals.Exists(v => v > 1.5f))
+            if (vals.Count == count && !IsSlotFlagRow(vals))
                 groups.Add(vals.ToArray());
         }
         if (groups.Count < 4) return false;
@@ -1682,6 +1695,60 @@ internal static class FormtecImporter
         if (fit < count * 0.8) return false;
         slots = list;
         return true;
+    }
+
+    /// <summary>0/1 플래그, 또는 4/4/4/…처럼 작은 상수 정수열. 좌표·크기가 아니다.</summary>
+    private static bool IsSlotFlagRow(List<float> vals)
+    {
+        if (vals.Count == 0) return true;
+        var max = vals[0];
+        var min = vals[0];
+        var allInt = true;
+        foreach (var v in vals)
+        {
+            if (v > max) max = v;
+            if (v < min) min = v;
+            if (Math.Abs(v - MathF.Round(v)) > 0.01f) allInt = false;
+        }
+        if (max <= 1.01f) return true;
+        return allInt && max <= 8.01f && max - min < 0.01f;
+    }
+
+    /// <summary>
+    /// PPK-3350처럼 칸마다 다른 형상. DGZ에는 .wmf 이름이 없고 제품코드만 있다.
+    /// 리소스는 {제품}_{01..N}.wmf.
+    /// </summary>
+    private static int ApplyFormtecSlotShapes(string? paperNo, List<LabelSlot> slots, FormtecWmfCatalog wmf)
+    {
+        if (string.IsNullOrWhiteSpace(paperNo) || slots.Count == 0) return 0;
+        var applied = 0;
+        for (var i = 0; i < slots.Count; i++)
+        {
+            var slot = slots[i];
+            string[] names =
+            [
+                $"{paperNo}_{i + 1:00}.wmf",
+                $"{paperNo}_{i + 1}.wmf"
+            ];
+            foreach (var name in names)
+            {
+                if (!wmf.TryConvert(name, slot.W, slot.H, out var outer, out var guides))
+                    continue;
+                slots[i] = slot with
+                {
+                    Shape = new PaperShape
+                    {
+                        Kind = "svg",
+                        Svg = outer,
+                        Guides = guides.Count == 0 ? null : guides,
+                        SvgIsLabelMm = true
+                    }
+                };
+                applied++;
+                break;
+            }
+        }
+        return applied;
     }
 
     private static bool TryLabelsSpecialMode(byte[] data, out double a, out double b)

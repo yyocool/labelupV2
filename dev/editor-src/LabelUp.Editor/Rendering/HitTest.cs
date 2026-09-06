@@ -63,6 +63,16 @@ public static class HitTest
         return HandleKind.None;
     }
 
+    public static (int Row, int Col)? HitTableCell(DesignObject o, float docX, float docY)
+    {
+        if (o.Type != ObjectType.Table || o.TableRows < 1 || o.TableCols < 1) return null;
+        var local = ToLocal(o, docX, docY);
+        if (local.X < 0 || local.Y < 0 || local.X > o.Width || local.Y > o.Height) return null;
+        var col = Math.Clamp((int)(local.X / (o.Width / o.TableCols)), 0, o.TableCols - 1);
+        var row = Math.Clamp((int)(local.Y / (o.Height / o.TableRows)), 0, o.TableRows - 1);
+        return (row, col);
+    }
+
     public static SKPoint ToLocal(DesignObject o, float docX, float docY)
     {
         var cx = o.X + o.Width / 2f;

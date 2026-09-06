@@ -91,7 +91,8 @@
             _opened = true;
             _ox = Session.Document.PrintOffsetXMm;
             _oy = Session.Document.PrintOffsetYMm;
-            _page = Session.PageIndex;
+            Session.ExpandCustomSerial();
+            _page = Math.Clamp(Session.PageIndex, 0, Math.Max(0, Session.Document.Pages.Count - 1));
             Rebuild();
         }
         if (Session.Dialog != EditorDialog.PrintPreview) _opened = false;
@@ -119,13 +120,14 @@
     {
         try
         {
+            var clock = DateTime.Now;
             var bytes = DocumentRenderer.ExportSheetPng(
                 Session.Document,
                 _page,
                 110f,
                 _ox,
                 _oy,
-                (global, obj) => Session.ResolveObjectText(obj, global));
+                (global, obj) => Session.ResolveObjectText(obj, global, clock));
             _url = "data:image/png;base64," + Convert.ToBase64String(bytes);
         }
         catch (Exception ex)
@@ -140,14 +142,21 @@
     {
         try
         {
-            if (_url is null) Rebuild();
-            if (string.IsNullOrEmpty(_url))
+            Session.ExpandCustomSerial();
+            var clock = DateTime.Now;
+            var pages = new List<byte[]>();
+            for (var i = 0; i < Session.Document.Pages.Count; i++)
+            {
+                pages.Add(DocumentRenderer.ExportSheetPng(
+                    Session.Document, i, 180f, _ox, _oy,
+                    (global, obj) => Session.ResolveObjectText(obj, global, clock)));
+            }
+            if (pages.Count == 0 || pages.All(p => p.Length == 0))
             {
                 Session.Status = "인쇄 미리보기를 만들 수 없습니다";
                 return;
             }
-            var bytes = Convert.FromBase64String(_url.Split(',').Last());
-            await Export.PrintImageAsync(bytes, Session.Document.Name);
+            await Export.PrintImagesAsync(pages, Session.Document.Name);
         }
         catch (Exception ex)
         {
@@ -161,9 +170,11 @@
     {
         try
         {
+            Session.ExpandCustomSerial();
+            var clock = DateTime.Now;
             var bytes = DocumentRenderer.ExportSheetPng(
                 Session.Document, _page, 300f, _ox, _oy,
-                (global, obj) => Session.ResolveObjectText(obj, global));
+                (global, obj) => Session.ResolveObjectText(obj, global, clock));
             await Export.DownloadPngAsync(bytes, Sanitize(Session.Document.Name) + "-print.png");
             Session.Status = "PDF용 PNG를 저장했습니다";
             Session.Notify();

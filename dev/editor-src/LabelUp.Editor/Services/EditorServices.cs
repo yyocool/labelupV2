@@ -117,7 +117,16 @@ public sealed class ExportService(IJSRuntime js)
 
     public async Task PrintImageAsync(byte[] pngBytes, string title)
     {
-        var b64 = Convert.ToBase64String(pngBytes);
-        await js.InvokeVoidAsync("labelUpEditor.printImage", "data:image/png;base64," + b64, title);
+        await PrintImagesAsync([pngBytes], title);
+    }
+
+    public async Task PrintImagesAsync(IReadOnlyList<byte[]> pages, string title)
+    {
+        var urls = pages
+            .Where(p => p is { Length: > 0 })
+            .Select(p => "data:image/png;base64," + Convert.ToBase64String(p))
+            .ToArray();
+        if (urls.Length == 0) return;
+        await js.InvokeVoidAsync("labelUpEditor.printImages", urls, title);
     }
 }

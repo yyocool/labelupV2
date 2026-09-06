@@ -46,9 +46,13 @@ public sealed class DesignObject
     public string TextDirection { get; set; } = "horizontal";
     /// <summary>박스 폭을 넘기면 줄바꿈. char=글자 단위, word=단어 단위, none=없음.</summary>
     public string TextWrap { get; set; } = "char";
+    /// <summary>변환 시 넣는 가로 안쪽 여백(mm). 박스 크기는 그대로. 폼텍=2. 우리 박스는 0.</summary>
+    public float TextPaddingXMm { get; set; }
     public string? BackgroundFill { get; set; }
     public bool BackgroundTransparent { get; set; } = true;
     public TextMode TextMode { get; set; } = TextMode.Normal;
+    /// <summary>확장문자열 RTF 문단. 있으면 박스 전체 폰트/색/정렬 대신 이 구간 서식을 그린다.</summary>
+    public List<TextParagraph>? RichText { get; set; }
     public WordArtStyle WordArtStyle { get; set; } = WordArtStyle.None;
     public float WordArtBend { get; set; } = 30f;
     public bool WordArtGuide { get; set; }
@@ -57,6 +61,8 @@ public sealed class DesignObject
     public int SerialStart { get; set; } = 1;
     public int SerialStep { get; set; } = 1;
     public int SerialDigits { get; set; } = 4;
+    /// <summary>생성할 라벨 수. 시작값부터 증가값씩 올린다. DGF에는 없다.</summary>
+    public int SerialRepeat { get; set; } = 1;
 
     public string BarcodeFormat { get; set; } = "CODE_128";
     public string BarcodeValue { get; set; } = "12345678";
@@ -88,10 +94,14 @@ public sealed class DesignObject
     public List<string> TableCells { get; set; } = [];
     public List<string?> TableRowFills { get; set; } = [];
     public List<string?> TableColFills { get; set; } = [];
+    public List<string?> TableCellFills { get; set; } = [];
     public float TableBorderWidth { get; set; } = 0.2f;
 
     public string? TableCellFill(int row, int col)
     {
+        var cell = GetTableCellFill(row, col);
+        if (!string.IsNullOrWhiteSpace(cell))
+            return cell;
         if (row >= 0 && row < TableRowFills.Count && !string.IsNullOrWhiteSpace(TableRowFills[row]))
             return TableRowFills[row];
         if (col >= 0 && col < TableColFills.Count && !string.IsNullOrWhiteSpace(TableColFills[col]))
@@ -154,9 +164,11 @@ public sealed class DesignObject
             LetterSpacing = LetterSpacing,
             TextDirection = TextDirection,
             TextWrap = TextWrap,
+            TextPaddingXMm = TextPaddingXMm,
             BackgroundFill = BackgroundFill,
             BackgroundTransparent = BackgroundTransparent,
             TextMode = TextMode,
+            RichText = RichText?.Select(p => p.Clone()).ToList(),
             WordArtStyle = WordArtStyle,
             WordArtBend = WordArtBend,
             WordArtGuide = WordArtGuide,
@@ -165,6 +177,7 @@ public sealed class DesignObject
             SerialStart = SerialStart,
             SerialStep = SerialStep,
             SerialDigits = SerialDigits,
+            SerialRepeat = SerialRepeat,
             BarcodeFormat = BarcodeFormat,
             BarcodeValue = BarcodeValue,
             BarcodeShowText = BarcodeShowText,
@@ -183,6 +196,7 @@ public sealed class DesignObject
             TableCells = [.. TableCells],
             TableRowFills = [.. TableRowFills],
             TableColFills = [.. TableColFills],
+            TableCellFills = [.. TableCellFills],
             TableBorderWidth = TableBorderWidth,
             ShapeKind = ShapeKind,
             ArrowHeads = ArrowHeads,
@@ -384,6 +398,40 @@ public sealed class DesignObject
         TableCells[i] = value;
     }
 
+    public string? GetTableCellFill(int row, int col)
+    {
+        if (row < 0 || col < 0 || TableCols <= 0) return null;
+        var i = row * TableCols + col;
+        if (i < 0 || i >= TableCellFills.Count) return null;
+        return TableCellFills[i];
+    }
+
+    public void SetTableCellFill(int row, int col, string? value)
+    {
+        EnsureTableSize();
+        if (row < 0 || col < 0 || TableCols <= 0) return;
+        var i = row * TableCols + col;
+        if (i < 0 || i >= TableCellFills.Count) return;
+        TableCellFills[i] = NormalizeTableFill(value);
+    }
+
+    public void SetTableRowFill(int row, string? value)
+    {
+        EnsureTableSize();
+        if (row < 0 || row >= TableRowFills.Count) return;
+        TableRowFills[row] = NormalizeTableFill(value);
+    }
+
+    public void SetTableColFill(int col, string? value)
+    {
+        EnsureTableSize();
+        if (col < 0 || col >= TableColFills.Count) return;
+        TableColFills[col] = NormalizeTableFill(value);
+    }
+
+    private static string? NormalizeTableFill(string? value)
+        => string.IsNullOrWhiteSpace(value) || value is "transparent" or "none" ? null : value;
+
     public void EnsureTableSize()
     {
         TableRows = Math.Max(1, TableRows);
@@ -395,5 +443,7 @@ public sealed class DesignObject
         if (TableRowFills.Count > TableRows) TableRowFills.RemoveRange(TableRows, TableRowFills.Count - TableRows);
         while (TableColFills.Count < TableCols) TableColFills.Add(null);
         if (TableColFills.Count > TableCols) TableColFills.RemoveRange(TableCols, TableColFills.Count - TableCols);
+        while (TableCellFills.Count < n) TableCellFills.Add(null);
+        if (TableCellFills.Count > n) TableCellFills.RemoveRange(n, TableCellFills.Count - n);
     }
 }
