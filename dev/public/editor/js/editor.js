@@ -1098,6 +1098,7 @@ window.labelUpEditor = {
     var ops = this.ensureLayerOps();
     var drag = null;
     var line = null;
+    var ghost = null;
     var THRESH = 6;
 
     var ensureLine = function () {
@@ -1128,6 +1129,30 @@ window.labelUpEditor = {
         if (clientY < r.top + r.height / 2) { to = i; break; }
       }
       return to;
+    };
+    var startGhost = function (item, e) {
+      killGhost();
+      var r = item.getBoundingClientRect();
+      ghost = item.cloneNode(true);
+      ghost.classList.add('ed-layer-ghost');
+      ghost.classList.remove('is-dragging', 'is-active');
+      ghost.setAttribute('aria-hidden', 'true');
+      ghost.style.width = r.width + 'px';
+      ghost.style.height = r.height + 'px';
+      ghost.style.left = r.left + 'px';
+      ghost.style.top = r.top + 'px';
+      document.body.appendChild(ghost);
+      drag.offX = e.clientX - r.left;
+      drag.offY = e.clientY - r.top;
+    };
+    var moveGhost = function (e) {
+      if (!ghost) return;
+      ghost.style.left = (e.clientX - (drag.offX || 0)) + 'px';
+      ghost.style.top = (e.clientY - (drag.offY || 0)) + 'px';
+    };
+    var killGhost = function () {
+      if (ghost && ghost.parentNode) ghost.parentNode.removeChild(ghost);
+      ghost = null;
     };
     var placeLine = function (to, from) {
       var list = listEl();
@@ -1214,11 +1239,13 @@ window.labelUpEditor = {
         if (Math.abs(dx) < THRESH && Math.abs(dy) < THRESH) return;
         drag.dragging = true;
         drag.item.classList.add('is-dragging');
+        startGhost(drag.item, e);
         var list = listEl();
         if (list) list.classList.add('is-reordering');
         try { drag.item.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
       }
       e.preventDefault();
+      moveGhost(e);
       drag.to = dropIndexAt(e.clientY, drag.from);
       placeLine(drag.to, drag.from);
     }, true);
@@ -1228,6 +1255,7 @@ window.labelUpEditor = {
       var s = drag;
       drag = null;
       s.item.classList.remove('is-dragging');
+      killGhost();
       var list = listEl();
       if (list) list.classList.remove('is-reordering');
       if (line) line.hidden = true;
@@ -1264,6 +1292,202 @@ window.labelUpEditor = {
         }
       });
       waitMo.observe(document.documentElement, { childList: true, subtree: true });
+    }
+  },
+  bindPaperPreviewLayout: function () {
+    if (this._paperPreviewBound) return;
+    this._paperPreviewBound = true;
+    var applying = false;
+    var picked = null;
+    var shopBySku = null;
+    var parseSize = function (text) {
+      var t = String(text || '').replace(/\s+/g, ' ');
+      var size = t.match(/([\d.]+)\s*[×x]\s*([\d.]+)\s*mm/i);
+      var labels = t.match(/시트당\s*(\d+)\s*칸/) || t.match(/(\d+)\s*칸/);
+      var sku = '';
+      var skuHit = t.match(/\b([A-Z]{1,4}\d{2,4}[A-Z]?(?:-\d+)?)\b/);
+      if (skuHit) sku = skuHit[1];
+      return {
+        sku: sku,
+        w: size ? parseFloat(size[1]) : 0,
+        h: size ? parseFloat(size[2]) : 0,
+        n: labels ? parseInt(labels[1], 10) : 0
+      };
+    };
+    var parseCard = function (card) {
+      if (!card) return null;
+      var info = parseSize(card.innerText || '');
+      var skuEl = card.querySelector('.ed-paper-card__meta span');
+      if (skuEl) {
+        var sku = (skuEl.textContent || '').split('·')[0].trim();
+        if (sku) info.sku = sku;
+      }
+      return info.w > 0 ? info : null;
+    };
+    var loadShop = function () {
+      if (shopBySku) return Promise.resolve(shopBySku);
+      return fetch('/api/shop/editor-papers', { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          shopBySku = {};
+          var items = (j && j.data && (j.data.items || j.data.Items)) || [];
+          for (var i = 0; i < items.length; i++) {
+            var it = items[i];
+            var sku = String(it.sku || it.Sku || '').trim().toUpperCase();
+            if (!sku) continue;
+            shopBySku[sku] = {
+              sku: sku,
+              w: parseFloat(it.widthMm || it.WidthMm || 0) || 0,
+              h: parseFloat(it.heightMm || it.HeightMm || 0) || 0,
+              n: parseInt(it.labelsPerSheet || it.LabelsPerSheet || 0, 10) || 0
+            };
+          }
+          return shopBySku;
+        })
+        .catch(function () {
+          shopBySku = {};
+          return shopBySku;
+        });
+    };
+    var currentSku = function () {
+      var strong = document.querySelector('.ed-preview__spec strong');
+      if (strong && (strong.textContent || '').trim()) return (strong.textContent || '').trim();
+      var paper = document.querySelector('[data-tut="presets"] strong');
+      return paper ? (paper.textContent || '').trim() : '';
+    };
+    var resolvePaper = function (cellCount) {
+      var sku = currentSku();
+      var skuKey = sku.toUpperCase();
+      if (picked && picked.w > 0 && (!picked.sku || !sku || picked.sku.toUpperCase() === skuKey || skuKey.indexOf(picked.sku.toUpperCase()) === 0))
+        return picked;
+      if (shopBySku && skuKey && shopBySku[skuKey] && shopBySku[skuKey].w > 0)
+        return shopBySku[skuKey];
+      var specText = ((document.querySelector('.ed-preview__spec') || {}).textContent || '');
+      var parsed = parseSize(specText);
+      if (parsed.w > 0) {
+        if (!parsed.n) parsed.n = cellCount;
+        parsed.sku = sku;
+        return parsed;
+      }
+      return null;
+    };
+    var chooseGrid = function (n, lw, lh, pageW, pageH) {
+      var gap = 3;
+      var best = null;
+      for (var cols = 1; cols <= n; cols++) {
+        var rows = Math.ceil(n / cols);
+        var unused = cols * rows - n;
+        var usedW = cols * lw + Math.max(0, cols - 1) * gap;
+        var usedH = rows * lh + Math.max(0, rows - 1) * gap;
+        var scale = Math.min(1, (pageW - 8) / usedW, (pageH - 8) / usedH);
+        if (!(scale > 0 && isFinite(scale))) continue;
+        var fill = usedW / pageW;
+        var score = unused * 12 + (1 - scale) * 8 + Math.abs(fill - 0.62) * 18;
+        if (!best || score < best.score)
+          best = { cols: cols, rows: rows, usedW: usedW, usedH: usedH, scale: scale, gap: gap, score: score };
+      }
+      if (best) return best;
+      var fallbackCols = n >= 4 ? 2 : 1;
+      return {
+        cols: fallbackCols,
+        rows: Math.ceil(n / fallbackCols),
+        usedW: fallbackCols * lw,
+        usedH: Math.ceil(n / fallbackCols) * lh,
+        scale: 1,
+        gap: gap
+      };
+    };
+    var layout = function () {
+      var spec = document.querySelector('.ed-preview__spec');
+      var page = document.querySelector('.ed-preview__page');
+      if (!spec || !page) return;
+      var cells = page.querySelectorAll('.ed-preview__cell');
+      if (!cells.length) return;
+      var raw = (spec.textContent || '').replace(/\s+/g, '');
+      if (/불규칙/.test(raw)) return;
+      var paper = resolvePaper(cells.length);
+      if (!paper || !(paper.w > 0 && paper.h > 0)) return;
+      var want = paper.n > 0 ? paper.n : cells.length;
+      var lw = paper.w;
+      var lh = paper.h;
+      var cs = getComputedStyle(page);
+      var pageW = parseFloat(cs.getPropertyValue('--page-w')) || 210;
+      var pageH = parseFloat(cs.getPropertyValue('--page-h')) || 297;
+      if (pageW < 20) pageW = 210;
+      if (pageH < 20) pageH = 297;
+      var grid = chooseGrid(want, lw, lh, pageW, pageH);
+      var scale = grid.scale;
+      var left0 = (pageW - grid.usedW * scale) / 2;
+      var top0 = (pageH - grid.usedH * scale) / 2;
+      applying = true;
+      for (var i = 0; i < cells.length; i++) {
+        var el = cells[i];
+        if (i >= want) {
+          el.style.setProperty('display', 'none', 'important');
+          continue;
+        }
+        el.style.removeProperty('display');
+        var c = i % grid.cols;
+        var r = Math.floor(i / grid.cols);
+        el.style.setProperty('left', ((left0 + c * (lw + grid.gap) * scale) / pageW * 100).toFixed(3) + '%', 'important');
+        el.style.setProperty('top', ((top0 + r * (lh + grid.gap) * scale) / pageH * 100).toFixed(3) + '%', 'important');
+        el.style.setProperty('width', (lw * scale / pageW * 100).toFixed(3) + '%', 'important');
+        el.style.setProperty('height', (lh * scale / pageH * 100).toFixed(3) + '%', 'important');
+      }
+      var shown = Math.min(cells.length, want);
+      var metaEl = document.querySelector('.ed-preview__sheet-meta');
+      if (metaEl) {
+        var nw = Math.round(lw * 10) / 10;
+        var nh = Math.round(lh * 10) / 10;
+        metaEl.textContent = grid.cols + '×' + grid.rows + ' · ' + shown + '칸 · ' + nw + '×' + nh + ' mm';
+      }
+      var kicker = document.querySelector('[data-tut="presets"] .ed-float-tools__paper-kicker');
+      var paperBtn = kicker && kicker.parentElement;
+      if (paperBtn) {
+        var em = paperBtn.querySelector('em');
+        if (em) em.textContent = (Math.round(lw * 10) / 10) + '×' + (Math.round(lh * 10) / 10) + ' mm · ' + shown + ' 칸';
+      }
+      applying = false;
+    };
+    var queued = false;
+    var request = function () {
+      if (queued || applying) return;
+      queued = true;
+      requestAnimationFrame(function () {
+        queued = false;
+        layout();
+      });
+    };
+    document.addEventListener('click', function (e) {
+      if (!e.target || !e.target.closest) return;
+      var card = e.target.closest('.ed-paper-card');
+      if (!card || card.classList.contains('ed-theme-card') || card.classList.contains('ed-project-card')) return;
+      picked = parseCard(card);
+      var min = document.querySelector('[data-ed-preview-panel].is-minimized .ed-props__min');
+      if (min) min.click();
+      loadShop().then(request);
+      setTimeout(request, 80);
+      setTimeout(request, 360);
+      setTimeout(request, 900);
+      setTimeout(request, 1600);
+    }, true);
+    var mo = new MutationObserver(function () {
+      if (!applying) request();
+    });
+    var start = function () {
+      loadShop().then(request);
+      var root = document.querySelector('[data-ed-preview-panel]') || document.body;
+      mo.observe(root, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['style', 'class'] });
+    };
+    if (document.querySelector('[data-ed-preview-panel], [data-ed-root]')) start();
+    else {
+      var wait = new MutationObserver(function () {
+        if (document.querySelector('[data-ed-preview-panel], [data-ed-root]')) {
+          wait.disconnect();
+          start();
+        }
+      });
+      wait.observe(document.documentElement, { childList: true, subtree: true });
     }
   },
   bindCanvaToolbar: function () {
@@ -1411,6 +1635,13 @@ window.labelUpEditor = {
       var f = fieldByText(/^투명도/);
       return f ? f.querySelector('input[type="number"]') : null;
     };
+    var imageFit = function () {
+      var f = fieldByText(/^맞춤/);
+      return f ? f.querySelector('select') : null;
+    };
+    var isImageSel = function () {
+      return !!groupByLabel(/이미지/) || /이미지/.test(selectionKey());
+    };
     var checkByText = function (re) {
       var f = fieldByText(re);
       return f ? f.querySelector('input[type="checkbox"]') : null;
@@ -1432,13 +1663,154 @@ window.labelUpEditor = {
       }
     };
 
+    var opValue = 1;
+    var opOpen = false;
+    var opDragging = false;
+    var opApplyTimer = 0;
+    var ensureOpacityPop = function () {
+      var pop = document.getElementById('lu-ctx-op');
+      if (pop) return pop;
+      pop = document.createElement('div');
+      pop.id = 'lu-ctx-op';
+      pop.className = 'ed-ctx-op';
+      pop.hidden = true;
+      pop.innerHTML =
+        '<div class="ed-ctx-op__pct">100%</div>' +
+        '<div class="ed-ctx-op__track" data-op-track>' +
+          '<div class="ed-ctx-op__fill"></div>' +
+          '<div class="ed-ctx-op__thumb"></div>' +
+        '</div>';
+      document.body.appendChild(pop);
+      var onMove = function (e) {
+        if (!opDragging) return;
+        e.preventDefault();
+        setOpacityFromY(e.clientY, false);
+      };
+      var onUp = function () {
+        if (!opDragging) return;
+        opDragging = false;
+        applyOpacity(opValue, true);
+        document.removeEventListener('pointermove', onMove, true);
+        document.removeEventListener('pointerup', onUp, true);
+      };
+      pop.addEventListener('pointerdown', function (e) {
+        var track = pop.querySelector('[data-op-track]');
+        if (!track) return;
+        e.preventDefault();
+        e.stopPropagation();
+        opDragging = true;
+        setOpacityFromY(e.clientY, false);
+        document.addEventListener('pointermove', onMove, true);
+        document.addEventListener('pointerup', onUp, true);
+      });
+      return pop;
+    };
+    var paintOpacity = function (value) {
+      opValue = Math.max(0, Math.min(1, value));
+      var pct = Math.round(opValue * 100);
+      var pop = document.getElementById('lu-ctx-op');
+      if (pop) {
+        var label = pop.querySelector('.ed-ctx-op__pct');
+        var fill = pop.querySelector('.ed-ctx-op__fill');
+        var thumb = pop.querySelector('.ed-ctx-op__thumb');
+        if (label) label.textContent = pct + '%';
+        if (fill) fill.style.height = pct + '%';
+        if (thumb) thumb.style.top = (100 - pct) + '%';
+      }
+      var tint = document.querySelector('#lu-ctx-bar .ed-ctx-bar__op-tint');
+      if (tint) tint.setAttribute('opacity', String(0.18 + opValue * 0.62));
+      var btn = document.querySelector('#lu-ctx-bar [data-act="opacity-toggle"]');
+      if (btn) btn.title = '투명도 ' + pct + '%';
+    };
+    var applyOpacity = function (value, immediate) {
+      paintOpacity(value);
+      var write = function () {
+        var src = opacityInput();
+        var next = String(Math.round(opValue * 100) / 100);
+        if (src) setValue(src, next);
+        else withPropsFields(function () { setValue(opacityInput(), next); });
+      };
+      if (immediate) {
+        if (opApplyTimer) {
+          clearTimeout(opApplyTimer);
+          opApplyTimer = 0;
+        }
+        write();
+        return;
+      }
+      if (opApplyTimer) return;
+      opApplyTimer = setTimeout(function () {
+        opApplyTimer = 0;
+        write();
+      }, 80);
+    };
+    var setOpacityFromY = function (clientY, immediate) {
+      var pop = ensureOpacityPop();
+      var track = pop.querySelector('[data-op-track]');
+      if (!track) return;
+      var r = track.getBoundingClientRect();
+      var t = (clientY - r.top) / Math.max(1, r.height);
+      applyOpacity(1 - Math.max(0, Math.min(1, t)), immediate);
+    };
+    var placeOpacityPop = function (anchor) {
+      var pop = ensureOpacityPop();
+      if (!anchor) return;
+      var r = anchor.getBoundingClientRect();
+      pop.style.left = Math.round(r.left + r.width / 2 - 24) + 'px';
+      pop.style.top = Math.round(r.bottom + 8) + 'px';
+      pop.hidden = false;
+      requestAnimationFrame(function () {
+        var pr = pop.getBoundingClientRect();
+        if (pr.bottom > window.innerHeight - 10) {
+          pop.style.top = Math.round(r.top - 8 - pr.height) + 'px';
+        }
+        if (pr.left < 8) pop.style.left = '8px';
+        if (pr.right > window.innerWidth - 8)
+          pop.style.left = Math.round(window.innerWidth - 8 - pr.width) + 'px';
+      });
+    };
+    var closeOpacityPop = function () {
+      opOpen = false;
+      opDragging = false;
+      var pop = document.getElementById('lu-ctx-op');
+      if (pop) pop.hidden = true;
+      var btn = document.querySelector('#lu-ctx-bar [data-act="opacity-toggle"]');
+      if (btn) btn.classList.remove('is-on');
+    };
+    var openOpacityPop = function (anchor) {
+      ensureOpacityPop();
+      opOpen = true;
+      paintOpacity(opValue);
+      placeOpacityPop(anchor);
+      if (anchor) anchor.classList.add('is-on');
+    };
+    var mountOpacitySlot = function (bar) {
+      var slot = bar.querySelector('[data-slot="opacity"]');
+      if (!slot || slot.querySelector('[data-act="opacity-toggle"]')) return;
+      slot.innerHTML =
+        '<button type="button" class="ed-ctx-bar__op" data-act="opacity-toggle" title="투명도">' +
+          '<svg class="ed-ctx-bar__op-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+            '<defs><pattern id="lu-op-chk2" width="4" height="4" patternUnits="userSpaceOnUse">' +
+              '<rect width="4" height="4" fill="#d8cfd3"/>' +
+              '<rect width="2" height="2" fill="#fff"/>' +
+              '<rect x="2" y="2" width="2" height="2" fill="#fff"/>' +
+            '</pattern></defs>' +
+            '<rect x="3" y="3" width="18" height="18" rx="4" fill="url(#lu-op-chk2)"/>' +
+            '<rect class="ed-ctx-bar__op-tint" x="3" y="3" width="18" height="18" rx="4" fill="currentColor"/>' +
+          '</svg>' +
+        '</button>';
+    };
+
     var ensureBar = function () {
       var host = document.querySelector('[data-ed-workspace]') ||
         document.querySelector('[data-ed-body]') ||
         document.querySelector('[data-ed-root]');
       if (!host) return null;
       var bar = document.getElementById('lu-ctx-bar');
-      if (bar) return bar;
+      if (bar) {
+        mountOpacitySlot(bar);
+        return bar;
+      }
       bar = document.createElement('div');
       bar.id = 'lu-ctx-bar';
       bar.className = 'ed-ctx-bar';
@@ -1449,8 +1821,16 @@ window.labelUpEditor = {
             '<input type="color" data-act="fill" title="채우기" />' +
           '</span>' +
           '<span class="ed-ctx-bar__slot" data-slot="stroke">' +
-            '<input type="color" data-act="stroke" title="선 색" />' +
-            '<input type="number" data-act="sw" min="0" step="0.05" title="선 굵기" />' +
+            '<input type="color" data-act="stroke" title="테두리 색" />' +
+            '<em class="ed-ctx-bar__lab">테두리</em>' +
+            '<input type="number" data-act="sw" min="0" step="0.05" title="테두리 굵기(mm)" />' +
+          '</span>' +
+          '<span class="ed-ctx-bar__slot" data-slot="fit">' +
+            '<select data-act="fit" title="이미지 맞춤">' +
+              '<option value="contain">맞춤</option>' +
+              '<option value="cover">채우기</option>' +
+              '<option value="stretch">늘리기</option>' +
+            '</select>' +
           '</span>' +
           '<span class="ed-ctx-bar__div" data-slot="color-div"></span>' +
           '<span class="ed-ctx-bar__slot" data-slot="font">' +
@@ -1466,7 +1846,17 @@ window.labelUpEditor = {
           '<span class="ed-ctx-bar__div" data-slot="font-div"></span>' +
           '<button type="button" data-act="flip">뒤집기</button>' +
           '<span class="ed-ctx-bar__slot" data-slot="opacity">' +
-            '<input type="number" data-act="opacity" min="0" max="1" step="0.05" title="투명도" />' +
+            '<button type="button" class="ed-ctx-bar__op" data-act="opacity-toggle" title="투명도">' +
+              '<svg class="ed-ctx-bar__op-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+                '<defs><pattern id="lu-op-chk" width="4" height="4" patternUnits="userSpaceOnUse">' +
+                  '<rect width="4" height="4" fill="#d8cfd3"/>' +
+                  '<rect width="2" height="2" fill="#fff"/>' +
+                  '<rect x="2" y="2" width="2" height="2" fill="#fff"/>' +
+                '</pattern></defs>' +
+                '<rect x="3" y="3" width="18" height="18" rx="4" fill="url(#lu-op-chk)"/>' +
+                '<rect class="ed-ctx-bar__op-tint" x="3" y="3" width="18" height="18" rx="4" fill="currentColor"/>' +
+              '</svg>' +
+            '</button>' +
           '</span>' +
           '<button type="button" data-act="lock" title="잠금">잠금</button>' +
           '<span class="ed-ctx-bar__div"></span>' +
@@ -1476,12 +1866,18 @@ window.labelUpEditor = {
           '<button type="button" data-act="del" title="삭제">🗑</button>' +
         '</div>';
       host.appendChild(bar);
+      mountOpacitySlot(bar);
       bar.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
       bar.addEventListener('mousedown', function (e) { e.stopPropagation(); });
       bar.addEventListener('click', function (e) {
         var btn = e.target && e.target.closest ? e.target.closest('[data-act]') : null;
         if (!btn || btn.tagName === 'INPUT' || btn.tagName === 'SELECT') return;
         var act = btn.getAttribute('data-act');
+        if (act === 'opacity-toggle') {
+          if (opOpen) closeOpacityPop();
+          else openOpacityPop(btn);
+          return;
+        }
         if (act === 'fwd') return clickFloat('앞으로');
         if (act === 'back') return clickFloat('뒤로');
         if (act === 'dup') return clickFloat('복제');
@@ -1508,7 +1904,7 @@ window.labelUpEditor = {
           else if (act === 'stroke') setValue(strokeColor(), el.value);
           else if (act === 'sw') setValue(strokeWidth(), el.value);
           else if (act === 'fs') setValue(fontSize(), el.value);
-          else if (act === 'opacity') setValue(opacityInput(), el.value);
+          else if (act === 'fit') setValue(imageFit(), el.value);
           populate(bar);
         });
       });
@@ -1528,15 +1924,18 @@ window.labelUpEditor = {
         var fs = fontSize();
         var al = alignSelect();
         var op = opacityInput();
+        var fit = imageFit();
+        var img = isImageSel();
         var fillEl = bar.querySelector('[data-act="fill"]');
         var strokeEl = bar.querySelector('[data-act="stroke"]');
         var swEl = bar.querySelector('[data-act="sw"]');
         var fontEl = bar.querySelector('[data-act="font"]');
         var sizeEl = bar.querySelector('[data-act="fs"]');
-        var opEl = bar.querySelector('[data-act="opacity"]');
-        toggleSlot(bar, 'fill', !!fc);
+        var fitEl = bar.querySelector('[data-act="fit"]');
+        toggleSlot(bar, 'fill', !!fc && !img);
         toggleSlot(bar, 'stroke', !!(sc || sw));
-        toggleSlot(bar, 'color-div', !!(fc || sc || sw));
+        toggleSlot(bar, 'fit', !!fit);
+        toggleSlot(bar, 'color-div', !!(fc || sc || sw || fit));
         var hasText = !!(fsSel || fs || checkByText(/^굵게$/));
         toggleSlot(bar, 'font', hasText);
         toggleSlot(bar, 'font-div', hasText);
@@ -1558,7 +1957,11 @@ window.labelUpEditor = {
           sizeEl.hidden = !fs;
           if (fs) sizeEl.value = fs.value;
         }
-        if (opEl && op) opEl.value = op.value;
+        if (op && !opDragging) paintOpacity(parseFloat(op.value || '1') || 0);
+        if (fitEl) {
+          fitEl.hidden = !fit;
+          if (fit) fitEl.value = fit.value;
+        }
         [['bold', /^굵게$/], ['italic', /^기울임$/], ['underline', /^밑줄$/], ['flip', /반전/], ['lock', /속성잠금|잠금/]].forEach(function (pair) {
           var btn = bar.querySelector('[data-act="' + pair[0] + '"]');
           var box = checkByText(pair[1]);
@@ -1608,6 +2011,7 @@ window.labelUpEditor = {
       bar.hidden = true;
       bar.removeAttribute('data-ready');
       lastKey = '';
+      closeOpacityPop();
       if (activeTab() !== '레이어') ops.showTab('레이어');
     };
     var queued = false;
@@ -1625,6 +2029,15 @@ window.labelUpEditor = {
         setTimeout(requestSync, 30);
       }
     }, true);
+    document.addEventListener('pointerdown', function (e) {
+      if (!opOpen || opDragging) return;
+      var t = e.target;
+      if (t && t.closest && (t.closest('#lu-ctx-op') || t.closest('[data-act="opacity-toggle"]'))) return;
+      closeOpacityPop();
+    }, true);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && opOpen) closeOpacityPop();
+    });
 
     var mo = new MutationObserver(function (records) {
       var meaningful = false;
@@ -2021,6 +2434,8 @@ window.labelUpEditor = {
       window.labelUpEditor.bindCreditBadge();
     if (window.labelUpEditor && typeof window.labelUpEditor.bindCanvaToolbar === 'function')
       window.labelUpEditor.bindCanvaToolbar();
+    if (window.labelUpEditor && typeof window.labelUpEditor.bindPaperPreviewLayout === 'function')
+      window.labelUpEditor.bindPaperPreviewLayout();
   };
   window.addEventListener('resize', apply);
   window.addEventListener('orientationchange', apply);

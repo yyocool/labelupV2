@@ -482,9 +482,11 @@ public sealed class EditorSession
         CurrentShopProductId = shopProductId is > 0 ? shopProductId : null;
         Document.ApplyPaper(paper, keepDesign: true);
         Document.Background = paper.LabelColor;
+        DocumentEpoch++;
         PageIndex = 0;
         LabelIndex = 0;
         SelectedId = null;
+        ApplyCurrentSlotSize();
         Dirty = true;
         PendingFit = true;
         Status = $"용지 {paper.PaperNo} 적용";

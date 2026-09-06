@@ -192,15 +192,36 @@ public sealed class PaperCatalog
         paper.LabelWidthMm = Math.Max(1f, widthMm);
         paper.LabelHeightMm = Math.Max(1f, heightMm);
         var labels = Math.Max(1, labelsPerSheet);
-        // A4 기준 대략 배치
-        paper.Columns = labels >= 14 ? 2 : (labels >= 6 ? 2 : 1);
-        paper.Rows = Math.Max(1, (int)Math.Ceiling(labels / (double)paper.Columns));
-        if (paper.Columns * paper.Rows < labels)
-            paper.Rows = Math.Max(1, (int)Math.Ceiling(labels / (double)paper.Columns));
-        paper.PaperWidthMm = 210f;
-        paper.PaperHeightMm = 297f;
-        paper.HGapMm = 4f;
-        paper.VGapMm = 3f;
+        const float pageW = 210f, pageH = 297f, margin = 5f, gap = 3f;
+        var lw = paper.LabelWidthMm;
+        var lh = paper.LabelHeightMm;
+        var maxCols = Math.Max(1, (int)Math.Floor((pageW - margin * 2 + gap) / (lw + gap)));
+        var maxRows = Math.Max(1, (int)Math.Floor((pageH - margin * 2 + gap) / (lh + gap)));
+        int cols;
+        int rows;
+        if (labels == 1)
+        {
+            cols = 1;
+            rows = 1;
+        }
+        else
+        {
+            cols = Math.Min(labels, Math.Max(1, maxCols));
+            rows = Math.Max(1, (int)Math.Ceiling(labels / (double)cols));
+            while (rows > maxRows && cols < labels)
+            {
+                cols++;
+                rows = Math.Max(1, (int)Math.Ceiling(labels / (double)cols));
+            }
+        }
+        paper.Columns = cols;
+        paper.Rows = rows;
+        paper.HGapMm = gap;
+        paper.VGapMm = gap;
+        var needW = cols * lw + Math.Max(0, cols - 1) * gap + margin * 2;
+        var needH = rows * lh + Math.Max(0, rows - 1) * gap + margin * 2;
+        paper.PaperWidthMm = Math.Max(pageW, needW);
+        paper.PaperHeightMm = Math.Max(pageH, needH);
         paper.Shape.Kind = MapShapeKind(shape);
         if (paper.Shape.Kind == "ellipse")
         {
