@@ -4398,6 +4398,7 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 /* —— Mobile chrome (hidden on desktop) —— */
 .ed-m-more,
 .ed-m-props,
+.ed-m-preview,
 .ed-m-scrim,
 .ed-m-drawer-close { display: none; }
 
@@ -4425,6 +4426,7 @@ html.is-ed-mobile body {
 .ed.is-mobile .ed-topbar-dock.is-auto,
 .ed.is-mobile .ed-topbar-dock.is-pinned {
   position: relative;
+  z-index: 240;
   height: auto;
   flex-shrink: 0;
 }
@@ -4433,6 +4435,7 @@ html.is-ed-mobile body {
 .ed.is-mobile .ed-topbar-dock.is-auto .ed-topbar,
 .ed.is-mobile .ed-topbar {
   position: relative;
+  z-index: 240;
   transform: none;
   pointer-events: auto;
   box-shadow: 0 8px 20px rgba(32, 16, 22, 0.22);
@@ -4447,14 +4450,27 @@ html.is-ed-mobile body {
 }
 .ed.is-mobile .ed-topbar__name {
   min-width: 0;
-  max-width: 42vw;
+  max-width: 28vw;
   font-size: 14px;
 }
 .ed.is-mobile .ed-topbar__status,
 .ed.is-mobile .ed-chip--pin { display: none; }
-.ed.is-mobile .ed-autosave { display: inline-flex; }
-.ed.is-mobile .ed-topbar__labi { width: 28px; padding: 0; }
+.ed.is-mobile .ed-autosave {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+}
+.ed.is-mobile .ed-autosave::before {
+  width: 24px;
+  height: 24px;
+}
+.ed.is-mobile .ed-topbar__labi {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+}
 .ed.is-mobile .ed-topbar__labi span { display: none; }
+.ed.is-mobile .ed-topbar__labi img { width: 22px; height: 22px; }
 .ed.is-mobile .ed-topbar__center {
   flex: 0 0 auto;
   gap: 4px;
@@ -4476,10 +4492,18 @@ html.is-ed-mobile body {
 .ed.is-mobile .ed-zoom span,
 .ed.is-mobile .ed-zoom__pct { min-width: 2.6em; text-align: left; }
 .ed.is-mobile .ed-m-more,
-.ed.is-mobile .ed-m-props {
+.ed.is-mobile .ed-m-props,
+.ed.is-mobile .ed-m-preview {
   display: grid;
 }
-.ed.is-mobile .ed-m-props { font-size: 11px; font-weight: 800; width: auto; padding: 0 8px; }
+.ed.is-mobile .ed-m-props,
+.ed.is-mobile .ed-m-preview {
+  font-size: 11px;
+  font-weight: 800;
+  width: auto;
+  min-width: 44px;
+  padding: 0 8px;
+}
 .ed.is-mobile .ed-m-scrim.is-open,
 .ed.is-mobile .ed-m-drawer-close { display: block; }
 .ed.is-mobile .ed-m-scrim.is-open {
@@ -4594,6 +4618,8 @@ html.is-ed-mobile body {
 
 .ed.is-mobile .ed-props,
 .ed.is-mobile .ed-preview {
+  display: flex;
+  flex-direction: column;
   position: fixed;
   left: 0;
   right: 0;
@@ -4610,11 +4636,39 @@ html.is-ed-mobile body {
   z-index: 230;
   box-shadow: 0 -12px 36px rgba(46, 42, 39, 0.2);
 }
+.ed.is-mobile .ed-preview.is-minimized,
+.ed.is-mobile .ed-props.is-minimized {
+  height: min(74dvh, 620px);
+  max-height: min(74dvh, 620px);
+}
 .ed.is-mobile .ed-props.is-m-open,
 .ed.is-mobile .ed-preview.is-m-open {
   transform: translateY(0);
 }
-.ed.is-mobile.is-props-open::after {
+.ed.is-mobile .ed-layer-item {
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
+  flex-basis: 44px;
+  font-size: 13px;
+}
+.ed.is-mobile .ed-props__layers {
+  grid-auto-rows: 44px;
+}
+.ed.is-mobile .ed-ctx-bar button,
+.ed.is-mobile .ed-ctx-bar input[type="number"],
+.ed.is-mobile .ed-ctx-bar input[type="color"],
+.ed.is-mobile .ed-ctx-bar select {
+  height: 40px;
+  min-height: 40px;
+}
+.ed.is-mobile .ed-ctx-bar button { min-width: 40px; }
+.ed.is-mobile .ed-ctx-op {
+  height: 200px;
+  width: 52px;
+}
+.ed.is-mobile.is-props-open::after,
+.ed.is-mobile.is-preview-open::after {
   content: "";
   position: fixed;
   inset: 0;
@@ -4640,10 +4694,12 @@ html.is-ed-mobile body {
   transform-origin: bottom right;
 }
 .ed.is-mobile .ed-credit-chip {
-  right: 12px;
-  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  left: 12px;
+  right: auto;
+  bottom: calc(78px + env(safe-area-inset-bottom, 0px));
   min-width: 0;
   height: 46px;
+  padding: 0 12px 0 10px;
 }
 
 .ed.is-mobile .ed-data-table--panel,
@@ -4685,11 +4741,9 @@ html.is-ed-mobile body {
 
 @media (max-width: 900px) {
   .ed { min-width: 0; }
-  .ed-preview { display: none; }
+  html:not(.is-ed-mobile) .ed-preview { display: none; }
 }
 @media (max-width: 520px) {
-  .ed.is-mobile .ed-topbar__center > .ed-chip:nth-child(2),
-  .ed.is-mobile .ed-topbar__center > .ed-chip:nth-child(3),
-  .ed.is-mobile .ed-topbar__center > .ed-chip:nth-child(5) { display: none; }
+  .ed.is-mobile .ed-topbar__center { display: none; }
   .ed.is-mobile .ed-topbar__saved { display: none; }
 }

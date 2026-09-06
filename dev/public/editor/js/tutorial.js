@@ -18,7 +18,7 @@
       id: 'welcome',
       selector: '[data-tut="topbar"]',
       title: '라벨 편집기에 오신 걸 환영해요',
-      description: '상단 바에서 제목 수정, 줌, 그리드, 미리보기·저장하기·출력, 나가기를 할 수 있어요. 버튼마다 아이콘이 붙어 있어요.',
+      description: '제목 옆에 클라우드 저장과 라비AI가 있고, 오른쪽에서 쇼핑·저장·출력을 할 수 있어요.',
       effect: '편집기 전체 흐름을 한눈에 파악합니다.',
       speech: '라벨 편집기에 오신 걸 환영해요. 상단 바부터 살펴볼게요.',
       wait: 2800
@@ -27,9 +27,9 @@
       id: 'tools',
       selector: '[data-tut="float-tools"]',
       title: '플로팅 도구바',
-      description: '선택·텍스트·이미지·도형 도구가 모여 있어요. 드래그하면 모서리에 자석처럼 붙습니다.',
+      description: '선택·텍스트·이미지·도형과 용지·템플릿·타사포맷이 왼쪽에 모여 있어요.',
       effect: '자주 쓰는 도구에 빠르게 접근합니다.',
-      speech: '왼쪽의 플로팅 도구바예요. 드래그해서 원하는 모서리로 옮길 수 있어요.',
+      speech: '왼쪽 도구바예요. 타사포맷도 여기에 있어요.',
       wait: 3000,
       cursor: true
     },
@@ -127,7 +127,7 @@
       id: 'props',
       selector: '[data-tut="canvas"]',
       title: '선택 속성 막대',
-      description: '객체를 선택하면 격자 위쪽에 캔바처럼 글꼴·색·크기를 바로 바꿀 수 있어요.',
+      description: '객체를 고르면 격자 위에서 글꼴·색·크기·투명도를 바로 바꿀 수 있어요. 투명도는 체크무늬를 누른 뒤 세로로 조절합니다.',
       effect: '선택한 객체만 심플하게 조절합니다.',
       speech: '객체를 고르면 격자 위에서 속성을 바로 바꿔요.',
       wait: 3000,
@@ -137,10 +137,10 @@
     {
       id: 'layers',
       selector: '[data-tut="tab-layers"]',
-      title: '레이어 탭',
-      description: '레이어 탭으로 전환하면 객체 목록을 보고 선택할 수 있어요.',
-      effect: '겹친 객체도 쉽게 고를 수 있습니다.',
-      speech: '레이어 탭을 열어볼게요.',
+      title: '레이어',
+      description: '오른쪽 아래 레이어에서 객체를 고르고, 드래그해서 순서를 바꿀 수 있어요.',
+      effect: '겹친 객체도 쉽게 고르고 순서를 맞춥니다.',
+      speech: '오른쪽 아래가 레이어 상자예요.',
       wait: 2200,
       cursor: true,
       click: true,
@@ -150,12 +150,22 @@
       id: 'preview',
       selector: '[data-tut="preview"]',
       title: '시트 미리보기',
-      description: '지금 편집 중인 라벨이 용지 시트에 어떻게 배치되는지, 실제 디자인 그대로 보여줍니다.',
+      description: '오른쪽 위 미리보기는 선택한 용지의 칸 수와 비율을 그대로 보여 줍니다.',
       effect: '출력 전 배치와 디자인을 검증합니다.',
-      speech: '미리보기에는 실제 라벨 레이아웃이 그대로 표시됩니다.',
+      speech: '오른쪽 위 미리보기예요. 용지 규격에 맞춰 칸이 보여요.',
       wait: 3200,
       cursor: true,
       action: 'expandPreview'
+    },
+    {
+      id: 'cloud-save',
+      selector: '.ed-autosave',
+      title: '클라우드 저장',
+      description: '제목 옆 구름으로 자동저장을 켜고 끕니다. 켜두면 주기적으로 계정에 보관해요.',
+      effect: '작업 손실을 줄입니다.',
+      speech: '제목 옆 구름이 클라우드 저장이에요.',
+      wait: 2400,
+      cursor: true
     },
     {
       id: 'labi-fab',
@@ -171,9 +181,9 @@
       id: 'import-fab',
       selector: '[data-tut="import-fab"]',
       title: '타사포맷',
-      description: '우측 하단 타사포맷 버튼을 누르면 라비AI처럼 변환 창만 열립니다.',
+      description: '왼쪽 도구바의 타사포맷을 누르면 변환 창만 열립니다.',
       effect: '폼텍·아이라벨·애니라벨 파일을 바로 올립니다.',
-      speech: '타사포맷 버튼을 눌러 변환 창을 열게요.',
+      speech: '도구바의 타사포맷을 눌러 변환 창을 열게요.',
       wait: 2400,
       cursor: true,
       click: true,
@@ -293,7 +303,7 @@
       id: 'done',
       selector: '[data-tut="topbar"]',
       title: '튜토리얼 완료!',
-      description: '이제 직접 디자인을 시작해 보세요. 좌측 하단 ✦ 튜토리얼로 언제든 다시 볼 수 있어요.',
+      description: '이제 직접 디자인을 시작해 보세요. 왼쪽 도구바의 튜토리얼에서 언제든 다시 볼 수 있어요.',
       effect: '실전 편집으로 바로 이어갑니다.',
       speech: '튜토리얼이 끝났어요. 멋진 라벨을 만들어 보세요!',
       wait: 3200,
@@ -306,17 +316,39 @@
       id: 'm-welcome',
       selector: '[data-tut="topbar"]',
       title: '휴대폰 편집기예요',
-      description: '상단은 꼭 필요한 버튼만 남겼어요. 저장·쇼핑·출력은 ☰ 메뉴에, 세부 값은 속성 버튼에 있어요.',
+      description: '제목 옆에 클라우드 저장과 라비AI가 있어요. 저장·출력은 ☰, 시트·레이어는 옆 버튼으로 엽니다.',
       effect: '작은 화면에서도 캔버스를 가리지 않습니다.',
-      speech: '휴대폰용 편집기예요. 모바일 전용 조작부터 알려드릴게요.',
+      speech: '휴대폰용 편집기예요. 상단부터 살펴볼게요.',
       wait: 2800,
+      action: 'closeMobileOverlays'
+    },
+    {
+      id: 'm-cloud',
+      selector: '.ed-autosave',
+      title: '클라우드 저장',
+      description: '구름 아이콘으로 자동저장을 켜고 끌 수 있어요. 켜두면 주기적으로 계정에 보관합니다.',
+      effect: '작업 손실을 줄입니다.',
+      speech: '제목 옆 구름이 클라우드 저장이에요.',
+      wait: 2400,
+      cursor: true,
+      action: 'closeMobileOverlays'
+    },
+    {
+      id: 'm-labi',
+      selector: '[data-tut="labi-fab"]',
+      title: '라비AI',
+      description: '클라우드 저장 다음의 라비AI로 원하는 라벨을 말로 만들 수 있어요.',
+      effect: '아이디어만 말해도 초안을 시작합니다.',
+      speech: '구름 옆 라비AI 버튼이에요.',
+      wait: 2400,
+      cursor: true,
       action: 'closeMobileOverlays'
     },
     {
       id: 'm-menu',
       selector: '.ed-m-more',
       title: '☰ 메뉴',
-      description: '오른쪽 위 ☰을 누르면 라벨쇼핑, 저장, 출력, 나가기가 아래에서 올라옵니다.',
+      description: '오른쪽 위 ☰을 누르면 라벨쇼핑, 저장, 인쇄 미리보기, 출력, 나가기가 열립니다.',
       effect: '자주 쓰는 작업을 한곳에서 실행합니다.',
       speech: '메뉴 버튼을 눌러 볼게요.',
       wait: 2600,
@@ -328,7 +360,7 @@
       id: 'm-menu-items',
       selector: '[data-tut="topbar-actions"]',
       title: '메뉴 서랍',
-      description: '여기서 미리보기·저장하기·편집기에서 출력을 할 수 있어요. 바깥을 누르거나 메뉴 닫기를 누르면 접힙니다.',
+      description: '여기서 저장하기와 편집기에서 출력을 할 수 있어요. 바깥을 누르거나 메뉴 닫기를 누르면 접힙니다.',
       effect: '상단을 간결하게 유지하면서 기능은 그대로입니다.',
       speech: '저장과 출력은 이 메뉴 안에 있어요.',
       wait: 3000,
@@ -336,24 +368,47 @@
       action: 'openMobileMenu'
     },
     {
+      id: 'm-preview-btn',
+      selector: '.ed-m-preview',
+      title: '시트 버튼',
+      description: '용지 칸 배치를 보려면 시트를 누르세요. PC의 오른쪽 위 미리보기와 같아요.',
+      effect: '필요할 때만 아래에서 미리보기가 올라옵니다.',
+      speech: '시트 버튼을 눌러 미리보기를 열게요.',
+      wait: 2600,
+      cursor: true,
+      click: true,
+      action: 'openMobilePreview'
+    },
+    {
+      id: 'm-preview-sheet',
+      selector: '[data-tut="preview"]',
+      title: '시트 미리보기',
+      description: '선택한 용지의 칸 수와 비율이 그대로 보여요. 바깥을 누르면 닫힙니다.',
+      effect: '출력 전 배치를 휴대폰에서도 확인합니다.',
+      speech: '아래 시트에서 라벨 배치를 확인해요.',
+      wait: 3000,
+      cursor: true,
+      action: 'openMobilePreview'
+    },
+    {
       id: 'm-props-btn',
       selector: '.ed-m-props',
-      title: '속성 버튼',
-      description: '선택한 객체의 위치·크기·글꼴을 바꾸려면 속성 버튼을 누르세요.',
-      effect: '캔버스를 가리지 않고 필요할 때만 시트가 올라옵니다.',
-      speech: '속성 버튼을 눌러 패널을 열게요.',
+      title: '레이어 버튼',
+      description: '객체 목록과 순서는 레이어에서 보고, 글꼴·색은 격자 위 속성 막대에서 바꿔요.',
+      effect: 'PC의 오른쪽 아래 레이어 상자와 같은 역할입니다.',
+      speech: '레이어 버튼을 눌러 볼게요.',
       wait: 2600,
       cursor: true,
       click: true,
       action: 'openMobileProps'
     },
     {
-      id: 'm-props-sheet',
+      id: 'm-layers',
       selector: '[data-tut="props"]',
-      title: '속성 시트',
-      description: '아래에서 올라온 시트에서 값을 바꾸고, 다시 속성을 누르거나 바깥을 누르면 닫혀요.',
-      effect: '한 손으로도 세부 조정이 가능합니다.',
-      speech: '아래 속성 시트에서 숫자와 색을 바꿔요.',
+      title: '레이어 시트',
+      description: '아래에서 객체를 고르고, 줄을 드래그하면 순서가 바뀝니다. 바깥을 누르면 닫혀요.',
+      effect: '겹친 객체도 한 손으로 고를 수 있습니다.',
+      speech: '아래 레이어에서 순서를 바꿀 수 있어요.',
       wait: 3000,
       cursor: true,
       action: 'openMobileProps'
@@ -362,12 +417,23 @@
       id: 'm-tools',
       selector: '[data-tut="float-tools"]',
       title: '하단 도구바',
-      description: '텍스트·바코드·이미지·도형은 아래 도구를 가로로 밀어 고릅니다. 용지와 템플릿도 여기에 있어요.',
+      description: '텍스트·이미지·도형과 용지선택·템플릿·타사포맷을 가로로 밀어 고릅니다.',
       effect: '엄지로 바로 추가할 수 있습니다.',
       speech: '도구는 화면 아래에 모아 두었어요.',
       wait: 2800,
       cursor: true,
-      action: 'closeMobileProps'
+      action: 'closeMobileOverlays'
+    },
+    {
+      id: 'm-vendor',
+      selector: '[data-tut="import-fab"]',
+      title: '타사포맷',
+      description: '하단 도구바의 타사포맷으로 폼텍·아이라벨·애니라벨 파일을 올립니다.',
+      effect: '변환 창만 바로 열립니다.',
+      speech: '타사포맷 버튼이에요.',
+      wait: 2400,
+      cursor: true,
+      action: 'closeMobileOverlays'
     },
     {
       id: 'm-canvas',
@@ -417,7 +483,7 @@
       id: 'm-zoom',
       selector: '[data-tut="zoom"]',
       title: '줌 숫자',
-      description: '핀치로 조절한 배율은 위쪽 숫자에 보여요. − / + 로도 바꿀 수 있습니다.',
+      description: '핀치로 조절한 배율은 위쪽 숫자에 보여요.',
       effect: '현재 확대 상태를 바로 확인합니다.',
       speech: '줌 숫자는 상단 가운데에 있어요.',
       wait: 2400,
@@ -427,7 +493,7 @@
       id: 'm-done',
       selector: '[data-tut="topbar"]',
       title: '이제 직접 만들어 보세요',
-      description: '왼쪽 아래 ✦ 모바일 튜토리얼에서 언제든 다시 볼 수 있어요.',
+      description: '하단 도구바의 튜토리얼에서 언제든 다시 볼 수 있어요.',
       effect: '실전 편집으로 바로 이어갑니다.',
       speech: '모바일 튜토리얼이 끝났어요. 멋진 라벨을 만들어 보세요!',
       wait: 3000,
@@ -466,18 +532,29 @@
     if (window.labelUpEditor && typeof window.labelUpEditor.toggleMobileProps === 'function')
       window.labelUpEditor.toggleMobileProps();
   }
+  function setMobilePreviewOpen(on) {
+    var preview = document.querySelector('[data-ed-preview-panel]');
+    var open = !!(preview && preview.classList.contains('is-m-open'));
+    if (on === open) return;
+    if (window.labelUpEditor && typeof window.labelUpEditor.toggleMobilePreview === 'function')
+      window.labelUpEditor.toggleMobilePreview();
+  }
   function closeMobileOverlays() {
     setMobileMenuOpen(false);
     setMobilePropsOpen(false);
+    setMobilePreviewOpen(false);
   }
   function patchMobileInvite() {
-    if (!isMobileTour()) return;
     var card = document.querySelector('.lu-tut-invite__card');
     if (card) {
       var h = card.querySelector('h3');
       var p = card.querySelector('p');
-      if (h) h.textContent = '휴대폰에서 편집하는 법, 같이 볼까요?';
-      if (p) p.textContent = '☰ 메뉴, 속성 시트, 두 손가락 확대·이동, 길게 누르기 등 모바일 전용 조작을 짧게 안내해요.';
+      if (isMobileTour()) {
+        if (h) h.textContent = '휴대폰에서 편집하는 법, 같이 볼까요?';
+        if (p) p.textContent = '클라우드 저장·라비AI, 시트·레이어, 두 손가락 확대·이동을 짧게 안내해요.';
+      } else if (p) {
+        p.textContent = '클라우드 저장·라비AI, 오른쪽 미리보기·레이어, 도구바와 타사포맷을 가상 커서와 함께 둘러봐요.';
+      }
     }
     var reopen = document.querySelector('.ed-tut-reopen');
     if (reopen) {
@@ -844,6 +921,7 @@
           step.action === 'openVendorPicker' || step.action === 'closeVendorPicker' ||
           step.action === 'closeVendorPickerThenImport' ||
           step.action === 'openMobileMenu' || step.action === 'openMobileProps' ||
+          step.action === 'openMobilePreview' ||
           step.action === 'closeMobileProps' || step.action === 'closeMobileOverlays' ||
           (step.action && (step.action.indexOf('importTab:') === 0 || step.action.indexOf('paperTab:') === 0))) {
         settle = (420 * PACE) / self.speed;
@@ -902,7 +980,7 @@
           if (btn) btn.click();
         }
       }
-      if (step.action === 'expandPreview' || step.id === 'preview') {
+      if (step.action === 'expandPreview' || step.id === 'preview' || step.action === 'openMobilePreview') {
         var preview = document.querySelector('[data-ed-preview-panel]');
         if (preview && preview.classList.contains('is-minimized')) {
           var pbtn = preview.querySelector('.ed-props__min');
@@ -924,6 +1002,7 @@
       step.action === 'openVendorPicker' || step.action === 'closeVendorPicker' ||
       step.action === 'closeVendorPickerThenImport' ||
       step.action === 'openMobileMenu' || step.action === 'openMobileProps' ||
+      step.action === 'openMobilePreview' ||
       step.action === 'closeMobileProps' || step.action === 'closeMobileOverlays' ||
       step.action.indexOf('importTab:') === 0 || step.action.indexOf('paperTab:') === 0;
     this._ignoreUserUntil = Date.now() + (needsDom ? 2800 : 1200);
@@ -1004,7 +1083,12 @@
       setMobileMenuOpen(true);
     } else if (action === 'openMobileProps') {
       setMobileMenuOpen(false);
+      setMobilePreviewOpen(false);
       setMobilePropsOpen(true);
+    } else if (action === 'openMobilePreview') {
+      setMobileMenuOpen(false);
+      setMobilePropsOpen(false);
+      setMobilePreviewOpen(true);
     } else if (action === 'closeMobileProps') {
       setMobilePropsOpen(false);
     } else if (action === 'closeMobileOverlays') {

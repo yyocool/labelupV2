@@ -70,7 +70,8 @@
   </div>
 
   <button type="button" class="ed-chip ed-m-more" title="메뉴" aria-label="메뉴" aria-expanded="@_mobileMenu" @onclick="ToggleMobileMenu">☰</button>
-  <button type="button" class="ed-chip ed-m-props" title="속성" aria-label="속성 패널" @onclick="ToggleMobileProps">속성</button>
+  <button type="button" class="ed-chip ed-m-preview" title="시트 미리보기" aria-label="시트 미리보기" @onclick="ToggleMobilePreview">시트</button>
+  <button type="button" class="ed-chip ed-m-props" title="레이어" aria-label="레이어 패널" @onclick="ToggleMobileProps">레이어</button>
   <div class="ed-m-scrim @(_mobileMenu ? "is-open" : null)" @onclick="CloseMobileMenu"></div>
   <div class="ed-topbar__actions @(_mobileMenu ? "is-open" : null)" data-tut="topbar-actions">
     <button type="button" class="ed-m-drawer-close" @onclick="CloseMobileMenu">메뉴 닫기</button>
@@ -220,6 +221,16 @@
             Session.Notify();
         }
         try { _ = Js.InvokeVoidAsync("labelUpEditor.toggleMobileProps"); } catch { }
+    }
+
+    private void ToggleMobilePreview()
+    {
+        if (Session.PreviewMinimized)
+        {
+            Session.PreviewMinimized = false;
+            Session.Notify();
+        }
+        try { _ = Js.InvokeVoidAsync("labelUpEditor.toggleMobilePreview"); } catch { }
     }
 
     private void ToggleGrid()

@@ -500,7 +500,10 @@ window.labelUpEditor = {
     var root = document.querySelector('[data-ed-root]');
     if (!root) return;
     root.classList.toggle('is-mobile', on);
-    if (!on) return;
+    if (!on) {
+      this.ensureMobileChromeButtons();
+      return;
+    }
     root.classList.remove('is-topbar-auto');
     root.classList.add('is-topbar-pinned');
     var dock = root.querySelector('[data-ed-topbar-dock]');
@@ -508,6 +511,36 @@ window.labelUpEditor = {
       dock.classList.remove('is-auto');
       dock.classList.add('is-pinned');
     }
+    this.ensureMobileChromeButtons();
+  },
+  ensureMobileChromeButtons: function () {
+    var root = document.querySelector('[data-ed-root]');
+    var proxy = document.querySelector('.ed-m-preview[data-ed-preview-proxy]');
+    if (!root || !root.classList.contains('is-mobile')) {
+      if (proxy) proxy.remove();
+      return;
+    }
+    var propsBtn = root.querySelector('.ed-m-props');
+    if (propsBtn && /속성/.test((propsBtn.textContent || '').trim())) {
+      propsBtn.textContent = '레이어';
+      propsBtn.setAttribute('title', '레이어');
+      propsBtn.setAttribute('aria-label', '레이어 패널');
+    }
+    if (root.querySelector('.ed-m-preview')) return;
+    if (!propsBtn) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ed-chip ed-m-preview';
+    btn.setAttribute('data-ed-preview-proxy', '1');
+    btn.title = '시트 미리보기';
+    btn.setAttribute('aria-label', '시트 미리보기');
+    btn.textContent = '시트';
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (window.labelUpEditor && typeof window.labelUpEditor.toggleMobilePreview === 'function')
+        window.labelUpEditor.toggleMobilePreview();
+    });
+    propsBtn.parentNode.insertBefore(btn, propsBtn);
   },
   toggleMobileProps: function () {
     var root = document.querySelector('[data-ed-root]');
@@ -518,6 +551,22 @@ window.labelUpEditor = {
     root.classList.toggle('is-props-open', open);
     var preview = document.querySelector('[data-ed-preview-panel]');
     if (preview) preview.classList.remove('is-m-open');
+    root.classList.remove('is-preview-open');
+  },
+  toggleMobilePreview: function () {
+    var root = document.querySelector('[data-ed-root]');
+    var preview = document.querySelector('[data-ed-preview-panel]');
+    if (!root || !preview) return;
+    var open = !preview.classList.contains('is-m-open');
+    if (open && preview.classList.contains('is-minimized')) {
+      var min = preview.querySelector('.ed-props__min');
+      if (min) min.click();
+    }
+    preview.classList.toggle('is-m-open', open);
+    root.classList.toggle('is-preview-open', open);
+    var props = document.querySelector('[data-ed-props-panel]');
+    if (props) props.classList.remove('is-m-open');
+    root.classList.remove('is-props-open');
   },
 
   mountLabiChat: async function () {
@@ -2477,8 +2526,14 @@ window.labelUpEditor = {
   document.addEventListener('click', function (e) {
     var root = document.querySelector('[data-ed-root]');
     var props = document.querySelector('[data-ed-props-panel]');
+    var preview = document.querySelector('[data-ed-preview-panel]');
     var t = e.target && e.target.closest ? e.target.closest('.ed.is-mobile .ed-props__min') : null;
     if (t) {
+      if (t.closest && t.closest('[data-ed-preview-panel]')) {
+        if (preview) preview.classList.remove('is-m-open');
+        if (root) root.classList.remove('is-preview-open');
+        return;
+      }
       if (props) props.classList.remove('is-m-open');
       if (root) root.classList.remove('is-props-open');
       return;
@@ -2487,6 +2542,11 @@ window.labelUpEditor = {
       if (e.target.closest && (e.target.closest('[data-ed-props-panel]') || e.target.closest('.ed-m-props'))) return;
       props.classList.remove('is-m-open');
       root.classList.remove('is-props-open');
+    }
+    if (root && root.classList.contains('is-preview-open') && preview) {
+      if (e.target.closest && (e.target.closest('[data-ed-preview-panel]') || e.target.closest('.ed-m-preview'))) return;
+      preview.classList.remove('is-m-open');
+      root.classList.remove('is-preview-open');
     }
   });
   if (document.readyState === 'loading')
