@@ -1,0 +1,1605 @@
+{
+    "count": 200,
+    "items": [
+        {
+            "title": "에스프레소 컵",
+            "category_slug": "food",
+            "image_path": "\/assets\/cliparts\/hq_food_01_espresso.png",
+            "hashtags": "#식품 #카페 #라벨 #커피 #에스프레소 #카페 #클립아트 #고품질",
+            "description": "식품·카페용 에스프레소 컵 클립아트",
+            "sort_order": 1
+        },
+        {
+            "title": "원두",
+            "category_slug": "food",
+            "image_path": "\/assets\/cliparts\/hq_food_02_beans.png",
+            "hashtags": "#식품 #카페 #라벨 #원두 #커피콩 #카페 #클립아트 #고품질",
+            "description": "식품·카페용 원두 클립아트",
+            "sort_order": 2
+        },
+        {
+            "title": "크루아상",
+            "category_slug": "food",
+            "image_path": "\/assets\/cliparts\/hq_food_03_croissant.png",
+            "hashtags": "#식품 #카페 #라벨 #크루아상 #베이커리 #빵 #클립아트 #고품질",
+            "description": "식품·카페용 크루아상 클립아트",
+            "sort_order": 3
+        },
+        {
+            "title": "케이크 조각",
+            "category_slug": "food",
+            "image_path": "\/assets\/cliparts\/hq_food_04_cake.png",
+            "hashtags": "#식품 #카페 #라벨 #케이크 #디저트 #딸기 #클립아트 #고품질",
+            "description": "식품·카페용 케이크 조각 클립아트",
+            "sort_order": 4
+        },
+        {
+            "title": "도넛",
+            "category_slug": "food",
+            "image_path": "\/assets\/cliparts\/hq_food_05_donut.png",
+            "hashtags": "#식품 #카페 #라벨 #도넛 #디저트 #베이커리 #클립아트 #고품질",
+            "description": "식품·카페용 도넛 클립아트",
+            "sort_order": 5
+        },
+        {
+            "title": "꿀단지",
+            "category_slug": "food",
+            "image_path": "\/assets\/cliparts\/hq_food_06_honey.png",
+            "hashtags": "#식품 #카페 #라벨 #꿀 #단지 #카페 #클립아트 #고품질",
+            "description": "식품·카페용 꿀단지 클립아트",
+            "sort_order": 6
+        },
+        {
+            "title": "레몬",
+            "category_slug": "food",
+            "image_path": "\/assets\/cliparts\/hq_food_07_lemon.png",
+            "hashtags": "#식품 #카페 #라벨 #레몬 #과일 #상큼 #클립아트 #고품질",
+            "description": "식품·카페용 레몬 클립아트",
+            "sort_order": 7
+        },
+        {
+            "title": "우유병",
+            "category_slug": "food",
+            "image_path": "\/assets\/cliparts\/hq_food_08_milk.png",
+            "hashtags": "#식품 #카페 #라벨 #우유 #병 #카페 #클립아트 #고품질",
+            "description": "식품·카페용 우유병 클립아트",
+            "sort_order": 8
+        },
+        {
+            "title": "아이스크림",
+            "category_slug": "food",
+            "image_path": "\/assets\/cliparts\/hq_food_09_icecream.png",
+            "hashtags": "#식품 #카페 #라벨 #아이스크림 #디저트 #콘 #클립아트 #고품질",
+            "description": "식품·카페용 아이스크림 클립아트",
+            "sort_order": 9
+        },
+        {
+            "title": "티컵",
+            "category_slug": "food",
+            "image_path": "\/assets\/cliparts\/hq_food_10_teacup.png",
+            "hashtags": "#식품 #카페 #라벨 #차 #티컵 #카페 #클립아트 #고품질",
+            "description": "식품·카페용 티컵 클립아트",
+            "sort_order": 10
+        },
+        {
+            "title": "바게트",
+            "category_slug": "food",
+            "image_path": "\/assets\/cliparts\/hq_food_11_baguette.png",
+            "hashtags": "#식품 #카페 #라벨 #바게트 #빵 #베이커리 #클립아트 #고품질",
+            "description": "식품·카페용 바게트 클립아트",
+            "sort_order": 11
+        },
+        {
+            "title": "사과",
+            "category_slug": "food",
+            "image_path": "\/assets\/cliparts\/hq_food_12_apple.png",
+            "hashtags": "#식품 #카페 #라벨 #사과 #과일 #신선 #클립아트 #고품질",
+            "description": "식품·카페용 사과 클립아트",
+            "sort_order": 12
+        },
+        {
+            "title": "와인병",
+            "category_slug": "food",
+            "image_path": "\/assets\/cliparts\/hq_food_13_wine.png",
+            "hashtags": "#식품 #카페 #라벨 #와인 #병 #주류 #클립아트 #고품질",
+            "description": "식품·카페용 와인병 클립아트",
+            "sort_order": 13
+        },
+        {
+            "title": "피자 조각",
+            "category_slug": "food",
+            "image_path": "\/assets\/cliparts\/hq_food_14_pizza.png",
+            "hashtags": "#식품 #카페 #라벨 #피자 #음식 #한조각 #클립아트 #고품질",
+            "description": "식품·카페용 피자 조각 클립아트",
+            "sort_order": 14
+        },
+        {
+            "title": "초콜릿",
+            "category_slug": "food",
+            "image_path": "\/assets\/cliparts\/hq_food_15_chocolate.png",
+            "hashtags": "#식품 #카페 #라벨 #초콜릿 #디저트 #달콤 #클립아트 #고품질",
+            "description": "식품·카페용 초콜릿 클립아트",
+            "sort_order": 15
+        },
+        {
+            "title": "프레첼",
+            "category_slug": "food",
+            "image_path": "\/assets\/cliparts\/hq_food_16_pretzel.png",
+            "hashtags": "#식품 #카페 #라벨 #프레첼 #베이커리 #간식 #클립아트 #고품질",
+            "description": "식품·카페용 프레첼 클립아트",
+            "sort_order": 16
+        },
+        {
+            "title": "체리",
+            "category_slug": "food",
+            "image_path": "\/assets\/cliparts\/hq_food_17_cherry.png",
+            "hashtags": "#식품 #카페 #라벨 #체리 #과일 #디저트 #클립아트 #고품질",
+            "description": "식품·카페용 체리 클립아트",
+            "sort_order": 17
+        },
+        {
+            "title": "아보카도",
+            "category_slug": "food",
+            "image_path": "\/assets\/cliparts\/hq_food_18_avocado.png",
+            "hashtags": "#식품 #카페 #라벨 #아보카도 #과일 #건강 #클립아트 #고품질",
+            "description": "식품·카페용 아보카도 클립아트",
+            "sort_order": 18
+        },
+        {
+            "title": "초밥",
+            "category_slug": "food",
+            "image_path": "\/assets\/cliparts\/hq_food_19_sushi.png",
+            "hashtags": "#식품 #카페 #라벨 #초밥 #스시 #일식 #클립아트 #고품질",
+            "description": "식품·카페용 초밥 클립아트",
+            "sort_order": 19
+        },
+        {
+            "title": "잼단지",
+            "category_slug": "food",
+            "image_path": "\/assets\/cliparts\/hq_food_20_jam.png",
+            "hashtags": "#식품 #카페 #라벨 #잼 #단지 #베이커리 #클립아트 #고품질",
+            "description": "식품·카페용 잼단지 클립아트",
+            "sort_order": 20
+        },
+        {
+            "title": "립스틱",
+            "category_slug": "beauty",
+            "image_path": "\/assets\/cliparts\/hq_beauty_01_lipstick.png",
+            "hashtags": "#뷰티 #화장품 #라벨 #립스틱 #메이크업 #뷰티 #클립아트 #고품질",
+            "description": "뷰티·화장품용 립스틱 클립아트",
+            "sort_order": 21
+        },
+        {
+            "title": "향수병",
+            "category_slug": "beauty",
+            "image_path": "\/assets\/cliparts\/hq_beauty_02_perfume.png",
+            "hashtags": "#뷰티 #화장품 #라벨 #향수 #보틀 #뷰티 #클립아트 #고품질",
+            "description": "뷰티·화장품용 향수병 클립아트",
+            "sort_order": 22
+        },
+        {
+            "title": "크림 단지",
+            "category_slug": "beauty",
+            "image_path": "\/assets\/cliparts\/hq_beauty_03_cream.png",
+            "hashtags": "#뷰티 #화장품 #라벨 #크림 #스킨케어 #단지 #클립아트 #고품질",
+            "description": "뷰티·화장품용 크림 단지 클립아트",
+            "sort_order": 23
+        },
+        {
+            "title": "메이크업 브러시",
+            "category_slug": "beauty",
+            "image_path": "\/assets\/cliparts\/hq_beauty_04_brush.png",
+            "hashtags": "#뷰티 #화장품 #라벨 #브러시 #메이크업 #뷰티 #클립아트 #고품질",
+            "description": "뷰티·화장품용 메이크업 브러시 클립아트",
+            "sort_order": 24
+        },
+        {
+            "title": "콤팩트 미러",
+            "category_slug": "beauty",
+            "image_path": "\/assets\/cliparts\/hq_beauty_05_mirror.png",
+            "hashtags": "#뷰티 #화장품 #라벨 #거울 #콤팩트 #뷰티 #클립아트 #고품질",
+            "description": "뷰티·화장품용 콤팩트 미러 클립아트",
+            "sort_order": 25
+        },
+        {
+            "title": "네일폴리시",
+            "category_slug": "beauty",
+            "image_path": "\/assets\/cliparts\/hq_beauty_06_nail.png",
+            "hashtags": "#뷰티 #화장품 #라벨 #네일 #폴리시 #뷰티 #클립아트 #고품질",
+            "description": "뷰티·화장품용 네일폴리시 클립아트",
+            "sort_order": 26
+        },
+        {
+            "title": "세럼 스포이드",
+            "category_slug": "beauty",
+            "image_path": "\/assets\/cliparts\/hq_beauty_07_serum.png",
+            "hashtags": "#뷰티 #화장품 #라벨 #세럼 #스포이드 #스킨케어 #클립아트 #고품질",
+            "description": "뷰티·화장품용 세럼 스포이드 클립아트",
+            "sort_order": 27
+        },
+        {
+            "title": "로션 보틀",
+            "category_slug": "beauty",
+            "image_path": "\/assets\/cliparts\/hq_beauty_08_lotion.png",
+            "hashtags": "#뷰티 #화장품 #라벨 #로션 #보틀 #스킨케어 #클립아트 #고품질",
+            "description": "뷰티·화장품용 로션 보틀 클립아트",
+            "sort_order": 28
+        },
+        {
+            "title": "파우더 퍼프",
+            "category_slug": "beauty",
+            "image_path": "\/assets\/cliparts\/hq_beauty_09_puff.png",
+            "hashtags": "#뷰티 #화장품 #라벨 #퍼프 #파우더 #메이크업 #클립아트 #고품질",
+            "description": "뷰티·화장품용 파우더 퍼프 클립아트",
+            "sort_order": 29
+        },
+        {
+            "title": "마스카라",
+            "category_slug": "beauty",
+            "image_path": "\/assets\/cliparts\/hq_beauty_10_mascara.png",
+            "hashtags": "#뷰티 #화장품 #라벨 #마스카라 #메이크업 #뷰티 #클립아트 #고품질",
+            "description": "뷰티·화장품용 마스카라 클립아트",
+            "sort_order": 30
+        },
+        {
+            "title": "시트마스크",
+            "category_slug": "beauty",
+            "image_path": "\/assets\/cliparts\/hq_beauty_11_mask.png",
+            "hashtags": "#뷰티 #화장품 #라벨 #마스크팩 #스킨케어 #뷰티 #클립아트 #고품질",
+            "description": "뷰티·화장품용 시트마스크 클립아트",
+            "sort_order": 31
+        },
+        {
+            "title": "토너 보틀",
+            "category_slug": "beauty",
+            "image_path": "\/assets\/cliparts\/hq_beauty_12_toner.png",
+            "hashtags": "#뷰티 #화장품 #라벨 #토너 #스킨케어 #보틀 #클립아트 #고품질",
+            "description": "뷰티·화장품용 토너 보틀 클립아트",
+            "sort_order": 32
+        },
+        {
+            "title": "클렌저 튜브",
+            "category_slug": "beauty",
+            "image_path": "\/assets\/cliparts\/hq_beauty_13_cleanser.png",
+            "hashtags": "#뷰티 #화장품 #라벨 #클렌저 #스킨케어 #튜브 #클립아트 #고품질",
+            "description": "뷰티·화장품용 클렌저 튜브 클립아트",
+            "sort_order": 33
+        },
+        {
+            "title": "오일 드롭",
+            "category_slug": "beauty",
+            "image_path": "\/assets\/cliparts\/hq_beauty_14_oil.png",
+            "hashtags": "#뷰티 #화장품 #라벨 #오일 #드롭 #스킨케어 #클립아트 #고품질",
+            "description": "뷰티·화장품용 오일 드롭 클립아트",
+            "sort_order": 34
+        },
+        {
+            "title": "스프레이 보틀",
+            "category_slug": "beauty",
+            "image_path": "\/assets\/cliparts\/hq_beauty_15_spray.png",
+            "hashtags": "#뷰티 #화장품 #라벨 #스프레이 #미스트 #뷰티 #클립아트 #고품질",
+            "description": "뷰티·화장품용 스프레이 보틀 클립아트",
+            "sort_order": 35
+        },
+        {
+            "title": "블러셔",
+            "category_slug": "beauty",
+            "image_path": "\/assets\/cliparts\/hq_beauty_16_blush.png",
+            "hashtags": "#뷰티 #화장품 #라벨 #블러셔 #메이크업 #뷰티 #클립아트 #고품질",
+            "description": "뷰티·화장품용 블러셔 클립아트",
+            "sort_order": 36
+        },
+        {
+            "title": "코튼패드",
+            "category_slug": "beauty",
+            "image_path": "\/assets\/cliparts\/hq_beauty_17_cotton.png",
+            "hashtags": "#뷰티 #화장품 #라벨 #코튼패드 #스킨케어 #뷰티 #클립아트 #고품질",
+            "description": "뷰티·화장품용 코튼패드 클립아트",
+            "sort_order": 37
+        },
+        {
+            "title": "빗",
+            "category_slug": "beauty",
+            "image_path": "\/assets\/cliparts\/hq_beauty_18_comb.png",
+            "hashtags": "#뷰티 #화장품 #라벨 #빗 #헤어 #뷰티 #클립아트 #고품질",
+            "description": "뷰티·화장품용 빗 클립아트",
+            "sort_order": 38
+        },
+        {
+            "title": "키스 마크",
+            "category_slug": "beauty",
+            "image_path": "\/assets\/cliparts\/hq_beauty_19_kiss.png",
+            "hashtags": "#뷰티 #화장품 #라벨 #키스마크 #립스틱 #뷰티 #클립아트 #고품질",
+            "description": "뷰티·화장품용 키스 마크 클립아트",
+            "sort_order": 39
+        },
+        {
+            "title": "아이섀도 팔레트",
+            "category_slug": "beauty",
+            "image_path": "\/assets\/cliparts\/hq_beauty_20_palette.png",
+            "hashtags": "#뷰티 #화장품 #라벨 #아이섀도 #팔레트 #메이크업 #클립아트 #고품질",
+            "description": "뷰티·화장품용 아이섀도 팔레트 클립아트",
+            "sort_order": 40
+        },
+        {
+            "title": "택배 박스",
+            "category_slug": "shipping",
+            "image_path": "\/assets\/cliparts\/hq_shipping_01_box.png",
+            "hashtags": "#배송 #물류 #라벨 #박스 #택배 #포장 #클립아트 #고품질",
+            "description": "배송·물류용 택배 박스 클립아트",
+            "sort_order": 41
+        },
+        {
+            "title": "배송 트럭",
+            "category_slug": "shipping",
+            "image_path": "\/assets\/cliparts\/hq_shipping_02_truck.png",
+            "hashtags": "#배송 #물류 #라벨 #트럭 #배송 #물류 #클립아트 #고품질",
+            "description": "배송·물류용 배송 트럭 클립아트",
+            "sort_order": 42
+        },
+        {
+            "title": "위치 핀",
+            "category_slug": "shipping",
+            "image_path": "\/assets\/cliparts\/hq_shipping_03_pin.png",
+            "hashtags": "#배송 #물류 #라벨 #핀 #위치 #지도 #클립아트 #고품질",
+            "description": "배송·물류용 위치 핀 클립아트",
+            "sort_order": 43
+        },
+        {
+            "title": "깨짐주의",
+            "category_slug": "shipping",
+            "image_path": "\/assets\/cliparts\/hq_shipping_04_fragile.png",
+            "hashtags": "#배송 #물류 #라벨 #깨짐주의 #주의 #유리 #클립아트 #고품질",
+            "description": "배송·물류용 깨짐주의 클립아트",
+            "sort_order": 44
+        },
+        {
+            "title": "습기주의",
+            "category_slug": "shipping",
+            "image_path": "\/assets\/cliparts\/hq_shipping_05_dry.png",
+            "hashtags": "#배송 #물류 #라벨 #습기주의 #방수 #주의 #클립아트 #고품질",
+            "description": "배송·물류용 습기주의 클립아트",
+            "sort_order": 45
+        },
+        {
+            "title": "냉장",
+            "category_slug": "shipping",
+            "image_path": "\/assets\/cliparts\/hq_shipping_06_cold.png",
+            "hashtags": "#배송 #물류 #라벨 #냉장 #콜드체인 #주의 #클립아트 #고품질",
+            "description": "배송·물류용 냉장 클립아트",
+            "sort_order": 46
+        },
+        {
+            "title": "바코드",
+            "category_slug": "shipping",
+            "image_path": "\/assets\/cliparts\/hq_shipping_07_barcode.png",
+            "hashtags": "#배송 #물류 #라벨 #바코드 #스캔 #물류 #클립아트 #고품질",
+            "description": "배송·물류용 바코드 클립아트",
+            "sort_order": 47
+        },
+        {
+            "title": "포장테이프",
+            "category_slug": "shipping",
+            "image_path": "\/assets\/cliparts\/hq_shipping_08_tape.png",
+            "hashtags": "#배송 #물류 #라벨 #테이프 #포장 #택배 #클립아트 #고품질",
+            "description": "배송·물류용 포장테이프 클립아트",
+            "sort_order": 48
+        },
+        {
+            "title": "체크리스트",
+            "category_slug": "shipping",
+            "image_path": "\/assets\/cliparts\/hq_shipping_09_clipboard.png",
+            "hashtags": "#배송 #물류 #라벨 #체크리스트 #서류 #배송 #클립아트 #고품질",
+            "description": "배송·물류용 체크리스트 클립아트",
+            "sort_order": 49
+        },
+        {
+            "title": "창고",
+            "category_slug": "shipping",
+            "image_path": "\/assets\/cliparts\/hq_shipping_10_warehouse.png",
+            "hashtags": "#배송 #물류 #라벨 #창고 #물류 #건물 #클립아트 #고품질",
+            "description": "배송·물류용 창고 클립아트",
+            "sort_order": 50
+        },
+        {
+            "title": "봉투",
+            "category_slug": "shipping",
+            "image_path": "\/assets\/cliparts\/hq_shipping_11_envelope.png",
+            "hashtags": "#배송 #물류 #라벨 #봉투 #우편 #배송 #클립아트 #고품질",
+            "description": "배송·물류용 봉투 클립아트",
+            "sort_order": 51
+        },
+        {
+            "title": "우표",
+            "category_slug": "shipping",
+            "image_path": "\/assets\/cliparts\/hq_shipping_12_stamp.png",
+            "hashtags": "#배송 #물류 #라벨 #우표 #우편 #배송 #클립아트 #고품질",
+            "description": "배송·물류용 우표 클립아트",
+            "sort_order": 52
+        },
+        {
+            "title": "저울",
+            "category_slug": "shipping",
+            "image_path": "\/assets\/cliparts\/hq_shipping_13_scale.png",
+            "hashtags": "#배송 #물류 #라벨 #저울 #무게 #물류 #클립아트 #고품질",
+            "description": "배송·물류용 저울 클립아트",
+            "sort_order": 53
+        },
+        {
+            "title": "쇼핑백",
+            "category_slug": "shipping",
+            "image_path": "\/assets\/cliparts\/hq_shipping_14_bag.png",
+            "hashtags": "#배송 #물류 #라벨 #쇼핑백 #포장 #가방 #클립아트 #고품질",
+            "description": "배송·물류용 쇼핑백 클립아트",
+            "sort_order": 54
+        },
+        {
+            "title": "자물쇠",
+            "category_slug": "shipping",
+            "image_path": "\/assets\/cliparts\/hq_shipping_15_lock.png",
+            "hashtags": "#배송 #물류 #라벨 #자물쇠 #보안 #배송 #클립아트 #고품질",
+            "description": "배송·물류용 자물쇠 클립아트",
+            "sort_order": 55
+        },
+        {
+            "title": "주의 삼각",
+            "category_slug": "shipping",
+            "image_path": "\/assets\/cliparts\/hq_shipping_16_caution.png",
+            "hashtags": "#배송 #물류 #라벨 #주의 #삼각 #경고 #클립아트 #고품질",
+            "description": "배송·물류용 주의 삼각 클립아트",
+            "sort_order": 56
+        },
+        {
+            "title": "온도계",
+            "category_slug": "shipping",
+            "image_path": "\/assets\/cliparts\/hq_shipping_17_thermo.png",
+            "hashtags": "#배송 #물류 #라벨 #온도계 #온도 #주의 #클립아트 #고품질",
+            "description": "배송·물류용 온도계 클립아트",
+            "sort_order": 57
+        },
+        {
+            "title": "파레트",
+            "category_slug": "shipping",
+            "image_path": "\/assets\/cliparts\/hq_shipping_18_pallet.png",
+            "hashtags": "#배송 #물류 #라벨 #파레트 #적재 #물류 #클립아트 #고품질",
+            "description": "배송·물류용 파레트 클립아트",
+            "sort_order": 58
+        },
+        {
+            "title": "운송 태그",
+            "category_slug": "shipping",
+            "image_path": "\/assets\/cliparts\/hq_shipping_19_tag.png",
+            "hashtags": "#배송 #물류 #라벨 #태그 #운송 #라벨 #클립아트 #고품질",
+            "description": "배송·물류용 운송 태그 클립아트",
+            "sort_order": 59
+        },
+        {
+            "title": "위쪽표시",
+            "category_slug": "shipping",
+            "image_path": "\/assets\/cliparts\/hq_shipping_20_thisway.png",
+            "hashtags": "#배송 #물류 #라벨 #위쪽 #화살표 #주의 #클립아트 #고품질",
+            "description": "배송·물류용 위쪽표시 클립아트",
+            "sort_order": 60
+        },
+        {
+            "title": "웃는 별",
+            "category_slug": "kids",
+            "image_path": "\/assets\/cliparts\/hq_kids_01_starface.png",
+            "hashtags": "#키즈 #네임 #라벨 #별 #캐릭터 #키즈 #클립아트 #고품질",
+            "description": "네임·키즈용 웃는 별 클립아트",
+            "sort_order": 61
+        },
+        {
+            "title": "연필",
+            "category_slug": "kids",
+            "image_path": "\/assets\/cliparts\/hq_kids_02_pencil.png",
+            "hashtags": "#키즈 #네임 #라벨 #연필 #학용품 #키즈 #클립아트 #고품질",
+            "description": "네임·키즈용 연필 클립아트",
+            "sort_order": 62
+        },
+        {
+            "title": "책가방",
+            "category_slug": "kids",
+            "image_path": "\/assets\/cliparts\/hq_kids_03_backpack.png",
+            "hashtags": "#키즈 #네임 #라벨 #가방 #책가방 #키즈 #클립아트 #고품질",
+            "description": "네임·키즈용 책가방 클립아트",
+            "sort_order": 63
+        },
+        {
+            "title": "무지개",
+            "category_slug": "kids",
+            "image_path": "\/assets\/cliparts\/hq_kids_04_rainbow.png",
+            "hashtags": "#키즈 #네임 #라벨 #무지개 #구름 #키즈 #클립아트 #고품질",
+            "description": "네임·키즈용 무지개 클립아트",
+            "sort_order": 64
+        },
+        {
+            "title": "크레용",
+            "category_slug": "kids",
+            "image_path": "\/assets\/cliparts\/hq_kids_05_crayon.png",
+            "hashtags": "#키즈 #네임 #라벨 #크레용 #학용품 #키즈 #클립아트 #고품질",
+            "description": "네임·키즈용 크레용 클립아트",
+            "sort_order": 65
+        },
+        {
+            "title": "이름표",
+            "category_slug": "kids",
+            "image_path": "\/assets\/cliparts\/hq_kids_06_badge.png",
+            "hashtags": "#키즈 #네임 #라벨 #이름표 #배지 #네임 #클립아트 #고품질",
+            "description": "네임·키즈용 이름표 클립아트",
+            "sort_order": 66
+        },
+        {
+            "title": "테디베어",
+            "category_slug": "kids",
+            "image_path": "\/assets\/cliparts\/hq_kids_07_teddy.png",
+            "hashtags": "#키즈 #네임 #라벨 #테디베어 #인형 #키즈 #클립아트 #고품질",
+            "description": "네임·키즈용 테디베어 클립아트",
+            "sort_order": 67
+        },
+        {
+            "title": "풍선 강아지",
+            "category_slug": "kids",
+            "image_path": "\/assets\/cliparts\/hq_kids_08_balloondog.png",
+            "hashtags": "#키즈 #네임 #라벨 #풍선 #강아지 #키즈 #클립아트 #고품질",
+            "description": "네임·키즈용 풍선 강아지 클립아트",
+            "sort_order": 68
+        },
+        {
+            "title": "알파벳 블록",
+            "category_slug": "kids",
+            "image_path": "\/assets\/cliparts\/hq_kids_09_block.png",
+            "hashtags": "#키즈 #네임 #라벨 #블록 #장난감 #키즈 #클립아트 #고품질",
+            "description": "네임·키즈용 알파벳 블록 클립아트",
+            "sort_order": 69
+        },
+        {
+            "title": "학용 사과",
+            "category_slug": "kids",
+            "image_path": "\/assets\/cliparts\/hq_kids_10_schoolapple.png",
+            "hashtags": "#키즈 #네임 #라벨 #사과 #학교 #키즈 #클립아트 #고품질",
+            "description": "네임·키즈용 학용 사과 클립아트",
+            "sort_order": 70
+        },
+        {
+            "title": "가위",
+            "category_slug": "kids",
+            "image_path": "\/assets\/cliparts\/hq_kids_11_scissors.png",
+            "hashtags": "#키즈 #네임 #라벨 #가위 #학용품 #키즈 #클립아트 #고품질",
+            "description": "네임·키즈용 가위 클립아트",
+            "sort_order": 71
+        },
+        {
+            "title": "풀",
+            "category_slug": "kids",
+            "image_path": "\/assets\/cliparts\/hq_kids_12_glue.png",
+            "hashtags": "#키즈 #네임 #라벨 #풀 #학용품 #키즈 #클립아트 #고품질",
+            "description": "네임·키즈용 풀 클립아트",
+            "sort_order": 72
+        },
+        {
+            "title": "공책",
+            "category_slug": "kids",
+            "image_path": "\/assets\/cliparts\/hq_kids_13_notebook.png",
+            "hashtags": "#키즈 #네임 #라벨 #공책 #학용품 #키즈 #클립아트 #고품질",
+            "description": "네임·키즈용 공책 클립아트",
+            "sort_order": 73
+        },
+        {
+            "title": "축구공",
+            "category_slug": "kids",
+            "image_path": "\/assets\/cliparts\/hq_kids_14_soccer.png",
+            "hashtags": "#키즈 #네임 #라벨 #축구공 #공 #키즈 #클립아트 #고품질",
+            "description": "네임·키즈용 축구공 클립아트",
+            "sort_order": 74
+        },
+        {
+            "title": "막대사탕",
+            "category_slug": "kids",
+            "image_path": "\/assets\/cliparts\/hq_kids_15_lollipop.png",
+            "hashtags": "#키즈 #네임 #라벨 #사탕 #막대사탕 #키즈 #클립아트 #고품질",
+            "description": "네임·키즈용 막대사탕 클립아트",
+            "sort_order": 75
+        },
+        {
+            "title": "해님",
+            "category_slug": "kids",
+            "image_path": "\/assets\/cliparts\/hq_kids_16_sunface.png",
+            "hashtags": "#키즈 #네임 #라벨 #해 #캐릭터 #키즈 #클립아트 #고품질",
+            "description": "네임·키즈용 해님 클립아트",
+            "sort_order": 76
+        },
+        {
+            "title": "구름",
+            "category_slug": "kids",
+            "image_path": "\/assets\/cliparts\/hq_kids_17_cloudsmile.png",
+            "hashtags": "#키즈 #네임 #라벨 #구름 #캐릭터 #키즈 #클립아트 #고품질",
+            "description": "네임·키즈용 구름 클립아트",
+            "sort_order": 77
+        },
+        {
+            "title": "나비",
+            "category_slug": "kids",
+            "image_path": "\/assets\/cliparts\/hq_kids_18_butterflyk.png",
+            "hashtags": "#키즈 #네임 #라벨 #나비 #봄 #키즈 #클립아트 #고품질",
+            "description": "네임·키즈용 나비 클립아트",
+            "sort_order": 78
+        },
+        {
+            "title": "왕관",
+            "category_slug": "kids",
+            "image_path": "\/assets\/cliparts\/hq_kids_19_crown.png",
+            "hashtags": "#키즈 #네임 #라벨 #왕관 #키즈 #네임 #클립아트 #고품질",
+            "description": "네임·키즈용 왕관 클립아트",
+            "sort_order": 79
+        },
+        {
+            "title": "아이스크림 컵",
+            "category_slug": "kids",
+            "image_path": "\/assets\/cliparts\/hq_kids_20_sundae.png",
+            "hashtags": "#키즈 #네임 #라벨 #아이스크림 #디저트 #키즈 #클립아트 #고품질",
+            "description": "네임·키즈용 아이스크림 컵 클립아트",
+            "sort_order": 80
+        },
+        {
+            "title": "하트",
+            "category_slug": "gift",
+            "image_path": "\/assets\/cliparts\/hq_gift_01_heart.png",
+            "hashtags": "#선물 #하트 #라벨 #하트 #사랑 #선물 #클립아트 #고품질",
+            "description": "하트·선물용 하트 클립아트",
+            "sort_order": 81
+        },
+        {
+            "title": "더블 하트",
+            "category_slug": "gift",
+            "image_path": "\/assets\/cliparts\/hq_gift_02_hearts.png",
+            "hashtags": "#선물 #하트 #라벨 #하트 #더블 #사랑 #클립아트 #고품질",
+            "description": "하트·선물용 더블 하트 클립아트",
+            "sort_order": 82
+        },
+        {
+            "title": "선물상자",
+            "category_slug": "gift",
+            "image_path": "\/assets\/cliparts\/hq_gift_03_giftbox.png",
+            "hashtags": "#선물 #하트 #라벨 #선물상자 #리본 #선물 #클립아트 #고품질",
+            "description": "하트·선물용 선물상자 클립아트",
+            "sort_order": 83
+        },
+        {
+            "title": "리본 보우",
+            "category_slug": "gift",
+            "image_path": "\/assets\/cliparts\/hq_gift_04_bow.png",
+            "hashtags": "#선물 #하트 #라벨 #리본 #보우 #선물 #클립아트 #고품질",
+            "description": "하트·선물용 리본 보우 클립아트",
+            "sort_order": 84
+        },
+        {
+            "title": "꽃다발",
+            "category_slug": "gift",
+            "image_path": "\/assets\/cliparts\/hq_gift_05_bouquet.png",
+            "hashtags": "#선물 #하트 #라벨 #꽃다발 #선물 #꽃 #클립아트 #고품질",
+            "description": "하트·선물용 꽃다발 클립아트",
+            "sort_order": 85
+        },
+        {
+            "title": "반지",
+            "category_slug": "gift",
+            "image_path": "\/assets\/cliparts\/hq_gift_06_ring.png",
+            "hashtags": "#선물 #하트 #라벨 #반지 #보석 #선물 #클립아트 #고품질",
+            "description": "하트·선물용 반지 클립아트",
+            "sort_order": 86
+        },
+        {
+            "title": "풍선",
+            "category_slug": "gift",
+            "image_path": "\/assets\/cliparts\/hq_gift_07_balloon.png",
+            "hashtags": "#선물 #하트 #라벨 #풍선 #하트 #축하 #클립아트 #고품질",
+            "description": "하트·선물용 풍선 클립아트",
+            "sort_order": 87
+        },
+        {
+            "title": "파티 폭죽",
+            "category_slug": "gift",
+            "image_path": "\/assets\/cliparts\/hq_gift_08_popper.png",
+            "hashtags": "#선물 #하트 #라벨 #폭죽 #파티 #축하 #클립아트 #고품질",
+            "description": "하트·선물용 파티 폭죽 클립아트",
+            "sort_order": 88
+        },
+        {
+            "title": "러브레터",
+            "category_slug": "gift",
+            "image_path": "\/assets\/cliparts\/hq_gift_09_letter.png",
+            "hashtags": "#선물 #하트 #라벨 #편지 #러브레터 #하트 #클립아트 #고품질",
+            "description": "하트·선물용 러브레터 클립아트",
+            "sort_order": 89
+        },
+        {
+            "title": "다이아몬드",
+            "category_slug": "gift",
+            "image_path": "\/assets\/cliparts\/hq_gift_10_diamond.png",
+            "hashtags": "#선물 #하트 #라벨 #다이아 #보석 #선물 #클립아트 #고품질",
+            "description": "하트·선물용 다이아몬드 클립아트",
+            "sort_order": 90
+        },
+        {
+            "title": "축하 케이크",
+            "category_slug": "gift",
+            "image_path": "\/assets\/cliparts\/hq_gift_11_cake.png",
+            "hashtags": "#선물 #하트 #라벨 #케이크 #축하 #선물 #클립아트 #고품질",
+            "description": "하트·선물용 축하 케이크 클립아트",
+            "sort_order": 91
+        },
+        {
+            "title": "포장 선물",
+            "category_slug": "gift",
+            "image_path": "\/assets\/cliparts\/hq_gift_12_wrap.png",
+            "hashtags": "#선물 #하트 #라벨 #포장 #선물 #리본 #클립아트 #고품질",
+            "description": "하트·선물용 포장 선물 클립아트",
+            "sort_order": 92
+        },
+        {
+            "title": "감사 배지",
+            "category_slug": "gift",
+            "image_path": "\/assets\/cliparts\/hq_gift_13_thanks.png",
+            "hashtags": "#선물 #하트 #라벨 #감사 #배지 #선물 #클립아트 #고품질",
+            "description": "하트·선물용 감사 배지 클립아트",
+            "sort_order": 93
+        },
+        {
+            "title": "콘페티",
+            "category_slug": "gift",
+            "image_path": "\/assets\/cliparts\/hq_gift_14_confetti.png",
+            "hashtags": "#선물 #하트 #라벨 #콘페티 #축하 #파티 #클립아트 #고품질",
+            "description": "하트·선물용 콘페티 클립아트",
+            "sort_order": 94
+        },
+        {
+            "title": "와인 선물",
+            "category_slug": "gift",
+            "image_path": "\/assets\/cliparts\/hq_gift_15_winegift.png",
+            "hashtags": "#선물 #하트 #라벨 #와인 #선물 #축하 #클립아트 #고품질",
+            "description": "하트·선물용 와인 선물 클립아트",
+            "sort_order": 95
+        },
+        {
+            "title": "리본 곰인형",
+            "category_slug": "gift",
+            "image_path": "\/assets\/cliparts\/hq_gift_16_tedbow.png",
+            "hashtags": "#선물 #하트 #라벨 #곰인형 #하트 #선물 #클립아트 #고품질",
+            "description": "하트·선물용 리본 곰인형 클립아트",
+            "sort_order": 96
+        },
+        {
+            "title": "리본 별",
+            "category_slug": "gift",
+            "image_path": "\/assets\/cliparts\/hq_gift_17_starbow.png",
+            "hashtags": "#선물 #하트 #라벨 #별 #리본 #선물 #클립아트 #고품질",
+            "description": "하트·선물용 리본 별 클립아트",
+            "sort_order": 97
+        },
+        {
+            "title": "하트 봉투",
+            "category_slug": "gift",
+            "image_path": "\/assets\/cliparts\/hq_gift_18_envheart.png",
+            "hashtags": "#선물 #하트 #라벨 #봉투 #하트 #편지 #클립아트 #고품질",
+            "description": "하트·선물용 하트 봉투 클립아트",
+            "sort_order": 98
+        },
+        {
+            "title": "스파클",
+            "category_slug": "gift",
+            "image_path": "\/assets\/cliparts\/hq_gift_19_sparkle.png",
+            "hashtags": "#선물 #하트 #라벨 #스파클 #반짝 #선물 #클립아트 #고품질",
+            "description": "하트·선물용 스파클 클립아트",
+            "sort_order": 99
+        },
+        {
+            "title": "큐피드 하트",
+            "category_slug": "gift",
+            "image_path": "\/assets\/cliparts\/hq_gift_20_arrowheart.png",
+            "hashtags": "#선물 #하트 #라벨 #큐피드 #하트 #사랑 #클립아트 #고품질",
+            "description": "하트·선물용 큐피드 하트 클립아트",
+            "sort_order": 100
+        },
+        {
+            "title": "상품 바코드",
+            "category_slug": "business",
+            "image_path": "\/assets\/cliparts\/hq_business_01_barcodeb.png",
+            "hashtags": "#비즈니스 #오피스 #라벨 #바코드 #가격 #비즈니스 #클립아트 #고품질",
+            "description": "비즈니스용 상품 바코드 클립아트",
+            "sort_order": 101
+        },
+        {
+            "title": "가격표",
+            "category_slug": "business",
+            "image_path": "\/assets\/cliparts\/hq_business_02_pricetag.png",
+            "hashtags": "#비즈니스 #오피스 #라벨 #가격표 #태그 #비즈니스 #클립아트 #고품질",
+            "description": "비즈니스용 가격표 클립아트",
+            "sort_order": 102
+        },
+        {
+            "title": "체크 마크",
+            "category_slug": "business",
+            "image_path": "\/assets\/cliparts\/hq_business_03_check.png",
+            "hashtags": "#비즈니스 #오피스 #라벨 #체크 #확인 #아이콘 #클립아트 #고품질",
+            "description": "비즈니스용 체크 마크 클립아트",
+            "sort_order": 103
+        },
+        {
+            "title": "달력",
+            "category_slug": "business",
+            "image_path": "\/assets\/cliparts\/hq_business_04_calendar.png",
+            "hashtags": "#비즈니스 #오피스 #라벨 #달력 #일정 #오피스 #클립아트 #고품질",
+            "description": "비즈니스용 달력 클립아트",
+            "sort_order": 104
+        },
+        {
+            "title": "시계",
+            "category_slug": "business",
+            "image_path": "\/assets\/cliparts\/hq_business_05_clock.png",
+            "hashtags": "#비즈니스 #오피스 #라벨 #시계 #시간 #오피스 #클립아트 #고품질",
+            "description": "비즈니스용 시계 클립아트",
+            "sort_order": 105
+        },
+        {
+            "title": "클립보드",
+            "category_slug": "business",
+            "image_path": "\/assets\/cliparts\/hq_business_06_board.png",
+            "hashtags": "#비즈니스 #오피스 #라벨 #클립보드 #서류 #오피스 #클립아트 #고품질",
+            "description": "비즈니스용 클립보드 클립아트",
+            "sort_order": 106
+        },
+        {
+            "title": "파이 차트",
+            "category_slug": "business",
+            "image_path": "\/assets\/cliparts\/hq_business_07_pie.png",
+            "hashtags": "#비즈니스 #오피스 #라벨 #차트 #그래프 #비즈니스 #클립아트 #고품질",
+            "description": "비즈니스용 파이 차트 클립아트",
+            "sort_order": 107
+        },
+        {
+            "title": "영수증",
+            "category_slug": "business",
+            "image_path": "\/assets\/cliparts\/hq_business_08_receipt.png",
+            "hashtags": "#비즈니스 #오피스 #라벨 #영수증 #결제 #비즈니스 #클립아트 #고품질",
+            "description": "비즈니스용 영수증 클립아트",
+            "sort_order": 108
+        },
+        {
+            "title": "QR 코드",
+            "category_slug": "business",
+            "image_path": "\/assets\/cliparts\/hq_business_09_qr.png",
+            "hashtags": "#비즈니스 #오피스 #라벨 #QR #코드 #비즈니스 #클립아트 #고품질",
+            "description": "비즈니스용 QR 코드 클립아트",
+            "sort_order": 109
+        },
+        {
+            "title": "도장",
+            "category_slug": "business",
+            "image_path": "\/assets\/cliparts\/hq_business_10_stampb.png",
+            "hashtags": "#비즈니스 #오피스 #라벨 #도장 #스탬프 #오피스 #클립아트 #고품질",
+            "description": "비즈니스용 도장 클립아트",
+            "sort_order": 110
+        },
+        {
+            "title": "만년필",
+            "category_slug": "business",
+            "image_path": "\/assets\/cliparts\/hq_business_11_pen.png",
+            "hashtags": "#비즈니스 #오피스 #라벨 #펜 #만년필 #오피스 #클립아트 #고품질",
+            "description": "비즈니스용 만년필 클립아트",
+            "sort_order": 111
+        },
+        {
+            "title": "노트북",
+            "category_slug": "business",
+            "image_path": "\/assets\/cliparts\/hq_business_12_laptop.png",
+            "hashtags": "#비즈니스 #오피스 #라벨 #노트북 #오피스 #비즈니스 #클립아트 #고품질",
+            "description": "비즈니스용 노트북 클립아트",
+            "sort_order": 112
+        },
+        {
+            "title": "폴더",
+            "category_slug": "business",
+            "image_path": "\/assets\/cliparts\/hq_business_13_folder.png",
+            "hashtags": "#비즈니스 #오피스 #라벨 #폴더 #서류 #오피스 #클립아트 #고품질",
+            "description": "비즈니스용 폴더 클립아트",
+            "sort_order": 113
+        },
+        {
+            "title": "계산기",
+            "category_slug": "business",
+            "image_path": "\/assets\/cliparts\/hq_business_14_calc.png",
+            "hashtags": "#비즈니스 #오피스 #라벨 #계산기 #오피스 #비즈니스 #클립아트 #고품질",
+            "description": "비즈니스용 계산기 클립아트",
+            "sort_order": 114
+        },
+        {
+            "title": "카드",
+            "category_slug": "business",
+            "image_path": "\/assets\/cliparts\/hq_business_15_card.png",
+            "hashtags": "#비즈니스 #오피스 #라벨 #카드 #결제 #비즈니스 #클립아트 #고품질",
+            "description": "비즈니스용 카드 클립아트",
+            "sort_order": 115
+        },
+        {
+            "title": "서류가방",
+            "category_slug": "business",
+            "image_path": "\/assets\/cliparts\/hq_business_16_briefcase.png",
+            "hashtags": "#비즈니스 #오피스 #라벨 #서류가방 #오피스 #비즈니스 #클립아트 #고품질",
+            "description": "비즈니스용 서류가방 클립아트",
+            "sort_order": 116
+        },
+        {
+            "title": "상승 그래프",
+            "category_slug": "business",
+            "image_path": "\/assets\/cliparts\/hq_business_17_graph.png",
+            "hashtags": "#비즈니스 #오피스 #라벨 #그래프 #성장 #비즈니스 #클립아트 #고품질",
+            "description": "비즈니스용 상승 그래프 클립아트",
+            "sort_order": 117
+        },
+        {
+            "title": "퍼센트",
+            "category_slug": "business",
+            "image_path": "\/assets\/cliparts\/hq_business_18_percent.png",
+            "hashtags": "#비즈니스 #오피스 #라벨 #퍼센트 #할인 #비즈니스 #클립아트 #고품질",
+            "description": "비즈니스용 퍼센트 클립아트",
+            "sort_order": 118
+        },
+        {
+            "title": "빌딩",
+            "category_slug": "business",
+            "image_path": "\/assets\/cliparts\/hq_business_19_building.png",
+            "hashtags": "#비즈니스 #오피스 #라벨 #빌딩 #회사 #비즈니스 #클립아트 #고품질",
+            "description": "비즈니스용 빌딩 클립아트",
+            "sort_order": 119
+        },
+        {
+            "title": "문서",
+            "category_slug": "business",
+            "image_path": "\/assets\/cliparts\/hq_business_20_document.png",
+            "hashtags": "#비즈니스 #오피스 #라벨 #문서 #서류 #오피스 #클립아트 #고품질",
+            "description": "비즈니스용 문서 클립아트",
+            "sort_order": 120
+        },
+        {
+            "title": "잎사귀",
+            "category_slug": "nature",
+            "image_path": "\/assets\/cliparts\/hq_nature_01_leaf.png",
+            "hashtags": "#자연 #식물 #라벨 #잎 #자연 #친환경 #클립아트 #고품질",
+            "description": "자연·식물용 잎사귀 클립아트",
+            "sort_order": 121
+        },
+        {
+            "title": "장미",
+            "category_slug": "nature",
+            "image_path": "\/assets\/cliparts\/hq_nature_02_rose.png",
+            "hashtags": "#자연 #식물 #라벨 #장미 #꽃 #자연 #클립아트 #고품질",
+            "description": "자연·식물용 장미 클립아트",
+            "sort_order": 122
+        },
+        {
+            "title": "해바라기",
+            "category_slug": "nature",
+            "image_path": "\/assets\/cliparts\/hq_nature_03_sunflower.png",
+            "hashtags": "#자연 #식물 #라벨 #해바라기 #꽃 #자연 #클립아트 #고품질",
+            "description": "자연·식물용 해바라기 클립아트",
+            "sort_order": 123
+        },
+        {
+            "title": "나무",
+            "category_slug": "nature",
+            "image_path": "\/assets\/cliparts\/hq_nature_04_tree.png",
+            "hashtags": "#자연 #식물 #라벨 #나무 #자연 #친환경 #클립아트 #고품질",
+            "description": "자연·식물용 나무 클립아트",
+            "sort_order": 124
+        },
+        {
+            "title": "새싹",
+            "category_slug": "nature",
+            "image_path": "\/assets\/cliparts\/hq_nature_05_sprout.png",
+            "hashtags": "#자연 #식물 #라벨 #새싹 #식물 #친환경 #클립아트 #고품질",
+            "description": "자연·식물용 새싹 클립아트",
+            "sort_order": 125
+        },
+        {
+            "title": "클로버",
+            "category_slug": "nature",
+            "image_path": "\/assets\/cliparts\/hq_nature_06_clover.png",
+            "hashtags": "#자연 #식물 #라벨 #클로버 #행운 #자연 #클립아트 #고품질",
+            "description": "자연·식물용 클로버 클립아트",
+            "sort_order": 126
+        },
+        {
+            "title": "버섯",
+            "category_slug": "nature",
+            "image_path": "\/assets\/cliparts\/hq_nature_07_mushroom.png",
+            "hashtags": "#자연 #식물 #라벨 #버섯 #자연 #숲 #클립아트 #고품질",
+            "description": "자연·식물용 버섯 클립아트",
+            "sort_order": 127
+        },
+        {
+            "title": "산",
+            "category_slug": "nature",
+            "image_path": "\/assets\/cliparts\/hq_nature_08_mountain.png",
+            "hashtags": "#자연 #식물 #라벨 #산 #자연 #풍경 #클립아트 #고품질",
+            "description": "자연·식물용 산 클립아트",
+            "sort_order": 128
+        },
+        {
+            "title": "파도",
+            "category_slug": "nature",
+            "image_path": "\/assets\/cliparts\/hq_nature_09_wave.png",
+            "hashtags": "#자연 #식물 #라벨 #파도 #바다 #자연 #클립아트 #고품질",
+            "description": "자연·식물용 파도 클립아트",
+            "sort_order": 129
+        },
+        {
+            "title": "태양",
+            "category_slug": "nature",
+            "image_path": "\/assets\/cliparts\/hq_nature_10_sun.png",
+            "hashtags": "#자연 #식물 #라벨 #태양 #날씨 #자연 #클립아트 #고품질",
+            "description": "자연·식물용 태양 클립아트",
+            "sort_order": 130
+        },
+        {
+            "title": "달",
+            "category_slug": "nature",
+            "image_path": "\/assets\/cliparts\/hq_nature_11_moon.png",
+            "hashtags": "#자연 #식물 #라벨 #달 #밤 #자연 #클립아트 #고품질",
+            "description": "자연·식물용 달 클립아트",
+            "sort_order": 131
+        },
+        {
+            "title": "허브",
+            "category_slug": "nature",
+            "image_path": "\/assets\/cliparts\/hq_nature_12_herb.png",
+            "hashtags": "#자연 #식물 #라벨 #허브 #식물 #보태니컬 #클립아트 #고품질",
+            "description": "자연·식물용 허브 클립아트",
+            "sort_order": 132
+        },
+        {
+            "title": "올리브 가지",
+            "category_slug": "nature",
+            "image_path": "\/assets\/cliparts\/hq_nature_13_olive.png",
+            "hashtags": "#자연 #식물 #라벨 #올리브 #가지 #자연 #클립아트 #고품질",
+            "description": "자연·식물용 올리브 가지 클립아트",
+            "sort_order": 133
+        },
+        {
+            "title": "소나무",
+            "category_slug": "nature",
+            "image_path": "\/assets\/cliparts\/hq_nature_14_pine.png",
+            "hashtags": "#자연 #식물 #라벨 #소나무 #나무 #자연 #클립아트 #고품질",
+            "description": "자연·식물용 소나무 클립아트",
+            "sort_order": 134
+        },
+        {
+            "title": "튤립",
+            "category_slug": "nature",
+            "image_path": "\/assets\/cliparts\/hq_nature_15_tulip.png",
+            "hashtags": "#자연 #식물 #라벨 #튤립 #꽃 #봄 #클립아트 #고품질",
+            "description": "자연·식물용 튤립 클립아트",
+            "sort_order": 135
+        },
+        {
+            "title": "데이지",
+            "category_slug": "nature",
+            "image_path": "\/assets\/cliparts\/hq_nature_16_daisy.png",
+            "hashtags": "#자연 #식물 #라벨 #데이지 #꽃 #자연 #클립아트 #고품질",
+            "description": "자연·식물용 데이지 클립아트",
+            "sort_order": 136
+        },
+        {
+            "title": "물방울",
+            "category_slug": "nature",
+            "image_path": "\/assets\/cliparts\/hq_nature_17_drop.png",
+            "hashtags": "#자연 #식물 #라벨 #물방울 #수분 #자연 #클립아트 #고품질",
+            "description": "자연·식물용 물방울 클립아트",
+            "sort_order": 137
+        },
+        {
+            "title": "도토리",
+            "category_slug": "nature",
+            "image_path": "\/assets\/cliparts\/hq_nature_18_acorn.png",
+            "hashtags": "#자연 #식물 #라벨 #도토리 #가을 #자연 #클립아트 #고품질",
+            "description": "자연·식물용 도토리 클립아트",
+            "sort_order": 138
+        },
+        {
+            "title": "연꽃",
+            "category_slug": "nature",
+            "image_path": "\/assets\/cliparts\/hq_nature_19_lotus.png",
+            "hashtags": "#자연 #식물 #라벨 #연꽃 #꽃 #자연 #클립아트 #고품질",
+            "description": "자연·식물용 연꽃 클립아트",
+            "sort_order": 139
+        },
+        {
+            "title": "밀이삭",
+            "category_slug": "nature",
+            "image_path": "\/assets\/cliparts\/hq_nature_20_wheat.png",
+            "hashtags": "#자연 #식물 #라벨 #밀 #이삭 #자연 #클립아트 #고품질",
+            "description": "자연·식물용 밀이삭 클립아트",
+            "sort_order": 140
+        },
+        {
+            "title": "고양이",
+            "category_slug": "animal",
+            "image_path": "\/assets\/cliparts\/hq_animal_01_cat.png",
+            "hashtags": "#동물 #캐릭터 #라벨 #고양이 #펫 #동물 #클립아트 #고품질",
+            "description": "동물용 고양이 클립아트",
+            "sort_order": 141
+        },
+        {
+            "title": "강아지",
+            "category_slug": "animal",
+            "image_path": "\/assets\/cliparts\/hq_animal_02_dog.png",
+            "hashtags": "#동물 #캐릭터 #라벨 #강아지 #펫 #동물 #클립아트 #고품질",
+            "description": "동물용 강아지 클립아트",
+            "sort_order": 142
+        },
+        {
+            "title": "토끼",
+            "category_slug": "animal",
+            "image_path": "\/assets\/cliparts\/hq_animal_03_rabbit.png",
+            "hashtags": "#동물 #캐릭터 #라벨 #토끼 #동물 #캐릭터 #클립아트 #고품질",
+            "description": "동물용 토끼 클립아트",
+            "sort_order": 143
+        },
+        {
+            "title": "곰",
+            "category_slug": "animal",
+            "image_path": "\/assets\/cliparts\/hq_animal_04_bear.png",
+            "hashtags": "#동물 #캐릭터 #라벨 #곰 #동물 #캐릭터 #클립아트 #고품질",
+            "description": "동물용 곰 클립아트",
+            "sort_order": 144
+        },
+        {
+            "title": "새",
+            "category_slug": "animal",
+            "image_path": "\/assets\/cliparts\/hq_animal_05_bird.png",
+            "hashtags": "#동물 #캐릭터 #라벨 #새 #동물 #자연 #클립아트 #고품질",
+            "description": "동물용 새 클립아트",
+            "sort_order": 145
+        },
+        {
+            "title": "물고기",
+            "category_slug": "animal",
+            "image_path": "\/assets\/cliparts\/hq_animal_06_fish.png",
+            "hashtags": "#동물 #캐릭터 #라벨 #물고기 #금붕어 #동물 #클립아트 #고품질",
+            "description": "동물용 물고기 클립아트",
+            "sort_order": 146
+        },
+        {
+            "title": "나비",
+            "category_slug": "animal",
+            "image_path": "\/assets\/cliparts\/hq_animal_07_butterflya.png",
+            "hashtags": "#동물 #캐릭터 #라벨 #나비 #곤충 #동물 #클립아트 #고품질",
+            "description": "동물용 나비 클립아트",
+            "sort_order": 147
+        },
+        {
+            "title": "꿀벌",
+            "category_slug": "animal",
+            "image_path": "\/assets\/cliparts\/hq_animal_08_bee.png",
+            "hashtags": "#동물 #캐릭터 #라벨 #벌 #꿀벌 #동물 #클립아트 #고품질",
+            "description": "동물용 꿀벌 클립아트",
+            "sort_order": 148
+        },
+        {
+            "title": "펭귄",
+            "category_slug": "animal",
+            "image_path": "\/assets\/cliparts\/hq_animal_09_penguin.png",
+            "hashtags": "#동물 #캐릭터 #라벨 #펭귄 #동물 #캐릭터 #클립아트 #고품질",
+            "description": "동물용 펭귄 클립아트",
+            "sort_order": 149
+        },
+        {
+            "title": "판다",
+            "category_slug": "animal",
+            "image_path": "\/assets\/cliparts\/hq_animal_10_panda.png",
+            "hashtags": "#동물 #캐릭터 #라벨 #판다 #동물 #캐릭터 #클립아트 #고품질",
+            "description": "동물용 판다 클립아트",
+            "sort_order": 150
+        },
+        {
+            "title": "여우",
+            "category_slug": "animal",
+            "image_path": "\/assets\/cliparts\/hq_animal_11_fox.png",
+            "hashtags": "#동물 #캐릭터 #라벨 #여우 #동물 #캐릭터 #클립아트 #고품질",
+            "description": "동물용 여우 클립아트",
+            "sort_order": 151
+        },
+        {
+            "title": "오리",
+            "category_slug": "animal",
+            "image_path": "\/assets\/cliparts\/hq_animal_12_duck.png",
+            "hashtags": "#동물 #캐릭터 #라벨 #오리 #동물 #캐릭터 #클립아트 #고품질",
+            "description": "동물용 오리 클립아트",
+            "sort_order": 152
+        },
+        {
+            "title": "햄스터",
+            "category_slug": "animal",
+            "image_path": "\/assets\/cliparts\/hq_animal_13_hamster.png",
+            "hashtags": "#동물 #캐릭터 #라벨 #햄스터 #펫 #동물 #클립아트 #고품질",
+            "description": "동물용 햄스터 클립아트",
+            "sort_order": 153
+        },
+        {
+            "title": "공룡",
+            "category_slug": "animal",
+            "image_path": "\/assets\/cliparts\/hq_animal_14_dino.png",
+            "hashtags": "#동물 #캐릭터 #라벨 #공룡 #동물 #키즈 #클립아트 #고품질",
+            "description": "동물용 공룡 클립아트",
+            "sort_order": 154
+        },
+        {
+            "title": "유니콘",
+            "category_slug": "animal",
+            "image_path": "\/assets\/cliparts\/hq_animal_15_unicorn.png",
+            "hashtags": "#동물 #캐릭터 #라벨 #유니콘 #동물 #캐릭터 #클립아트 #고품질",
+            "description": "동물용 유니콘 클립아트",
+            "sort_order": 155
+        },
+        {
+            "title": "올빼미",
+            "category_slug": "animal",
+            "image_path": "\/assets\/cliparts\/hq_animal_16_owl.png",
+            "hashtags": "#동물 #캐릭터 #라벨 #올빼미 #동물 #캐릭터 #클립아트 #고품질",
+            "description": "동물용 올빼미 클립아트",
+            "sort_order": 156
+        },
+        {
+            "title": "고래",
+            "category_slug": "animal",
+            "image_path": "\/assets\/cliparts\/hq_animal_17_whale.png",
+            "hashtags": "#동물 #캐릭터 #라벨 #고래 #바다 #동물 #클립아트 #고품질",
+            "description": "동물용 고래 클립아트",
+            "sort_order": 157
+        },
+        {
+            "title": "병아리",
+            "category_slug": "animal",
+            "image_path": "\/assets\/cliparts\/hq_animal_18_chick.png",
+            "hashtags": "#동물 #캐릭터 #라벨 #병아리 #동물 #캐릭터 #클립아트 #고품질",
+            "description": "동물용 병아리 클립아트",
+            "sort_order": 158
+        },
+        {
+            "title": "다람쥐",
+            "category_slug": "animal",
+            "image_path": "\/assets\/cliparts\/hq_animal_19_squirrel.png",
+            "hashtags": "#동물 #캐릭터 #라벨 #다람쥐 #동물 #가을 #클립아트 #고품질",
+            "description": "동물용 다람쥐 클립아트",
+            "sort_order": 159
+        },
+        {
+            "title": "고슴도치",
+            "category_slug": "animal",
+            "image_path": "\/assets\/cliparts\/hq_animal_20_hedgehog.png",
+            "hashtags": "#동물 #캐릭터 #라벨 #고슴도치 #동물 #캐릭터 #클립아트 #고품질",
+            "description": "동물용 고슴도치 클립아트",
+            "sort_order": 160
+        },
+        {
+            "title": "눈꽃",
+            "category_slug": "season",
+            "image_path": "\/assets\/cliparts\/hq_season_01_snowflake.png",
+            "hashtags": "#시즌 #기념일 #라벨 #눈꽃 #겨울 #시즌 #클립아트 #고품질",
+            "description": "시즌·기념일용 눈꽃 클립아트",
+            "sort_order": 161
+        },
+        {
+            "title": "크리스마스 트리",
+            "category_slug": "season",
+            "image_path": "\/assets\/cliparts\/hq_season_02_xtree.png",
+            "hashtags": "#시즌 #기념일 #라벨 #트리 #크리스마스 #시즌 #클립아트 #고품질",
+            "description": "시즌·기념일용 크리스마스 트리 클립아트",
+            "sort_order": 162
+        },
+        {
+            "title": "호박",
+            "category_slug": "season",
+            "image_path": "\/assets\/cliparts\/hq_season_03_pumpkin.png",
+            "hashtags": "#시즌 #기념일 #라벨 #호박 #가을 #시즌 #클립아트 #고품질",
+            "description": "시즌·기념일용 호박 클립아트",
+            "sort_order": 163
+        },
+        {
+            "title": "벚꽃",
+            "category_slug": "season",
+            "image_path": "\/assets\/cliparts\/hq_season_04_blossom.png",
+            "hashtags": "#시즌 #기념일 #라벨 #벚꽃 #봄 #시즌 #클립아트 #고품질",
+            "description": "시즌·기념일용 벚꽃 클립아트",
+            "sort_order": 164
+        },
+        {
+            "title": "단풍잎",
+            "category_slug": "season",
+            "image_path": "\/assets\/cliparts\/hq_season_05_maple.png",
+            "hashtags": "#시즌 #기념일 #라벨 #단풍 #가을 #시즌 #클립아트 #고품질",
+            "description": "시즌·기념일용 단풍잎 클립아트",
+            "sort_order": 165
+        },
+        {
+            "title": "불꽃",
+            "category_slug": "season",
+            "image_path": "\/assets\/cliparts\/hq_season_06_firework.png",
+            "hashtags": "#시즌 #기념일 #라벨 #불꽃 #축제 #시즌 #클립아트 #고품질",
+            "description": "시즌·기념일용 불꽃 클립아트",
+            "sort_order": 166
+        },
+        {
+            "title": "파티햇",
+            "category_slug": "season",
+            "image_path": "\/assets\/cliparts\/hq_season_07_partyhat.png",
+            "hashtags": "#시즌 #기념일 #라벨 #파티햇 #생일 #시즌 #클립아트 #고품질",
+            "description": "시즌·기념일용 파티햇 클립아트",
+            "sort_order": 167
+        },
+        {
+            "title": "방울",
+            "category_slug": "season",
+            "image_path": "\/assets\/cliparts\/hq_season_08_bell.png",
+            "hashtags": "#시즌 #기념일 #라벨 #방울 #겨울 #시즌 #클립아트 #고품질",
+            "description": "시즌·기념일용 방울 클립아트",
+            "sort_order": 168
+        },
+        {
+            "title": "발렌타인 하트",
+            "category_slug": "season",
+            "image_path": "\/assets\/cliparts\/hq_season_09_valentine.png",
+            "hashtags": "#시즌 #기념일 #라벨 #발렌타인 #하트 #시즌 #클립아트 #고품질",
+            "description": "시즌·기념일용 발렌타인 하트 클립아트",
+            "sort_order": 169
+        },
+        {
+            "title": "등불",
+            "category_slug": "season",
+            "image_path": "\/assets\/cliparts\/hq_season_10_lantern.png",
+            "hashtags": "#시즌 #기념일 #라벨 #등불 #축제 #시즌 #클립아트 #고품질",
+            "description": "시즌·기념일용 등불 클립아트",
+            "sort_order": 170
+        },
+        {
+            "title": "일출",
+            "category_slug": "season",
+            "image_path": "\/assets\/cliparts\/hq_season_11_sunrise.png",
+            "hashtags": "#시즌 #기념일 #라벨 #일출 #아침 #시즌 #클립아트 #고품질",
+            "description": "시즌·기념일용 일출 클립아트",
+            "sort_order": 171
+        },
+        {
+            "title": "조개",
+            "category_slug": "season",
+            "image_path": "\/assets\/cliparts\/hq_season_12_shell.png",
+            "hashtags": "#시즌 #기념일 #라벨 #조개 #여름 #시즌 #클립아트 #고품질",
+            "description": "시즌·기념일용 조개 클립아트",
+            "sort_order": 172
+        },
+        {
+            "title": "눈사람",
+            "category_slug": "season",
+            "image_path": "\/assets\/cliparts\/hq_season_13_snowman.png",
+            "hashtags": "#시즌 #기념일 #라벨 #눈사람 #겨울 #시즌 #클립아트 #고품질",
+            "description": "시즌·기념일용 눈사람 클립아트",
+            "sort_order": 173
+        },
+        {
+            "title": "오너먼트",
+            "category_slug": "season",
+            "image_path": "\/assets\/cliparts\/hq_season_14_ornament.png",
+            "hashtags": "#시즌 #기념일 #라벨 #오너먼트 #크리스마스 #시즌 #클립아트 #고품질",
+            "description": "시즌·기념일용 오너먼트 클립아트",
+            "sort_order": 174
+        },
+        {
+            "title": "이스터에그",
+            "category_slug": "season",
+            "image_path": "\/assets\/cliparts\/hq_season_15_egg.png",
+            "hashtags": "#시즌 #기념일 #라벨 #에그 #봄 #시즌 #클립아트 #고품질",
+            "description": "시즌·기념일용 이스터에그 클립아트",
+            "sort_order": 175
+        },
+        {
+            "title": "유령",
+            "category_slug": "season",
+            "image_path": "\/assets\/cliparts\/hq_season_16_ghost.png",
+            "hashtags": "#시즌 #기념일 #라벨 #유령 #할로윈 #시즌 #클립아트 #고품질",
+            "description": "시즌·기념일용 유령 클립아트",
+            "sort_order": 176
+        },
+        {
+            "title": "산타 모자",
+            "category_slug": "season",
+            "image_path": "\/assets\/cliparts\/hq_season_17_santahat.png",
+            "hashtags": "#시즌 #기념일 #라벨 #산타 #모자 #겨울 #클립아트 #고품질",
+            "description": "시즌·기념일용 산타 모자 클립아트",
+            "sort_order": 177
+        },
+        {
+            "title": "송편",
+            "category_slug": "season",
+            "image_path": "\/assets\/cliparts\/hq_season_18_chuseok.png",
+            "hashtags": "#시즌 #기념일 #라벨 #송편 #추석 #시즌 #클립아트 #고품질",
+            "description": "시즌·기념일용 송편 클립아트",
+            "sort_order": 178
+        },
+        {
+            "title": "여름 태양",
+            "category_slug": "season",
+            "image_path": "\/assets\/cliparts\/hq_season_19_summersun.png",
+            "hashtags": "#시즌 #기념일 #라벨 #여름 #태양 #시즌 #클립아트 #고품질",
+            "description": "시즌·기념일용 여름 태양 클립아트",
+            "sort_order": 179
+        },
+        {
+            "title": "폭죽 별",
+            "category_slug": "season",
+            "image_path": "\/assets\/cliparts\/hq_season_20_firework2.png",
+            "hashtags": "#시즌 #기념일 #라벨 #폭죽 #축하 #시즌 #클립아트 #고품질",
+            "description": "시즌·기념일용 폭죽 별 클립아트",
+            "sort_order": 180
+        },
+        {
+            "title": "원",
+            "category_slug": "shape",
+            "image_path": "\/assets\/cliparts\/hq_shape_01_circle.png",
+            "hashtags": "#도형 #아이콘 #라벨 #원 #도형 #배지 #클립아트 #고품질",
+            "description": "기본 도형용 원 클립아트",
+            "sort_order": 181
+        },
+        {
+            "title": "둥근 사각",
+            "category_slug": "shape",
+            "image_path": "\/assets\/cliparts\/hq_shape_02_square.png",
+            "hashtags": "#도형 #아이콘 #라벨 #사각 #도형 #배지 #클립아트 #고품질",
+            "description": "기본 도형용 둥근 사각 클립아트",
+            "sort_order": 182
+        },
+        {
+            "title": "삼각",
+            "category_slug": "shape",
+            "image_path": "\/assets\/cliparts\/hq_shape_03_triangle.png",
+            "hashtags": "#도형 #아이콘 #라벨 #삼각 #도형 #아이콘 #클립아트 #고품질",
+            "description": "기본 도형용 삼각 클립아트",
+            "sort_order": 183
+        },
+        {
+            "title": "별",
+            "category_slug": "shape",
+            "image_path": "\/assets\/cliparts\/hq_shape_04_star.png",
+            "hashtags": "#도형 #아이콘 #라벨 #별 #도형 #아이콘 #클립아트 #고품질",
+            "description": "기본 도형용 별 클립아트",
+            "sort_order": 184
+        },
+        {
+            "title": "다이아 도형",
+            "category_slug": "shape",
+            "image_path": "\/assets\/cliparts\/hq_shape_05_diamond.png",
+            "hashtags": "#도형 #아이콘 #라벨 #다이아 #도형 #아이콘 #클립아트 #고품질",
+            "description": "기본 도형용 다이아 도형 클립아트",
+            "sort_order": 185
+        },
+        {
+            "title": "육각",
+            "category_slug": "shape",
+            "image_path": "\/assets\/cliparts\/hq_shape_06_hex.png",
+            "hashtags": "#도형 #아이콘 #라벨 #육각 #도형 #배지 #클립아트 #고품질",
+            "description": "기본 도형용 육각 클립아트",
+            "sort_order": 186
+        },
+        {
+            "title": "타원",
+            "category_slug": "shape",
+            "image_path": "\/assets\/cliparts\/hq_shape_07_oval.png",
+            "hashtags": "#도형 #아이콘 #라벨 #타원 #도형 #배지 #클립아트 #고품질",
+            "description": "기본 도형용 타원 클립아트",
+            "sort_order": 187
+        },
+        {
+            "title": "배지",
+            "category_slug": "shape",
+            "image_path": "\/assets\/cliparts\/hq_shape_08_badge.png",
+            "hashtags": "#도형 #아이콘 #라벨 #배지 #도형 #인장 #클립아트 #고품질",
+            "description": "기본 도형용 배지 클립아트",
+            "sort_order": 188
+        },
+        {
+            "title": "말풍선",
+            "category_slug": "shape",
+            "image_path": "\/assets\/cliparts\/hq_shape_09_bubble.png",
+            "hashtags": "#도형 #아이콘 #라벨 #말풍선 #도형 #아이콘 #클립아트 #고품질",
+            "description": "기본 도형용 말풍선 클립아트",
+            "sort_order": 189
+        },
+        {
+            "title": "체크",
+            "category_slug": "shape",
+            "image_path": "\/assets\/cliparts\/hq_shape_10_check.png",
+            "hashtags": "#도형 #아이콘 #라벨 #체크 #도형 #아이콘 #클립아트 #고품질",
+            "description": "기본 도형용 체크 클립아트",
+            "sort_order": 190
+        },
+        {
+            "title": "엑스",
+            "category_slug": "shape",
+            "image_path": "\/assets\/cliparts\/hq_shape_11_cross.png",
+            "hashtags": "#도형 #아이콘 #라벨 #엑스 #도형 #아이콘 #클립아트 #고품질",
+            "description": "기본 도형용 엑스 클립아트",
+            "sort_order": 191
+        },
+        {
+            "title": "플러스",
+            "category_slug": "shape",
+            "image_path": "\/assets\/cliparts\/hq_shape_12_plus.png",
+            "hashtags": "#도형 #아이콘 #라벨 #플러스 #도형 #아이콘 #클립아트 #고품질",
+            "description": "기본 도형용 플러스 클립아트",
+            "sort_order": 192
+        },
+        {
+            "title": "마이너스",
+            "category_slug": "shape",
+            "image_path": "\/assets\/cliparts\/hq_shape_13_minus.png",
+            "hashtags": "#도형 #아이콘 #라벨 #마이너스 #도형 #아이콘 #클립아트 #고품질",
+            "description": "기본 도형용 마이너스 클립아트",
+            "sort_order": 193
+        },
+        {
+            "title": "화살표",
+            "category_slug": "shape",
+            "image_path": "\/assets\/cliparts\/hq_shape_14_arrow.png",
+            "hashtags": "#도형 #아이콘 #라벨 #화살표 #도형 #아이콘 #클립아트 #고품질",
+            "description": "기본 도형용 화살표 클립아트",
+            "sort_order": 194
+        },
+        {
+            "title": "하트 도형",
+            "category_slug": "shape",
+            "image_path": "\/assets\/cliparts\/hq_shape_15_hearts.png",
+            "hashtags": "#도형 #아이콘 #라벨 #하트 #도형 #아이콘 #클립아트 #고품질",
+            "description": "기본 도형용 하트 도형 클립아트",
+            "sort_order": 195
+        },
+        {
+            "title": "초승달",
+            "category_slug": "shape",
+            "image_path": "\/assets\/cliparts\/hq_shape_16_crescent.png",
+            "hashtags": "#도형 #아이콘 #라벨 #초승달 #도형 #아이콘 #클립아트 #고품질",
+            "description": "기본 도형용 초승달 클립아트",
+            "sort_order": 196
+        },
+        {
+            "title": "물방울 도형",
+            "category_slug": "shape",
+            "image_path": "\/assets\/cliparts\/hq_shape_17_teardrop.png",
+            "hashtags": "#도형 #아이콘 #라벨 #물방울 #도형 #아이콘 #클립아트 #고품질",
+            "description": "기본 도형용 물방울 도형 클립아트",
+            "sort_order": 197
+        },
+        {
+            "title": "방패",
+            "category_slug": "shape",
+            "image_path": "\/assets\/cliparts\/hq_shape_18_shield.png",
+            "hashtags": "#도형 #아이콘 #라벨 #방패 #도형 #배지 #클립아트 #고품질",
+            "description": "기본 도형용 방패 클립아트",
+            "sort_order": 198
+        },
+        {
+            "title": "리본 배너",
+            "category_slug": "shape",
+            "image_path": "\/assets\/cliparts\/hq_shape_19_banner.png",
+            "hashtags": "#도형 #아이콘 #라벨 #배너 #리본 #도형 #클립아트 #고품질",
+            "description": "기본 도형용 리본 배너 클립아트",
+            "sort_order": 199
+        },
+        {
+            "title": "프레임",
+            "category_slug": "shape",
+            "image_path": "\/assets\/cliparts\/hq_shape_20_frame.png",
+            "hashtags": "#도형 #아이콘 #라벨 #프레임 #테두리 #도형 #클립아트 #고품질",
+            "description": "기본 도형용 프레임 클립아트",
+            "sort_order": 200
+        }
+    ]
+}

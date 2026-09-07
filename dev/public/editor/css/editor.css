@@ -987,7 +987,7 @@ html[data-ed-save="off"] .ed-autosave:hover {
 html.lu-right-stack .ed:not(.is-mobile) .ed__body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 280px;
-  grid-template-rows: minmax(220px, 42%) minmax(180px, 1fr);
+  grid-template-rows: minmax(280px, 63%) minmax(140px, 1fr);
   column-gap: 12px;
   row-gap: 8px;
   padding: 12px 12px 12px 0;
@@ -3229,24 +3229,77 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 }
 .ed-import__ext-list b { color: #0f172a; }
 
-.ed-vendor-report { max-height: min(86vh, 820px); }
-.ed-vendor-report .ed-modal__body { display: grid; gap: 14px; }
-.ed-vendor-report__grid {
+.ed-vendor-report { max-height: min(86vh, 760px); }
+.ed-vendor-report .ed-modal__body { display: grid; gap: 12px; }
+.ed-vendor-report__status {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #eef8f1;
+  color: #176b3a;
+  font-size: 13px;
+  font-weight: 800;
+}
+.ed-vendor-report__cards {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px 16px;
+  gap: 8px;
+}
+@media (max-width: 640px) {
+  .ed-vendor-report__cards { grid-template-columns: 1fr; }
+}
+.ed-vendor-report__card {
   margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
 }
-.ed-vendor-report__grid dt {
-  font-size: 10px;
+.ed-vendor-report__card small {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #8a827c;
+}
+.ed-vendor-report__card strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
   font-weight: 800;
-  color: #a39c96;
-  text-transform: uppercase;
+  color: var(--charcoal);
+  line-height: 1.35;
+  word-break: keep-all;
 }
-.ed-vendor-report__grid dd { margin: 2px 0 0; font-size: 13px; font-weight: 700; color: var(--charcoal); }
+.ed-vendor-report__file {
+  margin: 0;
+  font-size: 12px;
+  color: #8a827c;
+}
+.ed-vendor-report__file span { font-weight: 700; color: #4b5563; }
+.ed-vendor-report__more {
+  width: 100%;
+  height: 40px;
+  border: 1px dashed #d7cfc7;
+  border-radius: 10px;
+  background: #faf7f3;
+  color: #5b534d;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.ed-vendor-report__more:hover { background: #f3eee8; }
+.ed-vendor-report__details {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fbf8f5;
+}
 .ed-vendor-report__muted { color: #94a3b8; font-weight: 600; }
 .ed-vendor-report__warn {
-  margin: 10px 0 0;
+  margin: 0;
   padding: 8px 10px;
   border-radius: 8px;
   background: #fff6e8;
@@ -5525,13 +5578,13 @@ html.is-ed-mobile .ed-props.is-m-open,
 .ed.is-mobile .ed-corner-fab,
 .ed.is-mobile .ed-credit-chip { display: none !important; }
 
-.ed.is-mobile .ed-data-table--panel,
 .ed.is-mobile [data-ed-data-panel],
-.ed.is-mobile .ed-data-panel {
-  left: 8px;
-  right: 8px;
-  width: auto;
-  max-width: none;
+.ed.is-mobile .ed-data-panel,
+.ed.is-mobile .ed-data-restore,
+html.is-ed-mobile [data-ed-data-panel],
+html.is-ed-mobile .ed-data-panel,
+html.is-ed-mobile .ed-data-restore {
+  display: none !important;
 }
 
 .ed.is-mobile .ed-modal {

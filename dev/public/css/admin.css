@@ -603,6 +603,7 @@
 .admin-kpi .delta.up{color:#176b3a}
 .ud-layout{align-items:start}
 .ud-check{width:36px}
+.ud-actions{width:72px;white-space:nowrap}
 .ud-name{display:flex;align-items:center;gap:10px;padding:0;border:0;background:none;cursor:pointer;text-align:left;font:inherit;color:inherit}
 .ud-name strong{display:block;font-size:13px}
 .ud-name small{display:block;margin-top:2px;color:#6b7280;font-size:11px}

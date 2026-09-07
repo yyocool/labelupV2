@@ -21,6 +21,37 @@ final class ClipartService
         return $this->repo->categories($activeOnly);
     }
 
+    /** Hide VECTORS/PNGs/SVGs and deactivate their cliparts. */
+    public function retireFormatCategories(): int
+    {
+        $retired = 0;
+        foreach (ClipartRepository::FORMAT_SLUGS as $slug) {
+            $cat = $this->repo->findCategoryBySlug($slug);
+            if (!$cat) {
+                continue;
+            }
+            $this->repo->saveCategory([
+                'id' => (int) $cat['id'],
+                'name' => (string) $cat['name'],
+                'slug' => $slug,
+                'description' => $cat['description'] ?? null,
+                'sort_order' => (int) ($cat['sort_order'] ?? 0),
+                'is_active' => 0,
+            ]);
+            $this->repo->deactivateByCategoryId((int) $cat['id']);
+            $retired++;
+        }
+        $this->repo->deactivateByImagePathPrefix('/assets/cliparts/vz_');
+        return $retired;
+    }
+
+    /** Hide older geometric/PIL seed cliparts so HQ pack is the default library. */
+    public function retireLowQualitySeeds(): void
+    {
+        $this->repo->deactivateByImagePathPrefix('/assets/cliparts/seed_');
+        $this->repo->deactivateByImagePathPrefix('/assets/cliparts/vz_');
+    }
+
     /** @param array<string, mixed> $filters */
     public function list(array $filters = []): array
     {
@@ -185,6 +216,11 @@ final class ClipartService
                 $skipped++;
                 continue;
             }
+            $full = public_path(ltrim($path, '/'));
+            if (!is_file($full)) {
+                $skipped++;
+                continue;
+            }
             if ($this->repo->findByImagePath($path)) {
                 $existing = $this->repo->findByImagePath($path);
                 $categoryId = null;
@@ -242,6 +278,8 @@ final class ClipartService
     /** Ensure default categories exist. @return int created count */
     public function ensureDefaultCategories(): int
     {
+        $this->retireFormatCategories();
+
         $defaults = [
             ['name' => '식품·카페', 'slug' => 'food', 'description' => '원두, 베이커리, 음식 라벨용'],
             ['name' => '뷰티·화장품', 'slug' => 'beauty', 'description' => '화장품·향수·스킨케어'],

@@ -8,12 +8,42 @@ use App\Models\BaseModel;
 
 final class ClipartRepository extends BaseModel
 {
+    /** Format slugs (VECTORS/PNGs/SVGs) are file types, not categories. */
+    public const FORMAT_SLUGS = ['vectors', 'pngs', 'svgs'];
+
     /** @return array<int, array<string, mixed>> */
     public function categories(bool $activeOnly = false): array
     {
-        $where = $activeOnly ? 'WHERE is_active = 1' : '';
+        $where = ['slug NOT IN (\'vectors\', \'pngs\', \'svgs\')'];
+        if ($activeOnly) {
+            $where[] = 'is_active = 1';
+        }
+        $clause = implode(' AND ', $where);
         return $this->fetchAll(
-            "SELECT * FROM clipart_categories {$where} ORDER BY sort_order ASC, id ASC"
+            "SELECT * FROM clipart_categories WHERE {$clause} ORDER BY sort_order ASC, id ASC"
+        );
+    }
+
+    public function deactivateByCategoryId(int $categoryId): void
+    {
+        if ($categoryId <= 0) {
+            return;
+        }
+        $this->execute(
+            'UPDATE cliparts SET is_active = 0, updated_at = :now WHERE category_id = :id',
+            ['now' => date('Y-m-d H:i:s'), 'id' => $categoryId]
+        );
+    }
+
+    public function deactivateByImagePathPrefix(string $prefix): void
+    {
+        $prefix = trim($prefix);
+        if ($prefix === '') {
+            return;
+        }
+        $this->execute(
+            'UPDATE cliparts SET is_active = 0, updated_at = :now WHERE image_path LIKE :p',
+            ['now' => date('Y-m-d H:i:s'), 'p' => $prefix . '%']
         );
     }
 
@@ -73,6 +103,7 @@ final class ClipartRepository extends BaseModel
         $perPage = max(1, min(100, (int) ($filters['per_page'] ?? 24)));
         $where = ['1=1'];
         $params = [];
+        $where[] = '(cat.slug IS NULL OR cat.slug NOT IN (\'vectors\', \'pngs\', \'svgs\'))';
 
         if (!empty($filters['category_id'])) {
             $where[] = 'c.category_id = :category_id';
