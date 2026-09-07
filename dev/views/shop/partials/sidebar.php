@@ -19,8 +19,6 @@ $isActive = static fn (string ...$keys): string => in_array($shopSubNav, $keys, 
       <a class="<?= $isActive('products', 'product') ?>" href="<?= url('shop/products') ?>"><span class="ico">▦</span>전체 상품</a>
       <a class="<?= $isActive('cart') ?>" href="<?= url('shop/cart') ?>"><span class="ico">🛒</span>장바구니</a>
       <a href="<?= url('shop/products') ?>?shape=rect"><span class="ico">▣</span>규격으로 찾기</a>
-      <a href="#"><span class="ico">◇</span>맞춤 제작</a>
-      <a href="<?= url('shop/products') ?>?q=바코드"><span class="ico">▥</span>바코드·QR 라벨</a>
     </nav>
   </div>
 

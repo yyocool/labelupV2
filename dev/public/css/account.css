@@ -138,6 +138,32 @@
 .account-address{background:var(--ivory);border-radius:12px;padding:14px;margin-bottom:12px;font-size:13px;line-height:1.55}
 .account-address-label{display:inline-block;margin-bottom:6px;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:10px;font-weight:800}
 .account-address strong{display:block;margin-bottom:4px}
+.account-address-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.account-address-actions .account-btn{height:32px;padding:0 10px;font-size:11px}
+.lu-check{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#5b6070}
+.lu-addr{display:grid;gap:6px}
+.lu-addr__row{display:grid;grid-template-columns:1fr auto;gap:6px}
+.lu-addr input{border:1px solid #e6e5ee;border-radius:10px;padding:8px 10px;font:inherit;background:#fff}
+.lu-addr input[readonly]{background:#f7f6f4;cursor:pointer}
+.lu-addr__search{border:0;border-radius:10px;padding:0 12px;font:inherit;font-size:12px;font-weight:800;background:#7B2840;color:#fff;cursor:pointer}
+.lu-postcode-layer{position:fixed;inset:0;z-index:13000;background:rgba(46,42,39,.42);display:grid;place-items:center;padding:16px}
+.lu-postcode-layer[hidden]{display:none}
+.lu-postcode-layer__card{background:#fff;border-radius:14px;overflow:hidden;max-width:100%;box-shadow:0 16px 48px rgba(46,42,39,.24)}
+.lu-postcode-layer__head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #eee}
+.lu-postcode-layer__close{border:0;background:transparent;font-size:22px;cursor:pointer}
+.lu-addr-book-layer{position:fixed;inset:0;z-index:12500;background:rgba(46,42,39,.42);display:grid;place-items:center;padding:16px}
+.lu-addr-book-layer[hidden]{display:none}
+.lu-addr-book-layer__card{width:min(440px,100%);background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 16px 48px rgba(46,42,39,.24)}
+.lu-addr-book-layer__head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #eee}
+.lu-addr-book-layer__close{border:0;background:transparent;font-size:22px;cursor:pointer;color:#6b6570}
+.lu-addr-book-layer__body{padding:14px;max-height:min(70vh,560px);overflow:auto}
+.lu-addr-book-form{display:grid;gap:8px}
+.lu-addr-book-form label{display:grid;gap:4px;font-size:12px;font-weight:700;color:#4e5163}
+.lu-addr-book-form input{border:1px solid #e6e5ee;border-radius:10px;padding:8px 10px;font:inherit}
+.lu-addr-book-form__actions{display:flex;gap:8px}
+.lu-addr-book-form__actions button[type=submit]{flex:1;border:0;border-radius:10px;padding:10px;background:#7B2840;color:#fff;font-weight:800;cursor:pointer}
+.lu-addr-book-empty{margin:8px 0 14px;color:#8a8490;font-size:13px}
+body.lu-postcode-open,body.lu-addr-book-open{overflow:hidden}
 
 .account-settings-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .account-settings-grid button{

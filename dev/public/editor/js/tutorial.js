@@ -18,18 +18,18 @@
       id: 'welcome',
       selector: '[data-tut="topbar"]',
       title: '라벨 편집기에 오신 걸 환영해요',
-      description: '제목 옆에 클라우드 저장과 라비AI가 있고, 오른쪽에서 쇼핑·저장·출력을 할 수 있어요.',
+      description: '위쪽 헤더에는 제목·클라우드 저장·라비AI·타사포맷과 쇼핑·저장·출력이 있어요. 선택·텍스트 같은 도구는 왼쪽 도구바에 있습니다.',
       effect: '편집기 전체 흐름을 한눈에 파악합니다.',
-      speech: '라벨 편집기에 오신 걸 환영해요. 상단 바부터 살펴볼게요.',
+      speech: '위쪽은 헤더예요. 도구는 상단이 아니라 왼쪽에 모여 있어요.',
       wait: 2800
     },
     {
       id: 'tools',
       selector: '[data-tut="float-tools"]',
-      title: '플로팅 도구바',
-      description: '선택·텍스트·이미지·도형과 내 디자인·데이터 가져오기, 용지·템플릿이 왼쪽에 모여 있어요.',
+      title: '왼쪽 도구바',
+      description: '선택·텍스트·이미지·도형과 용지·템플릿·데이터 가져오기, 구분선 아래 내 디자인이 왼쪽에 세로로 모여 있어요.',
       effect: '자주 쓰는 도구에 빠르게 접근합니다.',
-      speech: '왼쪽 도구바예요. 용지선택 위에 내 디자인과 데이터 가져오기가 있어요.',
+      speech: '왼쪽 도구바예요. 예전에 상단에 있던 도구들이 여기로 옮겼어요. 용지선택·템플릿선택·데이터 가져오기가 한 묶음이고, 구분선 아래 내 디자인이 있어요.',
       wait: 3000,
       cursor: true
     },
@@ -49,8 +49,8 @@
       id: 'canvas',
       selector: '[data-tut="canvas"]',
       title: '디자인 캔버스',
-      description: '가운데 영역이 실제 라벨 작업 공간입니다. 객체를 드래그해 배치하세요.',
-      effect: '라벨 레이아웃을 자유롭게 편집합니다.',
+      description: '가운데 영역이 실제 라벨 작업 공간입니다. 객체를 드래그해 배치하고, 눈금이나 바깥 배경을 끌면 화면을 옮길 수 있어요.',
+      effect: '확대한 뒤에도 라벨 전체를 볼 수 있습니다.',
       speech: '가운데 캔버스에서 라벨을 디자인합니다.',
       wait: 2800,
       cursor: true
@@ -69,7 +69,7 @@
       id: 'mydesign',
       selector: '[data-tut="mydesign"]',
       title: '내 디자인',
-      description: '왼쪽 도구바 용지선택 위에서 저장해 둔 내 프로젝트를 불러옵니다.',
+      description: '왼쪽 도구바 구분선 아래에서 저장해 둔 내 프로젝트를 불러옵니다.',
       effect: '작업 연속성을 유지합니다.',
       speech: '내 디자인에서 최근 작업을 불러올 수 있어요.',
       wait: 2400,
@@ -79,7 +79,7 @@
       id: 'data-import',
       selector: '[data-tut="data-import"]',
       title: '데이터 가져오기',
-      description: '내 디자인 아래, 용지선택 위에서 엑셀·CSV를 올려 라벨 데이터를 연결합니다.',
+      description: '왼쪽 도구바의 용지선택·템플릿선택 아래에서 엑셀·CSV를 올려 라벨 데이터를 연결합니다.',
       effect: '가변 데이터 라벨을 빠르게 시작합니다.',
       speech: '데이터 가져오기로 표를 올릴 수 있어요.',
       wait: 2400,
@@ -101,9 +101,9 @@
       id: 'paper-picker',
       selector: '[data-tut="paper-picker-head"]',
       title: '용지선택 창',
-      description: '상단 라벨·태그 탭으로 용지 종류를 나눈 뒤, 검색하거나 카드를 눌러 적용합니다.',
+      description: '창 위쪽 라벨·태그 탭으로 용지 종류를 나눈 뒤, 검색하거나 카드를 눌러 적용합니다.',
       effect: '라벨과 태그를 같은 창에서 고를 수 있습니다.',
-      speech: '용지선택 창이에요. 위쪽에 라벨과 태그 탭이 있어요.',
+      speech: '용지선택 창이에요. 창 위쪽에 라벨과 태그 탭이 있어요.',
       wait: 2800,
       cursor: true,
       action: 'openPaperPicker'
@@ -138,7 +138,7 @@
       title: '템플릿선택',
       description: '완성된 라벨 시안을 골라 바로 편집할 수 있어요.',
       effect: '빈 용지 대신 시안으로 빠르게 시작합니다.',
-      speech: '옆의 템플릿선택에서 완성 시안을 불러올 수 있어요.',
+      speech: '왼쪽 도구바에서 용지선택 바로 아래 템플릿선택으로 완성 시안을 불러올 수 있어요.',
       wait: 2600,
       cursor: true,
       action: 'closePaperPicker'
@@ -234,10 +234,10 @@
     {
       id: 'topbar-actions',
       selector: '[data-tut="topbar-actions"]',
-      title: '상단 작업 버튼',
-      description: '라벨쇼핑, 저장하기, 미리보기/프린트, 나가기가 아이콘과 함께 오른쪽 위에 있어요.',
-      effect: '자주 쓰는 작업을 상단에서 바로 실행합니다.',
-      speech: '상단 오른쪽 버튼들입니다. 저장하기 다음에 미리보기/프린트가 있어요.',
+      title: '헤더 작업 버튼',
+      description: '라벨쇼핑, 저장하기, 미리보기/프린트, 나가기가 아이콘과 함께 헤더 오른쪽에 있어요.',
+      effect: '자주 쓰는 작업을 헤더에서 바로 실행합니다.',
+      speech: '헤더 오른쪽 버튼들입니다. 저장하기 다음에 미리보기/프린트가 있어요.',
       wait: 2800,
       cursor: true,
       action: 'closeVendorPicker'
@@ -303,9 +303,9 @@
       id: 'm-welcome',
       selector: '[data-tut="topbar"]',
       title: '휴대폰 편집기예요',
-      description: '제목 옆에 클라우드 저장과 라비AI가 있어요. 저장·출력은 ☰, 시트·레이어는 옆 버튼으로 엽니다.',
+      description: '첫 화면은 라벨 캔버스입니다. 제목·구름·라비AI·☰만 위에 두고, 도구와 시트·레이어는 아래에 모았어요.',
       effect: '작은 화면에서도 캔버스를 가리지 않습니다.',
-      speech: '휴대폰용 편집기예요. 상단부터 살펴볼게요.',
+      speech: '휴대폰용 편집기예요. 위쪽 헤더부터 살펴볼게요.',
       wait: 2800,
       action: 'closeMobileOverlays'
     },
@@ -335,7 +335,7 @@
       id: 'm-menu',
       selector: '.ed-m-more',
       title: '☰ 메뉴',
-      description: '오른쪽 위 ☰을 누르면 라벨쇼핑, 저장, 미리보기/프린트, 나가기가 열립니다.',
+      description: '오른쪽 위 ☰을 누르면 내 디자인, 타사포맷, 저장, 미리보기/프린트, 나가기가 열립니다.',
       effect: '자주 쓰는 작업을 한곳에서 실행합니다.',
       speech: '메뉴 버튼을 눌러 볼게요.',
       wait: 2600,
@@ -347,7 +347,7 @@
       id: 'm-menu-items',
       selector: '[data-tut="topbar-actions"]',
       title: '메뉴 서랍',
-      description: '여기서 저장하기와 미리보기/프린트를 할 수 있어요. 바깥을 누르거나 메뉴 닫기를 누르면 접힙니다.',
+      description: '여기서 내 디자인·타사포맷·저장하기·미리보기/프린트를 할 수 있어요. 바깥을 누르거나 메뉴 닫기를 누르면 접힙니다.',
       effect: '상단을 간결하게 유지하면서 기능은 그대로입니다.',
       speech: '저장과 출력은 이 메뉴 안에 있어요.',
       wait: 3000,
@@ -404,21 +404,10 @@
       id: 'm-tools',
       selector: '[data-tut="float-tools"]',
       title: '하단 도구바',
-      description: '텍스트·이미지·도형과 용지선택·템플릿을 가로로 밀어 고릅니다.',
+      description: '텍스트·이미지·도형과 용지·템플릿·데이터, 그리고 시트·레이어를 가로로 밀어 고릅니다.',
       effect: '엄지로 바로 추가할 수 있습니다.',
       speech: '도구는 화면 아래에 모아 두었어요.',
       wait: 2800,
-      cursor: true,
-      action: 'closeMobileOverlays'
-    },
-    {
-      id: 'm-vendor',
-      selector: '[data-tut="import-fab"]',
-      title: '타사포맷',
-      description: '상단 라비AI 옆의 타사포맷으로 폼텍·아이라벨·애니라벨 파일을 올립니다.',
-      effect: '변환 창만 바로 열립니다.',
-      speech: '타사포맷 버튼이에요.',
-      wait: 2400,
       cursor: true,
       action: 'closeMobileOverlays'
     },
@@ -448,7 +437,7 @@
       id: 'm-pan',
       selector: '[data-tut="canvas"]',
       title: '두 손가락으로 이동',
-      description: '두 손가락을 붙인 채 밀면 라벨이 함께 움직여 화면 밖 영역도 볼 수 있어요.',
+      description: '두 손가락을 붙인 채 밀거나, 눈금·캔버스 바깥을 끌어 화면 밖 영역도 볼 수 있어요.',
       effect: '확대한 뒤에도 원하는 위치로 옮깁니다.',
       speech: '두 손가락으로 밀면 화면이 이동해요.',
       wait: 3000,
@@ -465,16 +454,6 @@
       wait: 3200,
       demo: 'longpress',
       action: 'closeMobileOverlays'
-    },
-    {
-      id: 'm-zoom',
-      selector: '[data-tut="zoom"]',
-      title: '줌 숫자',
-      description: '핀치로 조절한 배율은 위쪽 숫자에 보여요.',
-      effect: '현재 확대 상태를 바로 확인합니다.',
-      speech: '줌 숫자는 상단 가운데에 있어요.',
-      wait: 2400,
-      cursor: true
     },
     {
       id: 'm-done',
@@ -538,9 +517,9 @@
       var p = card.querySelector('p');
       if (isMobileTour()) {
         if (h) h.textContent = '휴대폰에서 편집하는 법, 같이 볼까요?';
-        if (p) p.textContent = '클라우드 저장·라비AI, 시트·레이어, 두 손가락 확대·이동을 짧게 안내해요.';
+        if (p) p.textContent = '캔버스 중심 화면, 하단 도구·시트·레이어, 두 손가락 확대·이동을 짧게 안내해요.';
       } else if (p) {
-        p.textContent = '클라우드 저장·라비AI·타사포맷, 오른쪽 미리보기·레이어와 왼쪽 도구바를 가상 커서와 함께 둘러봐요.';
+        p.textContent = '위쪽 헤더의 클라우드 저장·라비AI·타사포맷, 왼쪽 도구바, 오른쪽 미리보기·레이어를 가상 커서와 함께 둘러봐요.';
       }
     }
     var reopen = document.querySelector('.ed-tut-reopen');

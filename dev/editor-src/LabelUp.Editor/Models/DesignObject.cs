@@ -42,6 +42,7 @@ public sealed class DesignObject
     public bool Outline { get; set; }
     public bool Shadow { get; set; }
     public bool FlipHorizontal { get; set; }
+    public bool FlipVertical { get; set; }
     public string TextAlign { get; set; } = "center";
     public string VerticalAlign { get; set; } = "middle";
     public float LineHeight { get; set; } = 1.2f;
@@ -174,6 +175,7 @@ public sealed class DesignObject
             Outline = Outline,
             Shadow = Shadow,
             FlipHorizontal = FlipHorizontal,
+            FlipVertical = FlipVertical,
             TextAlign = TextAlign,
             VerticalAlign = VerticalAlign,
             LineHeight = LineHeight,

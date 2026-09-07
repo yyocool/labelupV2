@@ -10,7 +10,7 @@
 @inject IJSRuntime Js
 @implements IDisposable
 
-<div class="ed-float-tools" data-ed-float-tools data-ed-float-corner="tl" data-ed-float-orient="horizontal" data-tut="float-tools" aria-label="편집 도구">
+<div class="ed-float-tools" data-ed-float-tools data-ed-float-corner="tl" data-ed-float-orient="horizontal" data-tut="float-tools" aria-label="왼쪽 도구바">
   <div class="ed-float-tools__bar" data-ed-float-tools-bar>
     <button type="button" class="ed-float-tools__grip" data-ed-float-tools-grip title="드래그하여 이동 · 모서리에 자석 도킹" aria-label="도구바 이동">
       <span aria-hidden="true">⋮⋮</span>
@@ -54,24 +54,6 @@
 
     <span class="ed-float-tools__divider" aria-hidden="true"></span>
 
-    <div class="ed-float-tools__group ed-float-tools__group--files" role="group">
-      <button type="button" class="ed-float-tools__file" data-tut="mydesign" title="내 디자인 불러오기" @onclick="OpenProjects">
-        <svg class="ed-float-tools__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2.4 3.2A1.4 1.4 0 0 1 3.8 2h3.1c.3 0 .6.1.8.4L8.4 3H12a1.6 1.6 0 0 1 1.6 1.6v7.8A1.6 1.6 0 0 1 12 14H4a1.6 1.6 0 0 1-1.6-1.6V3.2Zm1.4.6v8.6c0 .1.1.2.2.2h8c.1 0 .2-.1.2-.2V5H8.2L7.5 4H4c-.1 0-.2.1-.2.2Z"/></svg>
-        <span>내 디자인</span>
-      </button>
-      <label class="ed-float-tools__file" data-tut="data-import" title="데이터 가져오기">
-        <svg class="ed-float-tools__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3.2 2.2h9.6c.7 0 1.2.5 1.2 1.2v9.2c0 .7-.5 1.2-1.2 1.2H3.2c-.7 0-1.2-.5-1.2-1.2V3.4c0-.7.5-1.2 1.2-1.2Zm0 1.4v1.8h9.6V3.6H3.2Zm0 3.2v1.8h3V6.8h-3Zm4.4 0v1.8h5.2V6.8H7.6Zm-4.4 3.2V13h3v-3h-3Zm4.4 0V13h5.2v-3H7.6Z"/></svg>
-        <span>데이터 가져오기</span>
-        <InputFile OnChange="OnDataFile" accept=".csv,.txt,.xlsx,.xls,.mdb" />
-      </label>
-      <button type="button" class="ed-float-tools__file" data-tut="data-create" title="데이터 생성하기" @onclick="OpenDataCreate">
-        <svg class="ed-float-tools__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3 2.2h10c.6 0 1 .4 1 1V13c0 .6-.4 1-1 1H3c-.6 0-1-.4-1-1V3.2c0-.6.4-1 1-1Zm0 1.4V5h10V3.6H3Zm0 2.8v1.8h3.2V6.4H3Zm4.6 0v1.8H13V6.4H7.6ZM3 9.6V13h3.2V9.6H3Zm4.6 0V13H13V9.6H7.6Z"/></svg>
-        <span>데이터 생성하기</span>
-      </button>
-    </div>
-
-    <span class="ed-float-tools__divider ed-float-tools__divider--files" aria-hidden="true"></span>
-
     <div class="ed-float-tools__group ed-float-tools__group--stack" role="group">
       <button type="button" class="ed-float-tools__paper" data-tut="presets" @onclick="() => Session.OpenDialog(EditorDialog.PaperPicker)">
         <span class="ed-float-tools__paper-kicker">용지선택</span>
@@ -82,6 +64,24 @@
         <span class="ed-float-tools__paper-kicker">템플릿선택</span>
         <strong>@ThemeTitle</strong>
         <em>@ThemeMeta</em>
+      </button>
+      <label class="ed-float-tools__file" data-tut="data-import" title="데이터 가져오기">
+        <svg class="ed-float-tools__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3.2 2.2h9.6c.7 0 1.2.5 1.2 1.2v9.2c0 .7-.5 1.2-1.2 1.2H3.2c-.7 0-1.2-.5-1.2-1.2V3.4c0-.7.5-1.2 1.2-1.2Zm0 1.4v1.8h9.6V3.6H3.2Zm0 3.2v1.8h3V6.8h-3Zm4.4 0v1.8h5.2V6.8H7.6Zm-4.4 3.2V13h3v-3h-3Zm4.4 0V13h5.2v-3H7.6Z"/></svg>
+        <span>데이터 가져오기</span>
+        <InputFile OnChange="OnDataFile" accept=".csv,.txt,.xlsx,.xls,.mdb" />
+      </label>
+    </div>
+
+    <span class="ed-float-tools__divider ed-float-tools__divider--files" aria-hidden="true"></span>
+
+    <div class="ed-float-tools__group ed-float-tools__group--files" role="group">
+      <button type="button" class="ed-float-tools__file" data-tut="mydesign" title="내 디자인 불러오기" @onclick="OpenProjects">
+        <svg class="ed-float-tools__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2.4 3.2A1.4 1.4 0 0 1 3.8 2h3.1c.3 0 .6.1.8.4L8.4 3H12a1.6 1.6 0 0 1 1.6 1.6v7.8A1.6 1.6 0 0 1 12 14H4a1.6 1.6 0 0 1-1.6-1.6V3.2Zm1.4.6v8.6c0 .1.1.2.2.2h8c.1 0 .2-.1.2-.2V5H8.2L7.5 4H4c-.1 0-.2.1-.2.2Z"/></svg>
+        <span>내 디자인</span>
+      </button>
+      <button type="button" class="ed-float-tools__file" data-tut="data-create" title="데이터 생성하기" @onclick="OpenDataCreate">
+        <svg class="ed-float-tools__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3 2.2h10c.6 0 1 .4 1 1V13c0 .6-.4 1-1 1H3c-.6 0-1-.4-1-1V3.2c0-.6.4-1 1-1Zm0 1.4V5h10V3.6H3Zm0 2.8v1.8h3.2V6.4H3Zm4.6 0v1.8H13V6.4H7.6ZM3 9.6V13h3.2V9.6H3Zm4.6 0V13H13V9.6H7.6Z"/></svg>
+        <span>데이터 생성하기</span>
       </button>
     </div>
 

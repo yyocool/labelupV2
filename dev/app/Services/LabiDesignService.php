@@ -58,10 +58,31 @@ final class LabiDesignService
             && $forced !== 'generate_clipart'
             && $forced !== 'ask_image_mode'
         ) {
-            return $this->handleOfficeTemplate($messages, $officeSheet, $userId, $surface, $difficulty);
+            $translateChoice = $this->resolveTranslateChoice($forced, $this->lastUserText($messages));
+            if ($translateChoice === null && self::sheetHasForeignLanguage($officeSheet)) {
+                return $this->replyAskTranslate(
+                    self::sheetForeignSample($officeSheet),
+                    'file',
+                    $userId,
+                    $surface,
+                    $difficulty
+                );
+            }
+            $translated = false;
+            if ($translateChoice === 'translate_yes') {
+                try {
+                    $officeSheet = $this->openai->translateLabelSheet($officeSheet);
+                    $translated = true;
+                } catch (RuntimeException) {
+                    $translated = false;
+                }
+            }
+            return $this->handleOfficeTemplate($messages, $officeSheet, $userId, $surface, $difficulty, $translated);
         }
 
         $skipAssist = $forced === 'ask_image_mode'
+            || $forced === 'translate_yes'
+            || $forced === 'translate_no'
             || ($hasImage && $forced === '' && $explicit === null);
 
         $structured = [
@@ -79,7 +100,10 @@ final class LabiDesignService
         }
 
         $intent = (string) ($structured['intent'] ?? 'chat');
-        if ($forced !== '') {
+        $translateChoice = $this->resolveTranslateChoice($forced, $this->lastUserText($messages));
+        if ($forced === 'translate_yes' || $forced === 'translate_no') {
+            $intent = 'generate_template';
+        } elseif ($forced !== '') {
             $intent = $forced;
         } elseif ($explicit !== null) {
             $intent = $explicit;
@@ -125,11 +149,30 @@ final class LabiDesignService
                 $reply .= "\n\n라벨에 넣을 클립아트를 그려 두었어요. 이미지를 눌러 확대해 볼 수 있어요.";
             }
         } elseif ($intent === 'generate_template') {
+            if ($translateChoice === null && $hasImage) {
+                try {
+                    $inspect = $this->openai->inspectImageLanguage($messages);
+                } catch (RuntimeException) {
+                    $inspect = ['has_foreign' => false, 'sample' => ''];
+                }
+                if (!empty($inspect['has_foreign'])) {
+                    return $this->replyAskTranslate(
+                        (string) ($inspect['sample'] ?? ''),
+                        'image',
+                        $userId,
+                        $surface,
+                        $difficulty
+                    );
+                }
+            }
             $prompt = trim((string) ($structured['clipart_prompt'] ?? ''));
             if ($prompt === '') {
                 $prompt = $this->fallbackTemplatePrompt($messages);
             } else {
                 $prompt .= ' Full-bleed print-ready label artwork filling the entire canvas edge to edge. No mockup, no table, no torn paper, no watermark, no extra background around the label.';
+            }
+            if ($translateChoice === 'translate_yes') {
+                $prompt .= ' Translate every readable product/label sentence into natural Korean. Keep numbers, units, barcodes, and graphical logos. Do not leave English/Japanese/Chinese body copy.';
             }
             $image = $this->openai->generateClipart($prompt);
             $image['title'] = '라비가 만든 라벨 템플릿';
@@ -139,7 +182,9 @@ final class LabiDesignService
             }
             $size = $this->resolveTemplateSize($structured, $catalog);
             $template = $this->presentTemplate($image, $size['width_mm'], $size['height_mm']);
-            if (!str_contains($reply, '템플릿') && !str_contains($reply, '디자인')) {
+            if ($translateChoice === 'translate_yes') {
+                $reply = '이미지의 외국어를 한국어로 번역해 라벨 템플릿을 만들었어요. 바로편집으로 이어서 다듬어 보세요.';
+            } elseif (!str_contains($reply, '템플릿') && !str_contains($reply, '디자인')) {
                 $reply = '첨부하신 이미지를 참고해 라벨 템플릿을 만들었어요. 바로편집으로 이어서 다듬어 보세요.';
             }
         }
@@ -197,7 +242,7 @@ final class LabiDesignService
      * @param array{source_name:string, source_kind:string, columns:array<int,string>, rows:array<int,array<int,string>>, summary:string} $sheet
      * @return array<string, mixed>
      */
-    private function handleOfficeTemplate(array $messages, array $sheet, ?int $userId, string $surface, string $difficulty = 'hard'): array
+    private function handleOfficeTemplate(array $messages, array $sheet, ?int $userId, string $surface, string $difficulty = 'hard', bool $translated = false): array
     {
         $ai = null;
         try {
@@ -215,6 +260,9 @@ final class LabiDesignService
         $built = $builder->build($sheet, $this->lastUserText($messages), $ai);
         $template = $builder->present($built, $sheet, $userId);
         $reply = (string) $built['message'];
+        if ($translated) {
+            $reply = '외국어 문구를 한국어로 옮긴 뒤 라벨을 구성했어요. ' . $reply;
+        }
 
         $usage = $this->openai->lastUsage();
         $usageView = AiCostService::present($usage, 'generate_data_template', $difficulty);
@@ -250,9 +298,164 @@ final class LabiDesignService
     private function normalizeForceIntent(string $intent): string
     {
         $intent = trim($intent);
-        return in_array($intent, ['generate_clipart', 'generate_template', 'generate_data_template', 'ask_image_mode'], true)
+        return in_array($intent, [
+            'generate_clipart',
+            'generate_template',
+            'generate_data_template',
+            'ask_image_mode',
+            'translate_yes',
+            'translate_no',
+        ], true)
             ? $intent
             : '';
+    }
+
+    private function resolveTranslateChoice(string $forced, string $text): ?string
+    {
+        if ($forced === 'translate_yes' || $forced === 'translate_no') {
+            return $forced;
+        }
+        $text = trim($text);
+        if ($text === '') {
+            return null;
+        }
+        if (preg_match('/원문\s*그대로|번역\s*하지\s*마|번역하지\s*마|영어\s*그대로|외국어\s*그대로/u', $text)) {
+            return 'translate_no';
+        }
+        if (preg_match('/번역해|번역해서|한글로\s*바꿔|한국어로\s*바꿔|한국어로\s*번역/u', $text)) {
+            return 'translate_yes';
+        }
+        return null;
+    }
+
+    /**
+     * @param array{columns?:array<int,string>, rows?:array<int,array<int,string>>} $sheet
+     */
+    public static function sheetHasForeignLanguage(array $sheet): bool
+    {
+        return self::textLooksForeign(self::sheetPlainText($sheet));
+    }
+
+    /**
+     * @param array{columns?:array<int,string>, rows?:array<int,array<int,string>>} $sheet
+     */
+    public static function sheetForeignSample(array $sheet): string
+    {
+        $best = '';
+        foreach (self::sheetPlainChunks($sheet) as $chunk) {
+            if (!self::textLooksForeign($chunk)) {
+                continue;
+            }
+            $one = preg_replace('/\s+/u', ' ', trim($chunk)) ?? '';
+            if (mb_strlen($one) > mb_strlen($best)) {
+                $best = $one;
+            }
+        }
+        if ($best === '') {
+            return '';
+        }
+        return mb_strlen($best) > 28 ? mb_substr($best, 0, 28) . '…' : $best;
+    }
+
+    /**
+     * @param array{columns?:array<int,string>, rows?:array<int,array<int,string>>} $sheet
+     */
+    private static function sheetPlainText(array $sheet): string
+    {
+        return trim(implode("\n", self::sheetPlainChunks($sheet)));
+    }
+
+    /**
+     * @param array{columns?:array<int,string>, rows?:array<int,array<int,string>>} $sheet
+     * @return array<int, string>
+     */
+    private static function sheetPlainChunks(array $sheet): array
+    {
+        $chunks = [];
+        foreach ($sheet['columns'] ?? [] as $col) {
+            $col = trim((string) $col);
+            if ($col !== '') {
+                $chunks[] = $col;
+            }
+        }
+        foreach (array_slice($sheet['rows'] ?? [], 0, 40) as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            foreach ($row as $cell) {
+                $cell = trim((string) $cell);
+                if ($cell !== '') {
+                    $chunks[] = $cell;
+                }
+            }
+        }
+        return $chunks;
+    }
+
+    public static function textLooksForeign(string $text): bool
+    {
+        $letters = preg_match_all('/\p{L}/u', $text);
+        if ($letters < 6) {
+            return false;
+        }
+        $hangul = preg_match_all('/\p{Hangul}/u', $text);
+        $cjk = preg_match_all('/[\p{Hiragana}\p{Katakana}\p{Han}]/u', $text);
+        $other = preg_match_all('/[\p{Cyrillic}\p{Arabic}\p{Thai}]/u', $text);
+        $latin = preg_match_all('/\p{Latin}/u', $text);
+        if (($cjk + $other) >= 4) {
+            return true;
+        }
+        return $latin >= 10 && ($hangul / max(1, $letters)) < 0.35;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function replyAskTranslate(string $sample, string $source, ?int $userId, string $surface, string $difficulty): array
+    {
+        $from = $source === 'file' ? '첨부하신 파일' : '첨부하신 이미지';
+        $hint = $sample !== '' ? "「{$sample}」 같은 문구가 보여요. " : '';
+        $reply = $from . '에 한글이 아닌 외국어가 있어요. ' . $hint . '한국어로 번역해서 라벨을 만들까요?';
+        $usage = $this->openai->lastUsage();
+        $usageView = AiCostService::present($usage, 'ask_translate', $difficulty);
+        (new AiUsageService())->log([
+            'user_id' => $userId ?? 0,
+            'surface' => $surface,
+            'intent' => 'ask_translate',
+            'model' => $usageView['model'] ?? ($usage['model'] ?? null),
+            'prompt_tokens' => $usageView['prompt_tokens'] ?? ($usage['prompt_tokens'] ?? null),
+            'completion_tokens' => $usageView['completion_tokens'] ?? ($usage['completion_tokens'] ?? null),
+            'total_tokens' => $usageView['total_tokens'] ?? ($usage['total_tokens'] ?? null),
+            'cost_usd' => $usageView['usd'] ?? null,
+            'cost_krw' => $usageView['krw'] ?? null,
+            'agent' => $usageView['agent'] ?? null,
+            'difficulty' => $usageView['difficulty'] ?? $difficulty,
+            'has_image' => $source === 'image',
+            'clipart_id' => null,
+            'status' => 'ok',
+        ]);
+
+        return [
+            'reply' => $reply,
+            'intent' => 'ask_translate',
+            'product' => null,
+            'clipart' => null,
+            'template' => null,
+            'choices' => [
+                [
+                    'id' => 'translate_yes',
+                    'title' => '네, 번역해 주세요',
+                    'desc' => '외국어를 한국어로 바꿔 라벨을 만들어요',
+                ],
+                [
+                    'id' => 'translate_no',
+                    'title' => '원문 그대로',
+                    'desc' => '보이는 글자를 그대로 두고 만들어요',
+                ],
+            ],
+            'usage' => $usageView,
+            'clipart_id' => null,
+        ];
     }
 
     /** @param array<int, array{role:string, content:mixed}> $messages */

@@ -505,6 +505,27 @@ body.ai-lb-open{overflow:hidden}
 
 
 
+/* home Labi login gate */
+.lu-home-login-gate{position:fixed;inset:0;z-index:12050;display:grid;place-items:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s ease}
+.lu-home-login-gate.is-open{opacity:1;pointer-events:auto}
+.lu-home-login-gate__backdrop{position:absolute;inset:0;background:rgba(22,20,32,.58);backdrop-filter:blur(8px)}
+.lu-home-login-gate__card{position:relative;z-index:1;width:min(400px,100%);padding:28px 24px 22px;background:#fff;border-radius:22px;box-shadow:0 28px 70px rgba(20,16,40,.32);text-align:center;transform:translateY(10px) scale(.98);transition:transform .22s ease}
+.lu-home-login-gate.is-open .lu-home-login-gate__card{transform:none}
+.lu-home-login-gate__close{position:absolute;top:10px;right:10px;width:34px;height:34px;border:0;border-radius:50%;background:#f3f4f8;color:#4e5163;font-size:20px;line-height:1;cursor:pointer}
+.lu-home-login-gate__hero{display:grid;place-items:center;margin-bottom:10px}
+.lu-home-login-gate__hero img{width:64px;height:64px;object-fit:contain}
+.lu-home-login-gate__card h3{margin:0;font-size:18px;font-weight:900;letter-spacing:-.3px;color:#17182a}
+.lu-home-login-gate__lead{margin:10px 0 0;font-size:13px;line-height:1.55;color:#5b6070;word-break:keep-all}
+.lu-home-login-gate__actions{display:flex;gap:8px;margin-top:18px}
+.lu-home-login-gate__btn{flex:1;height:42px;border-radius:12px;font-size:13px;font-weight:800;cursor:pointer;border:1px solid #e6e5ee;background:#fff;color:#3a3d4d}
+.lu-home-login-gate__btn:hover{border-color:var(--accent-soft-2);background:var(--accent-soft);color:var(--accent)}
+.lu-home-login-gate__btn--primary{border:0;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;box-shadow:0 8px 18px var(--accent-shadow)}
+.lu-home-login-gate__btn--primary:hover{filter:brightness(1.04);color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent-2))}
+@media(max-width:480px){
+ .lu-home-login-gate{padding:12px;align-items:flex-end}
+ .lu-home-login-gate__card{width:100%;border-radius:18px 18px 12px 12px}
+}
+
 /* event popup */
 body.event-popup-open{overflow:hidden}
 .event-popup-root{position:fixed;inset:0;z-index:11000;display:grid;place-items:center;padding:20px}

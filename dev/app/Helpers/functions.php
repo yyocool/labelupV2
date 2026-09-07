@@ -229,6 +229,7 @@ function admin_menu_catalog(): array
         ['key' => 'ops-purchase-credits', 'label' => '구매크레딧', 'href' => 'admin/ops/purchase-credits', 'group' => '운영관리', 'ic' => '▣'],
         ['key' => 'settings-admins', 'label' => '관리자', 'href' => 'admin/settings/admins', 'group' => '설정', 'ic' => '⚙'],
         ['key' => 'settings-member-grades', 'label' => '회원등급 설정', 'href' => 'admin/settings/member-grades', 'group' => '설정', 'ic' => '◇'],
+        ['key' => 'settings-intro', 'label' => '인트로설정', 'href' => 'admin/settings/intro', 'group' => '설정', 'ic' => '▶'],
         ['key' => 'settings-seo', 'label' => 'SEO 설정', 'href' => 'admin/settings/seo', 'group' => '설정', 'ic' => '◎'],
         ['key' => 'settings-tracking', 'label' => '광고 스크립트', 'href' => 'admin/settings/tracking', 'group' => '설정', 'ic' => '◈'],
         ['key' => 'qr-coupons', 'label' => 'QR쿠폰관리', 'href' => 'admin/qr-coupons', 'group' => 'QR쿠폰', 'ic' => '▦'],
@@ -330,6 +331,30 @@ function marketing_render_body_end(): void
 {
     try {
         echo (new \App\Services\SeoService())->marketingBodyEndHtml();
+    } catch (\Throwable) {
+    }
+    site_intro_render();
+}
+
+function site_intro_render(): void
+{
+    try {
+        $payload = (new \App\Services\SiteIntroService())->activeForSite();
+        if ($payload === null) {
+            return;
+        }
+        $cfg = [
+            'enabled' => true,
+            'source_type' => $payload['source_type'],
+            'youtube_id' => $payload['youtube_id'],
+            'video_url' => $payload['video_url'],
+            'skip_label' => $payload['skip_label'],
+            'labiIconUrl' => asset('labi-icon.png'),
+            'logoUrl' => asset('logo.png'),
+        ];
+        echo '<link rel="stylesheet" href="' . e(css('site-intro.css')) . '">';
+        echo '<script>window.LABELUP_SITE_INTRO=' . json_encode($cfg, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ';</script>';
+        echo '<script src="' . e(js('site-intro.js')) . '"></script>';
     } catch (\Throwable) {
     }
 }

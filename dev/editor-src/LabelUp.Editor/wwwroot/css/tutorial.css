@@ -290,14 +290,24 @@
 
 /* invite modal */
 .lu-tut-invite {
-  position: fixed;
-  inset: 0;
-  z-index: 4800;
+  position: fixed !important;
+  inset: 0 !important;
+  left: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+  height: auto !important;
+  z-index: 20000;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
   background: rgba(46, 42, 39, 0.45);
+}
+.ed-tut-reopen.is-parked {
+  display: none !important;
 }
 .lu-tut-invite[hidden] { display: none !important; }
 .lu-tut-invite__card {

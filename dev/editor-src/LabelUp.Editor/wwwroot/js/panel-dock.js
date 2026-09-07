@@ -529,16 +529,17 @@
     const root = document.querySelector(rootSelector || '[data-ed-root]');
     if (!root) return;
 
-    if (isMobileEditor()) {
-      resetMobileChrome(root);
-    } else {
-      resetMobileChrome(root);
-    }
-
     const mobile = isMobileEditor();
-    const propsApi = null;
-    const previewApi = null;
-    if (!mobile) pinRightStack(root);
+    resetMobileChrome(root);
+    if (mobile) {
+      document.documentElement.classList.remove('lu-right-stack');
+      [root.querySelector('[data-ed-preview-panel]'), root.querySelector('[data-ed-props-panel]')].forEach(function (el) {
+        if (el) el.classList.remove('is-m-open');
+      });
+      root.classList.remove('is-preview-open', 'is-props-open');
+    } else {
+      pinRightStack(root);
+    }
 
     const restack = function () { };
 

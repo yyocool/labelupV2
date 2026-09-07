@@ -32,6 +32,7 @@ use App\Controllers\AiAdminController;
 use App\Controllers\Api\AiAdminApiController;
 use App\Controllers\Api\AiChatApiController;
 use App\Controllers\Api\AiExamplePromptApiController;
+use App\Controllers\Api\AccountAddressApiController;
 use App\Controllers\Api\AuthApiController;
 use App\Controllers\Api\EditorTemplateApiController;
 use App\Controllers\Api\EditorWorkspaceApiController;
@@ -43,6 +44,8 @@ use App\Controllers\HomeController;
 use App\Controllers\SeoAdminController;
 use App\Controllers\SeoPublicController;
 use App\Controllers\Api\SeoAdminApiController;
+use App\Controllers\SiteIntroAdminController;
+use App\Controllers\Api\SiteIntroAdminApiController;
 use App\Controllers\MemberGradeAdminController;
 use App\Controllers\Api\MemberGradeAdminApiController;
 use App\Controllers\QrCouponAdminController;
@@ -147,9 +150,12 @@ final class Router
         $editorTemplateApi = new EditorTemplateApiController();
         $shopPublic = new ShopController();
         $shopPublicApi = new ShopApiController();
+        $accountAddressApi = new AccountAddressApiController();
         $seoAdmin = new SeoAdminController();
         $seoAdminApi = new SeoAdminApiController();
         $seoPublic = new SeoPublicController();
+        $introAdmin = new SiteIntroAdminController();
+        $introAdminApi = new SiteIntroAdminApiController();
         $memberGradeAdmin = new MemberGradeAdminController();
         $memberGradeAdminApi = new MemberGradeAdminApiController();
         $qrCouponAdmin = new QrCouponAdminController();
@@ -180,6 +186,7 @@ final class Router
         $router->get('/admin/settings/member-grades', [$memberGradeAdmin, 'index']);
         $router->get('/admin/settings/seo', [$seoAdmin, 'seo']);
         $router->get('/admin/settings/tracking', [$seoAdmin, 'marketing']);
+        $router->get('/admin/settings/intro', [$introAdmin, 'index']);
 
         $router->get('/robots.txt', [$seoPublic, 'robots']);
         $router->get('/sitemap.xml', [$seoPublic, 'sitemap']);
@@ -222,6 +229,7 @@ final class Router
         $router->post('/api/auth/login', [$authApi, 'login']);
         $router->post('/api/auth/logout', [$authApi, 'logout']);
         $router->get('/api/auth/me', [$authApi, 'me']);
+        $router->get('/api/auth/oauth', [$authApi, 'oauthProviders']);
         $router->get('/api/credit/me', [$creditApi, 'me']);
         $router->get('/api/auth/check-email', [$authApi, 'checkEmail']);
         $router->post('/api/auth/profile', [$authApi, 'updateProfile']);
@@ -260,6 +268,8 @@ final class Router
         $router->post('/api/admin/marketing/save', [$seoAdminApi, 'saveMarketing']);
         $router->post('/api/admin/marketing/file', [$seoAdminApi, 'saveFile']);
         $router->post('/api/admin/marketing/file/delete', [$seoAdminApi, 'deleteFile']);
+        $router->post('/api/admin/intro/save', [$introAdminApi, 'save']);
+        $router->post('/api/admin/intro/upload', [$introAdminApi, 'upload']);
 
         $router->post('/api/admin/login', [$adminApi, 'login']);
         $router->post('/api/admin/password', [$adminApi, 'changePassword']);
@@ -326,6 +336,11 @@ final class Router
         $router->post('/api/shop/cart/update', [$shopPublicApi, 'updateCart']);
         $router->post('/api/shop/cart/remove', [$shopPublicApi, 'removeCart']);
         $router->post('/api/shop/checkout', [$shopPublicApi, 'checkout']);
+
+        $router->get('/api/account/addresses', [$accountAddressApi, 'index']);
+        $router->post('/api/account/addresses/save', [$accountAddressApi, 'save']);
+        $router->post('/api/account/addresses/delete', [$accountAddressApi, 'delete']);
+        $router->post('/api/account/addresses/default', [$accountAddressApi, 'setDefault']);
 
         return $router;
     }

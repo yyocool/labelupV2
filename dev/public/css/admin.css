@@ -616,4 +616,13 @@
 .ud-panel-actions{margin-top:12px;justify-content:flex-end}
 .admin-seo-form{margin-bottom:18px}
 .admin-input--code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.5;min-height:120px}
-.admin-seo-form .admin-check{padding-top:8px;align-self:center}
+.admin-intro-upload{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:6px}
+.admin-intro-upload-status{font-size:12px;color:#6b7280;word-break:break-all}
+.admin-intro-thumb{display:block;width:min(420px,100%);margin-top:12px;border-radius:12px;background:#111;max-height:240px}
+.admin-intro-anim-card{
+  margin-top:4px;padding:16px 16px 14px;border-radius:14px;border:1px solid #ebe5e8;
+  background:linear-gradient(165deg,#fff,#fbf7f8)
+}
+.admin-intro-anim-card strong{display:block;font-size:14px;font-weight:800;color:#1c1e2b;margin-bottom:6px}
+.admin-intro-anim-card p{margin:0;font-size:13px;line-height:1.55;color:#5b6070;word-break:keep-all}
+.admin-intro-anim-card ul{margin:10px 0 0;padding-left:1.15em;font-size:12px;line-height:1.6;color:#4e5163}

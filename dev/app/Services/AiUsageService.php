@@ -138,6 +138,7 @@ final class AiUsageService
             'generate_template' => '템플릿',
             'generate_data_template' => '데이터 템플릿',
             'ask_image_mode' => '이미지 선택',
+            'ask_translate' => '번역 확인',
             'chat' => '대화',
             default => $intent !== '' ? $intent : '—',
         };
@@ -163,6 +164,7 @@ final class AiUsageService
             'generate_template' => '템플릿',
             'generate_data_template' => '데이터 템플릿',
             'ask_image_mode' => '이미지 선택',
+            'ask_translate' => '번역 확인',
         ];
     }
 

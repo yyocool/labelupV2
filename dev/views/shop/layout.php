@@ -28,6 +28,8 @@
 </main>
 </div>
 <?php require view_path('shop/partials/floating-bar.php'); ?>
+<script src="<?= js('daum-address.js') ?>"></script>
+<script src="<?= js('address-book.js') ?>"></script>
 <script src="<?= js('home.js') ?>"></script>
 <script src="<?= js('shop.js') ?>"></script>
 <script src="<?= asset('labi-assistant.js') ?>"></script>

@@ -56,7 +56,7 @@ final class AiCostService
         $len = mb_strlen($text);
         $msgCount = count($messages);
 
-        if ($forceIntent === 'ask_image_mode' || ($len > 0 && $len <= 40 && $msgCount <= 2 && !$hasImage)) {
+        if (in_array($forceIntent, ['ask_image_mode', 'ask_translate'], true) || ($len > 0 && $len <= 40 && $msgCount <= 2 && !$hasImage)) {
             return 'easy';
         }
         if ($len >= 220 || $msgCount >= 8) {
@@ -168,6 +168,7 @@ final class AiCostService
             'generate_template' => 'labi-design',
             'generate_data_template' => 'labi-data',
             'ask_image_mode' => 'labi-guide',
+            'ask_translate' => 'labi-guide',
             default => $usedImage ? 'labi-draw' : 'labi-chat',
         };
     }

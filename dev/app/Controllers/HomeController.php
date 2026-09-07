@@ -30,6 +30,7 @@ final class HomeController extends BaseController
             'pageTitle' => '라벨업 LABEL UP',
             'year' => (int) date('Y'),
             'authUser' => $user,
+            'activeNav' => 'home',
             'heroSlides' => (new HomeHeroService())->slidesForHome(),
             'eventPopups' => (new EventPopupService())->activeForSite(),
             'recentWorks' => $recentWorks,

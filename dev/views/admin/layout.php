@@ -103,6 +103,7 @@
               'ai-usage' => 'AI 관리 › 사용량 통계',
               'settings-admins' => '설정 › 관리자',
               'settings-member-grades' => '설정 › 회원등급 설정',
+              'settings-intro' => '설정 › 인트로설정',
               'settings-seo' => '설정 › SEO 설정',
               'settings-tracking' => '설정 › 광고 스크립트',
               'qr-coupons' => 'QR쿠폰관리',

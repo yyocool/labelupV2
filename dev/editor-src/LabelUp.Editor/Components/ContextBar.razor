@@ -122,6 +122,7 @@
             <button type="button" class="@(o.Outline ? "is-on" : null)" title="외곽선" @onclick="() => Toggle(v => o.Outline = v, o.Outline)">외</button>
             <button type="button" class="@(o.Shadow ? "is-on" : null)" title="그림자" @onclick="() => Toggle(v => o.Shadow = v, o.Shadow)">그림</button>
             <button type="button" class="@(o.FlipHorizontal ? "is-on" : null)" title="좌우 반전" @onclick="() => Toggle(v => o.FlipHorizontal = v, o.FlipHorizontal)">뒤집기</button>
+            <button type="button" class="@(o.FlipVertical ? "is-on" : null)" title="상하 반전" @onclick="() => Toggle(v => o.FlipVertical = v, o.FlipVertical)">상하</button>
             <button type="button" class="@(IsVertical(o) ? "is-on" : null)" title="세로" @onclick="() => ToggleVertical(o)">세로</button>
             <select title="세로정렬" value="@o.VerticalAlign" @onchange="e => SetString(v => o.VerticalAlign = v, e)">
               <option value="top">위</option>
@@ -325,6 +326,8 @@
             <option value="cover">채우기</option>
             <option value="stretch">늘리기</option>
           </select>
+          <button type="button" class="@(o.FlipHorizontal ? "is-on" : null)" title="좌우 반전" @onclick="() => Toggle(v => o.FlipHorizontal = v, o.FlipHorizontal)">뒤집기</button>
+          <button type="button" class="@(o.FlipVertical ? "is-on" : null)" title="상하 반전" @onclick="() => Toggle(v => o.FlipVertical = v, o.FlipVertical)">상하</button>
         </span>
       }
     </div>

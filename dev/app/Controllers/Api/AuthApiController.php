@@ -8,6 +8,7 @@ use App\Controllers\BaseController;
 use App\Middleware\AuthMiddleware;
 use App\Services\AccountRecoveryService;
 use App\Services\AuthService;
+use App\Services\OAuthService;
 use App\Services\UserService;
 use RuntimeException;
 
@@ -68,6 +69,11 @@ final class AuthApiController extends BaseController
             (new \App\Repositories\UserRepository())->findById($this->auth->id()) ?? []
         );
         $this->jsonSuccess($user);
+    }
+
+    public function oauthProviders(): never
+    {
+        $this->jsonSuccess((new OAuthService())->configuredMap());
     }
 
     public function checkEmail(): never

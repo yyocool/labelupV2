@@ -99,6 +99,8 @@ final class AdminAccessService
             '/api/admin/member-grades' => 'settings-member-grades',
             '/admin/settings/seo' => 'settings-seo',
             '/api/admin/seo' => 'settings-seo',
+            '/admin/settings/intro' => 'settings-intro',
+            '/api/admin/intro' => 'settings-intro',
             '/admin/settings/tracking' => 'settings-tracking',
             '/api/admin/marketing' => 'settings-tracking',
             '/admin/users' => 'users',
