@@ -44,6 +44,8 @@ use App\Controllers\HomeController;
 use App\Controllers\SeoAdminController;
 use App\Controllers\SeoPublicController;
 use App\Controllers\Api\SeoAdminApiController;
+use App\Controllers\SiteIntroAdminController;
+use App\Controllers\Api\SiteIntroAdminApiController;
 use App\Controllers\MemberGradeAdminController;
 use App\Controllers\Api\MemberGradeAdminApiController;
 use App\Controllers\QrCouponAdminController;
@@ -152,6 +154,8 @@ final class Router
         $seoAdmin = new SeoAdminController();
         $seoAdminApi = new SeoAdminApiController();
         $seoPublic = new SeoPublicController();
+        $introAdmin = new SiteIntroAdminController();
+        $introAdminApi = new SiteIntroAdminApiController();
         $memberGradeAdmin = new MemberGradeAdminController();
         $memberGradeAdminApi = new MemberGradeAdminApiController();
         $qrCouponAdmin = new QrCouponAdminController();
@@ -182,6 +186,7 @@ final class Router
         $router->get('/admin/settings/member-grades', [$memberGradeAdmin, 'index']);
         $router->get('/admin/settings/seo', [$seoAdmin, 'seo']);
         $router->get('/admin/settings/tracking', [$seoAdmin, 'marketing']);
+        $router->get('/admin/settings/intro', [$introAdmin, 'index']);
 
         $router->get('/robots.txt', [$seoPublic, 'robots']);
         $router->get('/sitemap.xml', [$seoPublic, 'sitemap']);
@@ -263,6 +268,8 @@ final class Router
         $router->post('/api/admin/marketing/save', [$seoAdminApi, 'saveMarketing']);
         $router->post('/api/admin/marketing/file', [$seoAdminApi, 'saveFile']);
         $router->post('/api/admin/marketing/file/delete', [$seoAdminApi, 'deleteFile']);
+        $router->post('/api/admin/intro/save', [$introAdminApi, 'save']);
+        $router->post('/api/admin/intro/upload', [$introAdminApi, 'upload']);
 
         $router->post('/api/admin/login', [$adminApi, 'login']);
         $router->post('/api/admin/password', [$adminApi, 'changePassword']);

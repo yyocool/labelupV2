@@ -49,10 +49,38 @@
             </div>
 
             <div class="ed-field-group">
-              <div class="ed-field-label">회전</div>
+              <div class="ed-field-label">회전 · 반전</div>
+              @if (o.Type is ObjectType.Image or ObjectType.Clipart or ObjectType.Icon)
+              {
+                <div class="ed-xform-btns">
+                  <button type="button" class="ed-chip" title="왼쪽으로 90°" @onclick="() => NudgeRotation(o, -90)">⟲ 90°</button>
+                  <button type="button" class="ed-chip" title="오른쪽으로 90°" @onclick="() => NudgeRotation(o, 90)">90° ⟳</button>
+                  <button type="button" class="ed-chip" title="회전 초기화" @onclick="() => ResetRotation(o)">0°</button>
+                </div>
+              }
               <label class="ed-field ed-field--full">
+                자유 회전 (°)
                 <input type="number" step="1" value="@o.Rotation.ToString("0.#")" @onchange="e => SetFloat(v => o.Rotation = v, e)" />
               </label>
+              @if (o.Type is ObjectType.Image or ObjectType.Clipart or ObjectType.Icon)
+              {
+                <label class="ed-field ed-field--full ed-field--range">
+                  <input type="range" min="-180" max="180" step="1"
+                         value="@((int)Math.Round(NormalizeRotation(o.Rotation)))"
+                         @oninput="e => LiveRotation(o, e)"
+                         @onchange="e => CommitRotation(o, e)" />
+                </label>
+                <div class="ed-checks" @key="@(o.Id + "-img-flip")">
+                  <label class="ed-field ed-field--check">
+                    <input type="checkbox" @key="@(o.Id + "-flip-h")" checked="@o.FlipHorizontal" @onchange="e => SetBool(v => o.FlipHorizontal = v, e)" />
+                    <span>좌우 반전</span>
+                  </label>
+                  <label class="ed-field ed-field--check">
+                    <input type="checkbox" @key="@(o.Id + "-flip-v")" checked="@o.FlipVertical" @onchange="e => SetBool(v => o.FlipVertical = v, e)" />
+                    <span>상하 반전</span>
+                  </label>
+                </div>
+              }
             </div>
 
             @if (o.Type is not (ObjectType.Clipart or ObjectType.Icon))
@@ -124,6 +152,7 @@
                   <label class="ed-field ed-field--check"><input type="checkbox" @key="@(o.Id + "-outline")" checked="@o.Outline" @onchange="e => SetBool(v => o.Outline = v, e)" /> <span>외곽선</span></label>
                   <label class="ed-field ed-field--check"><input type="checkbox" @key="@(o.Id + "-shadow")" checked="@o.Shadow" @onchange="e => SetBool(v => o.Shadow = v, e)" /> <span>그림자</span></label>
                   <label class="ed-field ed-field--check"><input type="checkbox" @key="@(o.Id + "-flip")" checked="@o.FlipHorizontal" @onchange="e => SetBool(v => o.FlipHorizontal = v, e)" /> <span>좌우 반전</span></label>
+                  <label class="ed-field ed-field--check"><input type="checkbox" @key="@(o.Id + "-flip-v-text")" checked="@o.FlipVertical" @onchange="e => SetBool(v => o.FlipVertical = v, e)" /> <span>상하 반전</span></label>
                   <label class="ed-field ed-field--check"><input type="checkbox" @key="@(o.Id + "-vertical")" checked="@IsVertical(o)" @onchange="e => SetVertical(o, e)" /> <span>세로 텍스트</span></label>
                 </div>
                 <div class="ed-field-row">
@@ -687,6 +716,46 @@
     private void CommitStroke(ChangeEventArgs e)
     {
         LiveStroke(e);
+        _styleHistoryPushed = false;
+    }
+
+    private static float NormalizeRotation(float deg)
+    {
+        deg %= 360f;
+        if (deg > 180f) deg -= 360f;
+        if (deg <= -180f) deg += 360f;
+        return deg;
+    }
+
+    private void NudgeRotation(DesignObject o, float delta)
+    {
+        if (BindGuarded || o.Locked) return;
+        History.Push(Session.Document);
+        o.Rotation = NormalizeRotation(o.Rotation + delta);
+        Touch();
+    }
+
+    private void ResetRotation(DesignObject o)
+    {
+        if (BindGuarded || o.Locked) return;
+        if (Math.Abs(o.Rotation) < 0.01f) return;
+        History.Push(Session.Document);
+        o.Rotation = 0f;
+        Touch();
+    }
+
+    private void LiveRotation(DesignObject o, ChangeEventArgs e)
+    {
+        if (BindGuarded || o.Locked) return;
+        if (!float.TryParse(e.Value?.ToString(), out var v)) return;
+        BeginStyleHistory();
+        o.Rotation = v;
+        Touch();
+    }
+
+    private void CommitRotation(DesignObject o, ChangeEventArgs e)
+    {
+        LiveRotation(o, e);
         _styleHistoryPushed = false;
     }
 

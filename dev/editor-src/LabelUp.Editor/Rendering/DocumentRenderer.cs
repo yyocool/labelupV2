@@ -300,6 +300,8 @@ public static class DocumentRenderer
             if (Math.Abs(obj.Rotation) > 0.01f)
                 canvas.RotateDegrees(obj.Rotation);
             canvas.Translate(-obj.Width / 2f, -obj.Height / 2f);
+            if (obj.Type is ObjectType.Image or ObjectType.Clipart or ObjectType.Icon)
+                ApplyContentFlip(canvas, obj);
 
             var alpha = (byte)Math.Clamp((int)(obj.Opacity * 255), 0, 255);
             var text = resolve?.Invoke(obj) ?? obj.Text;
@@ -554,11 +556,7 @@ public static class DocumentRenderer
         text = string.IsNullOrEmpty(text) ? " " : StripInvisibleFormat(text);
         if (string.IsNullOrEmpty(text)) text = " ";
         canvas.Save();
-        if (obj.FlipHorizontal)
-        {
-            canvas.Translate(obj.Width, 0);
-            canvas.Scale(-1, 1);
-        }
+        ApplyContentFlip(canvas, obj);
 
         if (obj.Italic && !HasItalicFace(obj.FontFamily))
             canvas.Skew(-0.25f, 0);
@@ -639,11 +637,7 @@ public static class DocumentRenderer
         }
 
         canvas.Save();
-        if (obj.FlipHorizontal)
-        {
-            canvas.Translate(obj.Width, 0);
-            canvas.Scale(-1, 1);
-        }
+        ApplyContentFlip(canvas, obj);
 
         var inset = TextPadX(obj);
         var maxW = Math.Max(0.3f, obj.Width - inset * 2f);
@@ -1233,6 +1227,14 @@ public static class DocumentRenderer
             DrawGlyph(canvas, obj, chars[i].ToString(), 0, 0, SKTextAlign.Center, font, paint, alpha);
             canvas.Restore();
         }
+    }
+
+    private static void ApplyContentFlip(SKCanvas canvas, DesignObject obj)
+    {
+        if (!obj.FlipHorizontal && !obj.FlipVertical) return;
+        canvas.Translate(obj.Width / 2f, obj.Height / 2f);
+        canvas.Scale(obj.FlipHorizontal ? -1f : 1f, obj.FlipVertical ? -1f : 1f);
+        canvas.Translate(-obj.Width / 2f, -obj.Height / 2f);
     }
 
     private static void DrawImage(SKCanvas canvas, DesignObject obj, byte alpha)

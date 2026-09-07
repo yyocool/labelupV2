@@ -40,6 +40,58 @@ window.LabelUpLabiChat = {
     window.location.href = loginUrl;
   }
 
+  function showLoginPrompt() {
+    return new Promise((resolve) => {
+      const existing = document.getElementById('lu-home-login-gate');
+      if (existing) existing.remove();
+
+      const icon = labiIconUrl || '/assets/labi-icon.png';
+      const root = document.createElement('div');
+      root.id = 'lu-home-login-gate';
+      root.className = 'lu-home-login-gate';
+      root.innerHTML =
+        '<div class="lu-home-login-gate__backdrop" data-lu-login-close></div>' +
+        '<div class="lu-home-login-gate__card" role="dialog" aria-modal="true" aria-labelledby="lu-home-login-title">' +
+        '  <button type="button" class="lu-home-login-gate__close" data-lu-login-close aria-label="닫기">×</button>' +
+        '  <div class="lu-home-login-gate__hero" aria-hidden="true">' +
+        '    <img src="' + icon + '" alt="" width="64" height="64">' +
+        '  </div>' +
+        '  <h3 id="lu-home-login-title">로그인이 필요해요</h3>' +
+        '  <p class="lu-home-login-gate__lead">라비 AI로 라벨을 만들려면 로그인 후 이용해 주세요.</p>' +
+        '  <div class="lu-home-login-gate__actions">' +
+        '    <button type="button" class="lu-home-login-gate__btn" data-lu-login-close>나중에</button>' +
+        '    <button type="button" class="lu-home-login-gate__btn lu-home-login-gate__btn--primary" data-lu-login-go>로그인하기</button>' +
+        '  </div>' +
+        '</div>';
+      document.body.appendChild(root);
+      requestAnimationFrame(() => root.classList.add('is-open'));
+
+      const finish = (goLogin) => {
+        root.classList.remove('is-open');
+        setTimeout(() => root.remove(), 200);
+        resolve(!!goLogin);
+      };
+
+      root.addEventListener('click', (e) => {
+        const t = e.target;
+        if (!t || !t.closest) return;
+        if (t.closest('[data-lu-login-go]')) {
+          finish(true);
+          return;
+        }
+        if (t.closest('[data-lu-login-close]')) finish(false);
+      });
+
+      const onKey = (e) => {
+        if (e.key === 'Escape') {
+          document.removeEventListener('keydown', onKey);
+          finish(false);
+        }
+      };
+      document.addEventListener('keydown', onKey);
+    });
+  }
+
   async function requireLogin() {
     if (isLoggedIn) return true;
     if (typeof cfg.ensureLogin === 'function') {
@@ -51,7 +103,8 @@ window.LabelUpLabiChat = {
       }
       return false;
     }
-    redirectLogin();
+    const goLogin = await showLoginPrompt();
+    if (goLogin) redirectLogin();
     return false;
   }
 

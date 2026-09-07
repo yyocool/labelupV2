@@ -28,17 +28,22 @@ $isSoldout = ($product['status'] ?? '') === 'soldout' || (int) ($product['stock_
       <strong><?= e($shopService->formatPrice($unit)) ?></strong>
     </div>
     <p class="shop-detail-stock"><?= $isSoldout ? '품절' : '재고 ' . number_format((int) $product['stock_qty']) . '개' ?></p>
-    <?php if (!$isSoldout): ?>
     <div class="shop-detail-actions">
+      <?php if (!$isSoldout): ?>
       <div class="shop-qty">
         <button type="button" class="shop-qty-btn" data-qty-minus>-</button>
         <input type="number" id="productQty" value="1" min="1" max="<?= (int) $product['stock_qty'] ?>">
         <button type="button" class="shop-qty-btn" data-qty-plus>+</button>
       </div>
       <button type="button" class="shop-btn shop-btn--primary shop-btn--block" data-add-cart="<?= (int) $product['id'] ?>" data-qty-input="#productQty">장바구니 담기</button>
+      <?php endif; ?>
+      <?php if ($shopService->hasEditableSpec($product)): ?>
+      <a class="shop-btn shop-btn--outline shop-btn--block" href="<?= e($shopService->editorUrlForProduct($product)) ?>">이 규격으로 편집하기</a>
+      <?php endif; ?>
+      <?php if (!$isSoldout): ?>
       <a class="shop-btn shop-btn--outline shop-btn--block" href="<?= url('shop/cart') ?>">장바구니 바로가기</a>
+      <?php endif; ?>
     </div>
-    <?php endif; ?>
     <?php if (!empty($product['description'])): ?>
     <div class="shop-detail-desc">
       <h2>상품 설명</h2>

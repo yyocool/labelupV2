@@ -196,6 +196,7 @@ public sealed class LabelDocument
             sum += o.X + o.Y + o.Width + o.Height + o.Rotation + o.ZIndex + o.StrokeWidth + o.Opacity
                    + (o.Text?.Length ?? 0) + (o.BarcodeValue?.Length ?? 0) + (o.ImageData?.Length ?? 0);
             style = HashCode.Combine(style, o.Fill, o.Stroke, o.Visible, o.ShapeKind, o.Locked, o.TextWrap);
+            style = HashCode.Combine(style, o.FlipHorizontal, o.FlipVertical);
             style = HashCode.Combine(style, o.GradientEnd, o.GradientDirection, o.GradientPrecision);
             style = HashCode.Combine(style, o.Text, o.BarcodeValue, o.FontFamily);
             count++;

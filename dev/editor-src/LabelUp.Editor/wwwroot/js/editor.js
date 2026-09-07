@@ -2353,12 +2353,31 @@ window.labelUpEditor = {
       var f = fieldByText(/^맞춤/);
       return f ? f.querySelector('select') : null;
     };
+    var rotationInput = function () {
+      var f = fieldByText(/^자유 회전/);
+      if (f) return f.querySelector('input[type="number"]');
+      var g = groupByLabel(/회전/);
+      return g ? g.querySelector('label.ed-field input[type="number"]') : null;
+    };
     var isImageSel = function () {
       return !!groupByLabel(/이미지/) || /이미지/.test(selectionKey());
     };
     var checkByText = function (re) {
       var f = fieldByText(re);
       return f ? f.querySelector('input[type="checkbox"]') : null;
+    };
+    var normalizeRot = function (deg) {
+      var n = ((deg + 180) % 360 + 360) % 360 - 180;
+      if (n === -180) n = 180;
+      return Math.round(n * 10) / 10;
+    };
+    var nudgeRotation = function (delta) {
+      withPropsFields(function () {
+        var inp = rotationInput();
+        if (!inp) return;
+        var cur = parseFloat(String(inp.value || '0').replace(',', '.')) || 0;
+        setValue(inp, String(normalizeRot(cur + delta)));
+      });
     };
     var selectionKey = function () {
       var row = document.querySelector('.ed-layer-item.is-active');
@@ -2546,6 +2565,12 @@ window.labelUpEditor = {
               '<option value="stretch">늘리기</option>' +
             '</select>' +
           '</span>' +
+          '<span class="ed-ctx-bar__slot" data-slot="xform">' +
+            '<button type="button" data-act="rot-ccw" title="왼쪽으로 90°">⟲</button>' +
+            '<button type="button" data-act="rot-cw" title="오른쪽으로 90°">⟳</button>' +
+            '<button type="button" data-act="flip-h" title="좌우 반전">↔</button>' +
+            '<button type="button" data-act="flip-v" title="상하 반전">↕</button>' +
+          '</span>' +
           '<span class="ed-ctx-bar__div" data-slot="color-div"></span>' +
           '<span class="ed-ctx-bar__slot" data-slot="font">' +
             '<select data-act="font" title="글꼴"></select>' +
@@ -2596,12 +2621,21 @@ window.labelUpEditor = {
         if (act === 'back') return clickFloat('뒤로');
         if (act === 'dup') return clickFloat('복제');
         if (act === 'del') return clickFloat('삭제');
+        if (act === 'rot-cw') return nudgeRotation(90);
+        if (act === 'rot-ccw') return nudgeRotation(-90);
         withPropsFields(function () {
           if (act.indexOf('align-') === 0) {
             var map = { 'align-left': 'left', 'align-center': 'center', 'align-right': 'right' };
             setValue(alignSelect(), map[act]);
           } else {
-            var box = checkByText(act === 'bold' ? /^굵게$/ : act === 'italic' ? /^기울임$/ : act === 'underline' ? /^밑줄$/ : act === 'flip' ? /반전/ : /속성잠금|잠금/);
+            var re =
+              act === 'bold' ? /^굵게$/ :
+              act === 'italic' ? /^기울임$/ :
+              act === 'underline' ? /^밑줄$/ :
+              act === 'flip' || act === 'flip-h' ? /^좌우 반전$/ :
+              act === 'flip-v' ? /^상하 반전$/ :
+              /속성잠금|잠금/;
+            var box = checkByText(re);
             if (box) box.click();
           }
           populate(bar);
@@ -2649,7 +2683,8 @@ window.labelUpEditor = {
         toggleSlot(bar, 'fill', !!fc && !img);
         toggleSlot(bar, 'stroke', !!(sc || sw));
         toggleSlot(bar, 'fit', !!fit);
-        toggleSlot(bar, 'color-div', !!(fc || sc || sw || fit));
+        toggleSlot(bar, 'xform', img);
+        toggleSlot(bar, 'color-div', !!(fc || sc || sw || fit || img));
         var hasText = !!(fsSel || fs || checkByText(/^굵게$/));
         toggleSlot(bar, 'font', hasText);
         toggleSlot(bar, 'font-div', hasText);
@@ -2676,12 +2711,24 @@ window.labelUpEditor = {
           fitEl.hidden = !fit;
           if (fit) fitEl.value = fit.value;
         }
-        [['bold', /^굵게$/], ['italic', /^기울임$/], ['underline', /^밑줄$/], ['flip', /반전/], ['lock', /속성잠금|잠금/]].forEach(function (pair) {
+        var flipBtn = bar.querySelector('[data-act="flip"]');
+        var flipH = checkByText(/^좌우 반전$/);
+        var flipV = checkByText(/^상하 반전$/);
+        if (flipBtn) {
+          flipBtn.hidden = img || !flipH;
+          flipBtn.classList.toggle('is-on', !!(flipH && flipH.checked));
+        }
+        [['bold', /^굵게$/], ['italic', /^기울임$/], ['underline', /^밑줄$/], ['lock', /속성잠금|잠금/],
+          ['flip-h', /^좌우 반전$/], ['flip-v', /^상하 반전$/]].forEach(function (pair) {
           var btn = bar.querySelector('[data-act="' + pair[0] + '"]');
           var box = checkByText(pair[1]);
           if (btn) {
-            btn.hidden = !box;
-            btn.classList.toggle('is-on', !!(box && box.checked));
+            if (pair[0] === 'flip-h' || pair[0] === 'flip-v') {
+              btn.classList.toggle('is-on', !!(box && box.checked));
+            } else {
+              btn.hidden = !box;
+              btn.classList.toggle('is-on', !!(box && box.checked));
+            }
           }
         });
         ['left', 'center', 'right'].forEach(function (v) {

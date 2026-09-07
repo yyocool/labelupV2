@@ -2,11 +2,12 @@
 $settingsMenus = admin_filter_menu_items([
     ['key' => 'settings-admins', 'label' => '관리자', 'href' => 'admin/settings/admins', 'ic' => '⚙'],
     ['key' => 'settings-member-grades', 'label' => '회원등급 설정', 'href' => 'admin/settings/member-grades', 'ic' => '◇'],
+    ['key' => 'settings-intro', 'label' => '인트로설정', 'href' => 'admin/settings/intro', 'ic' => '▶'],
     ['key' => 'settings-seo', 'label' => 'SEO 설정', 'href' => 'admin/settings/seo', 'ic' => '◎'],
     ['key' => 'settings-tracking', 'label' => '광고 스크립트', 'href' => 'admin/settings/tracking', 'ic' => '◈'],
 ]);
 $isSettingsOpen = ($menuGroup ?? '') === 'settings'
-    || in_array((string) ($activeMenu ?? ''), ['settings-admins', 'settings-member-grades', 'settings-seo', 'settings-tracking'], true);
+    || in_array((string) ($activeMenu ?? ''), ['settings-admins', 'settings-member-grades', 'settings-intro', 'settings-seo', 'settings-tracking'], true);
 if ($settingsMenus === []) {
     return;
 }

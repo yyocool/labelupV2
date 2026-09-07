@@ -1,7 +1,12 @@
 <?php
 /** @var string $activeNav */
 $activeNav = $activeNav ?? '';
-$isShopActive = $activeNav === 'shop';
+$path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+$path = rtrim((string) $path, '/') ?: '/';
+$isHomeActive = $activeNav === 'home' || $path === '/' || $path === '';
+$isDesignActive = str_starts_with($path, '/editor');
+$isShopBuyActive = $activeNav === 'shop' && !str_contains($path, '/cart');
+$isCartActive = str_contains($path, '/shop/cart');
 $isAccountActive = $activeNav === 'account';
 $isFaqActive = $activeNav === 'faq';
 ?>
@@ -13,28 +18,23 @@ $isFaqActive = $activeNav === 'faq';
   <a class="create" href="<?= url('editor/') ?>">✎ &nbsp;새 디자인 만들기</a>
 
   <div class="group">
-    <div class="group-title">디자인 도구</div>
     <nav class="menu">
-      <a href="<?= url('editor/') ?>"><span class="ico">▧</span>라벨 디자인</a>
-      <a href="#"><span class="ico">▦</span>템플릿</a>
-      <a href="<?= url('shop/products') ?>?q="><span class="ico">⌕</span>규격 검색</a>
-      <a href="#"><span class="ico">⌘</span>바코드 / QR</a>
-      <a href="#"><span class="ico">⌘</span>데이터 연동</a>
-      <a href="#"><span class="ico">⊠</span>이미지 편집</a>
+      <a class="<?= $isHomeActive ? 'is-active' : '' ?>" href="<?= url('/') ?>"><span class="ico">⌂</span>홈</a>
+      <a class="<?= $isDesignActive ? 'is-active' : '' ?>" href="<?= url('editor/') ?>"><span class="ico">▧</span>라벨디자인</a>
     </nav>
   </div>
 
   <div class="group">
-    <div class="group-title">쇼핑 & 주문</div>
+    <div class="group-title">쇼핑 &amp; 주문</div>
     <nav class="menu">
-      <a class="<?= $isShopActive ? 'is-active' : '' ?>" href="<?= url('shop') ?>"><span class="ico">🛒</span>쇼핑몰</a>
-      <a href="#"><span class="ico">◇</span>맞춤 제작</a>
-      <a href="<?= url('shop/cart') ?>"><span class="ico">▧</span>간편 주문</a>
+      <a class="<?= $isShopBuyActive ? 'is-active' : '' ?>" href="<?= url('shop') ?>"><span class="ico">🛒</span>라벨 구매</a>
+      <a class="<?= $isCartActive ? 'is-active' : '' ?>" href="<?= url('shop/cart') ?>"><span class="ico">▧</span>장바구니</a>
+      <a href="<?= url('account') ?>#orders"><span class="ico">◎</span>간편주문</a>
     </nav>
   </div>
 
   <div class="group">
-    <div class="group-title">관리</div>
+    <div class="group-title">마이라벨업</div>
     <nav class="menu">
       <a class="<?= $isAccountActive ? 'is-account-active' : '' ?>" href="<?= url('account') ?>"><span class="ico">◎</span>마이페이지</a>
       <a class="<?= $isFaqActive ? 'is-account-active' : '' ?>" href="<?= url('faq') ?>"><span class="ico">?</span>FAQ</a>

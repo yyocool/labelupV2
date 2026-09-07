@@ -357,4 +357,47 @@ final class ShopService
         }
         return asset('hero-tall-1.webp');
     }
+
+    /** Editor boot URL for this product's label paper/spec. */
+    public function editorUrlForProduct(array $product): string
+    {
+        $params = [];
+        $sku = trim((string) ($product['sku'] ?? ''));
+        if ($sku !== '') {
+            $params['paper'] = $sku;
+        }
+        $w = $product['width_mm'] ?? null;
+        $h = $product['height_mm'] ?? null;
+        if ($w !== null && $w !== '' && $h !== null && $h !== ''
+            && (float) $w > 0 && (float) $h > 0) {
+            $params['w'] = (string) (0 + (float) $w);
+            $params['h'] = (string) (0 + (float) $h);
+        }
+        $labels = (int) ($product['labels_per_sheet'] ?? 0);
+        if ($labels > 0) {
+            $params['labels'] = (string) $labels;
+        }
+        $shape = trim((string) ($product['shape'] ?? ''));
+        if ($shape !== '') {
+            $params['shape'] = $shape;
+        }
+        $name = trim((string) ($product['name'] ?? ''));
+        if ($name !== '') {
+            $params['name'] = $name;
+        }
+        $qs = http_build_query($params);
+        return url('editor/') . ($qs !== '' ? ('?' . $qs) : '');
+    }
+
+    public function hasEditableSpec(array $product): bool
+    {
+        $sku = trim((string) ($product['sku'] ?? ''));
+        if ($sku !== '') {
+            return true;
+        }
+        $w = $product['width_mm'] ?? null;
+        $h = $product['height_mm'] ?? null;
+        return $w !== null && $w !== '' && $h !== null && $h !== ''
+            && (float) $w > 0 && (float) $h > 0;
+    }
 }

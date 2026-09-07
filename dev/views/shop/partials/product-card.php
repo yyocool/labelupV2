@@ -30,7 +30,12 @@ $isSoldout = ($product['status'] ?? '') === 'soldout' || (int) ($product['stock_
       </div>
     </div>
   </a>
-  <?php if (!$isSoldout): ?>
-  <button type="button" class="shop-add-btn" data-add-cart="<?= (int) $product['id'] ?>">장바구니</button>
-  <?php endif; ?>
+  <div class="shop-product-actions">
+    <?php if ($shopService->hasEditableSpec($product)): ?>
+    <a class="shop-edit-btn" href="<?= e($shopService->editorUrlForProduct($product)) ?>">이 규격으로 편집</a>
+    <?php endif; ?>
+    <?php if (!$isSoldout): ?>
+    <button type="button" class="shop-add-btn" data-add-cart="<?= (int) $product['id'] ?>">장바구니</button>
+    <?php endif; ?>
+  </div>
 </article>
