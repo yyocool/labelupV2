@@ -40,6 +40,10 @@
             <dd>@(string.IsNullOrWhiteSpace(r.PaperLayout) ? "-" : r.PaperLayout)</dd>
           </div>
         </dl>
+        @if (!string.IsNullOrWhiteSpace(r.Warning))
+        {
+          <p class="ed-vendor-report__warn">@r.Warning</p>
+        }
 
         <section class="ed-vendor-report__block">
           <h4>데이터</h4>
@@ -139,7 +143,9 @@
             }
             Session.ReplaceDocument(r.Document);
             Session.PendingVendorImport = null;
-            Session.Status = $"{r.VendorName} 변환 완료 · {r.PaperNo} · 항목 {r.ObjectCount}개";
+            Session.Status = string.IsNullOrWhiteSpace(r.Warning)
+                ? $"{r.VendorName} 변환 완료 · {r.PaperNo} · 항목 {r.ObjectCount}개"
+                : r.Warning;
             Session.CloseDialog();
         }
         catch (Exception ex)

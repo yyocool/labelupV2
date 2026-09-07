@@ -1,0 +1,135 @@
+@using LabelUp.Editor.Models
+@using LabelUp.Editor.Services
+@inject EditorSession Session
+@inject HistoryService History
+@inject ExportService Export
+@implements IDisposable
+
+@if (Session.Dialog == EditorDialog.DataCreate)
+{
+  <div class="ed-modal" role="dialog" aria-label="데이터 생성">
+    <div class="ed-modal__card ed-modal__card--wide" @onclick:stopPropagation="true">
+      <header class="ed-modal__head">
+        <div>
+          <h3>데이터 생성하기</h3>
+          <p>엑셀처럼 열과 행을 만든 뒤 라벨 데이터로 저장합니다.</p>
+        </div>
+        <button type="button" class="ed-modal__close" @onclick="Cancel">×</button>
+      </header>
+      <div class="ed-modal__body ed-data-scroll">
+        <div class="ed-data-create__tools">
+          <button type="button" class="ed-btn" @onclick="AddColumn">열 추가</button>
+          <button type="button" class="ed-btn" @onclick="AddRow">행 추가</button>
+        </div>
+        <table class="ed-data-table">
+          <thead>
+            <tr>
+              <th class="ed-data-table__idx">#</th>
+              @for (var c = 0; c < _sheet.Columns.Count; c++)
+              {
+                var col = c;
+                <th>
+                  <input value="@_sheet.Columns[col]" @onchange="e => Rename(col, e)" />
+                  <button type="button" class="ed-btn ed-data-create__delcol" @onclick="() => RemoveColumn(col)" disabled="@(_sheet.Columns.Count <= 1)">열삭제</button>
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (var r = 0; r < _sheet.Rows.Count; r++)
+            {
+              var row = r;
+              <tr>
+                <td class="ed-data-table__idx">@(row + 1)</td>
+                @for (var c = 0; c < _sheet.Columns.Count; c++)
+                {
+                  var col = c;
+                  <td>
+                    <input value="@_sheet.Get(row, _sheet.Columns[col])" @onchange="e => Edit(row, col, e)" />
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <footer class="ed-modal__foot">
+        <button type="button" class="ed-btn" @onclick="DownloadCsv">CSV로 저장</button>
+        <button type="button" class="ed-btn" @onclick="Cancel">취소</button>
+        <button type="button" class="ed-btn ed-btn--primary" @onclick="Apply">디자인에 적용</button>
+      </footer>
+    </div>
+  </div>
+}
+
+@code {
+    private DataSheet _sheet = NewSheet();
+    private EditorDialog _last = EditorDialog.None;
+
+    protected override void OnInitialized() => Session.Changed += OnChanged;
+    public void Dispose() => Session.Changed -= OnChanged;
+
+    private void OnChanged()
+    {
+        if (Session.Dialog == EditorDialog.DataCreate && _last != EditorDialog.DataCreate)
+            _sheet = NewSheet();
+        _last = Session.Dialog;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private static DataSheet NewSheet()
+    {
+        var sheet = new DataSheet { SourceName = "직접 작성", SourceKind = "created" };
+        sheet.AddColumn("열1");
+        sheet.AddColumn("열2");
+        sheet.AddColumn("열3");
+        for (var i = 0; i < 5; i++)
+            sheet.AddRow();
+        return sheet;
+    }
+
+    private void AddColumn() => _sheet.AddColumn();
+    private void AddRow() => _sheet.AddRow();
+    private void Rename(int col, ChangeEventArgs e) => _sheet.RenameColumn(col, e.Value?.ToString() ?? "");
+    private void Edit(int row, int col, ChangeEventArgs e) => _sheet.SetCell(row, col, e.Value?.ToString() ?? "");
+
+    private void RemoveColumn(int col)
+    {
+        if (_sheet.Columns.Count <= 1) return;
+        _sheet.RemoveColumn(col);
+    }
+
+    private void Cancel() => Session.CloseDialog();
+
+    private void Apply()
+    {
+        if (_sheet.Columns.Count == 0) return;
+        History.Push(Session.Document);
+        Session.Document.Data = _sheet.Clone();
+        Session.SyncDataLabels();
+        Session.ShowDataPanelIfPresent(expand: false);
+        Session.Dirty = true;
+        Session.Status = $"데이터 {_sheet.RowCount}행을 적용했습니다";
+        Session.CloseDialog();
+    }
+
+    private async Task DownloadCsv()
+    {
+        var lines = new List<string> { string.Join(",", _sheet.Columns.Select(Csv)) };
+        foreach (var row in _sheet.Rows)
+        {
+            var cells = _sheet.Columns.Select((_, i) => Csv(i < row.Count ? row[i] : ""));
+            lines.Add(string.Join(",", cells));
+        }
+        await Export.DownloadTextAsync(string.Join("\r\n", lines), "labelup-data.csv", "text/csv");
+        Session.Status = "CSV를 저장했습니다";
+        Session.Notify();
+    }
+
+    private static string Csv(string? value)
+    {
+        var t = value ?? "";
+        if (t.IndexOfAny([',', '"', '\n', '\r']) < 0) return t;
+        return "\"" + t.Replace("\"", "\"\"") + "\"";
+    }
+}

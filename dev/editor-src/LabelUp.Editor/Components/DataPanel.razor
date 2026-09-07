@@ -6,52 +6,99 @@
 
 @if (Session.DataPanelVisible && Session.Document.Data is { } data)
 {
-  var start = Session.DataPage * Session.DataPageSize;
-  var pageRows = data.Rows.Skip(start).Take(Session.DataPanelExpanded ? Session.DataPageSize : 1).ToList();
-  var pageCount = Math.Max(1, (int)Math.Ceiling(data.RowCount / (double)Session.DataPageSize));
-  <aside class="ed-data-panel @(Session.DataPanelExpanded ? "is-expanded" : null)" aria-label="데이터 패널">
+  var preview = data.Rows.Take(3).ToList();
+  <aside class="ed-data-panel @(Session.DataPanelExpanded ? "is-expanded" : "is-mini")"
+         data-ed-data-panel
+         aria-label="데이터 패널">
     <div class="ed-data-panel__bar">
       <strong>데이터</strong>
-      <span>@data.RowCount 행 · 더블클릭 또는 드래그하여 라벨에 넣기</span>
-      <button type="button" class="ed-btn" @onclick="OpenManager">관리</button>
-      <button type="button" class="ed-btn" @onclick="Toggle">@(Session.DataPanelExpanded ? "접기" : "펼치기")</button>
+      <span>@data.ColumnCount 열 · @data.RowCount 행@(data.SourceName.Length > 0 ? $" · {data.SourceName}" : "")</span>
+      @if (Session.DataPanelExpanded)
+      {
+        <button type="button" class="ed-btn" @onclick="AddRow">행 추가</button>
+        <button type="button" class="ed-btn ed-btn--primary" @onclick="Minimize">최소화</button>
+      }
     </div>
+
     <div class="ed-data-panel__table-wrap">
       <table class="ed-data-table ed-data-table--panel">
         <thead>
           <tr>
+            @if (Session.DataPanelExpanded)
+            {
+              <th class="ed-data-table__idx">#</th>
+            }
             @foreach (var col in data.Columns)
             {
-              <th>@col</th>
+              var onLabel = Session.Document.HasBoundColumn(col);
+              <th>
+                <div class="ed-data-colhead">
+                  <em>@col</em>
+                  @if (!Session.DataPanelExpanded)
+                  {
+                    if (onLabel)
+                    {
+                      <span class="ed-data-colhead__on">추가됨</span>
+                    }
+                    else
+                    {
+                      <button type="button" class="ed-data-colhead__add" @onclick="() => AskBind(col)">라벨에 추가</button>
+                    }
+                  }
+                </div>
+              </th>
+            }
+            @if (Session.DataPanelExpanded)
+            {
+              <th></th>
             }
           </tr>
         </thead>
         <tbody>
-          @foreach (var row in pageRows)
+          @if (Session.DataPanelExpanded)
           {
-            <tr>
-              @for (var c = 0; c < data.Columns.Count; c++)
-              {
-                var colName = data.Columns[c];
-                var val = c < row.Count ? row[c] : "";
-                <td draggable="true"
-                    @ondblclick="() => Place(colName)"
-                    @ondragstart="e => OnDrag(e, colName)"
-                    title="더블클릭 또는 드래그">
-                  @val
-                </td>
-              }
-            </tr>
+            @for (var r = 0; r < data.Rows.Count; r++)
+            {
+              var row = r;
+              <tr>
+                <td class="ed-data-table__idx">@(row + 1)</td>
+                @for (var c = 0; c < data.Columns.Count; c++)
+                {
+                  var col = c;
+                  <td>
+                    <input value="@data.Get(row, data.Columns[col])" @onchange="e => EditCell(data, row, col, e)" />
+                  </td>
+                }
+                <td><button type="button" class="ed-btn" @onclick="() => DeleteRow(data, row)">삭제</button></td>
+              </tr>
+            }
+          }
+          else
+          {
+            @foreach (var row in preview)
+            {
+              <tr>
+                @for (var c = 0; c < data.Columns.Count; c++)
+                {
+                  <td>@(c < row.Count ? row[c] : "")</td>
+                }
+              </tr>
+            }
+            @if (preview.Count == 0)
+            {
+              <tr>
+                <td colspan="@Math.Max(1, data.ColumnCount)" class="ed-data-panel__empty">행이 없습니다. 확장해서 행을 추가하세요.</td>
+              </tr>
+            }
           }
         </tbody>
       </table>
     </div>
-    @if (Session.DataPanelExpanded && pageCount > 1)
+
+    @if (!Session.DataPanelExpanded)
     {
-      <div class="ed-data-panel__pager">
-        <button type="button" @onclick="() => Session.DataPage = Math.Max(0, Session.DataPage - 1)">‹</button>
-        <span>@(Session.DataPage + 1) / @pageCount</span>
-        <button type="button" @onclick="() => Session.DataPage = Math.Min(pageCount - 1, Session.DataPage + 1)">›</button>
+      <div class="ed-data-panel__expand">
+        <button type="button" class="ed-data-panel__expand-btn" @onclick="Expand">확장</button>
       </div>
     }
   </aside>
@@ -62,27 +109,50 @@
     public void Dispose() => Session.Changed -= OnChanged;
     private void OnChanged() => InvokeAsync(StateHasChanged);
 
-    private void OpenManager()
+    private void Expand()
     {
-        Session.DataManagerMinimized = false;
-        Session.OpenDialog(EditorDialog.DataManager);
-    }
-
-    private void Toggle()
-    {
-        Session.DataPanelExpanded = !Session.DataPanelExpanded;
+        Session.DataPanelExpanded = true;
         Session.Notify();
     }
 
-    private void Place(string column)
+    private void Minimize()
+    {
+        Session.DataPanelExpanded = false;
+        Session.SyncDataLabels();
+        Session.Dirty = true;
+        Session.Notify();
+    }
+
+    private void AskBind(string column)
+    {
+        Session.PendingBindColumn = column;
+        Session.OpenDialog(EditorDialog.ColumnBind);
+    }
+
+    private void EditCell(DataSheet data, int row, int col, ChangeEventArgs e)
+    {
+        data.SetCell(row, col, e.Value?.ToString() ?? "");
+        Session.Dirty = true;
+        Session.Notify();
+    }
+
+    private void DeleteRow(DataSheet data, int row)
     {
         History.Push(Session.Document);
-        Session.PlaceBoundText(column);
+        data.RemoveRow(row);
+        Session.SyncDataLabels();
+        Session.Dirty = true;
+        Session.Status = "데이터 행을 삭제했습니다";
         Session.Notify();
     }
 
-    private void OnDrag(DragEventArgs e, string column)
+    private void AddRow()
     {
-        Session.DragColumn = column;
+        if (Session.Document.Data is not { } data) return;
+        History.Push(Session.Document);
+        data.AddRow();
+        Session.SyncDataLabels();
+        Session.Dirty = true;
+        Session.Notify();
     }
 }

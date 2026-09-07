@@ -16,6 +16,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <FormtecWmfSource Include="..\formtecWmf\*.*" />
+  </ItemGroup>
+  <Target Name="CopyFormtecWmf" BeforeTargets="BeforeBuild">
+    <MakeDir Directories="$(MSBuildProjectDirectory)\wwwroot\assets\formtec_wmf" />
+    <Copy SourceFiles="@(FormtecWmfSource)" DestinationFolder="$(MSBuildProjectDirectory)\wwwroot\assets\formtec_wmf" SkipUnchangedFiles="true" />
+  </Target>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.27" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.27" PrivateAssets="all" />
     <PackageReference Include="SkiaSharp" Version="3.119.2" />

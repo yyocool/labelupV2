@@ -10,6 +10,7 @@ public sealed class VendorImportResult
     public string PaperNo { get; set; } = "";
     public string PaperName { get; set; } = "";
     public string PaperLayout { get; set; } = "";
+    public string Warning { get; set; } = "";
     public bool HasData { get; set; }
     public int DataRows { get; set; }
     public List<string> DataColumns { get; set; } = [];

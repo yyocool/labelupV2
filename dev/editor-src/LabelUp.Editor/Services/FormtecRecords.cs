@@ -50,6 +50,7 @@ internal static class FormtecRecords
             case 0x16:
                 return TryExtendedLength(data, start, pageEnd, out length);
             case 0x00:
+            case 0x06:
                 return TryTextLength(data, start, pageEnd, out length);
             case 0x0F:
                 return TryTableLength(data, start, pageEnd, out length);
@@ -108,6 +109,13 @@ internal static class FormtecRecords
             case 0x00:
                 ApplyPlainText(obj, data, start, end);
                 ApplyImportedTextPad(obj);
+                if (IsLinkedPlainTextFlag(data, start, end))
+                    MarkLinkedText(obj);
+                break;
+            case 0x06:
+                ApplyPlainText(obj, data, start, end);
+                ApplyImportedTextPad(obj);
+                MarkLinkedText(obj);
                 break;
             case 0x0F:
                 ApplyTable(obj, data, start, end);
@@ -153,6 +161,8 @@ internal static class FormtecRecords
 
         var dataLen = BitConverter.ToUInt32(data, start + 0x51);
         if (dataLen is 0 or > 8_000_000) return false;
+        var mime = DetectMime(data, start + 0x55);
+        if (mime is "application/octet-stream") return false;
         length = 85 + (int)dataLen;
         return length <= available;
     }
@@ -669,9 +679,9 @@ internal static class FormtecRecords
         }
 
         if (dataLen <= 0 || dataOff + dataLen > data.Length) return;
+        if (mime == "application/octet-stream") return;
         var bytes = data.AsSpan(dataOff, dataLen).ToArray();
         var enc = System.Diagnostics.Stopwatch.StartNew();
-        obj.ImageData = ExternalImportService.ToDataUrl(bytes, mime);
         obj.ImageFit = "contain";
         obj.StrokeWidth = 0;
         obj.BackgroundTransparent = true;
@@ -694,12 +704,7 @@ internal static class FormtecRecords
             return;
         }
 
-        if (mime == "application/octet-stream")
-        {
-            obj.ImageData = null;
-            return;
-        }
-
+        obj.ImageData = ExternalImportService.ToDataUrl(bytes, mime);
         obj.Svg = null;
         obj.SvgParts = null;
         if (clipart)
@@ -729,6 +734,11 @@ internal static class FormtecRecords
             shift = 0;
         }
 
+        if (TryReadLinkedField(data, start, end, out var field1d))
+        {
+            obj.DataBound = true;
+            obj.DataColumn = field1d;
+        }
         var subtype = data[start + 0x50 + shift];
         obj.BarcodeFormat = subtype < Barcode1DFormats.Length
             ? Barcode1DFormats[subtype]
@@ -789,6 +799,11 @@ internal static class FormtecRecords
         if (!TryReadClassAndText(data, start, available, classOff, out var nameLen, out var charCount, out var typeName))
             return;
 
+        if (TryReadLinkedField(data, start, end, out var field2d))
+        {
+            obj.DataBound = true;
+            obj.DataColumn = field2d;
+        }
         obj.BarcodeFormat = MapFormtec2DClass(typeName);
         obj.Type = ExternalImportService.Is2dBarcode(obj.BarcodeFormat) ? ObjectType.Qr : ObjectType.Barcode;
         obj.BarcodeVendor = "formtec";
@@ -857,8 +872,10 @@ internal static class FormtecRecords
         var p = marker + 9 + n * 2;
         if (p + 3 <= data.Length)
             obj.TextAlign = AlignH(data[p + 2]);
+        if (p + 4 <= data.Length)
+            obj.BackgroundTransparent = data[p + 3] != 0;
         if (p + 8 <= data.Length)
-            obj.Fill = ColorRefCss(BitConverter.ToUInt32(data, p + 4));
+            obj.BackgroundFill = ColorRefCss(BitConverter.ToUInt32(data, p + 4));
 
         var fontOff = p + 13;
         if (f > 0 && fontOff + f <= data.Length)
@@ -867,15 +884,29 @@ internal static class FormtecRecords
         var s = fontOff + f;
         if (s + 19 > data.Length) return;
         obj.FontSize = PtToMm(BitConverter.ToUInt32(data, s));
+        if (s + 8 <= data.Length)
+            obj.Fill = ColorRefCss(BitConverter.ToUInt32(data, s + 4));
         var flags = data[s + 8];
         obj.Bold = (flags & 0x01) != 0;
         obj.Italic = (flags & 0x02) != 0;
-        var wordAngle = (int)BitConverter.ToUInt32(data, s + 9);
-        if (extra != 0x01)
-            obj.Rotation = -wordAngle;
-        obj.WordArtBend = Math.Clamp(Math.Abs(wordAngle), 8, 80);
-        if (s + 18 < data.Length)
+        obj.WordArtBend = BitConverter.ToUInt32(data, s + 9);
+        if (s + 17 <= data.Length)
+            obj.WordArtCircleRotation = BitConverter.ToUInt32(data, s + 13);
+        if (s + 18 <= data.Length)
+            obj.WordArtCounterClockwise = data[s + 17] != 0;
+        if (s + 19 <= data.Length)
             obj.WordArtGuide = data[s + 18] != 0;
+        if (s + 20 <= data.Length)
+            obj.Shadow = data[s + 19] != 0;
+        if (s + 24 <= data.Length)
+            obj.ShadowFill = RgbCss(data[s + 20], data[s + 21], data[s + 22]);
+        if (s + 28 <= data.Length)
+            obj.ShadowAngle = BitConverter.ToUInt32(data, s + 24);
+        if (s + 38 <= data.Length)
+        {
+            try { obj.ShadowDistanceMm = (float)Extended80.ReadStandard(data.AsSpan(s + 28, 10)); }
+            catch { obj.ShadowDistanceMm = 1f; }
+        }
     }
 
     private static void ApplyUserDefined(DesignObject obj, byte[] data, int start, int end)
@@ -920,6 +951,8 @@ internal static class FormtecRecords
     {
         obj.TextMode = TextMode.Extended;
         obj.TextWrap = "char";
+        // RTF에는 가로 정렬만 있다. 우리 박스 기본은 세로 가운데라 폼텍(위쪽)과 어긋난다.
+        obj.VerticalAlign = "top";
         obj.RichText = null;
         if (start + 0x4F + 47 > end) return;
         var rtfLen = (int)BitConverter.ToUInt32(data, start + 0x4B);
@@ -938,7 +971,27 @@ internal static class FormtecRecords
         obj.Text = SanitizeImportedText(ExtractRtfPlain(rtf));
     }
 
-    /// <summary>type 0x00 + +0x47의 0x2711. N=0 빈 상자도 텍스트 항목이다.</summary>
+    /// <summary>자료연결 텍스트. type 0x06 이거나 문자열 뒤 00 00(문서 7절 후보).</summary>
+    private static void MarkLinkedText(DesignObject obj)
+    {
+        var name = (obj.Text ?? "").Trim().Trim('[', ']', '{', '}', '@');
+        if (name.Length == 0) return;
+        obj.DataBound = true;
+        obj.DataColumn = name;
+    }
+
+    /// <summary>DGZ_자료 연결.md §7. 일반 00 01 00 01 / 자료연결 00 00 00 01.</summary>
+    private static bool IsLinkedPlainTextFlag(byte[] data, int start, int end)
+    {
+        var marker = start + 0x47;
+        if (!Is2711(data, marker) || marker + 8 > end) return false;
+        var n = (int)BitConverter.ToUInt32(data, marker + 4);
+        if (n is < 1 or > 100_000) return false;
+        var p = marker + 8 + n * 2;
+        return p + 2 <= data.Length && data[p] == 0 && data[p + 1] == 0;
+    }
+
+    /// <summary>type 0x00/0x06 + +0x47의 0x2711. N=0 빈 상자도 텍스트 항목이다.</summary>
     internal static bool HasPlainTextRecord(byte[] data, int start, int end)
     {
         var marker = start + 0x47;
@@ -1125,6 +1178,18 @@ internal static class FormtecRecords
         if (fnLen is < 0 or > 200) return 0;
         var after = 0x47 + 4 + 1 + 4 + fnLen;
         return Math.Max(0, after - (0x47 + 9));
+    }
+
+    private static bool TryReadLinkedField(byte[] data, int start, int limit, out string field)
+    {
+        field = "";
+        var marker = start + 0x47;
+        if (marker + 9 > limit || !Is2711(data, marker)) return false;
+        if (data[marker + 4] != 1) return false;
+        var fnLen = (int)BitConverter.ToUInt32(data, marker + 5);
+        if (fnLen is < 1 or > 200 || marker + 9 + fnLen > limit) return false;
+        field = ExternalImportService.DecodeAnsi(data.AsSpan(marker + 9, fnLen)).Trim();
+        return field.Length > 0;
     }
 
     private static bool TryReadClassAndText(

@@ -259,21 +259,84 @@ public sealed class LabelDocument
         return total;
     }
 
-    public void EnsurePagesForData()
+    public IEnumerable<string> BoundColumnNames()
+        => Pages.SelectMany(p => p.Cells).SelectMany(c => c.Objects)
+            .Where(o => o.DataBound && !string.IsNullOrWhiteSpace(o.DataColumn))
+            .Select(o => o.DataColumn!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+
+    public bool HasBoundColumn(string? column)
+        => !string.IsNullOrWhiteSpace(column)
+           && BoundColumnNames().Any(c => string.Equals(c, column, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>변환 파일에 표는 없어도 객체에 연결된 열 이름은 패널에 보여 준다.</summary>
+    public void EnsureDataFromBoundColumns()
+    {
+        EnsureStructure();
+        var cols = BoundColumnNames().ToList();
+        if (cols.Count == 0) return;
+        Data ??= new DataSheet { SourceName = "변환 데이터", SourceKind = "bound" };
+        foreach (var col in cols)
+        {
+            if (!Data.Columns.Any(c => string.Equals(c, col, StringComparison.OrdinalIgnoreCase)))
+                Data.AddColumn(col);
+        }
+    }
+
+    /// <summary>
+    /// 데이터 행 수만큼 라벨을 만들고, 같은 디자인을 1행→1칸 순으로 넣는다.
+    /// prototype이 있으면 그 칸을 기준으로 하고, 없으면 객체가 있는 첫 칸을 쓴다.
+    /// </summary>
+    public void EnsurePagesForData(IReadOnlyList<DesignObject>? prototype = null)
     {
         EnsureStructure();
         var rows = Data?.RowCount ?? 0;
         if (rows <= 0) return;
         var per = Math.Max(1, Paper.LabelsPerPage);
         var need = Math.Max(1, (int)Math.Ceiling(rows / (double)per));
-        List<DesignObject>? prototype = null;
-        if (Pages.Count > 0 && Pages[0].Cells.Count > 0 && Pages[0].Cells[0].Objects.Count > 0)
-            prototype = Pages[0].Cells[0].Objects.Select(o => o.Clone()).ToList();
-        while (Pages.Count < need)
-            AddPage(prototype);
-        // 데이터 행마다 같은 바인딩 디자인이 있어야 출력·미리보기에 값이 채워집니다.
+
+        List<DesignObject>? copies = null;
         if (prototype is { Count: > 0 })
-            ApplyDesignToAll(prototype);
+            copies = prototype.Select(o => o.Clone()).ToList();
+        else
+        {
+            foreach (var cell in Pages.SelectMany(p => p.Cells))
+            {
+                if (cell.Objects.Count == 0) continue;
+                copies = cell.Objects.Select(o => o.Clone()).ToList();
+                break;
+            }
+        }
+
+        while (Pages.Count < need)
+            AddPage();
+        while (Pages.Count > need)
+            Pages.RemoveAt(Pages.Count - 1);
+        for (var i = 0; i < Pages.Count; i++)
+            Pages[i].Index = i;
+
+        if (copies is not { Count: > 0 }) return;
+
+        var index = 0;
+        foreach (var page in Pages)
+        {
+            page.EnsureCellCount(per);
+            foreach (var cell in page.Cells)
+            {
+                if (index < rows)
+                {
+                    cell.Objects = copies.Select(o =>
+                    {
+                        var c = o.Clone();
+                        c.Id = Guid.NewGuid().ToString("N");
+                        return c;
+                    }).ToList();
+                }
+                else
+                    cell.Objects.Clear();
+                index++;
+            }
+        }
     }
 
     public static LabelDocument CreateBlank(PaperSpec? paper = null)

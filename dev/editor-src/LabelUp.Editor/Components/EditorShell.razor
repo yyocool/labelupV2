@@ -23,8 +23,9 @@
 <ErrorBoundary @ref="_errorBoundary">
   <ChildContent>
   <div class="ed__body" data-ed-body>
-    <div class="ed__workspace" data-ed-workspace>
+    <div class="ed__workspace" data-ed-workspace data-ed-ctx-host>
       <FloatingTools />
+      <ContextBar />
       <div class="ed__canvas-wrap @(Session.ShowGrid ? "is-grid-on" : null)" data-tut="canvas">
         <div class="ed__artboard-frame">
           <CanvasHost @ref="_canvas" />
@@ -47,6 +48,8 @@
   <PaperMakerDialog />
   <PaperMapDialog />
   <DataManagerDialog />
+  <DataCreateDialog />
+  <ColumnBindDialog />
   <PrintPreviewDialog />
   <InsertDialog />
   <VendorImportDialog />
@@ -90,6 +93,7 @@
         {
             await Fonts.EnsureLoadedAsync();
             DocumentRenderer.SetFontCatalog(Fonts);
+            BoundImageCache.Configure(FetchImageAsDataUrlAsync, () => Session.Notify());
             try
             {
                 await Icons.EnsureLoadedAsync();
@@ -281,8 +285,7 @@
             Session.Document.EnsurePagesForData();
             Session.WorkspaceId = workspace.Id > 0 ? workspace.Id : id;
             Session.Dirty = false;
-            Session.DataPanelVisible = workspace.Document.Data is { RowCount: > 0 };
-            Session.DataPanelExpanded = Session.DataPanelVisible;
+            Session.ShowDataPanelIfPresent();
             if (workspace.Ui is { ValueKind: System.Text.Json.JsonValueKind.Object } ui)
             {
                 ApplySessionUi(ui);
@@ -322,8 +325,6 @@
             else if (TryReadProjectId(q, out var qid))
                 Session.WorkspaceId = qid;
             Session.Dirty = false;
-            Session.DataPanelVisible = doc.Data is { RowCount: > 0 };
-            Session.DataPanelExpanded = Session.DataPanelVisible;
             Session.Status = string.IsNullOrWhiteSpace(pending.Title)
                 ? "라비가 만든 데이터 템플릿으로 편집을 시작합니다"
                 : $"「{pending.Title}」 데이터 템플릿을 불러왔습니다";
@@ -927,8 +928,6 @@
             History.Push(Session.Document);
             Session.ReplaceDocument(doc);
             Session.Dirty = true;
-            Session.DataPanelVisible = doc.Data is { RowCount: > 0 };
-            Session.DataPanelExpanded = Session.DataPanelVisible;
             Session.Status = string.IsNullOrWhiteSpace(doc.Name)
                 ? "라비 데이터 템플릿을 편집기에 넣었습니다"
                 : $"「{doc.Name}」 데이터 템플릿을 적용했습니다";

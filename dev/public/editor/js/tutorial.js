@@ -145,9 +145,9 @@
     },
     {
       id: 'props',
-      selector: '[data-tut="canvas"]',
+      selector: '#lu-ctx-bar, [data-tut="ctx-bar"], [data-tut="canvas"]',
       title: '선택 속성 막대',
-      description: '객체를 고르면 격자 위에서 글꼴·색·크기·투명도를 바로 바꿀 수 있어요. 투명도는 체크무늬를 누른 뒤 세로로 조절합니다.',
+      description: '객체를 고르면 라벨 위쪽 막대에서 글꼴·색·크기·위치·투명도를 바로 바꿀 수 있어요.',
       effect: '선택한 객체만 심플하게 조절합니다.',
       speech: '객체를 고르면 격자 위에서 속성을 바로 바꿔요.',
       wait: 3000,

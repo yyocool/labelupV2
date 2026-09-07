@@ -28,6 +28,9 @@ public sealed class DesignObject
 
     public bool DataBound { get; set; }
     public string? DataColumn { get; set; }
+    /// <summary>text / date / image / barcode. 데이터 열을 라벨에 넣을 때 지정.</summary>
+    public string DataDisplayKind { get; set; } = DataDisplayFormats.Text;
+    public string? DataDateFormat { get; set; }
 
     public string Text { get; set; } = "LABEL UP";
     public float FontSize { get; set; } = 4.5f;
@@ -54,8 +57,19 @@ public sealed class DesignObject
     /// <summary>확장문자열 RTF 문단. 있으면 박스 전체 폰트/색/정렬 대신 이 구간 서식을 그린다.</summary>
     public List<TextParagraph>? RichText { get; set; }
     public WordArtStyle WordArtStyle { get; set; } = WordArtStyle.None;
+    /// <summary>폼텍 워드 각도(도). 일반형은 상자 기울기. 기본 30.</summary>
     public float WordArtBend { get; set; } = 30f;
+    /// <summary>원형 모양 회전(도). S+13.</summary>
+    public float WordArtCircleRotation { get; set; }
+    /// <summary>원형 글자 방향. false=시계, true=반시계. S+17.</summary>
+    public bool WordArtCounterClockwise { get; set; }
     public bool WordArtGuide { get; set; }
+    /// <summary>그림자 색. 폼텍 S+20 RGB.</summary>
+    public string? ShadowFill { get; set; }
+    /// <summary>그림자 각도(도). 0=오른쪽, 90=위. 폼텍 S+24.</summary>
+    public float ShadowAngle { get; set; } = 315f;
+    /// <summary>그림자 간격(mm). 폼텍 S+28 Extended80. 0이면 기본 오프셋.</summary>
+    public float ShadowDistanceMm { get; set; }
     public string CustomKind { get; set; } = "none";
     public string CustomFormat { get; set; } = "yyyy-MM-dd";
     public int SerialStart { get; set; } = 1;
@@ -148,6 +162,8 @@ public sealed class DesignObject
             Opacity = Opacity,
             DataBound = DataBound,
             DataColumn = DataColumn,
+            DataDisplayKind = DataDisplayKind,
+            DataDateFormat = DataDateFormat,
             Text = Text,
             FontSize = FontSize,
             FontFamily = FontFamily,
@@ -171,7 +187,12 @@ public sealed class DesignObject
             RichText = RichText?.Select(p => p.Clone()).ToList(),
             WordArtStyle = WordArtStyle,
             WordArtBend = WordArtBend,
+            WordArtCircleRotation = WordArtCircleRotation,
+            WordArtCounterClockwise = WordArtCounterClockwise,
             WordArtGuide = WordArtGuide,
+            ShadowFill = ShadowFill,
+            ShadowAngle = ShadowAngle,
+            ShadowDistanceMm = ShadowDistanceMm,
             CustomKind = CustomKind,
             CustomFormat = CustomFormat,
             SerialStart = SerialStart,

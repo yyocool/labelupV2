@@ -136,7 +136,7 @@
         if (action.StartsWith("propsTab:", StringComparison.Ordinal))
         {
             var tab = action["propsTab:".Length..];
-            Session.PropsTab = tab == "layers" ? "layers" : "props";
+            Session.PropsTab = "layers";
             if (Session.PropsMinimized)
             {
                 Session.PropsMinimized = false;

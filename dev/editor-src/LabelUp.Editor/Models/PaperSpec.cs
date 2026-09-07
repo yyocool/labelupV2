@@ -32,6 +32,8 @@ public sealed class PaperSpec
     public float VGapMm { get; set; } = 3f;
 
     public string LabelColor { get; set; } = "#FFFFFF";
+    /// <summary>WMF 용지 모양이 없을 때 사용자에게 보여줄 안내.</summary>
+    public string? ShapeWarning { get; set; }
     public PaperShape Shape { get; set; } = new();
     public string? DesignImageUrl { get; set; }
     /// <summary>불규칙 용지. 있으면 격자 대신 이 좌표를 쓴다 (X/Y/H/W 순으로 저장된 배열).</summary>
@@ -64,6 +66,7 @@ public sealed class PaperSpec
             HGapMm = HGapMm,
             VGapMm = VGapMm,
             LabelColor = LabelColor,
+            ShapeWarning = ShapeWarning,
             Shape = Shape.Clone(),
             DesignImageUrl = DesignImageUrl,
             CustomSlots = CustomSlots is { Count: > 0 }

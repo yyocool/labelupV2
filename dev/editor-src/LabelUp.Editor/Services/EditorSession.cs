@@ -21,7 +21,7 @@ public sealed class EditorSession
     public bool TopBarPinned { get; set; } = true;
     public bool AutoSaveEnabled { get; set; }
     public string Status { get; set; } = "준비됨";
-    public string PropsTab { get; set; } = "props";
+    public string PropsTab { get; set; } = "layers";
     public bool PropsMinimized { get; set; } = false;
     public bool PreviewMinimized { get; set; }
     public int PageIndex { get; set; }
@@ -36,6 +36,7 @@ public sealed class EditorSession
     public float CursorMmY { get; set; }
     public bool CursorOverLabel { get; set; }
     public string? DragColumn { get; set; }
+    public string? PendingBindColumn { get; set; }
     public ObjectType? PendingInsert { get; set; }
     public string ClipartTab { get; set; } = "clipart";
     public List<UserAsset> UserAssets { get; } = [];
@@ -210,8 +211,21 @@ public sealed class EditorSession
             ClearSelection();
         }
         ApplyCurrentSlotSize();
+        ShowDataPanelIfPresent();
         Dirty = true;
         Notify();
+    }
+
+    public void ShowDataPanelIfPresent(bool expand = false)
+    {
+        Document.EnsureDataFromBoundColumns();
+        var has = Document.Data is { Columns.Count: > 0 };
+        DataPanelVisible = has;
+        if (has)
+        {
+            DataPanelExpanded = expand;
+            DataPage = 0;
+        }
     }
 
     /// <summary>임시: 새 파일·변환 시 저장 확인 대화상자를 띄우지 않는다.</summary>
@@ -507,19 +521,106 @@ public sealed class EditorSession
     }
 
     public DesignObject PlaceBoundText(string column, float? x = null, float? y = null)
+        => PlaceBoundColumn(column, DataDisplayFormats.Text, null, null, x, y);
+
+    public DesignObject PlaceBoundColumn(
+        string column,
+        string kind,
+        string? dateFormat = null,
+        string? barcodeFormat = null,
+        float? x = null,
+        float? y = null)
     {
         var cell = CurrentCell;
-        var obj = DesignObject.CreateDefault(ObjectType.Text, x ?? Document.WidthMm * 0.12f, y ?? Document.HeightMm * 0.28f);
-        obj.Width = Document.WidthMm * 0.76f;
-        obj.Text = Document.Data?.Get(GlobalLabelIndex, column) is { Length: > 0 } v ? v : $"[{column}]";
+        var display = string.IsNullOrWhiteSpace(kind) ? DataDisplayFormats.Text : kind.Trim();
+        var type = display switch
+        {
+            DataDisplayFormats.Image => ObjectType.Image,
+            DataDisplayFormats.Barcode => BarcodeCatalog.Find(barcodeFormat)?.Is2d == true
+                ? ObjectType.Qr
+                : ObjectType.Barcode,
+            _ => ObjectType.Text
+        };
+        var n = cell.Objects.Count(o => o.DataBound);
+        var sample = Document.Data?.Get(GlobalLabelIndex, column) ?? "";
+        var w = display == DataDisplayFormats.Image || type == ObjectType.Qr
+            ? Math.Min(24f, Document.WidthMm * 0.42f)
+            : Math.Min(36f, Document.WidthMm * 0.72f);
+        var h = type switch
+        {
+            ObjectType.Image => w,
+            ObjectType.Qr => w,
+            ObjectType.Barcode => 14f,
+            _ => 10f
+        };
+        var col = n % 2;
+        var row = n / 2;
+        var px = x ?? (4f + col * (w + 2.4f));
+        var py = y ?? (4f + row * (h + 2.4f));
+        if (px + w > Document.WidthMm - 1f) px = 4f;
+        if (py + h > Document.HeightMm - 1f) py = Math.Max(2f, Document.HeightMm - h - 2f);
+
+        var obj = DesignObject.CreateDefault(type, px, py);
+        obj.Width = w;
+        obj.Height = h;
         obj.DataBound = true;
         obj.DataColumn = column;
+        obj.DataDisplayKind = display;
         obj.ZIndex = cell.Objects.Count == 0 ? 1 : cell.Objects.Max(o => o.ZIndex) + 1;
+
+        switch (display)
+        {
+            case DataDisplayFormats.Date:
+                obj.DataDateFormat = string.IsNullOrWhiteSpace(dateFormat) ? "yyyy-MM-dd" : dateFormat;
+                obj.Text = DataDisplayFormats.FormatDate(sample, obj.DataDateFormat);
+                if (string.IsNullOrWhiteSpace(obj.Text)) obj.Text = $"[{column}]";
+                break;
+            case DataDisplayFormats.Image:
+                obj.ImageData = sample;
+                obj.ImageFit = "contain";
+                BoundImageCache.Request(sample);
+                break;
+            case DataDisplayFormats.Barcode:
+                obj.BarcodeFormat = string.IsNullOrWhiteSpace(barcodeFormat)
+                    ? (type == ObjectType.Qr ? "QR_CODE" : "CODE_128")
+                    : barcodeFormat;
+                obj.BarcodeValue = string.IsNullOrWhiteSpace(sample) ? $"[{column}]" : sample;
+                obj.BarcodeShowText = type == ObjectType.Barcode;
+                break;
+            default:
+                obj.Text = string.IsNullOrWhiteSpace(sample) ? $"[{column}]" : sample;
+                break;
+        }
+
         cell.Objects.Add(obj);
-        Select(obj.Id);
+        SyncDataLabels(cell.Objects);
+        var placed = CurrentCell.Objects.LastOrDefault(o =>
+            o.DataBound
+            && string.Equals(o.DataColumn, column, StringComparison.OrdinalIgnoreCase)
+            && o.Type == type);
+        Select(placed?.Id ?? CurrentCell.Objects.LastOrDefault()?.Id);
         Dirty = true;
-        Status = $"자료 연결: {column}";
-        return obj;
+        var rows = Document.Data?.RowCount ?? 0;
+        Status = display switch
+        {
+            DataDisplayFormats.Date => $"자료 연결(날짜): {column} · {rows}칸",
+            DataDisplayFormats.Image => $"자료 연결(이미지): {column} · {rows}칸",
+            DataDisplayFormats.Barcode => $"자료 연결({obj.BarcodeFormat}): {column} · {rows}칸",
+            _ => $"자료 연결: {column} · {rows}칸"
+        };
+        EditorLog.Info($"데이터 열 배치 kind={display} col={column} type={obj.Type} labels={rows}");
+        Notify();
+        return placed ?? obj;
+    }
+
+    /// <summary>데이터 행마다 같은 디자인을 순서대로 넣고, 보고 있는 칸을 범위 안에 맞춘다.</summary>
+    public void SyncDataLabels(IReadOnlyList<DesignObject>? prototype = null)
+    {
+        Document.EnsurePagesForData(prototype);
+        Document.EnsureStructure();
+        PageIndex = Math.Clamp(PageIndex, 0, Document.Pages.Count - 1);
+        LabelIndex = Math.Clamp(LabelIndex, 0, Document.Pages[PageIndex].Cells.Count - 1);
+        ApplyCurrentSlotSize();
     }
 
     public int ExpandCustomSerial()
@@ -547,12 +648,32 @@ public sealed class EditorSession
     public string ResolveObjectText(DesignObject obj, int? globalIndex = null, DateTime? clock = null)
     {
         var idx = globalIndex ?? GlobalLabelIndex;
+        if (obj.Type == ObjectType.Image)
+        {
+            if (obj.DataBound && !string.IsNullOrWhiteSpace(obj.DataColumn) && Document.Data is { } imgData)
+            {
+                var url = imgData.Get(idx, obj.DataColumn);
+                if (!string.IsNullOrWhiteSpace(url))
+                {
+                    BoundImageCache.Request(url);
+                    return url;
+                }
+            }
+            return obj.ImageData ?? "";
+        }
         var text = obj.Text ?? "";
 
         if (obj.DataBound && !string.IsNullOrWhiteSpace(obj.DataColumn) && Document.Data is { } data)
         {
             var bound = data.Get(idx, obj.DataColumn);
-            if (!string.IsNullOrEmpty(bound)) text = bound;
+            if (string.IsNullOrEmpty(bound))
+                bound = data.Get(idx, obj.DataColumn.Trim().Trim('[', ']', '{', '}', '@'));
+            if (!string.IsNullOrEmpty(bound))
+            {
+                text = string.Equals(obj.DataDisplayKind, DataDisplayFormats.Date, StringComparison.OrdinalIgnoreCase)
+                    ? DataDisplayFormats.FormatDate(bound, obj.DataDateFormat)
+                    : bound;
+            }
         }
 
         if (obj.Type is ObjectType.Barcode or ObjectType.Qr)

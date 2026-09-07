@@ -141,9 +141,7 @@ public static class BarcodeRenderer
             using var tp = new SKPaint { Color = ColorUtil.Parse(obj.Fill, alpha), IsAntialias = true };
             using var font = CreateHriFont(obj, HriFontMm(obj, textH));
             var shown = obj.BarcodeShowStartEnd ? $"*{value}*" : value;
-            var tw = font.MeasureText(shown);
-            var tx = Math.Max(0, (obj.Width - tw) / 2f);
-            DrawHriText(canvas, obj, shown, tx, barH + textH * 0.82f, SKTextAlign.Left, font, tp);
+            DrawCenteredHri(canvas, obj, shown, barH, textH, font, tp, obj.Width);
         }
     }
 
@@ -204,10 +202,17 @@ public static class BarcodeRenderer
         float barH, float textH, SKFont font, SKColor color, byte alpha, bool boxed)
     {
         using var tp = new SKPaint { Color = new SKColor(color.Red, color.Green, color.Blue, alpha), IsAntialias = true };
+        using var hri = FitRetailHriFont(font,
+            (digits[0].ToString(), RetailQuietWidth(leftPad, cellW, start)),
+            (digits.Substring(1, 6), RetailSlotWidth(leftPad, cellW, start, scale, 3, 45, boxed)),
+            (digits.Substring(7, 6), RetailSlotWidth(leftPad, cellW, start, scale, 50, 92, boxed)));
         var y = barH + textH * 0.82f;
-        DrawHriText(canvas, obj, digits[0].ToString(), Math.Max(0, leftPad * 0.08f), y, SKTextAlign.Left, font, tp);
-        DrawHriGroup(canvas, obj, digits.Substring(1, 6), leftPad, cellW, start, scale, 3, 45, y, font, tp, boxed);
-        DrawHriGroup(canvas, obj, digits.Substring(7, 6), leftPad, cellW, start, scale, 50, 92, y, font, tp, boxed);
+        var lead = digits[0].ToString();
+        var quietW = RetailQuietWidth(leftPad, cellW, start);
+        var leadX = Math.Max(0, (quietW - hri.MeasureText(lead)) * (leftPad > 0.25f ? 0.5f : 0.12f));
+        DrawHriText(canvas, obj, lead, leadX, y, SKTextAlign.Left, hri, tp);
+        DrawHriGroup(canvas, obj, digits.Substring(1, 6), leftPad, cellW, start, scale, 3, 45, y, hri, tp, boxed);
+        DrawHriGroup(canvas, obj, digits.Substring(7, 6), leftPad, cellW, start, scale, 50, 92, y, hri, tp, boxed);
     }
 
     private static void DrawEan8Hri(
@@ -215,9 +220,12 @@ public static class BarcodeRenderer
         float barH, float textH, SKFont font, SKColor color, byte alpha, bool boxed)
     {
         using var tp = new SKPaint { Color = new SKColor(color.Red, color.Green, color.Blue, alpha), IsAntialias = true };
+        using var hri = FitRetailHriFont(font,
+            (digits[..4], RetailSlotWidth(leftPad, cellW, start, scale, 3, 31, boxed)),
+            (digits[4..], RetailSlotWidth(leftPad, cellW, start, scale, 36, 64, boxed)));
         var y = barH + textH * 0.82f;
-        DrawHriGroup(canvas, obj, digits[..4], leftPad, cellW, start, scale, 3, 31, y, font, tp, boxed);
-        DrawHriGroup(canvas, obj, digits[4..], leftPad, cellW, start, scale, 36, 64, y, font, tp, boxed);
+        DrawHriGroup(canvas, obj, digits[..4], leftPad, cellW, start, scale, 3, 31, y, hri, tp, boxed);
+        DrawHriGroup(canvas, obj, digits[4..], leftPad, cellW, start, scale, 36, 64, y, hri, tp, boxed);
     }
 
     private static void DrawUpcAHri(
@@ -225,22 +233,83 @@ public static class BarcodeRenderer
         float barH, float textH, SKFont font, SKColor color, byte alpha, bool boxed)
     {
         using var tp = new SKPaint { Color = new SKColor(color.Red, color.Green, color.Blue, alpha), IsAntialias = true };
+        using var hri = FitRetailHriFont(font,
+            (digits[0].ToString(), RetailQuietWidth(leftPad, cellW, start)),
+            (digits.Substring(1, 5), RetailSlotWidth(leftPad, cellW, start, scale, 3, 45, boxed)),
+            (digits.Substring(6, 5), RetailSlotWidth(leftPad, cellW, start, scale, 50, 92, boxed)));
         var y = barH + textH * 0.82f;
-        DrawHriText(canvas, obj, digits[0].ToString(), Math.Max(0, leftPad * 0.08f), y, SKTextAlign.Left, font, tp);
-        DrawHriGroup(canvas, obj, digits.Substring(1, 5), leftPad, cellW, start, scale, 3, 45, y, font, tp, boxed);
-        DrawHriGroup(canvas, obj, digits.Substring(6, 5), leftPad, cellW, start, scale, 50, 92, y, font, tp, boxed);
+        var lead = digits[0].ToString();
+        var quietW = RetailQuietWidth(leftPad, cellW, start);
+        var leadX = Math.Max(0, (quietW - hri.MeasureText(lead)) * (leftPad > 0.25f ? 0.5f : 0.12f));
+        DrawHriText(canvas, obj, lead, leadX, y, SKTextAlign.Left, hri, tp);
+        DrawHriGroup(canvas, obj, digits.Substring(1, 5), leftPad, cellW, start, scale, 3, 45, y, hri, tp, boxed);
+        DrawHriGroup(canvas, obj, digits.Substring(6, 5), leftPad, cellW, start, scale, 50, 92, y, hri, tp, boxed);
+    }
+
+    /// <summary>지정 폰트 크기를 쓰되, EAN/UPC 숫자칸보다 넓으면 칸에 맞게 줄인다. 폼텍 뷰어와 같음.</summary>
+    private static SKFont FitRetailHriFont(SKFont font, params (string Text, float MaxW)[] slots)
+    {
+        var hri = new SKFont(font.Typeface, font.Size)
+        {
+            ScaleX = font.ScaleX,
+            SkewX = font.SkewX,
+            Edging = font.Edging
+        };
+        var fit = 1f;
+        foreach (var (text, maxW) in slots)
+            fit = Math.Min(fit, HriOverflowScale(hri, text, maxW * 0.98f));
+        if (fit < 0.999f)
+            hri.Size *= Math.Max(0.32f, fit);
+        return hri;
+    }
+
+    private static float RetailSlotWidth(
+        float leftPad, float cellW, int start, float scale, int moduleFrom, int moduleTo, bool boxed)
+    {
+        var inset = boxed ? scale * 0.9f : 0f;
+        var x0 = leftPad + (start + moduleFrom * scale + inset) * cellW;
+        var x1 = leftPad + (start + moduleTo * scale - inset) * cellW;
+        return Math.Max(0.4f, x1 - x0);
+    }
+
+    private static float RetailQuietWidth(float leftPad, float cellW, int start)
+        => leftPad > 0.25f ? leftPad : Math.Max(0.4f, start * cellW * 0.9f);
+
+    private static float HriOverflowScale(SKFont font, string text, float maxW)
+    {
+        if (string.IsNullOrEmpty(text) || maxW < 0.2f) return 1f;
+        var tw = font.MeasureText(text);
+        if (tw <= maxW || tw < 0.01f) return 1f;
+        return maxW / tw;
+    }
+
+    private static void FitHriToWidth(SKFont font, string text, float maxW)
+    {
+        var s = HriOverflowScale(font, text, maxW);
+        if (s < 0.999f)
+            font.Size *= Math.Max(0.32f, s);
+    }
+
+    private static void DrawCenteredHri(
+        SKCanvas canvas, DesignObject obj, string text, float barH, float textH,
+        SKFont font, SKPaint tp, float width)
+    {
+        FitHriToWidth(font, text, width * 0.98f);
+        var tw = font.MeasureText(text);
+        var tx = Math.Max(0, (width - tw) / 2f);
+        DrawHriText(canvas, obj, text, tx, barH + textH * 0.82f, SKTextAlign.Left, font, tp);
     }
 
     private static void DrawHriGroup(
         SKCanvas canvas, DesignObject obj, string text, float leftPad, float cellW, int start, float scale,
         int moduleFrom, int moduleTo, float y, SKFont font, SKPaint tp, bool boxed)
     {
+        var maxW = RetailSlotWidth(leftPad, cellW, start, scale, moduleFrom, moduleTo, boxed);
         var inset = boxed ? scale * 0.9f : 0f;
         var x0 = leftPad + (start + moduleFrom * scale + inset) * cellW;
-        var x1 = leftPad + (start + moduleTo * scale - inset) * cellW;
-        var maxW = Math.Max(1f, x1 - x0);
+        FitHriToWidth(font, text, maxW * 0.98f);
         var tw = font.MeasureText(text);
-        var x = tw <= maxW ? x0 + (maxW - tw) / 2f : x0;
+        var x = x0 + Math.Max(0, (maxW - tw) / 2f);
         DrawHriText(canvas, obj, text, x, y, SKTextAlign.Left, font, tp);
     }
 
@@ -400,17 +469,12 @@ public static class BarcodeRenderer
         if (string.IsNullOrWhiteSpace(shown)) return;
         var size = HriFontMm(obj, textH);
         using var font = CreateHriFont(obj, size);
-        var tw = font.MeasureText(shown);
-        if (tw > obj.Width * 0.98f && tw > 0)
-            font.Size = size * (obj.Width * 0.98f / tw);
-        tw = font.MeasureText(shown);
-        var tx = Math.Max(0, (obj.Width - tw) / 2f);
         using var tp = new SKPaint
         {
             Color = new SKColor(color.Red, color.Green, color.Blue, alpha),
             IsAntialias = true
         };
-        DrawHriText(canvas, obj, shown, tx, barH + textH * 0.82f, SKTextAlign.Left, font, tp);
+        DrawCenteredHri(canvas, obj, shown, barH, textH, font, tp, obj.Width);
     }
 
     /// <summary>
@@ -442,9 +506,7 @@ public static class BarcodeRenderer
             var shown = obj.BarcodeShowStartEnd ? $"*{payload}*" : payload;
             using var font = CreateHriFont(obj, HriFontMm(obj, textH));
             using var tp = new SKPaint { Color = barColor, IsAntialias = true };
-            var tw = font.MeasureText(shown);
-            var tx = Math.Max(0, (obj.Width - tw) / 2f);
-            DrawHriText(canvas, obj, shown, tx, barH + textH * 0.82f, SKTextAlign.Left, font, tp);
+            DrawCenteredHri(canvas, obj, shown, barH, textH, font, tp, obj.Width);
         }
         return true;
     }
@@ -564,9 +626,7 @@ public static class BarcodeRenderer
         {
             using var font = CreateHriFont(obj, HriFontMm(obj, textH));
             using var tp = new SKPaint { Color = barColor, IsAntialias = true };
-            var tw = font.MeasureText(digits);
-            var tx = Math.Max(0, (obj.Width - tw) / 2f);
-            DrawHriText(canvas, obj, digits, tx, barH + textH * 0.82f, SKTextAlign.Left, font, tp);
+            DrawCenteredHri(canvas, obj, digits, barH, textH, font, tp, obj.Width);
         }
         return true;
     }

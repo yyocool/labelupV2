@@ -24,7 +24,26 @@ internal static class RasterImage
             return (TrimJpeg(bytes), mime);
         if (mime == "image/png")
             return (TrimPng(bytes), mime);
+        if (mime == "image/bmp")
+        {
+            var png = BmpToPng(bytes);
+            if (png is { Length: > 0 })
+                return (png, "image/png");
+        }
         return (bytes, mime);
+    }
+
+    private static byte[]? BmpToPng(byte[] bmp)
+    {
+        var sw = Stopwatch.StartNew();
+        using var sk = DecodeBmp(bmp);
+        if (sk is null) return null;
+        using var image = SKImage.FromBitmap(sk);
+        using var encoded = image.Encode(SKEncodedImageFormat.Png, 80);
+        var png = encoded?.ToArray();
+        if (png is { Length: > 0 })
+            EditorLog.Info($"BMP→PNG {bmp.Length}b → {png.Length}b {sw.ElapsedMilliseconds}ms");
+        return png;
     }
 
     public static string CacheKey(string dataUrl)

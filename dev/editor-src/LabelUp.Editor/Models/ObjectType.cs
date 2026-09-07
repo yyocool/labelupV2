@@ -65,6 +65,8 @@ public enum EditorDialog
     PaperMaker,
     PaperMap,
     DataManager,
+    DataCreate,
+    ColumnBind,
     PrintPreview,
     Clipart,
     Icon,

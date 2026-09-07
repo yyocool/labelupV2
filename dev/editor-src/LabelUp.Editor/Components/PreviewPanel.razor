@@ -277,7 +277,10 @@
     private void ApplyAll()
     {
         History.Push(Session.Document);
-        Session.Document.ApplyDesignToAll(Session.CurrentCell.Objects);
+        if (Session.Document.Data is { RowCount: > 0 })
+            Session.SyncDataLabels(Session.CurrentCell.Objects);
+        else
+            Session.Document.ApplyDesignToAll(Session.CurrentCell.Objects);
         Session.Status = "전체 라벨에 적용";
         Session.Dirty = true;
         Session.Notify();

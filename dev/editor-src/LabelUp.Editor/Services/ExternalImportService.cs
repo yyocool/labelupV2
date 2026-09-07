@@ -57,6 +57,12 @@ public sealed class ExternalImportService(PaperCatalog papers)
 
             if (progress is not null)
                 await progress($"{VendorTitle(vendor)} 파일을 변환하는 중…", 8);
+            if (vendor == "formtec")
+            {
+                await papers.EnsureLoadedAsync();
+                if (progress is not null)
+                    await progress("용지·이미지를 읽는 중…", 24);
+            }
 
             var doc = vendor switch
             {
@@ -65,6 +71,8 @@ public sealed class ExternalImportService(PaperCatalog papers)
                 "formtec" => FormtecImporter.Import(payload, name, papers),
                 _ => throw new NotSupportedException("지원 포맷: 애니라벨 .lbl, 폼텍 .dgz/.dgf, 아이라벨 .idf")
             };
+            if (vendor == "formtec")
+                AttachFormtecEmbeddedData(doc, bytes, payload);
             if (progress is not null)
                 await progress("변환 결과를 정리하는 중…", 96);
             doc.EnsureStructure();
@@ -101,6 +109,8 @@ public sealed class ExternalImportService(PaperCatalog papers)
             $"{doc.Paper.Columns}열 × {doc.Paper.Rows}행 ({doc.Paper.LabelsPerPage}칸) · " +
             $"라벨 {doc.Paper.LabelWidthMm:0.#}×{doc.Paper.LabelHeightMm:0.#} mm · " +
             $"용지 {doc.Paper.PaperWidthMm:0.#}×{doc.Paper.PaperHeightMm:0.#} mm";
+        if (!string.IsNullOrWhiteSpace(doc.Paper.ShapeWarning))
+            result.Warning = doc.Paper.ShapeWarning;
         if (doc.Data is { RowCount: > 0, Columns.Count: > 0 } data)
         {
             result.HasData = true;
@@ -237,6 +247,132 @@ public sealed class ExternalImportService(PaperCatalog papers)
         if (!string.IsNullOrWhiteSpace(outer)) return outer;
         var inner = Path.GetFileNameWithoutExtension(innerName ?? "");
         return string.IsNullOrWhiteSpace(inner) ? "가져온 디자인" : inner;
+    }
+
+    /// <summary>DGZ Data/ 의 XLSX·XLS·MDB 를 읽어 객체 필드명과 연결한다.</summary>
+    private static void AttachFormtecEmbeddedData(LabelDocument doc, byte[] zipBytes, byte[]? dgf = null)
+    {
+        if (zipBytes.Length < 4 || zipBytes[0] != 0x50 || zipBytes[1] != 0x4B) return;
+        try
+        {
+            using var ms = new MemoryStream(zipBytes);
+            using var zip = new ZipArchive(ms, ZipArchiveMode.Read, leaveOpen: false, ZipEntryEncoding());
+            var entry = FindFormtecDataEntry(zip, ".xlsx", ".xls")
+                        ?? FindFormtecDataEntry(zip, ".mdb");
+            if (entry is null)
+            {
+                EditorLog.Info("폼텍 DGZ: Data/ 엑셀·MDB 없음");
+                return;
+            }
+
+            using var s = entry.Open();
+            using var outMs = new MemoryStream();
+            s.CopyTo(outMs);
+            var bytes = outMs.ToArray();
+            var ext = Path.GetExtension(entry.Name).ToLowerInvariant();
+            var sheet = ext == ".mdb"
+                ? DataImportService.FromMdb(entry.Name, bytes, FindFormtecMdbTableName(dgf))
+                : DataImportService.FromBytes(entry.Name, bytes);
+            BindFormtecData(doc, sheet);
+            EditorLog.Info($"폼텍 자료연결: {entry.Name} · {sheet.ColumnCount}열 {sheet.RowCount}행");
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("폼텍 Data/ 읽기 실패: " + ex.Message);
+        }
+    }
+
+    private static ZipArchiveEntry? FindFormtecDataEntry(ZipArchive zip, params string[] exts)
+        => zip.Entries.FirstOrDefault(e =>
+        {
+            var path = e.FullName.Replace('\\', '/');
+            if (e.Length < 32) return false;
+            if (!path.Contains("Data/", StringComparison.OrdinalIgnoreCase)) return false;
+            var ext = Path.GetExtension(e.Name).ToLowerInvariant();
+            return exts.Contains(ext);
+        });
+
+    /// <summary>DGF에서 .mdb 경로 뒤 CP949 테이블명. 예: 테이블1.</summary>
+    private static string? FindFormtecMdbTableName(byte[]? dgf)
+    {
+        if (dgf is null || dgf.Length < 12) return null;
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        var enc = Encoding.GetEncoding(949);
+        for (var i = 0; i + 8 < dgf.Length; i++)
+        {
+            if (!MatchAsciiIgnoreCase(dgf, i, ".mdb")) continue;
+            var from = i + 4;
+            var to = Math.Min(dgf.Length - 5, from + 96);
+            for (var p = from; p < to; p++)
+            {
+                var n = (int)BitConverter.ToUInt32(dgf, p);
+                if (n is < 1 or > 64 || p + 4 + n > dgf.Length) continue;
+                var name = enc.GetString(dgf, p + 4, n).Trim().TrimEnd('\0');
+                if (name.Length == 0 || name.Any(char.IsControl)) continue;
+                if (!name.Any(c => char.IsLetter(c) || c > 127)) continue;
+                EditorLog.Info($"폼텍 MDB 테이블명: {name}");
+                return name;
+            }
+        }
+        return null;
+    }
+
+    private static bool MatchAsciiIgnoreCase(byte[] data, int offset, string ascii)
+    {
+        if (offset + ascii.Length > data.Length) return false;
+        for (var i = 0; i < ascii.Length; i++)
+        {
+            var a = data[offset + i];
+            var b = (byte)ascii[i];
+            if (a == b) continue;
+            if (a >= 'A' && a <= 'Z') a += 32;
+            if (b >= 'A' && b <= 'Z') b += 32;
+            if (a != b) return false;
+        }
+        return true;
+    }
+
+    private static void BindFormtecData(LabelDocument doc, DataSheet sheet)
+    {
+        if (sheet.Columns.Count == 0) return;
+        doc.Data = sheet;
+        var bound = 0;
+        var total = 0;
+        foreach (var obj in doc.Pages.SelectMany(p => p.Cells).SelectMany(c => c.Objects))
+        {
+            total++;
+            var col = MatchFormtecColumn(sheet, FormtecFieldName(obj));
+            if (col is null) continue;
+            obj.DataBound = true;
+            obj.DataColumn = col;
+            if (obj.Type == ObjectType.Text && !obj.Text.Contains('['))
+                obj.Text = $"[{col}]";
+            bound++;
+        }
+        EditorLog.Info($"폼텍 자료연결 매칭: {bound}/{total} · 열 {string.Join(", ", sheet.Columns)}");
+        doc.EnsurePagesForData();
+    }
+
+    private static string FormtecFieldName(DesignObject obj)
+    {
+        var name = (obj.DataColumn ?? "").Trim();
+        if (name.Length == 0)
+            name = (obj.Type is ObjectType.Barcode or ObjectType.Qr ? obj.BarcodeValue : obj.Text)?.Trim() ?? "";
+        return NormalizeFormtecField(name);
+    }
+
+    private static string? MatchFormtecColumn(DataSheet sheet, string name)
+    {
+        if (name.Length == 0) return null;
+        return sheet.Columns.FirstOrDefault(c =>
+            string.Equals(NormalizeFormtecField(c), name, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string NormalizeFormtecField(string raw)
+    {
+        var s = (raw ?? "").Replace('\u00A0', ' ').Replace('\u3000', ' ').Trim();
+        s = s.Trim('[', ']', '{', '}', '@');
+        return string.Join(" ", s.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
     }
 
     private static Encoding ZipEntryEncoding()
@@ -1140,6 +1276,8 @@ internal static class FormtecImporter
             paper.Shape.Svg = null;
             paper.Shape.Guides = null;
             paper.Shape.GuideSvg = null;
+            if (shaped == 0)
+                UseRectLabel(paper, $"{paperNo}_##.wmf");
             EditorLog.Info(
                 shaped > 0
                     ? $"폼텍 불규칙 배치: {slots.Count}칸 + 칸별 WMF {shaped}/{slots.Count} ({paperNo}_##.wmf)"
@@ -1153,8 +1291,10 @@ internal static class FormtecImporter
         else
         {
             ApplyFormtecWmfShape(dgf, header, paperNo, paper, papers.FormtecWmf);
-            if (!HasFormtecShape(paper))
+            if (!HasFormtecShape(paper) && string.IsNullOrWhiteSpace(paper.ShapeWarning))
                 ApplyFormtecShapeFallback(dgf, paper);
+            if (!HasFormtecShape(paper) && string.IsNullOrWhiteSpace(paper.ShapeWarning))
+                UseRectLabel(paper, FindWmfName(dgf, header, paperNo));
         }
         var tShape = importSw.ElapsedMilliseconds;
         var doc = LabelDocument.CreateBlank(paper);
@@ -1175,7 +1315,10 @@ internal static class FormtecImporter
 
         // 객체 0개는 빈 디자인이다. 파일명은 doc.Name이지 텍스트 항목이 아니다.
         // 가운데 구멍·원형 외곽은 WMF 용지 형상이지 type 0x00이 아니다.
-        EditorLog.Info($"폼텍 Import {importSw.ElapsedMilliseconds}ms header={tHeader} labels={tLabels} paper={tPaper} shape={tShape} objects={z} pages={doc.Pages.Count}/{pageCount} bytes={dgf.Length}");
+        EditorLog.Info(
+            $"폼텍 Import {importSw.ElapsedMilliseconds}ms header={tHeader} labels={tLabels} paper={tPaper} shape={tShape} " +
+            $"{paper.PaperNo} {paper.Columns}×{paper.Rows} {paper.LabelWidthMm:0.#}×{paper.LabelHeightMm:0.#} mm " +
+            $"gap {paper.HGapMm:0.#}/{paper.VGapMm:0.#} objects={z} pages={doc.Pages.Count}/{pageCount} bytes={dgf.Length}");
         return doc;
     }
 
@@ -1228,8 +1371,8 @@ internal static class FormtecImporter
             parsed = true;
             var pos = off + DgfEmptyPageSize;
             var end = off + len;
-            // 접두 362 뒤 패딩은 짧게만 찾는다. BMP/JPEG 픽셀은 한 바이트씩 훑지 않는다.
-            var searchTo = Math.Min(end, pos + 2048);
+            // 접두 362 뒤는 데이터 경로·시트명이 올 수 있다. B8 01+좌표가 객체 시작.
+            var searchTo = Math.Min(end, pos + 4096);
             var found = false;
             while (pos + 10 <= searchTo)
             {
@@ -1244,18 +1387,23 @@ internal static class FormtecImporter
                     ReadObjectRun(data, payload + 2, payload + plen, doc, per, global, ref z);
                     pos = payload + plen;
                     found = true;
-                    searchTo = Math.Min(end, pos + 2048);
+                    searchTo = Math.Min(end, pos + 4096);
                     if (pos + 80 >= end) break;
                     continue;
+                }
+                if (data[pos] == 0xB8 && data[pos + 1] == 0x01 && IsObjectHeader(data, pos + 2, end))
+                {
+                    ReadObjectRun(data, pos + 2, end, doc, per, pi * per + 1, ref z);
+                    found = true;
+                    break;
                 }
                 pos++;
             }
             if (!found && off + DgfEmptyPageSize + 41 < end)
             {
-                var run = off + DgfEmptyPageSize;
-                if (run + 10 < end && data[run + 8] == 0xB8 && data[run + 9] == 0x01)
-                    run += 10;
-                ReadObjectRun(data, run, end, doc, per, pi * per + 1, ref z);
+                var run = FindObjectRunStart(data, off + DgfEmptyPageSize, end);
+                if (run >= 0)
+                    ReadObjectRun(data, run, end, doc, per, pi * per + 1, ref z);
             }
             expectedOff = off + len;
         }
@@ -1329,7 +1477,7 @@ internal static class FormtecImporter
                 || !IsType(type))
             {
                 if (++miss > 256) break;
-                pos += miss > 80 ? 64 : 1;
+                pos = AdvanceScan(data, pos, end, miss);
                 continue;
             }
             miss = 0;
@@ -1385,7 +1533,7 @@ internal static class FormtecImporter
                 || !IsType(type))
             {
                 if (++miss > 256) break;
-                pos += miss > 80 ? 64 : 1;
+                pos = AdvanceScan(data, pos, end, miss);
                 continue;
             }
             miss = 0;
@@ -1437,6 +1585,50 @@ internal static class FormtecImporter
         0x00 or 0x02 or 0x04 or 0x05 or 0x06 or 0x07 or 0x08 or 0x09 or 0x0A or 0x0B
         or 0x0E or 0x0F or 0x10 or 0x16 or 0x18;
 
+    private static bool IsObjectHeader(byte[] data, int pos, int end)
+        => pos + 41 <= end
+           && ExternalImportService.TryGeom(data, pos, end, out var type, out _, out _, out _, out _)
+           && IsType(type);
+
+    /// <summary>데이터 경로 뒤 B8 01+좌표, 또는 BMP/JPEG 이미지 헤더. 픽셀은 TryGeom 하지 않는다.</summary>
+    private static int FindObjectRunStart(byte[] data, int from, int end)
+    {
+        var last = Math.Min(end, from + 8000) - 2;
+        for (var i = Math.Max(0, from); i < last; i++)
+        {
+            if (data[i] == 0xB8 && data[i + 1] == 0x01 && i + 2 < end && IsType(data[i + 2]))
+            {
+                var t = data[i + 2];
+                if (t is 0x09 or 0x18
+                    && FormtecRecords.TryObjectLength(data, i + 2, end, t, out var imgLen)
+                    && imgLen > 41)
+                    return i + 2;
+                if (IsObjectHeader(data, i + 2, end))
+                    return i + 2;
+            }
+            var type = data[i];
+            if (type is 0x09 or 0x18
+                && FormtecRecords.TryObjectLength(data, i, end, type, out var len)
+                && len > 41)
+                return i;
+        }
+        return -1;
+    }
+
+    /// <summary>64바이트 점프가 B8 01 객체 시작을 건너뛰지 않게 창 안을 먼저 본다.</summary>
+    private static int AdvanceScan(byte[] data, int pos, int end, int miss)
+    {
+        if (miss <= 80) return pos + 1;
+        var to = Math.Min(end - 41, pos + 64);
+        for (var i = pos + 1; i <= to; i++)
+        {
+            if (i + 1 < end && data[i] == 0xB8 && data[i + 1] == 0x01 && IsType(data[i + 2])
+                && IsObjectHeader(data, i + 2, end))
+                return i;
+        }
+        return pos + 64;
+    }
+
     private static long GuessLength(byte[] data, int start, long pageEnd, byte type)
     {
         var available = pageEnd - start;
@@ -1475,7 +1667,7 @@ internal static class FormtecImporter
 
     private static DesignObject? Map(byte[] data, int geom, int start, int end, byte type, float x, float y, float w, float h)
     {
-        var strings = type is 0x09 or 0x18 or 0x0F or 0x00
+        var strings = type is 0x09 or 0x18 or 0x0F or 0x00 or 0x06
             ? []
             : ExternalImportService.ExtractPrintable(data, start, Math.Min(end, start + 4000), 1);
         switch (type)
@@ -1537,25 +1729,19 @@ internal static class FormtecImporter
                 table.EnsureTableSize();
                 return table;
             case 0x00:
+            case 0x06:
                 if (!FormtecRecords.HasPlainTextRecord(data, geom, end))
                     return null;
                 var empty = ExternalImportService.TextAt(x, y, w, h, "");
                 empty.Text = "";
                 FormtecRecords.Apply(empty, data, geom, end, type);
                 return empty;
-            case 0x06:
             case 0x0A:
             case 0x0B:
             case 0x16:
-                var text = type switch
-                {
-                    0x0A or 0x0B or 0x16 => null,
-                    _ => ReadDgfText(data, start, end)
-                } ?? strings.FirstOrDefault();
-                var o = ExternalImportService.TextAt(x, y, w, h, text ?? "", type == 0x06, type == 0x06 ? (text ?? "").Trim('[', ']') : null);
+                var text = strings.FirstOrDefault();
+                var o = ExternalImportService.TextAt(x, y, w, h, text ?? "");
                 FormtecRecords.Apply(o, data, geom, end, type);
-                if (type == 0x06)
-                    o.TextPaddingXMm = FormtecRecords.ImportedTextPaddingXMm;
                 if (string.IsNullOrWhiteSpace(o.Text))
                 {
                     if (string.IsNullOrWhiteSpace(text)) return null;
@@ -1579,20 +1765,6 @@ internal static class FormtecImporter
             var slice = data.AsSpan(i + 4, n);
             if (slice.ToArray().All(b => b is >= 0x20 and <= 0x7E))
                 return Encoding.ASCII.GetString(slice);
-        }
-        return null;
-    }
-
-    private static string? ReadDgfText(byte[] data, int start, int end)
-    {
-        for (var i = start; i + 8 < end && i < start + 800; i++)
-        {
-            if (BitConverter.ToUInt32(data, i) != 0x00002711) continue;
-            var n = BitConverter.ToUInt32(data, i + 4);
-            if (n is 0 or > 2000) continue;
-            var p = i + 8;
-            if (p + n * 2 > data.Length) continue;
-            return Encoding.Unicode.GetString(data, p, (int)n * 2).Trim('\0', ' ');
         }
         return null;
     }
@@ -1660,12 +1832,14 @@ internal static class FormtecImporter
     {
         slots = [];
         if (count is < 2 or > 80 || pw < 20 || ph < 20) return false;
-        var text = ExternalImportService.DecodeAnsi(data.AsSpan(0, Math.Min(data.Length, 4096)));
+        // 헤더만. BMP 픽셀을 CP949로 풀어 정규식 돌리면 WASM에서 수십 초가 걸린다.
+        var text = ExternalImportService.DecodeAnsi(data.AsSpan(0, Math.Min(data.Length, 800)));
         var groups = new List<float[]>();
-        foreach (Match m in Regex.Matches(text, @"(?:\d+(?:\.\d+)?/){2,}"))
+        foreach (var raw in text.Split(['\r', '\n', '\0', ' '], StringSplitOptions.RemoveEmptyEntries))
         {
+            if (!raw.Contains('/') || raw.Length < 5) continue;
             var vals = new List<float>();
-            foreach (var part in m.Value.Split('/', StringSplitOptions.RemoveEmptyEntries))
+            foreach (var part in raw.Split('/', StringSplitOptions.RemoveEmptyEntries))
             {
                 if (float.TryParse(part, NumberStyles.Float, CultureInfo.InvariantCulture, out var n))
                     vals.Add(n);
@@ -1732,6 +1906,7 @@ internal static class FormtecImporter
             ];
             foreach (var name in names)
             {
+                if (!wmf.Has(name)) continue;
                 if (!wmf.TryConvert(name, slot.W, slot.H, out var outer, out var guides))
                     continue;
                 slots[i] = slot with
@@ -1769,14 +1944,32 @@ internal static class FormtecImporter
         }
     }
 
+    private static void UseRectLabel(PaperSpec paper, string? wmfName)
+    {
+        paper.Shape.Kind = "roundrect";
+        if (paper.Shape.CornerRadiusMm < 0.2f)
+            paper.Shape.CornerRadiusMm = 1.2f;
+        paper.Shape.Svg = null;
+        paper.Shape.Guides = null;
+        paper.Shape.GuideSvg = null;
+        paper.Shape.SvgIsLabelMm = false;
+        paper.ShapeWarning = FormtecWmfCatalog.MissingMessage;
+        EditorLog.Warn($"{FormtecWmfCatalog.MissingMessage} ({wmfName ?? "이름 없음"})");
+    }
+
     private static void ApplyFormtecWmfShape(
         byte[] dgf, List<string> header, string? paperNo, PaperSpec paper, FormtecWmfCatalog wmf)
     {
         var name = FindWmfName(dgf, header, paperNo);
         if (string.IsNullOrWhiteSpace(name)) return;
+        if (!wmf.Has(name))
+        {
+            UseRectLabel(paper, name);
+            return;
+        }
         if (!wmf.TryConvert(name, paper.LabelWidthMm, paper.LabelHeightMm, out var outer, out var guides))
         {
-            EditorLog.Warn($"폼텍 WMF 형상을 적용하지 못함: {name}");
+            UseRectLabel(paper, name);
             return;
         }
 
@@ -1797,9 +1990,9 @@ internal static class FormtecImporter
                 return file;
         }
 
-        var scan = Math.Min(dgf.Length, 4096);
+        var scan = Math.Min(dgf.Length, 800);
         var text = ExternalImportService.DecodeAnsi(dgf.AsSpan(0, scan));
-        var m = Regex.Match(text, @"([A-Za-z0-9_\-]+\.wmf)", RegexOptions.IgnoreCase);
+        var m = Regex.Match(text, @"([A-Za-z0-9_\-]{1,40}\.wmf)", RegexOptions.IgnoreCase);
         if (m.Success) return m.Groups[1].Value;
 
         if (!string.IsNullOrWhiteSpace(paperNo) && Regex.IsMatch(paperNo, @"^\d{3,5}$"))

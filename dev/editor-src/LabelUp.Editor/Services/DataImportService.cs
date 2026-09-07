@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using ExcelDataReader;
 using LabelUp.Editor.Models;
+using LabelUp.Editor.Vendor;
 
 namespace LabelUp.Editor.Services;
 
@@ -16,11 +17,18 @@ public sealed class DataImportService
     {
         var ext = Path.GetExtension(fileName).ToLowerInvariant();
         EditorLog.Info($"자료 가져오기: {fileName} ({bytes.Length} bytes, {ext})");
+        return FromBytes(fileName, bytes);
+    }
+
+    internal static DataSheet FromBytes(string fileName, byte[] bytes)
+    {
+        var ext = Path.GetExtension(fileName).ToLowerInvariant();
         return ext switch
         {
             ".csv" or ".txt" => ParseCsv(fileName, bytes),
             ".xlsx" or ".xls" => ParseExcel(fileName, bytes),
-            _ => throw new NotSupportedException("CSV 또는 Excel(xls/xlsx) 파일만 가져올 수 있습니다.")
+            ".mdb" => FromMdb(fileName, bytes),
+            _ => throw new NotSupportedException("CSV, Excel(xls/xlsx), Access(mdb) 파일만 가져올 수 있습니다.")
         };
     }
 
@@ -114,5 +122,53 @@ public sealed class DataImportService
     {
         var s = (raw ?? "").Trim();
         return string.IsNullOrWhiteSpace(s) ? "열" : s;
+    }
+
+    /// <summary>폼텍 DGZ Data/*.mdb 또는 직접 가져온 Jet 4 Access.</summary>
+    internal static DataSheet FromMdb(string fileName, byte[] bytes, string? preferredTable = null)
+    {
+        var db = new Jet4Database(bytes);
+        var table = PickMdbTable(db, preferredTable)
+            ?? throw new InvalidDataException("MDB에서 사용할 테이블을 찾지 못했습니다.");
+        var cols = table.Columns.Where(c => !string.IsNullOrWhiteSpace(c.Name)).ToList();
+        if (cols.Count == 0)
+            throw new InvalidDataException($"테이블 «{table.Name}»에 열이 없습니다.");
+
+        var sheet = new DataSheet { SourceName = fileName, SourceKind = "mdb" };
+        sheet.Columns.AddRange(cols.Select(c => NormalizeHeader(c.Name)));
+        foreach (var row in table.Rows)
+        {
+            var cells = cols.Select(c => FormatMdbCell(row, c)).ToList();
+            if (cells.All(string.IsNullOrWhiteSpace)) continue;
+            sheet.Rows.Add(cells);
+        }
+        EditorLog.Info($"MDB 읽기: {fileName} · {table.Name} · {sheet.ColumnCount}열 {sheet.RowCount}행");
+        return sheet;
+    }
+
+    private static Jet4Table? PickMdbTable(Jet4Database db, string? preferred)
+    {
+        foreach (var name in new[] { preferred, "테이블1", "Table1", "Table" })
+        {
+            if (string.IsNullOrWhiteSpace(name)) continue;
+            var t = db.TryReadTable(name);
+            if (t is { Columns.Count: > 0 }) return t;
+        }
+
+        return db.Catalog
+            .Where(c => c.IsUserTable)
+            .Select(c => db.TryReadTable(c.Name))
+            .FirstOrDefault(t => t is { Columns.Count: > 0 });
+    }
+
+    private static string FormatMdbCell(Jet4Row row, Jet4Column col)
+    {
+        if (!row.TryGet(col.Name, out var value) || value is null) return "";
+        if (col.Type == Jet4Database.TypeDateTime && value is double oa)
+        {
+            try { return DateTime.FromOADate(oa).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture); }
+            catch { /* 일반 숫자로 표시 */ }
+        }
+        return row.GetString(col.Name).Trim();
     }
 }

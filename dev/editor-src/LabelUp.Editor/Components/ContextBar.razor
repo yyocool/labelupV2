@@ -1,0 +1,742 @@
+@using System.IO
+@using LabelUp.Editor.Models
+@using LabelUp.Editor.Rendering
+@using LabelUp.Editor.Services
+@inject EditorSession Session
+@inject HistoryService History
+@inject FontCatalog Fonts
+@implements IDisposable
+
+<div id="lu-ctx-bar" class="ed-ctx-bar" data-blazor-ctx data-tut="ctx-bar" hidden="@(Session.Selected is null)" @onpointerdown:stopPropagation="true">
+  @if (Session.Selected is { } o)
+  {
+    <div class="ed-ctx-bar__row ed-ctx-bar__row--main" @key="o.Id">
+      @if (ShowFill(o))
+      {
+        <span class="ed-ctx-bar__slot" data-slot="fill">
+          <input type="color" title="채우기" value="@ColorUtil.ToHtmlColor(o.Fill, "#7b2840")" @oninput="e => LiveFill(e)" @onchange="e => CommitFill(e)" />
+        </span>
+      }
+      @if (ShowStroke(o))
+      {
+        <span class="ed-ctx-bar__slot" data-slot="stroke">
+          <input type="color" title="테두리 색" value="@ColorUtil.ToHtmlColor(o.Stroke)" @oninput="e => LiveStroke(e)" @onchange="e => CommitStroke(e)" />
+          <em class="ed-ctx-bar__lab">테두리</em>
+          <input type="number" min="0" step="0.05" title="테두리 굵기" value="@o.StrokeWidth.ToString("0.##")" @onchange="e => SetFloat(v => ApplySelected(obj => obj.StrokeWidth = Math.Max(0, v)), e)" />
+        </span>
+      }
+      @if (ShowFont(o))
+      {
+        <span class="ed-ctx-bar__div"></span>
+        <span class="ed-ctx-bar__slot" data-slot="font">
+          <select title="글꼴" value="@FontSelectValue(o)" @onchange="OnFontFamily">
+            @foreach (var group in FontCatalog.GroupedChoices(o.FontFamily, _fontFilter))
+            {
+              <optgroup label="@group.Key">
+                @foreach (var font in group)
+                {
+                  <option value="@font.Id">@font.Label</option>
+                }
+              </optgroup>
+            }
+          </select>
+          <input type="number" min="4" max="200" step="0.5" title="크기 pt" value="@FontCatalog.ToPt(o.FontSize).ToString("0.##")" @onchange="e => SetFontSizePt(o, e)" />
+          <button type="button" class="@(o.Bold ? "is-on" : null)" title="굵게" @onclick="() => Toggle(v => o.Bold = v, o.Bold)">B</button>
+          <button type="button" class="@(o.Italic ? "is-on" : null)" title="기울임" @onclick="() => Toggle(v => o.Italic = v, o.Italic)"><i>I</i></button>
+          <button type="button" class="@(o.Underline ? "is-on" : null)" title="밑줄" @onclick="() => Toggle(v => o.Underline = v, o.Underline)"><u>U</u></button>
+          <button type="button" class="@(o.TextAlign == "left" ? "is-on" : null)" title="왼쪽" @onclick='() => SetAlign("left")'>좌</button>
+          <button type="button" class="@(o.TextAlign == "center" ? "is-on" : null)" title="가운데" @onclick='() => SetAlign("center")'>중</button>
+          <button type="button" class="@(o.TextAlign == "right" ? "is-on" : null)" title="오른쪽" @onclick='() => SetAlign("right")'>우</button>
+        </span>
+      }
+
+      <span class="ed-ctx-bar__div"></span>
+      <span class="ed-ctx-bar__slot" data-slot="opacity">
+        <button type="button" class="ed-ctx-bar__op @(_opacityOpen ? "is-on" : null)" title="@($"투명도 {(int)Math.Round(o.Opacity * 100)}%")" @onclick="ToggleOpacity">
+          <svg class="ed-ctx-bar__op-ico" viewBox="0 0 24 24" aria-hidden="true">
+            <defs>
+              <pattern id="lu-op-chk" width="4" height="4" patternUnits="userSpaceOnUse">
+                <rect width="4" height="4" fill="#d8cfd3"/>
+                <rect width="2" height="2" fill="#fff"/>
+                <rect x="2" y="2" width="2" height="2" fill="#fff"/>
+              </pattern>
+            </defs>
+            <rect x="3" y="3" width="18" height="18" rx="4" fill="url(#lu-op-chk)"/>
+            <rect class="ed-ctx-bar__op-tint" x="3" y="3" width="18" height="18" rx="4" fill="currentColor" opacity="@(0.18 + o.Opacity * 0.62)"/>
+          </svg>
+        </button>
+        @if (_opacityOpen)
+        {
+          <div class="ed-ctx-op-scrim" @onclick="CloseOpacity" @onpointerdown:stopPropagation="true"></div>
+          <div class="ed-ctx-op" @onpointerdown:stopPropagation="true">
+            <span class="ed-ctx-op__pct">@((int)Math.Round(o.Opacity * 100))%</span>
+            <input type="range" class="ed-ctx-op__range" min="0" max="100" step="1"
+                   value="@((int)Math.Round(o.Opacity * 100))"
+                   title="투명도"
+                   @onpointerdown="BeginStyleHistory"
+                   @oninput="OnOpacityLive"
+                   @onchange="EndOpacity" />
+          </div>
+        }
+      </span>
+      <button type="button" class="@(o.Locked ? "is-on" : null)" title="잠금" @onclick="() => Toggle(v => o.Locked = v, o.Locked)">잠금</button>
+      <span class="ed-ctx-bar__div"></span>
+      <span class="ed-ctx-bar__slot">
+        <button type="button" title="앞으로" @onclick="BringForward">앞으로</button>
+        <button type="button" title="뒤로" @onclick="SendBackward">뒤로</button>
+        <button type="button" title="복제" @onclick="Duplicate">⧉</button>
+        <button type="button" title="삭제" @onclick="DeleteSelected">🗑</button>
+      </span>
+    </div>
+
+    @if (HasExtraRow(o))
+    {
+    <div class="ed-ctx-bar__row ed-ctx-bar__row--extra">
+      <span class="ed-ctx-bar__slot ed-ctx-bar__slot--compact">
+        <label class="ed-field">회전 <input type="number" step="1" value="@o.Rotation.ToString("0.#")" @onchange="e => SetFloat(v => o.Rotation = v, e)" /></label>
+      </span>
+
+      @if (ShowFill(o))
+      {
+        <span class="ed-ctx-bar__slot">
+          <label class="ed-field ed-field--check">
+            <input type="checkbox" checked="@ColorUtil.IsTransparent(o.Fill)" @onchange="OnFillTransparent" />
+            <span>채우기 투명</span>
+          </label>
+        </span>
+      }
+
+      @if (o.Type == ObjectType.Text)
+      {
+        <span class="ed-ctx-bar__div"></span>
+        <span class="ed-ctx-bar__slot">
+          <input class="ed-ctx-bar__text" value="@o.Text" title="내용" @onchange="e => SetText(o, e)" />
+          <select title="표현" value="@o.TextMode" @onchange="OnTextMode">
+            <option value="@TextMode.Normal">일반</option>
+            <option value="@TextMode.Extended">확장</option>
+            <option value="@TextMode.WordArt">워드아트</option>
+            <option value="@TextMode.Custom">사용자정의</option>
+          </select>
+          @if (o.RichText is not { Count: > 0 })
+          {
+            <button type="button" class="@(o.Outline ? "is-on" : null)" title="외곽선" @onclick="() => Toggle(v => o.Outline = v, o.Outline)">외</button>
+            <button type="button" class="@(o.Shadow ? "is-on" : null)" title="그림자" @onclick="() => Toggle(v => o.Shadow = v, o.Shadow)">그림</button>
+            <button type="button" class="@(o.FlipHorizontal ? "is-on" : null)" title="좌우 반전" @onclick="() => Toggle(v => o.FlipHorizontal = v, o.FlipHorizontal)">뒤집기</button>
+            <button type="button" class="@(IsVertical(o) ? "is-on" : null)" title="세로" @onclick="() => ToggleVertical(o)">세로</button>
+            <select title="세로정렬" value="@o.VerticalAlign" @onchange="e => SetString(v => o.VerticalAlign = v, e)">
+              <option value="top">위</option>
+              <option value="middle">가운데</option>
+              <option value="bottom">아래</option>
+            </select>
+            <label class="ed-field">행간 <input type="number" step="0.05" value="@o.LineHeight.ToString("0.##")" @onchange="e => SetFloat(v => o.LineHeight = v, e)" /></label>
+            <label class="ed-field">자간 <input type="number" step="0.1" value="@o.LetterSpacing.ToString("0.##")" @onchange="e => SetFloat(v => o.LetterSpacing = v, e)" /></label>
+          }
+        </span>
+        @if (o.TextMode == TextMode.WordArt)
+        {
+          <span class="ed-ctx-bar__slot">
+            <em class="ed-ctx-bar__lab">워드아트</em>
+            <select title="모양" value="@o.WordArtStyle" @onchange="OnWordArt">
+              <option value="@WordArtStyle.None">일반</option>
+              <option value="@WordArtStyle.Stretch">늘리기</option>
+              <option value="@WordArtStyle.Rounded">둥글게</option>
+              <option value="@WordArtStyle.ArcUp">위로 호</option>
+              <option value="@WordArtStyle.ArcDown">아래로 호</option>
+              <option value="@WordArtStyle.Wave">물결</option>
+              <option value="@WordArtStyle.Circle">원형</option>
+            </select>
+            <label class="ed-field">각도 <input type="number" step="1" value="@o.WordArtBend.ToString("0")" @onchange="e => SetFloat(v => o.WordArtBend = v, e)" /></label>
+            @if (o.WordArtStyle == WordArtStyle.Circle)
+            {
+              <label class="ed-field">원형회전 <input type="number" step="1" value="@o.WordArtCircleRotation.ToString("0")" @onchange="e => SetFloat(v => o.WordArtCircleRotation = v, e)" /></label>
+              <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.WordArtCounterClockwise" @onchange="e => SetBool(v => o.WordArtCounterClockwise = v, e)" /> <span>반시계</span></label>
+            }
+            <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.WordArtGuide" @onchange="e => SetBool(v => o.WordArtGuide = v, e)" /> <span>안내선</span></label>
+            @if (o.Shadow)
+            {
+              <input type="color" title="그림자 색" value="@ColorUtil.ToHtmlColor(o.ShadowFill, "#403A36")" @onchange="e => SetString(v => o.ShadowFill = v, e)" />
+              <label class="ed-field">그림각도 <input type="number" step="1" value="@o.ShadowAngle.ToString("0")" @onchange="e => SetFloat(v => o.ShadowAngle = v, e)" /></label>
+              <label class="ed-field">간격 <input type="number" step="0.1" value="@o.ShadowDistanceMm.ToString("0.##")" @onchange="e => SetFloat(v => o.ShadowDistanceMm = v, e)" /></label>
+            }
+          </span>
+        }
+        @if (o.TextMode == TextMode.Custom)
+        {
+          <span class="ed-ctx-bar__slot">
+            <select title="종류" value="@o.CustomKind" @onchange="e => OnCustomKind(o, e)">
+              <option value="date">날짜</option>
+              <option value="time">시간</option>
+              <option value="serial">일련번호</option>
+              <option value="hexserial">16진 일련번호</option>
+            </select>
+            @if (o.CustomKind == "date")
+            {
+              <select title="서식" value="@CustomTextFormats.NormalizeDate(o.CustomFormat)" @onchange="e => OnCustomFormat(o, e)">
+                @foreach (var fmt in CustomTextFormats.Dates)
+                {
+                  <option value="@fmt.Id">@fmt.Label</option>
+                }
+              </select>
+            }
+            else if (o.CustomKind == "time")
+            {
+              <select title="서식" value="@CustomTextFormats.NormalizeTime(o.CustomFormat)" @onchange="e => OnCustomFormat(o, e)">
+                @foreach (var fmt in CustomTextFormats.Times)
+                {
+                  <option value="@fmt.Id">@fmt.Label</option>
+                }
+              </select>
+            }
+            else if (o.CustomKind is "serial" or "hexserial")
+            {
+              <label class="ed-field">시작 <input type="number" value="@o.SerialStart" @onchange="e => SetSerialInt(o, v => o.SerialStart = v, e)" /></label>
+              <label class="ed-field">증가 <input type="number" min="1" value="@o.SerialStep" @onchange="e => SetSerialInt(o, v => o.SerialStep = Math.Max(1, v), e)" /></label>
+              <label class="ed-field">자리 <input type="number" min="1" max="12" value="@o.SerialDigits" @onchange="e => SetSerialInt(o, v => o.SerialDigits = Math.Clamp(v, 1, 12), e)" /></label>
+              <label class="ed-field">반복 <input type="number" min="1" max="200" value="@o.SerialRepeat" @onchange="e => SetSerialInt(o, v => o.SerialRepeat = Math.Clamp(v, 1, 200), e)" /></label>
+            }
+            <em class="ed-ctx-bar__lab">@Session.ResolveObjectText(o)</em>
+          </span>
+        }
+      }
+
+      @if (DesignObject.IsShape(o.Type))
+      {
+        <span class="ed-ctx-bar__div"></span>
+        <span class="ed-ctx-bar__slot">
+          <em class="ed-ctx-bar__lab">도형</em>
+          <select value="@o.ShapeKind" @onchange="OnShapeKind">
+            <option value="@ShapeKind.Rect">사각형</option>
+            <option value="@ShapeKind.RoundRect">둥근 사각형</option>
+            <option value="@ShapeKind.Circle">원</option>
+            <option value="@ShapeKind.Triangle">삼각형</option>
+            <option value="@ShapeKind.Ellipse">타원</option>
+            <option value="@ShapeKind.Line">선</option>
+            <option value="@ShapeKind.Arrow">화살표</option>
+            <option value="@ShapeKind.Polygon">정다각형</option>
+          </select>
+          @if (o.ShapeKind == ShapeKind.Arrow)
+          {
+            <select value="@o.ArrowHeads" @onchange="OnArrowHeads">
+              <option value="@ArrowHeads.End">오른쪽만</option>
+              <option value="@ArrowHeads.Start">왼쪽만</option>
+              <option value="@ArrowHeads.Both">양쪽</option>
+            </select>
+          }
+          @if (o.ShapeKind == ShapeKind.Polygon)
+          {
+            <label class="ed-field">각 <input type="number" min="3" max="16" value="@o.PolygonSides" @onchange="e => SetInt(v => o.PolygonSides = Math.Clamp(v, 3, 16), e)" /></label>
+          }
+          @if (o.ShapeKind == ShapeKind.RoundRect)
+          {
+            <label class="ed-field">반경 <input type="number" step="0.1" min="0" value="@o.CornerRadiusMm.ToString("0.##")" @onchange="e => SetFloat(v => o.CornerRadiusMm = Math.Max(0, v), e)" /></label>
+          }
+        </span>
+      }
+
+      @if (o.Type == ObjectType.Gradient)
+      {
+        <span class="ed-ctx-bar__div"></span>
+        <span class="ed-ctx-bar__slot">
+          <em class="ed-ctx-bar__lab">그라데이션</em>
+          <input type="color" title="시작" value="@ColorUtil.ToHtmlColor(o.Fill, "#000000")" @onchange="e => SetString(v => o.Fill = v, e)" />
+          <input type="color" title="끝" value="@ColorUtil.ToHtmlColor(o.GradientEnd, "#ffffff")" @onchange="e => SetString(v => o.GradientEnd = v, e)" />
+          <select value="@o.GradientDirection" @onchange="e => SetInt(v => o.GradientDirection = Math.Clamp(v, 0, 3), e)">
+            <option value="0">왼쪽 → 오른쪽</option>
+            <option value="1">오른쪽 → 왼쪽</option>
+            <option value="2">위 → 아래</option>
+            <option value="3">아래 → 위</option>
+          </select>
+          <label class="ed-field">정밀 <input type="number" min="1" max="100" value="@o.GradientPrecision" @onchange="e => SetInt(v => o.GradientPrecision = Math.Clamp(v, 1, 100), e)" /></label>
+        </span>
+      }
+
+      @if (o.Type is ObjectType.Barcode or ObjectType.Qr)
+      {
+        <span class="ed-ctx-bar__div"></span>
+        <span class="ed-ctx-bar__slot">
+          <em class="ed-ctx-bar__lab">@(o.Type == ObjectType.Qr ? "QR" : "바코드")</em>
+          @if (o.Type == ObjectType.Barcode)
+          {
+            <select @key="@(o.Id + "-bc-fmt")" value="@o.BarcodeFormat" @onchange="e => SetString(v => o.BarcodeFormat = v, e)">
+              @foreach (var spec in BarcodeCatalog.OneD)
+              {
+                <option value="@spec.Id">@spec.Label</option>
+              }
+            </select>
+            <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.BarcodeShowText" @onchange="e => SetBool(v => o.BarcodeShowText = v, e)" /> <span>내용</span></label>
+            <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.BarcodeShowStartEnd" @onchange="e => SetBool(v => o.BarcodeShowStartEnd = v, e)" /> <span>시작·끝</span></label>
+          }
+          else
+          {
+            <select value="@o.BarcodeFormat" @onchange="e => SetString(v => o.BarcodeFormat = v, e)">
+              @foreach (var spec in BarcodeCatalog.TwoD)
+              {
+                <option value="@spec.Id">@spec.Label</option>
+              }
+            </select>
+            <select title="오류복원" value="@o.QrEcc" @onchange="e => SetString(v => o.QrEcc = v, e)">
+              <option value="L">L</option>
+              <option value="M">M</option>
+              <option value="Q">Q</option>
+              <option value="H">H</option>
+            </select>
+          }
+          <input class="ed-ctx-bar__text" title="@BarcodeCatalog.ValueFieldLabel(o.BarcodeFormat)" value="@o.BarcodeValue" @onchange="e => SetString(v => o.BarcodeValue = v, e)" />
+          <input type="color" title="색" value="@ColorUtil.ToHtmlColor(o.Fill, "#000000")" @onchange="e => SetString(v => o.Fill = v, e)" />
+          <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.BackgroundTransparent" @onchange="e => SetBool(v => o.BackgroundTransparent = v, e)" /> <span>배경투명</span></label>
+          @if (!o.BackgroundTransparent)
+          {
+            <input type="color" title="배경" value="@ColorUtil.ToHtmlColor(o.BackgroundFill, "#ffffff")" @onchange="e => SetString(v => o.BackgroundFill = v, e)" />
+          }
+        </span>
+      }
+
+      @if (o.Type == ObjectType.Table)
+      {
+        o.EnsureTableSize();
+        <span class="ed-ctx-bar__div"></span>
+        <span class="ed-ctx-bar__slot">
+          <em class="ed-ctx-bar__lab">표</em>
+          <label class="ed-field">행 <input type="number" min="1" max="12" value="@o.TableRows" @onchange="e => SetInt(v => { o.TableRows = Math.Clamp(v, 1, 12); o.EnsureTableSize(); }, e)" /></label>
+          <label class="ed-field">열 <input type="number" min="1" max="12" value="@o.TableCols" @onchange="e => SetInt(v => { o.TableCols = Math.Clamp(v, 1, 12); o.EnsureTableSize(); }, e)" /></label>
+          <input type="color" title="글자색" value="@ColorUtil.ToHtmlColor(o.Fill, InkFallback)" @onchange="e => SetTableInk(o, e)" />
+          <input type="color" title="테두리" value="@ColorUtil.ToHtmlColor(o.Stroke, BorderFallback)" @onchange="e => SetTableStroke(o, e)" />
+          <label class="ed-field">굵기 <input type="number" step="0.05" min="0.08" max="4" value="@o.TableBorderWidth.ToString("0.##")" @onchange="e => SetFloat(v => o.TableBorderWidth = Math.Clamp(v, 0.08f, 4f), e)" /></label>
+          <input type="color" title="표 배경" value="@ColorUtil.ToHtmlColor(o.BackgroundFill, WhiteFallback)" @onchange="e => SetTableBg(o, e)" />
+        </span>
+      }
+
+      @if (o.Type is ObjectType.Clipart or ObjectType.Icon)
+      {
+        <span class="ed-ctx-bar__div"></span>
+        <span class="ed-ctx-bar__slot">
+          <button type="button" @onclick="OpenClipartReplace">모양 바꾸기</button>
+        </span>
+      }
+
+      @if (o.Type == ObjectType.Image)
+      {
+        <span class="ed-ctx-bar__div"></span>
+        <span class="ed-ctx-bar__slot" data-slot="fit">
+          <em class="ed-ctx-bar__lab">이미지</em>
+          <InputFile OnChange="OnImage" accept="image/*" />
+          <select title="맞춤" value="@o.ImageFit" @onchange="e => SetString(v => o.ImageFit = v, e)">
+            <option value="contain">맞춤</option>
+            <option value="cover">채우기</option>
+            <option value="stretch">늘리기</option>
+          </select>
+        </span>
+      }
+    </div>
+    }
+  }
+</div>
+
+@code {
+    protected override void OnInitialized() => Session.Changed += OnChanged;
+    public void Dispose() => Session.Changed -= OnChanged;
+
+    private bool _preloadingFont;
+    private string? _boundObjectId;
+    private long _bindGuardUntil;
+    private string _fontFilter = "";
+    private bool _styleHistoryPushed;
+    private bool _opacityOpen;
+    private const string InkFallback = "#2e2a27";
+    private const string BorderFallback = "#000000";
+    private const string WhiteFallback = "#ffffff";
+
+    private bool BindGuarded => Environment.TickCount64 < _bindGuardUntil;
+
+    private static bool ShowFill(DesignObject o)
+        => o.Type is not (ObjectType.Gradient or ObjectType.Clipart or ObjectType.Table
+            or ObjectType.Barcode or ObjectType.Qr or ObjectType.Image or ObjectType.Icon);
+
+    private static bool ShowStroke(DesignObject o)
+        => o.Type is not (ObjectType.Clipart or ObjectType.Table or ObjectType.Barcode
+            or ObjectType.Qr or ObjectType.Image or ObjectType.Icon);
+
+    private static bool ShowFont(DesignObject o)
+        => (o.Type == ObjectType.Text && o.RichText is not { Count: > 0 })
+            || (o.Type == ObjectType.Barcode && o.BarcodeShowText);
+
+    private static bool HasExtraRow(DesignObject o) => true;
+
+    private void ToggleOpacity() => _opacityOpen = !_opacityOpen;
+
+    private void CloseOpacity() => _opacityOpen = false;
+
+    private void OnOpacityLive(ChangeEventArgs e)
+    {
+        if (!float.TryParse(e.Value?.ToString(), out var pct)) return;
+        BeginStyleHistory();
+        ApplySelected(obj => obj.Opacity = Math.Clamp(pct / 100f, 0, 1));
+        Touch();
+    }
+
+    private void EndOpacity(ChangeEventArgs e)
+    {
+        OnOpacityLive(e);
+        _styleHistoryPushed = false;
+    }
+
+    private void OnChanged()
+    {
+        var id = Session.Selected?.Id;
+        if (id != _boundObjectId)
+        {
+            _boundObjectId = id;
+            _bindGuardUntil = Environment.TickCount64 + 400;
+            _opacityOpen = false;
+        }
+        _ = PreloadSelectedFontAsync();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private async Task PreloadSelectedFontAsync()
+    {
+        if (_preloadingFont) return;
+        if (Session.Selected is not { } sel) return;
+        if (sel.Type is not (ObjectType.Text or ObjectType.Barcode)) return;
+        _preloadingFont = true;
+        try
+        {
+            if (await Fonts.EnsureFamilyAsync(sel.FontFamily))
+                Session.Notify();
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error("글꼴 미리 로드 실패", ex);
+            Session.Status = "글꼴 오류: " + ex.Message;
+        }
+        finally
+        {
+            _preloadingFont = false;
+        }
+    }
+
+    private void BringForward()
+    {
+        if (Session.SelectedIds.Count == 0) return;
+        History.Push(Session.Document);
+        Session.BringSelectionForward();
+    }
+
+    private void SendBackward()
+    {
+        if (Session.SelectedIds.Count == 0) return;
+        History.Push(Session.Document);
+        Session.SendSelectionBackward();
+    }
+
+    private void Duplicate()
+    {
+        if (Session.SelectedIds.Count == 0) return;
+        History.Push(Session.Document);
+        Session.CopySelection();
+        Session.PasteClipboard();
+    }
+
+    private void DeleteSelected()
+    {
+        if (Session.SelectedIds.Count == 0) return;
+        History.Push(Session.Document);
+        Session.DeleteSelection();
+    }
+
+    private void OpenClipartReplace()
+    {
+        Session.PendingInsert = null;
+        Session.ClipartTab = Session.Selected?.Type == ObjectType.Icon ? "fa" : "clipart";
+        Session.OpenDialog(EditorDialog.Clipart);
+    }
+
+    private void Touch()
+    {
+        Session.Dirty = true;
+        Session.Notify();
+    }
+
+    private void ApplySelected(Action<DesignObject> apply)
+    {
+        foreach (var obj in Session.SelectedObjects)
+            apply(obj);
+    }
+
+    private void BeginStyleHistory()
+    {
+        if (_styleHistoryPushed) return;
+        History.Push(Session.Document);
+        _styleHistoryPushed = true;
+    }
+
+    private void LiveFill(ChangeEventArgs e)
+    {
+        var v = ColorUtil.ToHtmlColor(e.Value?.ToString(), "");
+        if (v.Length != 7) return;
+        BeginStyleHistory();
+        ApplySelected(obj => obj.Fill = v);
+        Touch();
+    }
+
+    private void CommitFill(ChangeEventArgs e)
+    {
+        LiveFill(e);
+        _styleHistoryPushed = false;
+    }
+
+    private void LiveStroke(ChangeEventArgs e)
+    {
+        var v = ColorUtil.ToHtmlColor(e.Value?.ToString(), "");
+        if (v.Length != 7) return;
+        BeginStyleHistory();
+        ApplySelected(obj => obj.Stroke = v);
+        Touch();
+    }
+
+    private void CommitStroke(ChangeEventArgs e)
+    {
+        LiveStroke(e);
+        _styleHistoryPushed = false;
+    }
+
+    private void OnFillTransparent(ChangeEventArgs e)
+    {
+        if (BindGuarded) return;
+        var on = e.Value is bool b ? b : string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
+        History.Push(Session.Document);
+        ApplySelected(obj => obj.Fill = on ? "transparent" : ColorUtil.ToHtmlColor(obj.Fill, "#7b2840"));
+        Touch();
+    }
+
+    private void SetFloat(Action<float> apply, ChangeEventArgs e)
+    {
+        if (BindGuarded) return;
+        if (!float.TryParse(e.Value?.ToString(), out var v)) return;
+        History.Push(Session.Document);
+        apply(v);
+        Touch();
+    }
+
+    private void SetInt(Action<int> apply, ChangeEventArgs e)
+    {
+        if (BindGuarded) return;
+        if (!int.TryParse(e.Value?.ToString(), out var v)) return;
+        History.Push(Session.Document);
+        apply(v);
+        Touch();
+    }
+
+    private void SetSerialInt(DesignObject o, Action<int> apply, ChangeEventArgs e)
+    {
+        if (BindGuarded) return;
+        if (!int.TryParse(e.Value?.ToString(), out var v)) return;
+        History.Push(Session.Document);
+        apply(v);
+        CustomTextFormats.ApplyToken(o);
+        Session.ExpandCustomSerial();
+        Touch();
+    }
+
+    private void SetBool(Action<bool> apply, ChangeEventArgs e)
+    {
+        if (BindGuarded) return;
+        History.Push(Session.Document);
+        apply(e.Value is bool b ? b : string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase));
+        Touch();
+    }
+
+    private void Toggle(Action<bool> apply, bool current)
+    {
+        if (BindGuarded) return;
+        History.Push(Session.Document);
+        apply(!current);
+        Touch();
+    }
+
+    private void SetAlign(string align)
+    {
+        if (BindGuarded || Session.Selected is null) return;
+        History.Push(Session.Document);
+        Session.Selected.TextAlign = align;
+        Touch();
+    }
+
+    private static bool IsVertical(DesignObject o)
+        => string.Equals(o.TextDirection, "vertical", StringComparison.OrdinalIgnoreCase);
+
+    private void ToggleVertical(DesignObject o)
+        => Toggle(v => o.TextDirection = v ? "vertical" : "horizontal", IsVertical(o));
+
+    private void SetString(Action<string> apply, ChangeEventArgs e)
+    {
+        if (BindGuarded) return;
+        History.Push(Session.Document);
+        apply(e.Value?.ToString() ?? "");
+        Touch();
+    }
+
+    private void SetText(DesignObject o, ChangeEventArgs e)
+    {
+        if (BindGuarded) return;
+        History.Push(Session.Document);
+        o.Text = e.Value?.ToString() ?? "";
+        if (o.TextMode == TextMode.Extended)
+            o.RichText = null;
+        Touch();
+    }
+
+    private void SetFontSizePt(DesignObject o, ChangeEventArgs e)
+    {
+        if (BindGuarded) return;
+        if (!float.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var pt)
+            && !float.TryParse(e.Value?.ToString(), out pt))
+            return;
+        History.Push(Session.Document);
+        o.FontSize = FontCatalog.FromPt(Math.Clamp(pt, 4f, 200f));
+        Touch();
+    }
+
+    private static string FontSelectValue(DesignObject o)
+    {
+        var raw = (o.FontFamily ?? "").Trim();
+        return raw.Length == 0 ? "Pretendard" : FontCatalog.CanonicalId(raw);
+    }
+
+    private async Task OnFontFamily(ChangeEventArgs e)
+    {
+        if (BindGuarded || Session.Selected is null) return;
+        try
+        {
+            var id = e.Value?.ToString() ?? "Pretendard";
+            if (string.Equals(Session.Selected.FontFamily, id, StringComparison.OrdinalIgnoreCase))
+                return;
+            History.Push(Session.Document);
+            Session.Selected.FontFamily = id;
+            Session.Status = "글꼴을 불러오는 중…";
+            Touch();
+            await Fonts.EnsureFamilyAsync(id);
+            Session.Status = Fonts.IsFamilyReady(id)
+                ? "글꼴 적용됨"
+                : "글꼴을 불러오지 못해 기본 글꼴로 표시합니다.";
+            Session.Notify();
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error("글꼴 변경 실패", ex);
+            Session.Status = "글꼴 오류: " + ex.Message;
+            Session.Notify();
+        }
+    }
+
+    private void OnTextMode(ChangeEventArgs e)
+    {
+        if (BindGuarded || Session.Selected is null) return;
+        History.Push(Session.Document);
+        if (Enum.TryParse<TextMode>(e.Value?.ToString(), true, out var mode))
+        {
+            Session.Selected.TextMode = mode;
+            if (mode != TextMode.Extended)
+                Session.Selected.RichText = null;
+            if (mode == TextMode.Custom)
+            {
+                if (Session.Selected.CustomKind is "none" or "")
+                {
+                    Session.Selected.CustomKind = "date";
+                    Session.Selected.CustomFormat = "2";
+                }
+                CustomTextFormats.ApplyToken(Session.Selected);
+            }
+        }
+        Touch();
+    }
+
+    private void OnCustomKind(DesignObject o, ChangeEventArgs e)
+    {
+        if (BindGuarded) return;
+        History.Push(Session.Document);
+        o.CustomKind = e.Value?.ToString() ?? "date";
+        o.CustomFormat = o.CustomKind switch
+        {
+            "date" => "2",
+            "time" => "1",
+            _ => o.CustomFormat
+        };
+        CustomTextFormats.ApplyToken(o);
+        if (o.CustomKind is "serial" or "hexserial")
+            Session.ExpandCustomSerial();
+        Touch();
+    }
+
+    private void OnCustomFormat(DesignObject o, ChangeEventArgs e)
+    {
+        if (BindGuarded) return;
+        History.Push(Session.Document);
+        o.CustomFormat = e.Value?.ToString() ?? "1";
+        CustomTextFormats.ApplyToken(o);
+        Touch();
+    }
+
+    private void OnShapeKind(ChangeEventArgs e)
+    {
+        if (Session.Selected is null) return;
+        History.Push(Session.Document);
+        if (Enum.TryParse<ShapeKind>(e.Value?.ToString(), true, out var kind))
+        {
+            Session.Selected.Type = ObjectType.Shape;
+            Session.Selected.ShapeKind = kind;
+        }
+        Touch();
+    }
+
+    private void OnArrowHeads(ChangeEventArgs e)
+    {
+        if (Session.Selected is null) return;
+        History.Push(Session.Document);
+        if (Enum.TryParse<ArrowHeads>(e.Value?.ToString(), true, out var heads))
+            Session.Selected.ArrowHeads = heads;
+        Touch();
+    }
+
+    private void OnWordArt(ChangeEventArgs e)
+    {
+        if (Session.Selected is null) return;
+        History.Push(Session.Document);
+        if (Enum.TryParse<WordArtStyle>(e.Value?.ToString(), true, out var style))
+            Session.Selected.WordArtStyle = style;
+        Touch();
+    }
+
+    private void SetTableInk(DesignObject o, ChangeEventArgs e)
+        => SetString(v => o.Fill = ColorUtil.ToHtmlColor(v, InkFallback), e);
+
+    private void SetTableStroke(DesignObject o, ChangeEventArgs e)
+        => SetString(v => o.Stroke = ColorUtil.ToHtmlColor(v, BorderFallback), e);
+
+    private void SetTableBg(DesignObject o, ChangeEventArgs e)
+    {
+        if (BindGuarded) return;
+        History.Push(Session.Document);
+        o.BackgroundTransparent = false;
+        o.BackgroundFill = ColorUtil.ToHtmlColor(e.Value?.ToString(), WhiteFallback);
+        Touch();
+    }
+
+    private async Task OnImage(InputFileChangeEventArgs e)
+    {
+        if (Session.Selected is null || Session.Selected.Type != ObjectType.Image) return;
+        var file = e.File;
+        if (file.Size > 8 * 1024 * 1024) { Session.Status = "이미지는 8MB 이하만 가능"; return; }
+        await using var stream = file.OpenReadStream(8 * 1024 * 1024);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        var b64 = Convert.ToBase64String(ms.ToArray());
+        var mime = file.ContentType is { Length: > 0 } ? file.ContentType : "image/png";
+        History.Push(Session.Document);
+        DocumentRenderer.InvalidateImage(Session.Selected.Id);
+        Session.Selected.ImageData = $"data:{mime};base64,{b64}";
+        Touch();
+        Session.Status = "이미지 적용됨";
+    }
+}

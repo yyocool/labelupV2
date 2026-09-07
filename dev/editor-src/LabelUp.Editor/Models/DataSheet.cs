@@ -33,6 +33,46 @@ public sealed class DataSheet
         Rows.RemoveAt(row);
     }
 
+    public void AddRow(IEnumerable<string>? values = null)
+    {
+        var line = values?.ToList() ?? [];
+        while (line.Count < Columns.Count) line.Add("");
+        Rows.Add(line);
+    }
+
+    public string AddColumn(string? name = null)
+    {
+        var baseName = string.IsNullOrWhiteSpace(name) ? $"열{Columns.Count + 1}" : name.Trim();
+        var unique = baseName;
+        var n = 2;
+        while (Columns.Any(c => string.Equals(c, unique, StringComparison.OrdinalIgnoreCase)))
+            unique = $"{baseName}{n++}";
+        Columns.Add(unique);
+        foreach (var row in Rows)
+            row.Add("");
+        return unique;
+    }
+
+    public void RenameColumn(int col, string name)
+    {
+        if (col < 0 || col >= Columns.Count) return;
+        var next = string.IsNullOrWhiteSpace(name) ? Columns[col] : name.Trim();
+        if (Columns.Where((c, i) => i != col).Any(c => string.Equals(c, next, StringComparison.OrdinalIgnoreCase)))
+            return;
+        Columns[col] = next;
+    }
+
+    public void RemoveColumn(int col)
+    {
+        if (col < 0 || col >= Columns.Count) return;
+        Columns.RemoveAt(col);
+        foreach (var row in Rows)
+        {
+            if (col < row.Count)
+                row.RemoveAt(col);
+        }
+    }
+
     public DataSheet Clone()
     {
         return new DataSheet

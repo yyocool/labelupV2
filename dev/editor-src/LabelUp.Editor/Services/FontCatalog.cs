@@ -193,6 +193,8 @@ public sealed class FontCatalog : IAsyncDisposable
 
     private static readonly Dictionary<string, string> Aliases = new(StringComparer.OrdinalIgnoreCase)
     {
+        ["맑은 고딕 Semilight"] = "맑은 고딕",
+        ["Malgun Gothic Semilight"] = "맑은 고딕",
         ["Gulim"] = "굴림",
         ["굴림체"] = "굴림",
         ["Dotum"] = "돋움",
@@ -244,7 +246,7 @@ public sealed class FontCatalog : IAsyncDisposable
         string[] tails =
         [
             "Bold Italic", "Bold Oblique", "BoldItalic", "BoldOblique",
-            "Italic", "Oblique", "Bold", "Regular",
+            "Semi Light", "Semilight", "Italic", "Oblique", "Bold", "Regular",
             "굵게 기울임", "기울임", "굵게"
         ];
         var changed = true;

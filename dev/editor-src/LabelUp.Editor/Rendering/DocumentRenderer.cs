@@ -96,14 +96,23 @@ public static class DocumentRenderer
     public static bool HasItalicFace(string? family)
         => Fonts?.HasItalicFace(family) == true;
 
-    public static SKBitmap? GetBitmap(DesignObject obj)
+    public static SKBitmap? GetBitmap(DesignObject obj, string? overrideSrc = null)
     {
-        if (string.IsNullOrEmpty(obj.ImageData)) return null;
-        var key = RasterImage.CacheKey(obj.ImageData);
+        var raw = overrideSrc ?? obj.ImageData;
+        if (string.IsNullOrEmpty(raw)) return null;
+        if (raw.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            var remote = BoundImageCache.Get(raw);
+            if (remote != null) return remote;
+        }
+        if (!raw.StartsWith("data:", StringComparison.OrdinalIgnoreCase) && raw.IndexOf(',') < 0)
+            return BoundImageCache.Get(raw);
+        var key = RasterImage.CacheKey(raw);
         if (ImageCache.TryGetValue(key, out var cached) && cached != null) return cached;
         try
         {
-            var data = obj.ImageData!;
+            var data = raw;
             var comma = data.IndexOf(',');
             if (comma >= 0) data = data[(comma + 1)..];
             var bytes = Convert.FromBase64String(data);
@@ -113,7 +122,7 @@ public static class DocumentRenderer
         }
         catch
         {
-            return null;
+            return BoundImageCache.Get(raw);
         }
     }
 
@@ -316,7 +325,7 @@ public static class DocumentRenderer
                     DrawText(canvas, obj, text, alpha);
                     break;
                 case ObjectType.Image:
-                    DrawImage(canvas, obj, alpha);
+                    DrawImage(canvas, obj, alpha, resolve);
                     break;
                 case ObjectType.Barcode:
                 case ObjectType.Qr:
@@ -330,7 +339,7 @@ public static class DocumentRenderer
                     if (obj.SvgParts is { Count: > 0 })
                         DrawSvgParts(canvas, obj, alpha);
                     else if (obj.Type == ObjectType.Clipart && IsRasterImageData(obj.ImageData))
-                        DrawImage(canvas, obj, alpha);
+                        DrawImage(canvas, obj, alpha, resolve);
                     else
                         DrawSvgShape(canvas, obj, alpha);
                     break;
@@ -564,7 +573,7 @@ public static class DocumentRenderer
             canvas.Skew(-0.25f, 0);
 
         var style = obj.TextMode == TextMode.WordArt ? obj.WordArtStyle : WordArtStyle.None;
-        if (style is WordArtStyle.ArcUp or WordArtStyle.ArcDown or WordArtStyle.Circle or WordArtStyle.Wave or WordArtStyle.Rounded)
+        if (obj.TextMode == TextMode.WordArt && style != WordArtStyle.Stretch)
         {
             DrawWordArt(canvas, obj, text, alpha, style == WordArtStyle.Rounded ? WordArtStyle.ArcUp : style);
             canvas.Restore();
@@ -905,8 +914,10 @@ public static class DocumentRenderer
 
         if (obj.Shadow)
         {
-            using var shade = new SKPaint { Color = new SKColor(0x40, 0x3A, 0x36, (byte)(alpha * 0.45f)), IsAntialias = true };
-            canvas.DrawText(text, x + obj.FontSize * 0.12f, y + obj.FontSize * 0.12f, align, font, shade);
+            ShadowOffset(obj, out var dx, out var dy);
+            var shadeCss = string.IsNullOrWhiteSpace(obj.ShadowFill) ? "#403A36" : obj.ShadowFill;
+            using var shade = new SKPaint { Color = ColorUtil.Parse(shadeCss, (byte)Math.Clamp(alpha * 0.7f, 1, 255)), IsAntialias = true };
+            canvas.DrawText(text, x + dx, y + dy, align, font, shade);
         }
         if (obj.Outline)
         {
@@ -1005,8 +1016,10 @@ public static class DocumentRenderer
         };
         if (obj.Shadow)
         {
-            using var shade = new SKPaint { Color = new SKColor(0x40, 0x3A, 0x36, (byte)(alpha * 0.45f)), IsAntialias = true };
-            DrawMixedRun(canvas, obj.FontFamily, obj.Bold, text, cursor + obj.FontSize * 0.12f, y + obj.FontSize * 0.12f, font, shade);
+            ShadowOffset(obj, out var dx, out var dy);
+            var shadeCss = string.IsNullOrWhiteSpace(obj.ShadowFill) ? "#403A36" : obj.ShadowFill;
+            using var shade = new SKPaint { Color = ColorUtil.Parse(shadeCss, (byte)Math.Clamp(alpha * 0.7f, 1, 255)), IsAntialias = true };
+            DrawMixedRun(canvas, obj.FontFamily, obj.Bold, text, cursor + dx, y + dy, font, shade);
         }
         if (obj.Outline)
         {
@@ -1163,6 +1176,19 @@ public static class DocumentRenderer
         }
     }
 
+    private static void ShadowOffset(DesignObject obj, out float dx, out float dy)
+    {
+        if (MathF.Abs(obj.ShadowDistanceMm) > 0.01f)
+        {
+            var rad = obj.ShadowAngle * (MathF.PI / 180f);
+            dx = obj.ShadowDistanceMm * MathF.Cos(rad);
+            dy = -obj.ShadowDistanceMm * MathF.Sin(rad);
+            return;
+        }
+
+        dx = dy = obj.FontSize * 0.12f;
+    }
+
     private static void DrawWordArt(SKCanvas canvas, DesignObject obj, string text, byte alpha, WordArtStyle style)
     {
         using var paint = new SKPaint { Color = ColorUtil.Parse(obj.Fill, alpha), IsAntialias = true };
@@ -1183,6 +1209,12 @@ public static class DocumentRenderer
             canvas.DrawOval(new SKRect(1, 1, obj.Width - 1, obj.Height - 1), g);
         }
 
+        if (style == WordArtStyle.None)
+        {
+            DrawPlainWordArt(canvas, obj, text, font, paint, alpha);
+            return;
+        }
+
         if (style == WordArtStyle.Wave)
         {
             var total = chars.Sum(ch => font.MeasureText(ch.ToString()) + obj.LetterSpacing);
@@ -1200,29 +1232,39 @@ public static class DocumentRenderer
 
         var cx = obj.Width / 2f;
         var cy = obj.Height / 2f;
-        var rx = obj.Width / 2f - obj.FontSize * 0.4f;
-        var ry = obj.Height / 2f - obj.FontSize * 0.4f;
-        float startDeg, sweep;
+        var rx = Math.Max(obj.FontSize, obj.Width / 2f - obj.FontSize * 0.35f);
+        var ry = Math.Max(obj.FontSize, obj.Height / 2f - obj.FontSize * 0.35f);
+
         if (style == WordArtStyle.Circle)
         {
-            startDeg = -90;
-            sweep = 360;
+            DrawCircularWordArt(canvas, obj, chars, cx, cy, rx, ry, font, paint, alpha);
+            return;
         }
-        else if (style == WordArtStyle.ArcDown)
+
+        float startDeg, sweep;
+        if (style == WordArtStyle.ArcDown)
         {
             startDeg = 200;
             sweep = 140;
         }
         else
         {
-            startDeg = -20 - obj.WordArtBend * 0.4f;
-            sweep = 180 + obj.WordArtBend * 0.3f;
+            // 폼텍 일반형: 워드 각도 = 호 쓸림(도). 상단 중앙에 맞춘다.
+            sweep = obj.WordArtBend;
+            if (MathF.Abs(sweep) < 1f) sweep = 30f;
+            if (sweep > 359f) sweep = 359f;
+            if (sweep < -359f) sweep = -359f;
+            startDeg = obj.TextAlign switch
+            {
+                "left" => -180f,
+                "right" => -sweep,
+                _ => -90f - sweep / 2f
+            };
         }
 
         for (var i = 0; i < chars.Length; i++)
         {
-            var t = chars.Length == 1 ? 0.5f : i / (float)(chars.Length - (style == WordArtStyle.Circle ? 0 : 1));
-            if (style == WordArtStyle.Circle) t = i / (float)chars.Length;
+            var t = chars.Length == 1 ? 0.5f : i / (float)(chars.Length - 1);
             var deg = startDeg + sweep * t;
             var rad = deg * MathF.PI / 180f;
             var x = cx + rx * MathF.Cos(rad);
@@ -1235,9 +1277,84 @@ public static class DocumentRenderer
         }
     }
 
-    private static void DrawImage(SKCanvas canvas, DesignObject obj, byte alpha)
+    /// <summary>
+    /// 폼텍 일반형: 한 줄 직선. 워드 각도만큼 상자 중심 기준 회전(화면 부호 반대).
+    /// 자르지 않아 긴 문장·그림자가 보인다.
+    /// </summary>
+    private static void DrawPlainWordArt(
+        SKCanvas canvas, DesignObject obj, string text, SKFont font, SKPaint paint, byte alpha)
     {
-        var bmp = GetBitmap(obj);
+        var line = text.Replace("\r", "").Replace("\n", "");
+        if (line.Length == 0) return;
+
+        var cx = obj.Width / 2f;
+        var cy = obj.Height / 2f;
+        canvas.Save();
+        canvas.Translate(cx, cy);
+        canvas.RotateDegrees(-obj.WordArtBend);
+        canvas.Translate(-cx, -cy);
+
+        var tw = MeasureLine(font, obj.FontFamily, obj.Bold, line);
+        var inset = TextPadX(obj);
+        var x = obj.TextAlign switch
+        {
+            "right" => obj.Width - tw - inset,
+            "center" => (obj.Width - tw) / 2f,
+            _ => inset
+        };
+        var y = cy + obj.FontSize * 0.35f;
+        DrawGlyph(canvas, obj, line, x, y, SKTextAlign.Left, font, paint, alpha);
+        canvas.Restore();
+    }
+
+    /// <summary>
+    /// 폼텍 원형: 360° 등분이 아니라 글자 폭만큼만 원주에 붙인다.
+    /// 원형 회전 0 = 상단 중앙. 화면 부호는 반전(-회전)이라 73°면 왼쪽에 모인다.
+    /// </summary>
+    private static void DrawCircularWordArt(
+        SKCanvas canvas, DesignObject obj, char[] chars,
+        float cx, float cy, float rx, float ry,
+        SKFont font, SKPaint paint, byte alpha)
+    {
+        var widths = new float[chars.Length];
+        var total = 0f;
+        for (var i = 0; i < chars.Length; i++)
+        {
+            widths[i] = Math.Max(0.01f, font.MeasureText(chars[i].ToString()));
+            total += widths[i];
+            if (i < chars.Length - 1) total += obj.LetterSpacing;
+        }
+
+        var radius = Math.Max(0.5f, (rx + ry) * 0.5f);
+        var sweep = total / radius * (180f / MathF.PI);
+        if (sweep > 359f) sweep = 359f;
+        if (obj.WordArtCounterClockwise) sweep = -sweep;
+
+        // 0° 회전 = 12시. Formtec 원형 회전은 화면 시계방향과 반대.
+        var centerDeg = -90f - obj.WordArtCircleRotation;
+        var acc = 0f;
+        for (var i = 0; i < chars.Length; i++)
+        {
+            var mid = acc + widths[i] * 0.5f;
+            var deg = chars.Length == 1
+                ? centerDeg
+                : centerDeg - sweep * 0.5f + sweep * (mid / total);
+            var rad = deg * MathF.PI / 180f;
+            var x = cx + rx * MathF.Cos(rad);
+            var y = cy + ry * MathF.Sin(rad);
+            canvas.Save();
+            canvas.Translate(x, y);
+            canvas.RotateDegrees(deg + 90);
+            DrawGlyph(canvas, obj, chars[i].ToString(), 0, 0, SKTextAlign.Center, font, paint, alpha);
+            canvas.Restore();
+            acc += widths[i] + obj.LetterSpacing;
+        }
+    }
+
+    private static void DrawImage(SKCanvas canvas, DesignObject obj, byte alpha, Func<DesignObject, string>? resolve = null)
+    {
+        var media = resolve?.Invoke(obj) ?? obj.ImageData;
+        var bmp = GetBitmap(obj, media);
         var dest = new SKRect(0, 0, obj.Width, obj.Height);
         if (bmp != null)
         {

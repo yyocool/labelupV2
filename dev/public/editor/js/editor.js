@@ -1200,6 +1200,7 @@ window.labelUpEditor = {
       }
       var srcDesign = document.querySelector('.ed-topbar__actions [data-tut="mydesign"], .ed-topbar__actions [data-ed-file-src="mydesign"]');
       var srcData = document.querySelector('.ed-topbar__actions [data-tut="data-import"], .ed-topbar__actions [data-ed-file-src="data-import"]');
+      var srcCreate = document.querySelector('.ed-topbar__actions [data-tut="data-create"], .ed-topbar__actions [data-ed-file-src="data-create"]');
       var retarget = function (el, name) {
         if (!el) return;
         if (el.getAttribute('data-tut') === name) {
@@ -1210,28 +1211,32 @@ window.labelUpEditor = {
       if (!srcDesign || !srcData) return;
       retarget(srcDesign, 'mydesign');
       retarget(srcData, 'data-import');
+      retarget(srcCreate, 'data-create');
+      var mk = function (label, tut, src) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'ed-float-tools__file';
+        btn.setAttribute('data-tut', tut);
+        btn.setAttribute('title', label);
+        var svg = src && src.querySelector ? src.querySelector('svg') : null;
+        btn.innerHTML = (svg ? svg.outerHTML : '') + '<span>' + label + '</span>';
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          var live = document.querySelector('.ed-topbar__actions [data-ed-file-src="' + tut + '"]');
+          if (live) live.click();
+        });
+        return btn;
+      };
       var group = existing;
       if (!group) {
         group = document.createElement('div');
         group.className = 'ed-float-tools__group ed-float-tools__group--files';
         group.setAttribute('role', 'group');
-        var mk = function (label, tut, src) {
-          var btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'ed-float-tools__file';
-          btn.setAttribute('data-tut', tut);
-          btn.setAttribute('title', label);
-          var svg = src && src.querySelector ? src.querySelector('svg') : null;
-          btn.innerHTML = (svg ? svg.outerHTML : '') + '<span>' + label + '</span>';
-          btn.addEventListener('click', function (e) {
-            e.preventDefault();
-            var live = document.querySelector('.ed-topbar__actions [data-ed-file-src="' + tut + '"]');
-            if (live) live.click();
-          });
-          return btn;
-        };
         group.appendChild(mk('내 디자인', 'mydesign', srcDesign));
         group.appendChild(mk('데이터 가져오기', 'data-import', srcData));
+        if (srcCreate) group.appendChild(mk('데이터 생성하기', 'data-create', srcCreate));
+      } else if (srcCreate && !group.querySelector('[data-tut="data-create"]')) {
+        group.appendChild(mk('데이터 생성하기', 'data-create', srcCreate));
       }
       var divider = existingDiv;
       if (!divider) {
@@ -1424,7 +1429,7 @@ window.labelUpEditor = {
       }
     };
     var findZInput = function () {
-      var labels = document.querySelectorAll('[data-ed-props-panel] .ed-field');
+      var labels = document.querySelectorAll('[data-ed-props-panel] .ed-field, #lu-ctx-bar .ed-field');
       for (var i = 0; i < labels.length; i++) {
         if (((labels[i].textContent || '').indexOf('Z-Index') === -1)) continue;
         var input = labels[i].querySelector('input[type="number"]');
@@ -1433,7 +1438,6 @@ window.labelUpEditor = {
       return null;
     };
     var setSelectedZ = async function (z) {
-      await showTab('속성');
       var input = findZInput();
       if (!input) return false;
       var desc = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
@@ -1742,231 +1746,20 @@ window.labelUpEditor = {
   bindPaperPreviewLayout: function () {
     if (this._paperPreviewBound) return;
     this._paperPreviewBound = true;
-    var applying = false;
-    var picked = null;
-    var shopBySku = null;
-    var parseSize = function (text) {
-      var t = String(text || '').replace(/\s+/g, ' ');
-      var size = t.match(/([\d.]+)\s*[×x]\s*([\d.]+)\s*mm/i);
-      var labels = t.match(/시트당\s*(\d+)\s*칸/) || t.match(/(\d+)\s*칸/);
-      var sku = '';
-      var skuHit = t.match(/\b([A-Z]{1,4}\d{2,4}[A-Z]?(?:-\d+)?)\b/);
-      if (skuHit) sku = skuHit[1];
-      return {
-        sku: sku,
-        w: size ? parseFloat(size[1]) : 0,
-        h: size ? parseFloat(size[2]) : 0,
-        n: labels ? parseInt(labels[1], 10) : 0
-      };
-    };
-    var parseCard = function (card) {
-      if (!card) return null;
-      var info = parseSize(card.innerText || '');
-      var skuEl = card.querySelector('.ed-paper-card__meta span');
-      if (skuEl) {
-        var sku = (skuEl.textContent || '').split('·')[0].trim();
-        if (sku) info.sku = sku;
-      }
-      return info.w > 0 ? info : null;
-    };
-    var loadShop = function () {
-      if (shopBySku) return Promise.resolve(shopBySku);
-      return fetch('/api/shop/editor-papers', { credentials: 'same-origin' })
-        .then(function (r) { return r.json(); })
-        .then(function (j) {
-          shopBySku = {};
-          var items = (j && j.data && (j.data.items || j.data.Items)) || [];
-          for (var i = 0; i < items.length; i++) {
-            var it = items[i];
-            var sku = String(it.sku || it.Sku || '').trim().toUpperCase();
-            if (!sku) continue;
-            shopBySku[sku] = {
-              sku: sku,
-              w: parseFloat(it.widthMm || it.WidthMm || 0) || 0,
-              h: parseFloat(it.heightMm || it.HeightMm || 0) || 0,
-              n: parseInt(it.labelsPerSheet || it.LabelsPerSheet || 0, 10) || 0
-            };
-          }
-          return shopBySku;
-        })
-        .catch(function () {
-          shopBySku = {};
-          return shopBySku;
-        });
-    };
-    var currentSku = function () {
-      var strong = document.querySelector('.ed-preview__spec strong');
-      if (strong && (strong.textContent || '').trim()) return (strong.textContent || '').trim();
-      var paper = document.querySelector('[data-tut="presets"] strong');
-      return paper ? (paper.textContent || '').trim() : '';
-    };
-    var resolvePaper = function (cellCount) {
-      if (picked && picked.w > 0 && picked.h > 0)
-        return picked;
-      var sku = currentSku();
-      var skuKey = sku.toUpperCase();
-      if (shopBySku && skuKey && shopBySku[skuKey] && shopBySku[skuKey].w > 0)
-        return shopBySku[skuKey];
-      var specText = ((document.querySelector('.ed-preview__spec') || {}).textContent || '');
-      var parsed = parseSize(specText);
-      if (parsed.w > 0) {
-        if (!parsed.n) parsed.n = cellCount;
-        parsed.sku = sku;
-        return parsed;
-      }
-      return null;
-    };
-    var chooseGrid = function (n, lw, lh, pageW, pageH) {
-      var gap = 3;
-      var best = null;
-      for (var cols = 1; cols <= n; cols++) {
-        var rows = Math.ceil(n / cols);
-        var unused = cols * rows - n;
-        var usedW = cols * lw + Math.max(0, cols - 1) * gap;
-        var usedH = rows * lh + Math.max(0, rows - 1) * gap;
-        var scale = Math.min(1, (pageW - 8) / usedW, (pageH - 8) / usedH);
-        if (!(scale > 0 && isFinite(scale))) continue;
-        var fill = usedW / pageW;
-        var score = unused * 12 + (1 - scale) * 8 + Math.abs(fill - 0.62) * 18;
-        if (!best || score < best.score)
-          best = { cols: cols, rows: rows, usedW: usedW, usedH: usedH, scale: scale, gap: gap, score: score };
-      }
-      if (best) return best;
-      var fallbackCols = n >= 4 ? 2 : 1;
-      return {
-        cols: fallbackCols,
-        rows: Math.ceil(n / fallbackCols),
-        usedW: fallbackCols * lw,
-        usedH: Math.ceil(n / fallbackCols) * lh,
-        scale: 1,
-        gap: gap
-      };
-    };
-    var layout = function () {
-      var spec = document.querySelector('.ed-preview__spec');
-      var page = document.querySelector('.ed-preview__page');
-      if (!spec || !page) return;
-      var cells = page.querySelectorAll('.ed-preview__cell');
-      if (!cells.length) return;
-      var raw = (spec.textContent || '').replace(/\s+/g, '');
-      if (/불규칙/.test(raw)) return;
-      var paper = resolvePaper(cells.length);
-      if (!paper || !(paper.w > 0 && paper.h > 0)) return;
-      var want = paper.n > 0 ? paper.n : cells.length;
-      var lw = paper.w;
-      var lh = paper.h;
-      var cs = getComputedStyle(page);
-      var pageW = parseFloat(cs.getPropertyValue('--page-w')) || 210;
-      var pageH = parseFloat(cs.getPropertyValue('--page-h')) || 297;
-      if (pageW < 20) pageW = 210;
-      if (pageH < 20) pageH = 297;
-      var grid = chooseGrid(want, lw, lh, pageW, pageH);
-      var scale = grid.scale;
-      var left0 = (pageW - grid.usedW * scale) / 2;
-      var top0 = (pageH - grid.usedH * scale) / 2;
-      applying = true;
-      for (var i = 0; i < cells.length; i++) {
-        var el = cells[i];
-        if (i >= want) {
-          el.style.setProperty('display', 'none', 'important');
-          continue;
-        }
-        el.style.removeProperty('display');
-        var c = i % grid.cols;
-        var r = Math.floor(i / grid.cols);
-        el.style.setProperty('left', ((left0 + c * (lw + grid.gap) * scale) / pageW * 100).toFixed(3) + '%', 'important');
-        el.style.setProperty('top', ((top0 + r * (lh + grid.gap) * scale) / pageH * 100).toFixed(3) + '%', 'important');
-        el.style.setProperty('width', (lw * scale / pageW * 100).toFixed(3) + '%', 'important');
-        el.style.setProperty('height', (lh * scale / pageH * 100).toFixed(3) + '%', 'important');
-      }
-      var shown = Math.min(cells.length, want);
-      var metaEl = document.querySelector('.ed-preview__sheet-meta');
-      if (metaEl) {
-        var nw = Math.round(lw * 10) / 10;
-        var nh = Math.round(lh * 10) / 10;
-        metaEl.textContent = grid.cols + '×' + grid.rows + ' · ' + shown + '칸 · ' + nw + '×' + nh + ' mm';
-      }
-      var kicker = document.querySelector('[data-tut="presets"] .ed-float-tools__paper-kicker');
-      var paperBtn = kicker && kicker.parentElement;
-      if (paperBtn) {
-        var em = paperBtn.querySelector('em');
-        if (em) em.textContent = (Math.round(lw * 10) / 10) + '×' + (Math.round(lh * 10) / 10) + ' mm · ' + shown + ' 칸';
-        var strong = paperBtn.querySelector('strong');
-        if (strong && paper.sku) strong.textContent = paper.sku;
-      }
-      var sizeEl = document.querySelector('.ed-guides__size');
-      if (sizeEl) sizeEl.textContent = (Math.round(lw * 10) / 10) + '×' + (Math.round(lh * 10) / 10) + ' mm';
-      applying = false;
-    };
-    this.applySuggestedPaper = function (info) {
-      if (!info || !(info.w > 0 && info.h > 0)) return;
-      picked = {
-        sku: info.sku || '',
-        w: info.w,
-        h: info.h,
-        n: info.n || 0
-      };
-      var spec = document.querySelector('.ed-preview__spec');
-      if (spec) {
-        var strong = spec.querySelector('strong');
-        if (strong && picked.sku) strong.textContent = picked.sku;
-      }
-      var kicker = document.querySelector('[data-tut="presets"] .ed-float-tools__paper-kicker');
-      var paperBtn = kicker && kicker.parentElement;
-      if (paperBtn && picked.sku) {
-        var strongBtn = paperBtn.querySelector('strong');
-        if (strongBtn) strongBtn.textContent = picked.sku;
-      }
-      loadShop().then(request);
-      request();
-      setTimeout(request, 80);
-      setTimeout(request, 360);
-      setTimeout(request, 900);
-    };
-    var queued = false;
-    var request = function () {
-      if (queued || applying) return;
-      queued = true;
-      requestAnimationFrame(function () {
-        queued = false;
-        layout();
-      });
-    };
-    document.addEventListener('click', function (e) {
-      if (!e.target || !e.target.closest) return;
-      var card = e.target.closest('.ed-paper-card');
-      if (!card || card.classList.contains('ed-theme-card') || card.classList.contains('ed-project-card')) return;
-      picked = parseCard(card);
-      var min = document.querySelector('[data-ed-preview-panel].is-minimized .ed-props__min');
-      if (min) min.click();
-      loadShop().then(request);
-      setTimeout(request, 80);
-      setTimeout(request, 360);
-      setTimeout(request, 900);
-      setTimeout(request, 1600);
-    }, true);
-    var mo = new MutationObserver(function () {
-      if (!applying) request();
-    });
-    var start = function () {
-      loadShop().then(request);
-      var root = document.querySelector('[data-ed-preview-panel]') || document.body;
-      mo.observe(root, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['style', 'class'] });
-    };
-    if (document.querySelector('[data-ed-preview-panel], [data-ed-root]')) start();
-    else {
-      var wait = new MutationObserver(function () {
-        if (document.querySelector('[data-ed-preview-panel], [data-ed-root]')) {
-          wait.disconnect();
-          start();
-        }
-      });
-      wait.observe(document.documentElement, { childList: true, subtree: true });
-    }
+    // 미리보기 칸은 Blazor Document.Paper(DGF 격자·여백)가 그린다.
+    // 상점 규격/chooseGrid로 다시 짜면 폼텍 3627(4×2·48×130, 가로간격 0)이
+    // 기본 70×36 2×4로 바뀐다. 라비·용지카드는 ApplyPaper가 문서를 바꾼다.
+    this.applySuggestedPaper = function () {};
   },
   bindCanvaToolbar: function () {
     if (this._canvaToolbarBound) return;
     this._canvaToolbarBound = true;
+    var stripLegacy = function () {
+      document.querySelectorAll('.ed-ctx-bar:not([data-blazor-ctx])').forEach(function (el) { el.remove(); });
+    };
+    stripLegacy();
+    new MutationObserver(function () { stripLegacy(); }).observe(document.documentElement, { childList: true, subtree: true });
+    return;
     var ops = this.ensureLayerOps();
     var busy = false;
     var populating = false;

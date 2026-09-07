@@ -3,9 +3,13 @@ using LabelUp.Editor.Models;
 
 namespace LabelUp.Editor.Services;
 
-/// <summary>wwwroot/assets/formtec_wmf 의 Placeable WMF 를 미리 읽어 둔다.</summary>
+/// <summary>
+/// editor-src/formtecWmf 의 Placeable WMF.
+/// 빌드 시 wwwroot/assets/formtec_wmf 로 복사된다. 목록에 없는 파일은 요청하지 않는다.
+/// </summary>
 public sealed class FormtecWmfCatalog(HttpClient http)
 {
+    public const string MissingMessage = "폼텍 용지 모양 파일(wmf)가 없습니다.";
     private const string IndexUrl = "assets/formtec_wmf/index.json";
     private readonly Dictionary<string, byte[]> _files = new(StringComparer.OrdinalIgnoreCase);
     private bool _loaded;
@@ -19,19 +23,21 @@ public sealed class FormtecWmfCatalog(HttpClient http)
             foreach (var name in names)
             {
                 if (string.IsNullOrWhiteSpace(name)) continue;
+                var file = Path.GetFileName(name.Trim());
+                if (file.Length == 0) continue;
                 try
                 {
-                    var bytes = await http.GetByteArrayAsync("assets/formtec_wmf/" + name);
+                    var bytes = await http.GetByteArrayAsync("assets/formtec_wmf/" + file);
                     if (bytes.Length > 22)
-                        _files[name] = bytes;
+                        _files[file] = bytes;
                 }
                 catch (Exception ex)
                 {
-                    EditorLog.Warn($"폼텍 WMF 로드 실패: {name} ({ex.Message})");
+                    EditorLog.Warn($"폼텍 WMF 로드 실패: {file} ({ex.Message})");
                 }
             }
 
-            EditorLog.Info($"폼텍 WMF {_files.Count}개 로드");
+            EditorLog.Info($"폼텍 WMF {_files.Count}개 로드 (formtecWmf)");
         }
         catch (Exception ex)
         {
@@ -39,6 +45,16 @@ public sealed class FormtecWmfCatalog(HttpClient http)
         }
 
         _loaded = true;
+    }
+
+    public bool Has(string? fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName) || _files.Count == 0)
+            return false;
+        var name = Path.GetFileName(fileName.Trim());
+        if (_files.ContainsKey(name)) return true;
+        var stem = Path.GetFileNameWithoutExtension(name);
+        return _files.ContainsKey(stem + ".wmf") || _files.ContainsKey(stem + ".WMF");
     }
 
     public bool TryResolve(string? fileName, out byte[] data)
@@ -52,15 +68,6 @@ public sealed class FormtecWmfCatalog(HttpClient http)
         {
             data = found;
             return true;
-        }
-
-        foreach (var kv in _files)
-        {
-            if (kv.Key.Equals(name, StringComparison.OrdinalIgnoreCase))
-            {
-                data = kv.Value;
-                return true;
-            }
         }
 
         var stem = Path.GetFileNameWithoutExtension(name);
