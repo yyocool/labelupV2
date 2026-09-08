@@ -1,10 +1,13 @@
 @using System.IO
+@using System.Text.Json
 @using LabelUp.Editor.Models
 @using LabelUp.Editor.Rendering
 @using LabelUp.Editor.Services
+@using Microsoft.JSInterop
 @inject EditorSession Session
 @inject HistoryService History
 @inject FontCatalog Fonts
+@inject IJSRuntime Js
 @implements IDisposable
 
 <div id="lu-ctx-bar" class="ed-ctx-bar" data-blazor-ctx data-tut="ctx-bar" hidden="@(Session.Selected is null)" @onpointerdown:stopPropagation="true">
@@ -13,8 +16,8 @@
     <div class="ed-ctx-bar__row ed-ctx-bar__row--main" @key="o.Id">
       @if (ShowFill(o))
       {
-        <span class="ed-ctx-bar__slot" data-slot="fill">
-          <input type="color" title="채우기" value="@ColorUtil.ToHtmlColor(o.Fill, "#7b2840")" @oninput="e => LiveFill(e)" @onchange="e => CommitFill(e)" />
+        <span class="ed-ctx-bar__slot" data-slot="fill" @onpointerdown="SaveRichSel">
+          <input type="color" title="채우기" value="@ColorUtil.ToHtmlColor(DisplayFill(o), "#7b2840")" @oninput="e => LiveFill(e)" @onchange="e => CommitFill(e)" />
         </span>
       }
       @if (ShowStroke(o))
@@ -28,9 +31,9 @@
       @if (ShowFont(o))
       {
         <span class="ed-ctx-bar__div"></span>
-        <span class="ed-ctx-bar__slot" data-slot="font">
+        <span class="ed-ctx-bar__slot" data-slot="font" @onpointerdown="SaveRichSel">
           <select title="글꼴" value="@FontSelectValue(o)" @onchange="OnFontFamily">
-            @foreach (var group in FontCatalog.GroupedChoices(o.FontFamily, _fontFilter))
+            @foreach (var group in FontCatalog.GroupedChoices(DisplayFamily(o), _fontFilter))
             {
               <optgroup label="@group.Key">
                 @foreach (var font in group)
@@ -40,13 +43,13 @@
               </optgroup>
             }
           </select>
-          <input type="number" min="4" max="200" step="0.5" title="크기 pt" value="@FontCatalog.ToPt(o.FontSize).ToString("0.##")" @onchange="e => SetFontSizePt(o, e)" />
-          <button type="button" class="@(o.Bold ? "is-on" : null)" title="굵게" @onclick="() => Toggle(v => o.Bold = v, o.Bold)">B</button>
-          <button type="button" class="@(o.Italic ? "is-on" : null)" title="기울임" @onclick="() => Toggle(v => o.Italic = v, o.Italic)"><i>I</i></button>
-          <button type="button" class="@(o.Underline ? "is-on" : null)" title="밑줄" @onclick="() => Toggle(v => o.Underline = v, o.Underline)"><u>U</u></button>
-          <button type="button" class="@(o.TextAlign == "left" ? "is-on" : null)" title="왼쪽" @onclick='() => SetAlign("left")'>좌</button>
-          <button type="button" class="@(o.TextAlign == "center" ? "is-on" : null)" title="가운데" @onclick='() => SetAlign("center")'>중</button>
-          <button type="button" class="@(o.TextAlign == "right" ? "is-on" : null)" title="오른쪽" @onclick='() => SetAlign("right")'>우</button>
+          <input type="number" min="4" max="200" step="0.5" title="크기 pt" value="@DisplayFontSizePt(o).ToString("0.##")" @onchange="e => SetFontSizePt(o, e)" />
+          <button type="button" class="@(DisplayBold(o) ? "is-on" : null)" title="굵게" @onclick='() => ToggleRich(o, "bold")'>B</button>
+          <button type="button" class="@(DisplayItalic(o) ? "is-on" : null)" title="기울임" @onclick='() => ToggleRich(o, "italic")'><i>I</i></button>
+          <button type="button" class="@(DisplayUnderline(o) ? "is-on" : null)" title="밑줄" @onclick='() => ToggleRich(o, "underline")'><u>U</u></button>
+          <button type="button" class="@(DisplayAlign(o) == "left" ? "is-on" : null)" title="왼쪽" @onclick='() => SetAlign("left")'>좌</button>
+          <button type="button" class="@(DisplayAlign(o) == "center" ? "is-on" : null)" title="가운데" @onclick='() => SetAlign("center")'>중</button>
+          <button type="button" class="@(DisplayAlign(o) == "right" ? "is-on" : null)" title="오른쪽" @onclick='() => SetAlign("right")'>우</button>
         </span>
       }
 
@@ -110,14 +113,23 @@
       {
         <span class="ed-ctx-bar__div"></span>
         <span class="ed-ctx-bar__slot">
-          <input class="ed-ctx-bar__text" value="@o.Text" title="내용" @onchange="e => SetText(o, e)" />
-          <select title="표현" value="@o.TextMode" @onchange="OnTextMode">
-            <option value="@TextMode.Normal">일반</option>
-            <option value="@TextMode.Extended">확장</option>
+          @if (TextModes.IsPlain(o.TextMode))
+          {
+            <div @ref="_richRef"
+                 class="ed-ctx-bar__text ed-ctx-bar__rich"
+                 title="내용 — 글자를 선택한 뒤 글꼴·기울기를 바꿀 수 있습니다"
+                 @onpointerdown:stopPropagation="true"></div>
+          }
+          else
+          {
+            <input class="ed-ctx-bar__text" value="@o.Text" title="내용" @onchange="e => SetText(o, e)" />
+          }
+          <select title="표현" value="@(TextModes.IsPlain(o.TextMode) ? TextMode.Normal : o.TextMode)" @onchange="OnTextMode">
+            <option value="@TextMode.Normal">일반텍스트</option>
             <option value="@TextMode.WordArt">워드아트</option>
             <option value="@TextMode.Custom">사용자정의</option>
           </select>
-          @if (o.RichText is not { Count: > 0 })
+          @if (o.TextMode != TextMode.Custom)
           {
             <button type="button" class="@(o.Outline ? "is-on" : null)" title="외곽선" @onclick="() => Toggle(v => o.Outline = v, o.Outline)">외</button>
             <button type="button" class="@(o.Shadow ? "is-on" : null)" title="그림자" @onclick="() => Toggle(v => o.Shadow = v, o.Shadow)">그림</button>
@@ -211,6 +223,7 @@
             <option value="@ShapeKind.Circle">원</option>
             <option value="@ShapeKind.Triangle">삼각형</option>
             <option value="@ShapeKind.Ellipse">타원</option>
+            <option value="@ShapeKind.Arc">원호</option>
             <option value="@ShapeKind.Line">선</option>
             <option value="@ShapeKind.Arrow">화살표</option>
             <option value="@ShapeKind.Polygon">정다각형</option>
@@ -231,6 +244,13 @@
           {
             <label class="ed-field">반경 <input type="number" step="0.1" min="0" value="@o.CornerRadiusMm.ToString("0.##")" @onchange="e => SetFloat(v => o.CornerRadiusMm = Math.Max(0, v), e)" /></label>
           }
+          <select title="선 종류" value="@o.DashStyle" @onchange="OnDashStyle">
+            <option value="0">실선</option>
+            <option value="1">파선</option>
+            <option value="2">점선</option>
+            <option value="3">1점쇄선</option>
+            <option value="4">2점쇄선</option>
+          </select>
         </span>
       }
 
@@ -337,7 +357,12 @@
 
 @code {
     protected override void OnInitialized() => Session.Changed += OnChanged;
-    public void Dispose() => Session.Changed -= OnChanged;
+    public void Dispose()
+    {
+        Session.Changed -= OnChanged;
+        _self?.Dispose();
+        _self = null;
+    }
 
     private bool _preloadingFont;
     private string? _boundObjectId;
@@ -345,6 +370,10 @@
     private string _fontFilter = "";
     private bool _styleHistoryPushed;
     private bool _opacityOpen;
+    private bool _richHistory;
+    private ElementReference _richRef;
+    private DotNetObjectReference<ContextBar>? _self;
+    private RichCaretStyle? _caret;
     private const string InkFallback = "#2e2a27";
     private const string BorderFallback = "#000000";
     private const string WhiteFallback = "#ffffff";
@@ -360,7 +389,7 @@
             or ObjectType.Qr or ObjectType.Image or ObjectType.Icon);
 
     private static bool ShowFont(DesignObject o)
-        => (o.Type == ObjectType.Text && o.RichText is not { Count: > 0 })
+        => o.Type == ObjectType.Text
             || (o.Type == ObjectType.Barcode && o.BarcodeShowText);
 
     private static bool HasExtraRow(DesignObject o) => true;
@@ -391,9 +420,34 @@
             _boundObjectId = id;
             _bindGuardUntil = Environment.TickCount64 + 400;
             _opacityOpen = false;
+            _caret = null;
+            _richHistory = false;
+        }
+        if (Session.Selected is { Type: ObjectType.Text } sel && TextModes.IsPlain(sel.TextMode))
+        {
+            TextModes.Unify(sel);
+            RichTextModel.Ensure(sel);
         }
         _ = PreloadSelectedFontAsync();
         _ = InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            _self = DotNetObjectReference.Create(this);
+        if (Session.Selected is not { Type: ObjectType.Text } o || !TextModes.IsPlain(o.TextMode))
+            return;
+        RichTextModel.Ensure(o);
+        try
+        {
+            await Js.InvokeVoidAsync("labelUpEditor.richText.bind", _richRef, _self);
+            await Js.InvokeVoidAsync("labelUpEditor.richText.setHtml", _richRef, RichTextModel.ToHtml(o));
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error("일반텍스트 편집기 연결 실패", ex);
+        }
     }
 
     private async Task PreloadSelectedFontAsync()
@@ -404,7 +458,13 @@
         _preloadingFont = true;
         try
         {
-            if (await Fonts.EnsureFamilyAsync(sel.FontFamily))
+            var loaded = false;
+            foreach (var fam in RichTextModel.Families(sel).Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                if (await Fonts.EnsureFamilyAsync(fam))
+                    loaded = true;
+            }
+            if (loaded)
                 Session.Notify();
         }
         catch (Exception ex)
@@ -473,18 +533,28 @@
         _styleHistoryPushed = true;
     }
 
-    private void LiveFill(ChangeEventArgs e)
+    private async Task LiveFill(ChangeEventArgs e)
     {
         var v = ColorUtil.ToHtmlColor(e.Value?.ToString(), "");
         if (v.Length != 7) return;
+        if (Session.Selected is { } o && RichTextModel.UsesRich(o) && await HasRichSelection())
+        {
+            await ApplyRichCommand("color", v);
+            return;
+        }
         BeginStyleHistory();
-        ApplySelected(obj => obj.Fill = v);
+        ApplySelected(obj =>
+        {
+            obj.Fill = v;
+            if (RichTextModel.UsesRich(obj))
+                RichTextModel.ApplyAllSpans(obj, s => s.Fill = v);
+        });
         Touch();
     }
 
-    private void CommitFill(ChangeEventArgs e)
+    private async Task CommitFill(ChangeEventArgs e)
     {
-        LiveFill(e);
+        await LiveFill(e);
         _styleHistoryPushed = false;
     }
 
@@ -557,11 +627,20 @@
         Touch();
     }
 
-    private void SetAlign(string align)
+    private async Task SetAlign(string align)
     {
         if (BindGuarded || Session.Selected is null) return;
+        var o = Session.Selected;
+        if (RichTextModel.UsesRich(o) && await HasRichSelection())
+        {
+            await ApplyRichCommand("align", align);
+            return;
+        }
         History.Push(Session.Document);
-        Session.Selected.TextAlign = align;
+        if (RichTextModel.UsesRich(o))
+            RichTextModel.ApplyAlign(o, align);
+        else
+            o.TextAlign = align;
         Touch();
     }
 
@@ -584,28 +663,50 @@
         if (BindGuarded) return;
         History.Push(Session.Document);
         o.Text = e.Value?.ToString() ?? "";
-        if (o.TextMode == TextMode.Extended)
-            o.RichText = null;
+        if (RichTextModel.UsesRich(o))
+            RichTextModel.Ensure(o);
         Touch();
     }
 
-    private void SetFontSizePt(DesignObject o, ChangeEventArgs e)
+    private async Task SetFontSizePt(DesignObject o, ChangeEventArgs e)
     {
         if (BindGuarded) return;
         if (!float.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Float,
                 System.Globalization.CultureInfo.InvariantCulture, out var pt)
             && !float.TryParse(e.Value?.ToString(), out pt))
             return;
+        pt = Math.Clamp(pt, 4f, 200f);
+        if (RichTextModel.UsesRich(o) && await HasRichSelection())
+        {
+            await ApplyRichCommand("size", pt.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            return;
+        }
         History.Push(Session.Document);
-        o.FontSize = FontCatalog.FromPt(Math.Clamp(pt, 4f, 200f));
+        o.FontSize = FontCatalog.FromPt(pt);
+        if (RichTextModel.UsesRich(o))
+            RichTextModel.ApplyAllSpans(o, s => s.FontSize = o.FontSize);
         Touch();
     }
 
-    private static string FontSelectValue(DesignObject o)
+    private string FontSelectValue(DesignObject o)
     {
-        var raw = (o.FontFamily ?? "").Trim();
+        var raw = (DisplayFamily(o) ?? "").Trim();
         return raw.Length == 0 ? "Pretendard" : FontCatalog.CanonicalId(raw);
     }
+
+    private string DisplayFamily(DesignObject o)
+        => string.IsNullOrWhiteSpace(_caret?.FontFamily) ? o.FontFamily : _caret.FontFamily;
+
+    private float DisplayFontSizePt(DesignObject o)
+        => _caret is { FontSizePt: > 0 } ? _caret.FontSizePt : FontCatalog.ToPt(o.FontSize);
+
+    private bool DisplayBold(DesignObject o) => _caret?.Bold ?? o.Bold;
+    private bool DisplayItalic(DesignObject o) => _caret?.Italic ?? o.Italic;
+    private bool DisplayUnderline(DesignObject o) => _caret?.Underline ?? o.Underline;
+    private string DisplayAlign(DesignObject o)
+        => string.IsNullOrWhiteSpace(_caret?.Align) ? o.TextAlign : _caret.Align;
+    private string DisplayFill(DesignObject o)
+        => string.IsNullOrWhiteSpace(_caret?.Fill) ? o.Fill : _caret.Fill;
 
     private async Task OnFontFamily(ChangeEventArgs e)
     {
@@ -613,10 +714,25 @@
         try
         {
             var id = e.Value?.ToString() ?? "Pretendard";
-            if (string.Equals(Session.Selected.FontFamily, id, StringComparison.OrdinalIgnoreCase))
+            var o = Session.Selected;
+            if (string.Equals(DisplayFamily(o), id, StringComparison.OrdinalIgnoreCase)
+                && !await HasRichSelection())
                 return;
+            if (RichTextModel.UsesRich(o) && await HasRichSelection())
+            {
+                Session.Status = "글꼴을 불러오는 중…";
+                await Fonts.EnsureFamilyAsync(id);
+                await ApplyRichCommand("font", id);
+                Session.Status = Fonts.IsFamilyReady(id)
+                    ? "글꼴 적용됨"
+                    : "글꼴을 불러오지 못해 기본 글꼴로 표시합니다.";
+                Session.Notify();
+                return;
+            }
             History.Push(Session.Document);
-            Session.Selected.FontFamily = id;
+            o.FontFamily = id;
+            if (RichTextModel.UsesRich(o))
+                RichTextModel.ApplyAllSpans(o, s => s.FontFamily = id);
             Session.Status = "글꼴을 불러오는 중…";
             Touch();
             await Fonts.EnsureFamilyAsync(id);
@@ -639,9 +755,11 @@
         History.Push(Session.Document);
         if (Enum.TryParse<TextMode>(e.Value?.ToString(), true, out var mode))
         {
+            if (mode == TextMode.Extended)
+                mode = TextMode.Normal;
             Session.Selected.TextMode = mode;
-            if (mode != TextMode.Extended)
-                Session.Selected.RichText = null;
+            if (TextModes.IsPlain(mode))
+                RichTextModel.Ensure(Session.Selected);
             if (mode == TextMode.Custom)
             {
                 if (Session.Selected.CustomKind is "none" or "")
@@ -653,6 +771,112 @@
             }
         }
         Touch();
+    }
+
+    private async Task SaveRichSel()
+    {
+        if (Session.Selected is not { } o || !RichTextModel.UsesRich(o)) return;
+        try { await Js.InvokeVoidAsync("labelUpEditor.richText.saveSel", _richRef); }
+        catch { /* ignore */ }
+    }
+
+    private async Task<bool> HasRichSelection()
+    {
+        if (Session.Selected is not { } o || !RichTextModel.UsesRich(o)) return false;
+        try { return await Js.InvokeAsync<bool>("labelUpEditor.richText.hasSelection", _richRef); }
+        catch { return false; }
+    }
+
+    private async Task ApplyRichCommand(string cmd, string value)
+    {
+        if (!_richHistory)
+        {
+            History.Push(Session.Document);
+            _richHistory = true;
+        }
+        try { await Js.InvokeVoidAsync("labelUpEditor.richText.apply", _richRef, cmd, value); }
+        catch (Exception ex) { EditorLog.Error("일반텍스트 서식 적용 실패", ex); }
+    }
+
+    private async Task ToggleRich(DesignObject o, string cmd)
+    {
+        if (BindGuarded) return;
+        if (RichTextModel.UsesRich(o) && await HasRichSelection())
+        {
+            await ApplyRichCommand(cmd, "");
+            return;
+        }
+        History.Push(Session.Document);
+        if (RichTextModel.UsesRich(o))
+        {
+            switch (cmd)
+            {
+                case "bold":
+                    var bold = !DisplayBold(o);
+                    RichTextModel.ApplyAllSpans(o, s => s.Bold = bold);
+                    break;
+                case "italic":
+                    var italic = !DisplayItalic(o);
+                    RichTextModel.ApplyAllSpans(o, s => s.Italic = italic);
+                    break;
+                case "underline":
+                    var under = !DisplayUnderline(o);
+                    RichTextModel.ApplyAllSpans(o, s => s.Underline = under);
+                    break;
+            }
+        }
+        else
+        {
+            switch (cmd)
+            {
+                case "bold": o.Bold = !o.Bold; break;
+                case "italic": o.Italic = !o.Italic; break;
+                case "underline": o.Underline = !o.Underline; break;
+            }
+        }
+        Touch();
+    }
+
+    [JSInvokable]
+    public void OnRichModel(string json)
+    {
+        if (Session.Selected is not { } o || !RichTextModel.UsesRich(o)) return;
+        try
+        {
+            var dto = JsonSerializer.Deserialize<RichTextDto>(json, LabelDocumentJson.Options);
+            if (dto is null) return;
+            if (!_richHistory)
+            {
+                History.Push(Session.Document);
+                _richHistory = true;
+            }
+            RichTextModel.ReplaceFromDto(o, dto);
+            Session.Dirty = true;
+            Session.Notify();
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error("일반텍스트 내용 반영 실패", ex);
+        }
+    }
+
+    [JSInvokable]
+    public void OnRichCaret(string json)
+    {
+        try
+        {
+            _caret = JsonSerializer.Deserialize<RichCaretStyle>(json, LabelDocumentJson.Options);
+            _ = InvokeAsync(StateHasChanged);
+        }
+        catch { /* ignore */ }
+    }
+
+    [JSInvokable]
+    public void OnRichBlur()
+    {
+        _richHistory = false;
+        _caret = null;
+        _ = InvokeAsync(StateHasChanged);
     }
 
     private void OnCustomKind(DesignObject o, ChangeEventArgs e)
@@ -678,6 +902,15 @@
         History.Push(Session.Document);
         o.CustomFormat = e.Value?.ToString() ?? "1";
         CustomTextFormats.ApplyToken(o);
+        Touch();
+    }
+
+    private void OnDashStyle(ChangeEventArgs e)
+    {
+        if (BindGuarded) return;
+        if (!int.TryParse(e.Value?.ToString(), out var dash)) return;
+        History.Push(Session.Document);
+        ApplySelected(obj => obj.DashStyle = Math.Clamp(dash, 0, 4));
         Touch();
     }
 

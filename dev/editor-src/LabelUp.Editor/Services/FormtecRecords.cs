@@ -747,7 +747,10 @@ internal static class FormtecRecords
         obj.BarcodeVendor = "formtec";
         if (start + 0x55 + shift + textLen <= end)
             obj.BarcodeValue = Encoding.ASCII.GetString(data, start + 0x55 + shift, textLen);
-        if (subtype == 0x10 || BarcodeCatalog.LooksLikeIsbn(obj.BarcodeValue))
+        // ISBN(0x10)만 강제. ISSN/ISMN은 978/979 하이픈이 있어도 타입을 유지한다.
+        if (subtype == 0x10)
+            obj.BarcodeFormat = "ISBN";
+        else if (subtype is not 0x11 and not 0x12 && BarcodeCatalog.LooksLikeIsbn(obj.BarcodeValue))
             obj.BarcodeFormat = "ISBN";
 
         var p = start + 0x55 + shift + textLen;
@@ -949,7 +952,7 @@ internal static class FormtecRecords
 
     private static void ApplyExtended(DesignObject obj, byte[] data, int start, int end)
     {
-        obj.TextMode = TextMode.Extended;
+        obj.TextMode = TextMode.Normal;
         obj.TextWrap = "char";
         // RTF에는 가로 정렬만 있다. 우리 박스 기본은 세로 가운데라 폼텍(위쪽)과 어긋난다.
         obj.VerticalAlign = "top";

@@ -29,6 +29,7 @@ public static class BarcodeRenderer
     {
         if (string.IsNullOrWhiteSpace(value))
         {
+            if (obj.DataBound) return;
             DrawPlaceholder(canvas, obj, "값 없음", alpha);
             return;
         }
@@ -668,14 +669,22 @@ public static class BarcodeRenderer
         return bits.ToArray();
     }
 
+    /// <summary>
+    /// 폼텍 Bookland: ISBN=978+9자리, ISMN=979+9자리, ISSN=977+ISSN7+00.
+    /// ISMN 예 80-7226-102-9 → 9798072261023. ISO 979-0+8자리(9790807226109)가 아니다.
+    /// </summary>
     private static string ToBooklandEan13(string id, string digits)
     {
         if (digits.Length >= 13) return digits[..13];
         if (digits.Length == 12) return digits;
         if (id is "ISSN" && digits.Length >= 7)
             return ("977" + digits.PadRight(9, '0'))[..12];
-        if (id is "ISMN" && digits.Length is 9 or 10)
-            return "9790" + (digits.Length == 10 ? digits[..8] : digits.PadLeft(8, '0'));
+        if (id is "ISMN")
+        {
+            if (digits.Length == 10) return "979" + digits[..9];
+            if (digits.Length == 9) return "979" + digits;
+            if (digits.Length is > 0 and < 9) return "979" + digits.PadLeft(9, '0');
+        }
         if (digits.Length == 10)
             return "978" + digits[..9];
         return digits;

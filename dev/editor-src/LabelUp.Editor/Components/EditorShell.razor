@@ -94,6 +94,7 @@
             await Fonts.EnsureLoadedAsync();
             DocumentRenderer.SetFontCatalog(Fonts);
             BoundImageCache.Configure(FetchImageAsDataUrlAsync, () => Session.Notify());
+            ILabelImporter.FetchSidecarExcel = FetchILabelExcelAsync;
             try
             {
                 await Icons.EnsureLoadedAsync();
@@ -609,20 +610,70 @@
                 EditorLog.Warn("클립아트 JS 로드 실패: " + ex.Message);
             }
 
-            using var res = await Http.GetAsync(resolved);
+            if (await TryFetchImageBytesAsDataUrlAsync(resolved) is { } direct)
+                return direct;
+
+            var origin = new Uri(Nav.BaseUri).GetLeftPart(UriPartial.Authority);
+            if (Uri.TryCreate(resolved, UriKind.Absolute, out var abs)
+                && !string.Equals(abs.GetLeftPart(UriPartial.Authority), origin, StringComparison.OrdinalIgnoreCase))
+            {
+                var proxy = origin + "/api/editor/remote-image?url=" + Uri.EscapeDataString(resolved);
+                if (await TryFetchImageBytesAsDataUrlAsync(proxy) is { } viaProxy)
+                    return viaProxy;
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("클립아트 이미지 로드 실패: " + ex.Message);
+            return null;
+        }
+    }
+
+    private async Task<byte[]?> FetchILabelExcelAsync(string fileName)
+    {
+        var origin = new Uri(Nav.BaseUri).GetLeftPart(UriPartial.Authority);
+        foreach (var n in ILabelImporter.ExcelNameTries(fileName))
+        {
+            try
+            {
+                var url = origin + "/api/editor/ilabel-excel?name=" + Uri.EscapeDataString(n);
+                using var res = await Http.GetAsync(url);
+                if (!res.IsSuccessStatusCode)
+                {
+                    EditorLog.Warn($"아이라벨 외부 엑셀 HTTP {(int)res.StatusCode}: {n}");
+                    continue;
+                }
+                var bytes = await res.Content.ReadAsByteArrayAsync();
+                if (bytes.Length > 8)
+                    return bytes;
+            }
+            catch (Exception ex)
+            {
+                EditorLog.Warn("아이라벨 외부 엑셀 요청 실패: " + ex.Message);
+            }
+        }
+        return null;
+    }
+
+    private async Task<string?> TryFetchImageBytesAsDataUrlAsync(string url)
+    {
+        try
+        {
+            using var res = await Http.GetAsync(url);
             if (!res.IsSuccessStatusCode) return null;
             var bytes = await res.Content.ReadAsByteArrayAsync();
             if (bytes.Length is 0 or > 8 * 1024 * 1024) return null;
             var mime = res.Content.Headers.ContentType?.MediaType;
             if (string.IsNullOrWhiteSpace(mime) || !mime.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
-                mime = src.Contains(".jpg", StringComparison.OrdinalIgnoreCase) || src.Contains(".jpeg", StringComparison.OrdinalIgnoreCase)
+                mime = url.Contains(".jpg", StringComparison.OrdinalIgnoreCase) || url.Contains(".jpeg", StringComparison.OrdinalIgnoreCase)
                     ? "image/jpeg"
                     : "image/png";
             return $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
         }
-        catch (Exception ex)
+        catch
         {
-            EditorLog.Warn("클립아트 이미지 로드 실패: " + ex.Message);
             return null;
         }
     }

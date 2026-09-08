@@ -38,7 +38,8 @@ public enum ShapeKind
     Ellipse,
     Line,
     Arrow,
-    Polygon
+    Polygon,
+    Arc
 }
 
 public enum ArrowHeads
@@ -84,8 +85,10 @@ public enum EditorDialog
 
 public enum TextMode
 {
+    /// <summary>일반텍스트. 구간 서식(RichText)을 쓴다. Extended는 옛 저장본 호환용이다.</summary>
     Normal,
     WordArt,
+    /// <summary>옛 확장문자열. 로드 시 Normal로 합친다.</summary>
     Extended,
     Custom
 }

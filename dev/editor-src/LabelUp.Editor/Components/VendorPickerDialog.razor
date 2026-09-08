@@ -60,9 +60,13 @@
             Session.Notify();
             await InvokeAsync(StateHasChanged);
             await Task.Delay(40);
-            var report = ExternalImport.Analyze(e.File.Name, ms.ToArray());
-            Session.PendingVendorImport = report;
-            Session.OpenDialog(EditorDialog.VendorImport);
+            await VendorImportActions.AnalyzeAsync(
+                Session, ExternalImport, e.File.Name, ms.ToArray(),
+                async () =>
+                {
+                    await InvokeAsync(StateHasChanged);
+                    await Task.Delay(40);
+                });
         }
         catch (Exception ex)
         {

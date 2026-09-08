@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using LabelUp.Editor.Models;
 using LabelUp.Editor.Services;
 using SkiaSharp;
@@ -150,6 +151,7 @@ public static class DocumentRenderer
 
         using var bg = new SKPaint { Color = ColorUtil.Parse(doc.Background), IsAntialias = true, Style = SKPaintStyle.Fill };
         canvas.DrawRect(0, 0, w, h, bg);
+        DrawDesignBackground(canvas, doc, w, h);
 
         if (!forExport)
         {
@@ -235,6 +237,38 @@ public static class DocumentRenderer
         return path;
     }
 
+    /// <summary>
+    /// 아이라벨 디자인 라벨 배경. 원형은 칼선 안쪽으로 살짝 들여 그린다.
+    /// </summary>
+    private static void DrawDesignBackground(SKCanvas canvas, LabelDocument doc, float w, float h)
+    {
+        var url = doc.Paper.DesignImageUrl;
+        if (string.IsNullOrWhiteSpace(url)) return;
+        var bmp = BoundImageCache.Get(url);
+        if (bmp is null) return;
+        using var image = SKImage.FromBitmap(bmp);
+        using var paint = new SKPaint { IsAntialias = true, Color = SKColors.White };
+        var src = new SKRect(0, 0, bmp.Width, bmp.Height);
+        var dest = new SKRect(0, 0, w, h);
+        var round = doc.Paper.Shape.Kind is "ellipse" or "circle";
+        if (round)
+        {
+            // 칼선(라벨 원)보다 안쪽에 그린다. 디자인 JPG 자체 여백과 겹쳐도 1mm 안쪽을 유지한다.
+            var inset = Math.Clamp(Math.Min(w, h) * 0.018f, 1.1f, 2.0f);
+            canvas.Save();
+            using (var inner = new SKPath())
+            {
+                inner.AddOval(new SKRect(inset, inset, w - inset, h - inset));
+                canvas.ClipPath(inner, SKClipOperation.Intersect, antialias: true);
+            }
+            canvas.DrawImage(image, src, dest, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
+            canvas.Restore();
+            return;
+        }
+
+        canvas.DrawImage(image, src, dest, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
+    }
+
     private static void DrawGuides(SKCanvas canvas, PaperShape shape, float w, float h)
     {
         var fit = !shape.SvgIsLabelMm;
@@ -289,13 +323,9 @@ public static class DocumentRenderer
 
     private static string ExtractPath(string svg)
     {
-        var d = svg.IndexOf(" d=\"", StringComparison.OrdinalIgnoreCase);
-        if (d >= 0)
-        {
-            var start = d + 4;
-            var end = svg.IndexOf('"', start);
-            if (end > start) return svg[start..end];
-        }
+        var match = Regex.Match(svg, """\bd\s*=\s*(["'])(.*?)\1""", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+        if (match.Success)
+            return match.Groups[2].Value;
         return svg;
     }
 
@@ -426,14 +456,16 @@ public static class DocumentRenderer
         var inside = kind is not (ShapeKind.Line or ShapeKind.Arrow);
         var strokeRect = InsideStrokeRect(obj.Width, obj.Height, inside ? sw : 0);
         using var fill = new SKPaint { Color = ColorUtil.Parse(obj.Fill, alpha), IsAntialias = true, Style = SKPaintStyle.Fill };
+        using var dash = ShapeDash(obj.DashStyle, sw);
         using var stroke = new SKPaint
         {
             Color = ColorUtil.Parse(obj.Stroke, alpha),
             IsAntialias = true,
             Style = SKPaintStyle.Stroke,
             StrokeWidth = Math.Max(sw, kind is ShapeKind.Line or ShapeKind.Arrow ? 0.35f : 0),
-            StrokeCap = SKStrokeCap.Round,
-            StrokeJoin = SKStrokeJoin.Miter
+            StrokeCap = obj.DashStyle == 2 ? SKStrokeCap.Round : SKStrokeCap.Butt,
+            StrokeJoin = SKStrokeJoin.Miter,
+            PathEffect = dash
         };
 
         switch (kind)
@@ -442,6 +474,22 @@ public static class DocumentRenderer
             case ShapeKind.Circle:
                 canvas.DrawOval(strokeRect, fill);
                 if (sw > 0) canvas.DrawOval(strokeRect, stroke);
+                break;
+            case ShapeKind.Arc:
+                using (var arc = ArcPath(strokeRect))
+                {
+                    if (!ColorUtil.IsTransparent(obj.Fill))
+                    {
+                        using var closed = new SKPath(arc);
+                        closed.Close();
+                        canvas.DrawPath(closed, fill);
+                    }
+                    if (sw > 0)
+                    {
+                        stroke.StrokeCap = SKStrokeCap.Butt;
+                        canvas.DrawPath(arc, stroke);
+                    }
+                }
                 break;
             case ShapeKind.RoundRect:
                 var radius = Math.Max(0.1f, obj.CornerRadiusMm - (inside ? sw / 2f : 0));
@@ -485,6 +533,42 @@ public static class DocumentRenderer
         var rw = Math.Max(0.05f, w - strokeWidth);
         var rh = Math.Max(0.05f, h - strokeWidth);
         return new SKRect(half, half, half + rw, half + rh);
+    }
+
+    /// <summary>
+    /// 아이라벨 원호. Width×Height는 호의 외접 사각이다.
+    /// 아랫변이 지름, 윗변이 꼭대기인 열린 반타원(∩)만 그린다.
+    /// </summary>
+    private static SKPath ArcPath(SKRect box)
+    {
+        var path = new SKPath();
+        var l = box.Left;
+        var r = box.Right;
+        var t = box.Top;
+        var b = box.Bottom;
+        var mx = (l + r) / 2f;
+        var k = 0.55228475f;
+        var cx1 = (r - l) / 2f * k;
+        var cy1 = (b - t) * k;
+        path.MoveTo(l, b);
+        path.CubicTo(l, b - cy1, mx - cx1, t, mx, t);
+        path.CubicTo(mx + cx1, t, r, b - cy1, r, b);
+        return path;
+    }
+
+    /// <summary>0실선 1파선 2점선 3한점쇄선 4두점쇄선. 간격은 선 굵기 기준(mm).</summary>
+    private static SKPathEffect? ShapeDash(int style, float strokeWidth)
+    {
+        var u = Math.Max(0.18f, strokeWidth);
+        return style switch
+        {
+            1 => SKPathEffect.CreateDash([u * 4.2f, u * 2.4f], 0),
+            2 => SKPathEffect.CreateDash([Math.Max(0.12f, u * 0.15f), u * 2.1f], 0),
+            3 => SKPathEffect.CreateDash([u * 4.2f, u * 1.7f, Math.Max(0.12f, u * 0.15f), u * 1.7f], 0),
+            4 => SKPathEffect.CreateDash(
+                [u * 4.2f, u * 1.6f, Math.Max(0.12f, u * 0.15f), u * 1.4f, Math.Max(0.12f, u * 0.15f), u * 1.6f], 0),
+            _ => null
+        };
     }
 
     private static SKPath TrianglePath(float w, float h)
@@ -555,8 +639,12 @@ public static class DocumentRenderer
             canvas.DrawRect(0, 0, obj.Width, obj.Height, bg);
         }
 
-        if (obj.TextMode == TextMode.Extended && obj.RichText is { Count: > 0 }
-            && (text == obj.Text || string.IsNullOrEmpty(text)))
+        if (obj.DataBound && string.IsNullOrEmpty(text))
+            return;
+
+        if (RichTextModel.UsesRich(obj) && obj.RichText is { Count: > 0 }
+            && !string.Equals(obj.TextDirection, "vertical", StringComparison.OrdinalIgnoreCase)
+            && text == obj.Text)
         {
             DrawRichText(canvas, obj, obj.RichText, alpha);
             return;
@@ -600,9 +688,10 @@ public static class DocumentRenderer
         var lines = WrapText(text, font, obj.FontFamily, obj.Bold, maxW, obj.TextWrap);
         var lineH = obj.FontSize * Math.Max(0.62f, obj.LineHeight);
         var totalH = lineH * lines.Count;
+        var ascent = VisualAscent(font, lines.Count > 0 ? lines[0] : text, obj.FontSize);
         float startY = obj.VerticalAlign switch
         {
-            "top" => lineH,
+            "top" => ascent,
             "bottom" => obj.Height - (lines.Count - 1) * lineH - 0.4f,
             _ => (obj.Height - totalH) / 2f + lineH * 0.78f
         };
@@ -650,7 +739,7 @@ public static class DocumentRenderer
 
         var inset = TextPadX(obj);
         var maxW = Math.Max(0.3f, obj.Width - inset * 2f);
-        var lines = WrapRich(paragraphs, maxW, obj.TextWrap);
+        var lines = WrapRich(paragraphs, maxW, obj.TextWrap, obj.LineHeight);
         if (lines.Count == 0)
         {
             canvas.Restore();
@@ -680,7 +769,9 @@ public static class DocumentRenderer
             };
             var justify = line.Align == "justify" && !line.LastInParagraph && line.Glyphs > 1;
             var gap = justify ? extra / Math.Max(1, line.Glyphs - 1) : 0f;
-            var baseline = y + line.Height * 0.78f;
+            var baseline = obj.VerticalAlign == "top"
+                ? y + RichLineAscent(line)
+                : y + line.Height * 0.78f;
             foreach (var frag in line.Frags)
             {
                 using var paint = new SKPaint { Color = ColorUtil.Parse(frag.Span.Fill, alpha), IsAntialias = true };
@@ -742,16 +833,20 @@ public static class DocumentRenderer
         public int Glyphs;
     }
 
-    private static List<RichLine> WrapRich(List<TextParagraph> paragraphs, float maxWidth, string? mode)
+    private static List<RichLine> WrapRich(List<TextParagraph> paragraphs, float maxWidth, string? mode, float lineHeight)
     {
+        var lh = Math.Max(0.62f, lineHeight > 0.2f ? lineHeight : 1.2f);
+        if (string.Equals(mode, "none", StringComparison.OrdinalIgnoreCase))
+            return NoWrapRich(paragraphs, lh);
+
         var word = string.Equals(mode, "word", StringComparison.OrdinalIgnoreCase);
         var lines = new List<RichLine>();
         foreach (var para in paragraphs)
         {
-            var line = NewRichLine(para.Align);
+            var line = NewRichLine(para.Align, lh);
             if (para.Spans.Count == 0)
             {
-                line.Height = 3.5f * 1.2f;
+                line.Height = 3.5f * lh;
                 line.LastInParagraph = true;
                 lines.Add(line);
                 continue;
@@ -782,7 +877,7 @@ public static class DocumentRenderer
                         if (line.Frags.Count > 0)
                         {
                             FlushRich(lines, line, last: false);
-                            line = NewRichLine(para.Align);
+                            line = NewRichLine(para.Align, lh);
                             continue;
                         }
                         take = 1;
@@ -803,13 +898,13 @@ public static class DocumentRenderer
                     var piece = text.Substring(i, take);
                     line.Frags.Add(new RichFrag(span, piece, w));
                     line.Width += w;
-                    line.Height = Math.Max(line.Height, span.FontSize * Math.Max(0.62f, 1.2f));
+                    line.Height = Math.Max(line.Height, span.FontSize * lh);
                     line.Glyphs += piece.Length;
                     i += take;
                     if (i < text.Length)
                     {
                         FlushRich(lines, line, last: false);
-                        line = NewRichLine(para.Align);
+                        line = NewRichLine(para.Align, lh);
                     }
                 }
             }
@@ -820,7 +915,71 @@ public static class DocumentRenderer
         return lines;
     }
 
-    private static RichLine NewRichLine(string align) => new() { Align = align, Height = 3.5f * 1.2f };
+    private static List<RichLine> NoWrapRich(List<TextParagraph> paragraphs, float lh)
+    {
+        var lines = new List<RichLine>();
+        foreach (var para in paragraphs)
+        {
+            var line = NewRichLine(para.Align, lh);
+            foreach (var span in para.Spans)
+            {
+                var text = span.Text ?? "";
+                if (text.Length == 0) continue;
+                using var font = new SKFont(ResolveTypeface(span.FontFamily, span.Bold, span.Italic), span.FontSize);
+                var w = MeasureLine(font, span.FontFamily, span.Bold, text);
+                line.Frags.Add(new RichFrag(span, text, w));
+                line.Width += w;
+                line.Height = Math.Max(line.Height, span.FontSize * lh);
+                line.Glyphs += text.Length;
+            }
+
+            line.LastInParagraph = true;
+            if (line.Height <= 0)
+                line.Height = 3.5f * lh;
+            lines.Add(line);
+        }
+        return lines;
+    }
+
+    private static RichLine NewRichLine(string align, float lineHeight) => new() { Align = align, Height = 0 };
+
+    private static float RichLineAscent(RichLine line)
+    {
+        var max = 0f;
+        foreach (var frag in line.Frags)
+        {
+            using var font = new SKFont(ResolveTypeface(frag.Span.FontFamily, frag.Span.Bold, frag.Span.Italic), frag.Span.FontSize);
+            max = Math.Max(max, VisualAscent(font, frag.Text, frag.Span.FontSize));
+        }
+        return max > 0.2f ? max : line.Height * 0.72f;
+    }
+
+    private static float VisualAscent(SKFont font, string? text, float fontSize)
+    {
+        var ink = InkAscent(font, text);
+        if (ink > fontSize * 0.25f)
+            return ink;
+        var a = -font.Metrics.Ascent;
+        var cap = fontSize * 0.8f;
+        if (a > fontSize * 0.45f)
+            return Math.Min(a, cap);
+        return Math.Max(cap * 0.9f, 0.4f);
+    }
+
+    private static float InkAscent(SKFont font, string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return 0;
+        try
+        {
+            using var path = font.GetTextPath(text, new SKPoint(0, 0));
+            if (path.IsEmpty) return 0;
+            return Math.Max(0, -path.TightBounds.Top);
+        }
+        catch
+        {
+            return 0;
+        }
+    }
 
     private static void FlushRich(List<RichLine> lines, RichLine line, bool last)
     {

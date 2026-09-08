@@ -5,7 +5,7 @@ namespace LabelUp.Editor.Models;
 /// <summary>
 /// 통합 디자인 객체. 폼텍·애니라벨·아이라벨에서 확인된 공통 속성
 /// (좌표, z-index, 잠금, 자료연결, 텍스트/바코드/이미지/표/클립아트)을 한 JSON으로 저장한다.
-/// 텍스트·확장문자열·워드아트·사용자정의문자열은 Type=Text + TextMode 로 통합한다.
+/// 일반텍스트·워드아트·사용자정의문자열은 Type=Text + TextMode 로 통합한다.
 /// </summary>
 public sealed class DesignObject
 {
@@ -55,7 +55,7 @@ public sealed class DesignObject
     public string? BackgroundFill { get; set; }
     public bool BackgroundTransparent { get; set; } = true;
     public TextMode TextMode { get; set; } = TextMode.Normal;
-    /// <summary>확장문자열 RTF 문단. 있으면 박스 전체 폰트/색/정렬 대신 이 구간 서식을 그린다.</summary>
+    /// <summary>일반텍스트 구간 서식. 박스 전체가 아니라 글자 구간의 글꼴·기울기·색이다.</summary>
     public List<TextParagraph>? RichText { get; set; }
     public WordArtStyle WordArtStyle { get; set; } = WordArtStyle.None;
     /// <summary>폼텍 워드 각도(도). 일반형은 상자 기울기. 기본 30.</summary>
@@ -131,6 +131,8 @@ public sealed class DesignObject
     public ArrowHeads ArrowHeads { get; set; } = ArrowHeads.End;
     public int PolygonSides { get; set; } = 5;
     public float CornerRadiusMm { get; set; } = 2.4f;
+    /// <summary>선 종류. 0=실선, 1=파선, 2=점선, 3=1점쇄선, 4=2점쇄선.</summary>
+    public int DashStyle { get; set; }
     /// <summary>그라데이션 끝 색. 시작 색은 Fill.</summary>
     public string GradientEnd { get; set; } = "#FFFFFF";
     /// <summary>0=좌→우, 1=우→좌, 2=위→아래, 3=아래→위.</summary>
@@ -225,6 +227,7 @@ public sealed class DesignObject
             ArrowHeads = ArrowHeads,
             PolygonSides = PolygonSides,
             CornerRadiusMm = CornerRadiusMm,
+            DashStyle = DashStyle,
             GradientEnd = GradientEnd,
             GradientDirection = GradientDirection,
             GradientPrecision = GradientPrecision
@@ -245,6 +248,7 @@ public sealed class DesignObject
                 o.BackgroundFill = "transparent";
                 o.Text = "새 텍스트";
                 o.FontSize = 5f;
+                o.TextMode = TextMode.Normal;
                 break;
             case ObjectType.Rect:
             case ObjectType.Shape:
@@ -352,6 +356,13 @@ public sealed class DesignObject
             case ShapeKind.Ellipse:
                 o.Width = 28f;
                 o.Height = 18f;
+                o.Fill = "transparent";
+                o.Stroke = "#2E2A27";
+                o.StrokeWidth = 0.4f;
+                break;
+            case ShapeKind.Arc:
+                o.Width = 28f;
+                o.Height = 14f;
                 o.Fill = "transparent";
                 o.Stroke = "#2E2A27";
                 o.StrokeWidth = 0.4f;

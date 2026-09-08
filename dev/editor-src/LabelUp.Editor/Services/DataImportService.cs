@@ -26,7 +26,7 @@ public sealed class DataImportService
         return ext switch
         {
             ".csv" or ".txt" => ParseCsv(fileName, bytes),
-            ".xlsx" or ".xls" => ParseExcel(fileName, bytes),
+            ".xlsx" or ".xls" => FromExcelILabel(fileName, bytes, null),
             ".mdb" => FromMdb(fileName, bytes),
             _ => throw new NotSupportedException("CSV, Excel(xls/xlsx), Access(mdb) 파일만 가져올 수 있습니다.")
         };
@@ -50,28 +50,83 @@ public sealed class DataImportService
         return sheet;
     }
 
-    private static DataSheet ParseExcel(string fileName, byte[] bytes)
+    /// <summary>
+    /// 아이라벨 중복 헤더 규칙: 첫 이름은 그대로, 같은 이름이 반복되면 1,2,… 를 붙인다.
+    /// 예: 시리얼 번호 / 시리얼 번호 / 시리얼 번호A / 시리얼 번호 → 시리얼 번호, 시리얼 번호1, 시리얼 번호A, 시리얼 번호2
+    /// </summary>
+    internal static DataSheet FromExcelILabel(string fileName, byte[] bytes, string? sheetName)
     {
-        using var ms = new MemoryStream(bytes);
-        using var reader = ExcelReaderFactory.CreateReader(ms);
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        if (bytes is not { Length: > 8 })
+            throw new InvalidDataException("엑셀 파일이 비어 있습니다.");
+
+        using var stream = new MemoryStream(bytes);
+        using var reader = ExcelReaderFactory.CreateReader(stream);
         var ds = reader.AsDataSet(new ExcelDataSetConfiguration
         {
-            ConfigureDataTable = _ => new ExcelDataTableConfiguration { UseHeaderRow = true }
+            ConfigureDataTable = _ => new ExcelDataTableConfiguration { UseHeaderRow = false }
         });
-        if (ds.Tables.Count == 0) throw new InvalidDataException("시트를 찾을 수 없습니다.");
-        var table = ds.Tables[0];
+        if (ds.Tables.Count == 0)
+            throw new InvalidDataException("시트를 찾을 수 없습니다.");
+
+        var table = PickExcelTable(ds, sheetName);
+        if (table.Rows.Count == 0)
+            throw new InvalidDataException("엑셀에 행이 없습니다.");
+
+        var rawHeaders = new List<string>(table.Columns.Count);
+        for (var i = 0; i < table.Columns.Count; i++)
+            rawHeaders.Add(Convert.ToString(table.Rows[0][i], CultureInfo.InvariantCulture)?.Trim() ?? "");
+        var headers = UniqueILabelHeaders(rawHeaders);
+
         var sheet = new DataSheet { SourceName = fileName, SourceKind = "xlsx" };
-        foreach (System.Data.DataColumn col in table.Columns)
-            sheet.Columns.Add(NormalizeHeader(col.ColumnName));
-        foreach (System.Data.DataRow row in table.Rows)
+        sheet.Columns.AddRange(headers);
+        for (var r = 1; r < table.Rows.Count; r++)
         {
-            var cells = new List<string>(sheet.Columns.Count);
-            for (var i = 0; i < sheet.Columns.Count; i++)
-                cells.Add(Convert.ToString(row[i], CultureInfo.InvariantCulture)?.Trim() ?? "");
+            var cells = new List<string>(headers.Count);
+            for (var i = 0; i < headers.Count; i++)
+                cells.Add(Convert.ToString(table.Rows[r][i], CultureInfo.InvariantCulture)?.Trim() ?? "");
             if (cells.All(string.IsNullOrWhiteSpace)) continue;
             sheet.Rows.Add(cells);
         }
+        if (sheet.RowCount == 0)
+            throw new InvalidDataException("엑셀에 데이터 행이 없습니다.");
+        EditorLog.Info($"엑셀 읽기: {fileName} · {table.TableName} · {sheet.ColumnCount}열 {sheet.RowCount}행 · {string.Join(",", sheet.Columns)}");
         return sheet;
+    }
+
+    private static System.Data.DataTable PickExcelTable(System.Data.DataSet ds, string? sheetName)
+    {
+        var want = (sheetName ?? "").Trim().TrimEnd('$');
+        if (want.Length > 0)
+        {
+            foreach (System.Data.DataTable t in ds.Tables)
+            {
+                if (t.TableName.Equals(want, StringComparison.OrdinalIgnoreCase)
+                    || t.TableName.Equals(want + "$", StringComparison.OrdinalIgnoreCase))
+                    return t;
+            }
+        }
+        return ds.Tables[0];
+    }
+
+    internal static List<string> UniqueILabelHeaders(IReadOnlyList<string> names)
+    {
+        var seen = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var result = new List<string>(names.Count);
+        foreach (var raw in names)
+        {
+            var name = string.IsNullOrWhiteSpace(raw) ? "열" : raw.Trim();
+            if (!seen.TryGetValue(name, out var n))
+            {
+                seen[name] = 0;
+                result.Add(name);
+                continue;
+            }
+            n++;
+            seen[name] = n;
+            result.Add(name + n);
+        }
+        return result;
     }
 
     private static string DecodeText(byte[] bytes)

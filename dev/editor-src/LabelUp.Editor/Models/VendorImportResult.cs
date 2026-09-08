@@ -15,6 +15,7 @@ public sealed class VendorImportResult
     public int DataRows { get; set; }
     public List<string> DataColumns { get; set; } = [];
     public List<string> DataPreview { get; set; } = [];
+    public string MissingExcelName { get; set; } = "";
     public Dictionary<string, int> TypeCounts { get; set; } = new(StringComparer.Ordinal);
     public List<VendorImportItem> Items { get; set; } = [];
     public int ObjectCount => Items.Count;

@@ -1236,6 +1236,28 @@ html.lu-right-stack .ed:not(.is-mobile) .ed-props__layers {
   color: var(--charcoal);
   background: #fff;
 }
+.ed-ctx-bar__rich {
+  box-sizing: border-box;
+  width: min(360px, 46vw);
+  min-width: 220px;
+  min-height: 56px;
+  max-height: 120px;
+  height: auto;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-weight: 500;
+  line-height: 1.35;
+  cursor: text;
+}
+.ed-ctx-bar__rich:focus {
+  outline: 2px solid #7b2840;
+  outline-offset: 0;
+}
+.ed-ctx-bar__rich div,
+.ed-ctx-bar__rich p {
+  margin: 0;
+}
 .ed-ctx-bar input[type="file"] {
   max-width: 150px;
   font-size: 10px;
@@ -3272,6 +3294,7 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 }
 .ed-vendor-report__items em { color: #94a3b8; font-style: normal; margin-left: 6px; }
 .ed-vendor-report__error { color: #b42318; font-weight: 800; }
+.ed-vendor-report__excel { margin-top: 10px; display: inline-flex; }
 
 .ed-btn--file {
   position: relative;
@@ -3984,6 +4007,13 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   justify-content: center;
   gap: 6px;
   width: 100%;
+  min-height: 36px;
+  padding: 4px 8px;
+  border: 1px solid var(--ed-border);
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
 }
 .ed-print__nudge input {
   width: 56px;

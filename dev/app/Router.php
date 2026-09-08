@@ -35,6 +35,8 @@ use App\Controllers\Api\AiExamplePromptApiController;
 use App\Controllers\Api\AccountAddressApiController;
 use App\Controllers\Api\AuthApiController;
 use App\Controllers\Api\EditorTemplateApiController;
+use App\Controllers\Api\EditorRemoteImageApiController;
+use App\Controllers\Api\EditorIlabelExcelApiController;
 use App\Controllers\Api\EditorWorkspaceApiController;
 use App\Controllers\Api\HealthController;
 use App\Controllers\Api\SeedController;
@@ -148,6 +150,8 @@ final class Router
         $contentAdmin = new ContentAdminController();
         $contentAdminApi = new ContentAdminApiController();
         $editorTemplateApi = new EditorTemplateApiController();
+        $editorRemoteImageApi = new EditorRemoteImageApiController();
+        $editorIlabelExcelApi = new EditorIlabelExcelApiController();
         $shopPublic = new ShopController();
         $shopPublicApi = new ShopApiController();
         $accountAddressApi = new AccountAddressApiController();
@@ -244,6 +248,8 @@ final class Router
         $router->post('/api/editor/workspace', [$editorWorkspaceApi, 'save']);
         $router->get('/api/editor/templates', [$editorTemplateApi, 'index']);
         $router->get('/api/editor/templates/{id}', [$editorTemplateApi, 'show']);
+        $router->get('/api/editor/remote-image', [$editorRemoteImageApi, 'show']);
+        $router->get('/api/editor/ilabel-excel', [$editorIlabelExcelApi, 'show']);
 
         $router->post('/api/ai/chat', [$aiChatApi, 'chat']);
         $router->get('/api/ai/example-prompts', [$aiPromptsPublic, 'index']);

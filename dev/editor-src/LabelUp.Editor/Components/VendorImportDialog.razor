@@ -3,6 +3,7 @@
 @inject EditorSession Session
 @inject HistoryService History
 @inject FontCatalog Fonts
+@inject ExternalImportService ExternalImport
 @implements IDisposable
 
 @if (Session.Dialog == EditorDialog.VendorImport && Session.PendingVendorImport is { } r)
@@ -60,6 +61,19 @@
               </ul>
             }
           }
+          else if (!string.IsNullOrWhiteSpace(r.MissingExcelName))
+          {
+            <p>IDF가 <b>@r.MissingExcelName</b> 을 가리키지만, 브라우저에서는 디스크 경로를 열 수 없습니다.</p>
+            <p class="ed-vendor-report__muted">엑셀을 <code>C:\LabelupData</code>에 두었다면 PHP 사이트에서 다시 열거나, 아래에서 직접 연결하세요.</p>
+            <label class="ed-btn ed-btn--file ed-vendor-report__excel">
+              엑셀 파일 연결
+              <InputFile OnChange="OnExcelPicked" accept=".xlsx,.xls" disabled="@_excelBusy" />
+            </label>
+            @if (!string.IsNullOrWhiteSpace(_excelError))
+            {
+              <p class="ed-vendor-report__error">@_excelError</p>
+            }
+          }
           else
           {
             <p class="ed-vendor-report__muted">연결된 데이터가 없습니다.</p>
@@ -110,9 +124,39 @@
 }
 
 @code {
+    private bool _excelBusy;
+    private string _excelError = "";
+
     protected override void OnInitialized() => Session.Changed += OnChanged;
     public void Dispose() => Session.Changed -= OnChanged;
     private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private async Task OnExcelPicked(InputFileChangeEventArgs e)
+    {
+        var r = Session.PendingVendorImport;
+        if (r is null || _excelBusy) return;
+        _excelBusy = true;
+        _excelError = "";
+        try
+        {
+            await using var stream = e.File.OpenReadStream(8 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            if (!ExternalImport.BindILabelExcel(r, e.File.Name, ms.ToArray()))
+                _excelError = ILabelImporter.LastExcelError ?? "엑셀에서 행을 읽지 못했습니다.";
+            else
+                Session.Notify();
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("아이라벨 엑셀 연결 실패: " + ex.Message);
+            _excelError = ex.Message;
+        }
+        finally
+        {
+            _excelBusy = false;
+        }
+    }
 
     private void Cancel()
     {

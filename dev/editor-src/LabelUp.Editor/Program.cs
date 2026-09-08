@@ -1,7 +1,10 @@
+using System.Text;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using LabelUp.Editor;
 using LabelUp.Editor.Services;
+
+Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");

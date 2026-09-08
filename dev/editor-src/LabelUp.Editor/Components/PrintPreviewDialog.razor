@@ -29,28 +29,36 @@
           <p>인쇄 위치 조정 (mm)</p>
           <div class="ed-print__pad">
             <span></span>
-            <button type="button" @onclick="() => Nudge(0, -_up)">↑</button>
+            <button type="button" title="위쪽 1mm" @onclick="() => Nudge(0, -1)">↑</button>
             <span></span>
-            <button type="button" @onclick="() => Nudge(-_left, 0)">←</button>
-            <span class="ed-print__xy">@_ox.ToString("0.#"), @_oy.ToString("0.#")</span>
-            <button type="button" @onclick="() => Nudge(_right, 0)">→</button>
+            <button type="button" title="왼쪽 1mm" @onclick="() => Nudge(-1, 0)">←</button>
+            <span class="ed-print__xy">@Fmt(_ox), @Fmt(_oy)</span>
+            <button type="button" title="오른쪽 1mm" @onclick="() => Nudge(1, 0)">→</button>
             <span></span>
-            <button type="button" @onclick="() => Nudge(0, _down)">↓</button>
+            <button type="button" title="아래쪽 1mm" @onclick="() => Nudge(0, 1)">↓</button>
             <span></span>
           </div>
           <div class="ed-print__dirs">
-            <button type="button" class="ed-btn ed-print__nudge" @onclick="() => Nudge(-_left, 0)">
-              왼쪽으로 <input type="number" step="0.1" min="0" @bind="_left" @bind:event="oninput" @onclick:stopPropagation="true" @onclick:preventDefault="true" /> mm 이동
-            </button>
-            <button type="button" class="ed-btn ed-print__nudge" @onclick="() => Nudge(_right, 0)">
-              오른쪽으로 <input type="number" step="0.1" min="0" @bind="_right" @bind:event="oninput" @onclick:stopPropagation="true" @onclick:preventDefault="true" /> mm 이동
-            </button>
-            <button type="button" class="ed-btn ed-print__nudge" @onclick="() => Nudge(0, -_up)">
-              위쪽으로 <input type="number" step="0.1" min="0" @bind="_up" @bind:event="oninput" @onclick:stopPropagation="true" @onclick:preventDefault="true" /> mm 이동
-            </button>
-            <button type="button" class="ed-btn ed-print__nudge" @onclick="() => Nudge(0, _down)">
-              아래쪽으로 <input type="number" step="0.1" min="0" @bind="_down" @bind:event="oninput" @onclick:stopPropagation="true" @onclick:preventDefault="true" /> mm 이동
-            </button>
+            <label class="ed-print__nudge">
+              왼쪽으로
+              <input type="number" step="0.1" value="@Fmt(-_ox)" @onchange="e => SetAxis(false, true, e)" />
+              mm
+            </label>
+            <label class="ed-print__nudge">
+              오른쪽으로
+              <input type="number" step="0.1" value="@Fmt(_ox)" @onchange="e => SetAxis(false, false, e)" />
+              mm
+            </label>
+            <label class="ed-print__nudge">
+              위쪽으로
+              <input type="number" step="0.1" value="@Fmt(-_oy)" @onchange="e => SetAxis(true, true, e)" />
+              mm
+            </label>
+            <label class="ed-print__nudge">
+              아래쪽으로
+              <input type="number" step="0.1" value="@Fmt(_oy)" @onchange="e => SetAxis(true, false, e)" />
+              mm
+            </label>
           </div>
           <label>페이지
             <select @bind="_page" @bind:after="Rebuild">
@@ -74,12 +82,11 @@
     private string? _url;
     private float _ox;
     private float _oy;
-    private float _left = 1f;
-    private float _right = 2f;
-    private float _up = 1f;
-    private float _down = 1f;
     private int _page;
     private bool _opened;
+    private static readonly System.Globalization.CultureInfo Inv = System.Globalization.CultureInfo.InvariantCulture;
+
+    private static string Fmt(float v) => v.ToString("0.#", Inv);
 
     protected override void OnInitialized() => Session.Changed += OnChanged;
     public void Dispose() => Session.Changed -= OnChanged;
@@ -99,10 +106,22 @@
         _ = InvokeAsync(StateHasChanged);
     }
 
-    private void Nudge(float dx, float dy)
+    private void Nudge(float dx, float dy) => ApplyOffset(_ox + dx, _oy + dy);
+
+    private void SetAxis(bool vertical, bool opposite, ChangeEventArgs e)
     {
-        _ox += dx;
-        _oy += dy;
+        if (!float.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Float, Inv, out var v)
+            && !float.TryParse(e.Value?.ToString(), out v))
+            return;
+        if (opposite) v = -v;
+        if (vertical) ApplyOffset(_ox, v);
+        else ApplyOffset(v, _oy);
+    }
+
+    private void ApplyOffset(float x, float y)
+    {
+        _ox = x;
+        _oy = y;
         Session.Document.PrintOffsetXMm = _ox;
         Session.Document.PrintOffsetYMm = _oy;
         Rebuild();
@@ -156,7 +175,11 @@
                 Session.Status = "인쇄 미리보기를 만들 수 없습니다";
                 return;
             }
-            await Export.PrintImagesAsync(pages, Session.Document.Name);
+            await Export.PrintImagesAsync(
+                pages,
+                Session.Document.Name,
+                Session.Document.Paper.PaperWidthMm,
+                Session.Document.Paper.PaperHeightMm);
         }
         catch (Exception ex)
         {

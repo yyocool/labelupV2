@@ -211,7 +211,10 @@ public sealed class EditorSession
             ClearSelection();
         }
         ApplyCurrentSlotSize();
+        if (doc.Data is { RowCount: > 0 })
+            doc.EnsurePagesForData();
         ShowDataPanelIfPresent();
+        BoundImageCache.Request(doc.Paper.DesignImageUrl);
         Dirty = true;
         Notify();
     }
@@ -277,6 +280,7 @@ public sealed class EditorSession
         SelectedIds.Clear();
         if (id is not null) SelectedIds.Add(id);
         SelectedId = id;
+        PreparePlainText();
         Notify();
     }
 
@@ -286,6 +290,7 @@ public sealed class EditorSession
         foreach (var id in ids)
             SelectedIds.Add(id);
         SelectedId = SelectedIds.LastOrDefault();
+        PreparePlainText();
         Notify();
     }
 
@@ -293,7 +298,18 @@ public sealed class EditorSession
     {
         if (!SelectedIds.Add(id)) SelectedIds.Remove(id);
         SelectedId = SelectedIds.LastOrDefault();
+        PreparePlainText();
         Notify();
+    }
+
+    private void PreparePlainText()
+    {
+        foreach (var o in SelectedObjects)
+        {
+            if (o.Type != ObjectType.Text || !TextModes.IsPlain(o.TextMode)) continue;
+            TextModes.Unify(o);
+            RichTextModel.Ensure(o);
+        }
     }
 
     public void SetTool(EditorTool tool)
@@ -324,6 +340,11 @@ public sealed class EditorSession
         obj.Y = Math.Clamp(obj.Y, 0, Math.Max(0, Document.HeightMm - obj.Height));
         obj.ZIndex = CurrentCell.Objects.Count == 0 ? 1 : CurrentCell.Objects.Max(o => o.ZIndex) + 1;
         CurrentCell.Objects.Add(obj);
+        if (obj.Type == ObjectType.Text && TextModes.IsPlain(obj.TextMode))
+        {
+            TextModes.Unify(obj);
+            RichTextModel.Ensure(obj);
+        }
         Select(obj.Id);
         Tool = EditorTool.Select;
         Dirty = true;
@@ -652,41 +673,39 @@ public sealed class EditorSession
         {
             if (obj.DataBound && !string.IsNullOrWhiteSpace(obj.DataColumn) && Document.Data is { } imgData)
             {
+                if (idx < 0 || idx >= imgData.RowCount)
+                    return "";
                 var url = imgData.Get(idx, obj.DataColumn);
                 if (!string.IsNullOrWhiteSpace(url))
                 {
                     BoundImageCache.Request(url);
                     return url;
                 }
+                return "";
             }
             return obj.ImageData ?? "";
         }
-        var text = obj.Text ?? "";
 
         if (obj.DataBound && !string.IsNullOrWhiteSpace(obj.DataColumn) && Document.Data is { } data)
         {
+            if (idx < 0 || idx >= data.RowCount)
+                return "";
             var bound = data.Get(idx, obj.DataColumn);
             if (string.IsNullOrEmpty(bound))
                 bound = data.Get(idx, obj.DataColumn.Trim().Trim('[', ']', '{', '}', '@'));
-            if (!string.IsNullOrEmpty(bound))
-            {
-                text = string.Equals(obj.DataDisplayKind, DataDisplayFormats.Date, StringComparison.OrdinalIgnoreCase)
-                    ? DataDisplayFormats.FormatDate(bound, obj.DataDateFormat)
-                    : bound;
-            }
+            if (string.IsNullOrEmpty(bound))
+                return "";
+            if (obj.Type is ObjectType.Barcode or ObjectType.Qr)
+                return bound;
+            return string.Equals(obj.DataDisplayKind, DataDisplayFormats.Date, StringComparison.OrdinalIgnoreCase)
+                ? DataDisplayFormats.FormatDate(bound, obj.DataDateFormat)
+                : bound;
         }
 
         if (obj.Type is ObjectType.Barcode or ObjectType.Qr)
-        {
-            var value = obj.BarcodeValue ?? "";
-            if (obj.DataBound && !string.IsNullOrWhiteSpace(obj.DataColumn) && Document.Data is { } data2)
-            {
-                var bound = data2.Get(idx, obj.DataColumn);
-                if (!string.IsNullOrEmpty(bound)) value = bound;
-            }
-            return value;
-        }
+            return obj.BarcodeValue ?? "";
 
+        var text = obj.Text ?? "";
         if (obj.TextMode == TextMode.Custom || obj.CustomKind is "date" or "time" or "serial" or "hexserial")
             text = FormtecRecords.ExpandCustom(obj, idx, clock);
 

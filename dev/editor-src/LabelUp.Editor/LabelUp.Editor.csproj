@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <WasmBuildNative>true</WasmBuildNative>
     <RunAOTCompilation>false</RunAOTCompilation>
+    <BlazorWebAssemblyLoadAllGlobalizationData>true</BlazorWebAssemblyLoadAllGlobalizationData>
   </PropertyGroup>
 
   <ItemGroup>

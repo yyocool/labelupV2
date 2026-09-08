@@ -64,13 +64,16 @@ public sealed class ExternalImportService(PaperCatalog papers)
                     await progress("용지·이미지를 읽는 중…", 24);
             }
 
+            var excelSidecar = vendor == "ilabel" ? FindZipExcel(bytes, payload) : null;
             var doc = vendor switch
             {
-                "ilabel" => ILabelImporter.Import(payload, name, papers),
+                "ilabel" => ILabelImporter.Import(payload, name, papers, excelSidecar),
                 "anylabel" => await AniLabelImporter.ImportAsync(payload, name, papers, progress),
                 "formtec" => FormtecImporter.Import(payload, name, papers),
                 _ => throw new NotSupportedException("지원 포맷: 애니라벨 .lbl, 폼텍 .dgz/.dgf, 아이라벨 .idf")
             };
+            if (vendor == "ilabel")
+                await ILabelImporter.TryAttachSidecarExcelAsync(doc);
             if (vendor == "formtec")
                 AttachFormtecEmbeddedData(doc, bytes, payload);
             if (progress is not null)
@@ -100,6 +103,20 @@ public sealed class ExternalImportService(PaperCatalog papers)
         _ => vendor
     };
 
+    public bool BindILabelExcel(VendorImportResult result, string fileName, byte[] bytes)
+    {
+        if (result.Document is null) return false;
+        if (!ILabelImporter.TryBindExcel(result.Document, fileName, bytes))
+            return false;
+        result.Items.Clear();
+        result.TypeCounts.Clear();
+        result.DataPreview.Clear();
+        result.DataColumns.Clear();
+        result.Warning = "";
+        FillReport(result, result.Document);
+        return result.HasData;
+    }
+
     private static void FillReport(VendorImportResult result, LabelDocument doc)
     {
         result.Document = doc;
@@ -111,6 +128,14 @@ public sealed class ExternalImportService(PaperCatalog papers)
             $"용지 {doc.Paper.PaperWidthMm:0.#}×{doc.Paper.PaperHeightMm:0.#} mm";
         if (!string.IsNullOrWhiteSpace(doc.Paper.ShapeWarning))
             result.Warning = doc.Paper.ShapeWarning;
+        result.MissingExcelName = ILabelImporter.NeedsExcelSidecar(doc)
+            ? (doc.Data?.SourceName ?? "")
+            : "";
+        if (ILabelImporter.NeedsExcelSidecar(doc) && !string.IsNullOrWhiteSpace(ILabelImporter.LastExcelError))
+        {
+            var hint = "엑셀은 찾았지만 읽지 못했습니다: " + ILabelImporter.LastExcelError;
+            result.Warning = string.IsNullOrWhiteSpace(result.Warning) ? hint : result.Warning + " " + hint;
+        }
         if (doc.Data is { RowCount: > 0, Columns.Count: > 0 } data)
         {
             result.HasData = true;
@@ -145,9 +170,8 @@ public sealed class ExternalImportService(PaperCatalog papers)
             ObjectType.Text => obj.TextMode switch
             {
                 TextMode.WordArt => "워드아트",
-                TextMode.Extended => "확장문자열",
                 TextMode.Custom => "사용자정의문자열",
-                _ => "텍스트"
+                _ => "일반텍스트"
             },
             ObjectType.Table => "표",
             ObjectType.Barcode => "바코드",
@@ -238,6 +262,33 @@ public sealed class ExternalImportService(PaperCatalog papers)
         {
             EditorLog.Warn("압축 해제 실패: " + ex.Message);
             return bytes;
+        }
+    }
+
+    private static byte[]? FindZipExcel(byte[] original, byte[] payload)
+    {
+        if (ReferenceEquals(original, payload) || original.Length < 4
+            || original[0] != 0x50 || original[1] != 0x4B)
+            return null;
+        try
+        {
+            using var ms = new MemoryStream(original);
+            using var zip = new ZipArchive(ms, ZipArchiveMode.Read, leaveOpen: false, ZipEntryEncoding());
+            var excel = zip.Entries.FirstOrDefault(e =>
+            {
+                var n = e.Name;
+                return n.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase)
+                    || n.EndsWith(".xls", StringComparison.OrdinalIgnoreCase);
+            });
+            if (excel is null) return null;
+            using var s = excel.Open();
+            using var outMs = new MemoryStream();
+            s.CopyTo(outMs);
+            return outMs.ToArray();
+        }
+        catch
+        {
+            return null;
         }
     }
 
@@ -435,6 +486,8 @@ public sealed class ExternalImportService(PaperCatalog papers)
     }
 
     internal const int MaxImportPages = 24;
+    /// <summary>객체 누적 상한. 120이면 7×27(189칸) 같은 전칸 동일 디자인이 뒷칸부터 비어 보인다.</summary>
+    internal const int MaxImportObjects = 10_000;
 
     internal static void Place(LabelDocument doc, DesignObject obj, int globalLabelIndex, int per)
     {
@@ -1264,6 +1317,7 @@ internal static class FormtecImporter
             TryPaper(dgf, out pw, out ph, out cols, out rows, out lw, out lh);
         var tLabels = importSw.ElapsedMilliseconds;
         var paper = ExternalImportService.ResolvePaper(papers, "formtec", paperNo, lw, lh, cols, rows, pw, ph, left, top, right, bottom, hg, vg);
+        ApplyKnownFormtecPaper(paper, paperNo);
         ApplyFormtecPaperColor(dgf, paper);
         var tPaper = importSw.ElapsedMilliseconds;
         if (TryReadSpecialSlots(dgf, Math.Max(1, cols) * Math.Max(1, rows), pw, ph, out var slots))
@@ -1434,7 +1488,7 @@ internal static class FormtecImporter
                 found = true;
                 i = end - 1;
             }
-            if (z >= 120) break;
+            if (z >= ExternalImportService.MaxImportObjects) break;
         }
         return found;
     }
@@ -1446,7 +1500,7 @@ internal static class FormtecImporter
         else pos += 2;
         var end = Math.Min(data.Length, pos + 1_200_000);
         var miss = 0;
-        while (pos + 41 < end && z < 120)
+        while (pos + 41 < end && z < ExternalImportService.MaxImportObjects)
         {
             if (pos + 1 < end && data[pos] == 0xB8 && data[pos + 1] == 0x01)
             {
@@ -1499,7 +1553,7 @@ internal static class FormtecImporter
         var pos = start;
         var miss = 0;
         end = Math.Min(end, start + 400_000);
-        while (pos + 41 < end && z < 120)
+        while (pos + 41 < end && z < ExternalImportService.MaxImportObjects)
         {
             if (pos + 1 < end && data[pos] == 0xB8 && data[pos + 1] == 0x01)
             {
@@ -1749,7 +1803,7 @@ internal static class FormtecImporter
                 }
                 if (type == 0x0A) o.TextMode = TextMode.WordArt;
                 if (type == 0x0B) o.TextMode = TextMode.Custom;
-                if (type == 0x16) o.TextMode = TextMode.Extended;
+                if (type == 0x16) o.TextMode = TextMode.Normal;
                 return o;
             default:
                 return null;
@@ -1767,6 +1821,31 @@ internal static class FormtecImporter
                 return Encoding.ASCII.GetString(slice);
         }
         return null;
+    }
+
+    /// <summary>
+    /// 워드 폼텍 템플릿과 같은 확정 규격. DGF 여백으로 역산하면 3189가 25.51×9.98이 되어
+    /// 189칸 전체가 조금 줄어 보인다.
+    /// </summary>
+    private static void ApplyKnownFormtecPaper(PaperSpec paper, string? paperNo)
+    {
+        if (!string.Equals(paperNo?.Trim(), "3189", StringComparison.OrdinalIgnoreCase))
+            return;
+        paper.PaperNo = "3189";
+        paper.Name = "폼텍 3189 분류표기 25.4×10 mm 189칸";
+        paper.PaperWidthMm = 210f;
+        paper.PaperHeightMm = 297f;
+        paper.LabelWidthMm = 25.4f;
+        paper.LabelHeightMm = 10f;
+        paper.Columns = 7;
+        paper.Rows = 27;
+        paper.LeftMarginMm = 8.2f;
+        paper.RightMarginMm = 8.2f;
+        paper.TopMarginMm = 12f;
+        paper.BottomMarginMm = 15f;
+        paper.HGapMm = 2.6f;
+        paper.VGapMm = 0f;
+        EditorLog.Info("폼텍 3189 공식 격자: 25.4×10 · 7×27 · 여백 8.2/12 · 간격 2.6/0");
     }
 
     private static bool HasFormtecShape(PaperSpec paper)
@@ -2042,425 +2121,4 @@ internal static class FormtecImporter
             catch { /* next */ }
         }
     }
-}
-
-internal static class ILabelImporter
-{
-    private const int CommonLabelId = int.MaxValue;
-
-    public static LabelDocument Import(byte[] bytes, string name, PaperCatalog papers)
-    {
-        if (ExternalImportService.LooksLikeXml(bytes))
-            return FromXml(bytes, name, papers);
-        if (!Jet4Database.LooksLikeJet(bytes))
-            throw new InvalidDataException("아이라벨 IDF(Jet DB) 시그니처가 아닙니다.");
-
-        var db = new Jet4Database(bytes);
-        var paperRow = db.TryReadTable("Paper")?.Rows.FirstOrDefault()
-                       ?? throw new InvalidDataException("IDF Paper 테이블을 읽지 못했습니다.");
-
-        var paperW = (float)paperRow.GetDouble("Width");
-        var paperH = (float)paperRow.GetDouble("Height");
-        var lw = (float)paperRow.GetDouble("LabelWidth");
-        var lh = (float)paperRow.GetDouble("LabelHeight");
-        var cols = Math.Max(1, paperRow.GetInt("Cols"));
-        var rows = Math.Max(1, paperRow.GetInt("Rows"));
-        var left = (float)paperRow.GetDouble("MarginLeft");
-        var top = (float)paperRow.GetDouble("MarginTop");
-        var hGap = (float)paperRow.GetDouble("PitchHorizen");
-        var vGap = (float)paperRow.GetDouble("PitchVertical");
-        if (lw < 1) lw = 70;
-        if (lh < 1) lh = 36;
-        var right = (float)Math.Max(0, paperW - left - cols * lw - Math.Max(0, cols - 1) * hGap);
-        var bottom = (float)Math.Max(0, paperH - top - rows * lh - Math.Max(0, rows - 1) * vGap);
-        var paperNo = paperRow.GetString("Name");
-        var paper = ExternalImportService.ResolvePaper(
-            papers, "ilabel", paperNo, lw, lh, cols, rows, paperW, paperH, left, top, right, bottom, hGap, vGap);
-        if (!string.IsNullOrWhiteSpace(paperRow.GetString("LabelFrame")))
-        {
-            paper.Shape.Kind = "svg";
-            paper.Shape.Svg = paperRow.GetString("LabelFrame");
-        }
-        paper.DesignImageUrl = NullIfEmpty(paperRow.GetString("LabelBackground"));
-
-        var doc = LabelDocument.CreateBlank(paper);
-        doc.Name = name;
-        foreach (var cell in doc.Pages[0].Cells)
-            cell.Objects.Clear();
-
-        LoadData(db, doc, name, paperRow.GetString("DataSrc"));
-
-        var factors = db.TryReadTable("Factors");
-        if (factors is null || factors.Rows.Count == 0)
-            return doc;
-
-        var per = Math.Max(1, paper.LabelsPerPage);
-        var z = 0;
-        var commons = new List<DesignObject>();
-        var unique = new Dictionary<string, (DesignObject Obj, int LabelId)>(StringComparer.Ordinal);
-        foreach (var row in factors.Rows)
-        {
-            var obj = MapFactor(row, z++);
-            if (obj is null) continue;
-            var labelId = row.GetInt("LabelId");
-            if (labelId == CommonLabelId)
-            {
-                commons.Add(obj);
-                continue;
-            }
-            if (labelId < 0 || labelId >= per * ExternalImportService.MaxImportPages)
-                labelId = 0;
-            var key = $"{labelId}|{(int)obj.Type}|{(int)obj.TextMode}|{obj.X:0.0}|{obj.Y:0.0}";
-            unique[key] = (obj, labelId);
-        }
-        foreach (var (obj, labelId) in unique.Values)
-            ExternalImportService.Place(doc, obj, labelId + 1, per);
-
-        if (commons.Count > 0)
-        {
-            doc.EnsureStructure();
-            foreach (var common in commons)
-                ExternalImportService.PlaceCommon(doc, common);
-        }
-
-        return doc;
-    }
-
-    private static void LoadData(Jet4Database db, LabelDocument doc, string name, string dataSrc)
-    {
-        var table = FindInner(db);
-        if (table is null || table.Rows.Count == 0) return;
-        var fields = table.Columns.Select(c => c.Name)
-            .Where(n => !n.StartsWith("idb_", StringComparison.OrdinalIgnoreCase) && !n.Equals("ID", StringComparison.OrdinalIgnoreCase))
-            .ToList();
-        if (fields.Count == 0) return;
-        var sheet = new DataSheet
-        {
-            SourceName = name,
-            SourceKind = string.IsNullOrWhiteSpace(dataSrc) ? table.Name : dataSrc
-        };
-        sheet.Columns.AddRange(fields);
-        foreach (var row in table.Rows)
-        {
-            var values = fields.Select(f => row.GetString(f)).ToList();
-            if (values.Any(v => !string.IsNullOrWhiteSpace(v)))
-                sheet.Rows.Add(values);
-        }
-        if (sheet.RowCount == 0) return;
-        if (sheet.Rows.Count > 256)
-            sheet.Rows.RemoveRange(256, sheet.Rows.Count - 256);
-        doc.Data = sheet;
-        doc.EnsurePagesForData();
-    }
-
-    private static Jet4Table? FindInner(Jet4Database db)
-    {
-        foreach (var n in new[] { "InnerDB", "Table1", "Table" })
-        {
-            var t = db.TryReadTable(n);
-            if (t is { Rows.Count: > 0 } && t.Columns.Any(c =>
-                    !c.Name.StartsWith("idb_", StringComparison.OrdinalIgnoreCase)
-                    && !c.Name.Equals("ID", StringComparison.OrdinalIgnoreCase)))
-                return t;
-        }
-        return db.Catalog
-            .Where(c => c.IsUserTable && c.Name is not ("Paper" or "Factors"))
-            .Select(c => db.TryReadTable(c.Name))
-            .FirstOrDefault(t => t is { Rows.Count: > 0 });
-    }
-
-    private static DesignObject? MapFactor(Jet4Row row, int z)
-    {
-        var type = row.GetInt("Type");
-        var x = (float)row.GetDouble("Left");
-        var y = (float)row.GetDouble("Top");
-        var w = (float)row.GetDouble("Width");
-        var h = (float)row.GetDouble("Height");
-        if (w < 0.2f && type != 8) w = 10;
-        if (h < 0.2f && type != 8) h = 6;
-        var cont = row.GetString("Cont");
-        var fillOn = row.GetBool("Fill");
-        var back = row.GetInt("BackColor");
-        var fore = row.GetInt("ForeColor");
-
-        DesignObject obj = type switch
-        {
-            1 => MakeText(x, y, w, h, cont),
-            2 => MakeImage(x, y, w, h, row.GetBytes("Image")),
-            3 => MakeBarcode(x, y, w, h, cont),
-            4 => MakeWordArt(x, y, w, h, cont, row.GetInt("Attribute")),
-            5 => DesignObject.CreateShape(ShapeKind.Rect, x, y),
-            6 => DesignObject.CreateShape(ShapeKind.RoundRect, x, y),
-            7 => DesignObject.CreateShape(ShapeKind.Triangle, x, y),
-            8 => DesignObject.CreateShape(ShapeKind.Line, x, y),
-            9 or 13 => DesignObject.CreateShape(ShapeKind.Ellipse, x, y),
-            14 => MakeTable(x, y, w, h, cont),
-            16 => MakeIcon(x, y, w, h, cont),
-            _ => MakeText(x, y, w, h, StripCont(cont))
-        };
-        obj.Width = Math.Max(0.4f, w);
-        obj.Height = Math.Max(0.4f, h);
-        obj.ZIndex = z;
-        obj.Rotation = (float)row.GetDouble("Rotate");
-        var thick = row.GetDouble("LineThickness");
-        if (thick > 0) obj.StrokeWidth = (float)thick;
-        if (DesignObject.IsShape(obj.Type) || obj.Type == ObjectType.Table)
-        {
-            var transparent = !fillOn || back == -1 || back == 16777215;
-            obj.Fill = transparent ? "transparent" : ArgbToCss(back);
-            obj.BackgroundFill = obj.Fill;
-            obj.BackgroundTransparent = transparent;
-            obj.Stroke = ArgbToCss(fore == 0 ? -16777216 : fore);
-        }
-        else if (obj.Type == ObjectType.Text)
-        {
-            obj.Fill = ArgbToCss(fore == 0 ? -16777216 : fore);
-            if (obj.TextMode == TextMode.WordArt)
-            {
-                var transparent = !fillOn || back == -1 || back == 16777215;
-                obj.BackgroundFill = transparent ? "transparent" : ArgbToCss(back);
-                obj.BackgroundTransparent = transparent;
-            }
-        }
-        return obj;
-    }
-
-    /// <summary>아이라벨 Type=4. Cont=글꼴,크기,굵게,이탤릭,밑줄,외곽선,세로,그림자,좌우반전:텍스트</summary>
-    private static DesignObject MakeWordArt(float x, float y, float w, float h, string cont, int attribute)
-    {
-        var o = DesignObject.CreateDefault(ObjectType.Text, x, y);
-        o.Width = w;
-        o.Height = h;
-        o.TextMode = TextMode.WordArt;
-        o.TextAlign = "center";
-        o.VerticalAlign = "middle";
-        o.TextWrap = "none";
-        o.WordArtStyle = attribute switch
-        {
-            11 => WordArtStyle.Stretch,
-            16 => WordArtStyle.Rounded,
-            _ => WordArtStyle.None
-        };
-        o.WordArtBend = attribute == 16 ? 28f : 30f;
-
-        var raw = cont ?? "";
-        var colon = raw.IndexOf(':');
-        var head = colon >= 0 ? raw[..colon] : raw;
-        o.Text = colon >= 0 ? raw[(colon + 1)..] : StripCont(raw);
-        var parts = head.Split(',');
-        if (parts.Length >= 2)
-        {
-            o.FontFamily = parts[0].Trim();
-            if (float.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var fs) && fs > 0)
-                o.FontSize = fs;
-        }
-        if (parts.Length >= 9)
-        {
-            o.Bold = IsTrue(parts[2]);
-            o.Italic = IsTrue(parts[3]);
-            o.Underline = IsTrue(parts[4]);
-            o.Outline = IsTrue(parts[5]);
-            if (IsTrue(parts[6]))
-                o.TextDirection = "vertical";
-            o.Shadow = IsTrue(parts[7]);
-            o.FlipHorizontal = IsTrue(parts[8]);
-        }
-        return o;
-    }
-
-    private static bool IsTrue(string? raw)
-        => raw is not null && (raw.Equals("True", StringComparison.OrdinalIgnoreCase) || raw == "1");
-
-    private static DesignObject MakeText(float x, float y, float w, float h, string cont)
-    {
-        var o = DesignObject.CreateDefault(ObjectType.Text, x, y);
-        o.Width = w; o.Height = h;
-        var field = Regex.Match(cont ?? "", @"\{@([^}]+)\}");
-        var run = Regex.Match(cont ?? "", @"\{&([^,]+),(\d+),([bBiIuUsS]{4}),(-?\d+)\}");
-        if (field.Success)
-        {
-            o.DataBound = true;
-            o.DataColumn = field.Groups[1].Value.Trim();
-            o.Text = $"[{o.DataColumn}]";
-        }
-        else
-        {
-            o.Text = StripCont(cont);
-        }
-        if (run.Success)
-        {
-            if (float.TryParse(run.Groups[2].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var fs))
-                o.FontSize = Math.Clamp(fs * 0.35f, 2f, 14f);
-            var bius = run.Groups[3].Value;
-            o.Bold = bius.Length >= 1 && char.IsUpper(bius[0]);
-            o.Italic = bius.Length >= 2 && char.IsUpper(bius[1]);
-            o.Underline = bius.Length >= 3 && char.IsUpper(bius[2]);
-            o.Strikeout = bius.Length >= 4 && char.IsUpper(bius[3]);
-            o.FontFamily = run.Groups[1].Value.Trim();
-            if (int.TryParse(run.Groups[4].Value, out var color))
-                o.Fill = ArgbToCss(color);
-        }
-        o.TextAlign = "left";
-        return o;
-    }
-
-    private static DesignObject MakeImage(float x, float y, float w, float h, byte[]? bytes)
-    {
-        var o = DesignObject.CreateDefault(ObjectType.Image, x, y);
-        o.Width = w; o.Height = h;
-        if (bytes is { Length: > 8 })
-        {
-            var mime = bytes[0] == 0x89 ? "image/png" : bytes[0] == 0xFF ? "image/jpeg" : "image/bmp";
-            o.ImageData = ExternalImportService.ToDataUrl(bytes, mime);
-        }
-        return o;
-    }
-
-    private static DesignObject MakeBarcode(float x, float y, float w, float h, string cont)
-    {
-        var type = cont ?? "";
-        var options = "";
-        var data = "";
-        var first = type.IndexOf('|');
-        if (first >= 0)
-        {
-            var rest = type[(first + 1)..];
-            type = type[..first];
-            var second = rest.IndexOf('|');
-            if (second >= 0)
-            {
-                options = rest[..second];
-                data = rest[(second + 1)..];
-            }
-            else options = rest;
-        }
-        var format = ExternalImportService.MapBarcode(type);
-        var o = DesignObject.CreateDefault(ExternalImportService.Is2dBarcode(format) ? ObjectType.Qr : ObjectType.Barcode, x, y);
-        o.Width = w; o.Height = h;
-        o.BarcodeFormat = format;
-        o.BarcodeValue = data;
-        foreach (var part in options.Split(';', StringSplitOptions.RemoveEmptyEntries))
-        {
-            var colon = part.IndexOf(':');
-            if (colon < 0) continue;
-            var key = part[..colon].Trim();
-            var val = part[(colon + 1)..];
-            if (key.Equals("DrawCaption", StringComparison.OrdinalIgnoreCase))
-                o.BarcodeShowText = val.Equals("True", StringComparison.OrdinalIgnoreCase) || val == "1";
-        }
-        return o;
-    }
-
-    private static DesignObject MakeTable(float x, float y, float w, float h, string cont)
-    {
-        var o = DesignObject.CreateDefault(ObjectType.Table, x, y);
-        o.Width = w; o.Height = h;
-        var parts = (cont ?? "").Split(':');
-        if (parts.Length >= 3)
-        {
-            o.TableCols = Math.Clamp(parts[1].Split(',', StringSplitOptions.RemoveEmptyEntries).Length, 1, 40);
-            o.TableRows = Math.Clamp(parts[2].Split(',', StringSplitOptions.RemoveEmptyEntries).Length, 1, 40);
-        }
-        o.EnsureTableSize();
-        return o;
-    }
-
-    private static DesignObject MakeIcon(float x, float y, float w, float h, string cont)
-    {
-        var o = DesignObject.CreateDefault(ObjectType.Icon, x, y);
-        o.Width = w; o.Height = h;
-        o.IconName = (cont ?? "").Trim();
-        o.Text = o.IconName;
-        if (FontAwesomeCatalog.TryResolve(o.IconName, out var d))
-            o.Svg = d;
-        return o;
-    }
-
-    private static string StripCont(string? cont)
-    {
-        if (string.IsNullOrEmpty(cont)) return "";
-        var s = Regex.Replace(cont, @"\{[#&@][^}]*\}", "");
-        return WebUtility.HtmlDecode(s).Trim();
-    }
-
-    private static string? NullIfEmpty(string s) => string.IsNullOrWhiteSpace(s) ? null : s;
-
-    private static string ArgbToCss(int argb)
-    {
-        if (argb == -1) return "transparent";
-        var u = unchecked((uint)argb);
-        return $"#{(u >> 16) & 0xFF:X2}{(u >> 8) & 0xFF:X2}{u & 0xFF:X2}";
-    }
-
-    private static LabelDocument FromXml(byte[] bytes, string name, PaperCatalog papers)
-    {
-        XDocument xml;
-        try
-        {
-            using var ms = new MemoryStream(bytes);
-            xml = XDocument.Load(ms);
-        }
-        catch (Exception ex)
-        {
-            throw new InvalidDataException("아이라벨 XML을 읽지 못했습니다: " + ex.Message);
-        }
-
-        var root = xml.Root ?? throw new InvalidDataException("아이라벨 XML 루트가 없습니다.");
-        var paperEl = root.Descendants().FirstOrDefault(e => e.Name.LocalName.Equals("Paper", StringComparison.OrdinalIgnoreCase));
-        float lw = Attr(paperEl, "LabelWidth", 70), lh = Attr(paperEl, "LabelHeight", 36);
-        var cols = (int)Attr(paperEl, "Cols", 1);
-        var rows = (int)Attr(paperEl, "Rows", 1);
-        var paper = ExternalImportService.ResolvePaper(
-            papers, "ilabel", AttrStr(paperEl, "Name"), lw, lh, cols, rows,
-            Attr(paperEl, "Width", 210), Attr(paperEl, "Height", 297),
-            Attr(paperEl, "MarginLeft", -1), Attr(paperEl, "MarginTop", -1),
-            -1, -1, Attr(paperEl, "PitchHorizen", -1), Attr(paperEl, "PitchVertical", -1));
-        var doc = LabelDocument.CreateBlank(paper);
-        doc.Name = name;
-        foreach (var cell in doc.Pages[0].Cells)
-            cell.Objects.Clear();
-
-        var per = Math.Max(1, paper.LabelsPerPage);
-        var z = 0;
-        foreach (var el in root.Descendants().Where(e => e.Name.LocalName.Equals("Factor", StringComparison.OrdinalIgnoreCase)
-                                                       || e.Name.LocalName.Equals("Object", StringComparison.OrdinalIgnoreCase)))
-        {
-            var row = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-            foreach (var a in el.Attributes())
-                row[a.Name.LocalName] = a.Value;
-            foreach (var c in el.Elements())
-                row[c.Name.LocalName] = c.Value;
-            var fake = new Jet4Row(row);
-            var obj = MapFactor(fake, z++);
-            if (obj is null) continue;
-            var labelId = fake.GetInt("LabelId");
-            if (labelId == CommonLabelId)
-                ExternalImportService.PlaceCommon(doc, obj);
-            else
-            {
-                if (labelId < 0 || labelId >= per * ExternalImportService.MaxImportPages)
-                    labelId = 0;
-                ExternalImportService.Place(doc, obj, labelId + 1, per);
-            }
-        }
-
-        if (doc.Pages.All(p => p.Cells.All(c => c.Objects.Count == 0)))
-        {
-            var t = DesignObject.CreateDefault(ObjectType.Text, paper.LabelWidthMm * 0.1f, paper.LabelHeightMm * 0.3f);
-            t.Text = name;
-            doc.Pages[0].Cells[0].Objects.Add(t);
-            EditorLog.Warn("아이라벨 XML에서 객체를 찾지 못해 빈 용지로 엽니다.");
-        }
-
-        return doc;
-    }
-
-    private static float Attr(XElement? el, string name, float fallback)
-    {
-        var v = el?.Attribute(name)?.Value ?? el?.Element(name)?.Value;
-        return float.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out var n) ? n : fallback;
-    }
-
-    private static string? AttrStr(XElement? el, string name)
-        => el?.Attribute(name)?.Value ?? el?.Element(name)?.Value;
 }

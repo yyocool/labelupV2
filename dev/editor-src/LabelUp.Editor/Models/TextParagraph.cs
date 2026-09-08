@@ -1,6 +1,6 @@
 namespace LabelUp.Editor.Models;
 
-/// <summary>확장문자열 RTF의 한 문단. 정렬은 문단 속성이다.</summary>
+/// <summary>일반텍스트의 한 문단. 정렬은 문단 속성이다.</summary>
 public sealed class TextParagraph
 {
     public string Align { get; set; } = "left";
@@ -13,7 +13,7 @@ public sealed class TextParagraph
     };
 }
 
-/// <summary>확장문자열 RTF의 한 서식 구간. 박스 전체가 아니라 글자 구간 속성이다.</summary>
+/// <summary>일반텍스트의 한 서식 구간. 박스 전체가 아니라 글자 구간 속성이다.</summary>
 public sealed class TextSpan
 {
     public string Text { get; set; } = "";

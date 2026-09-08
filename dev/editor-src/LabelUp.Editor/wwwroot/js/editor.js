@@ -340,16 +340,29 @@ window.labelUpEditor = {
     if (String(src).indexOf('data:image') === 0) return String(src);
     var url = String(src);
     if (url.charAt(0) === '/') url = window.location.origin + url;
-    var res = await fetch(url, { credentials: 'same-origin' });
-    if (!res.ok) return '';
-    var blob = await res.blob();
-    if (!blob || blob.size < 8) return '';
-    return await new Promise(function (resolve, reject) {
-      var reader = new FileReader();
-      reader.onload = function () { resolve(String(reader.result || '')); };
-      reader.onerror = function () { reject(reader.error || new Error('read failed')); };
-      reader.readAsDataURL(blob);
-    });
+    var readBlob = async function (res) {
+      if (!res || !res.ok) return '';
+      var blob = await res.blob();
+      if (!blob || blob.size < 8) return '';
+      return await new Promise(function (resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function () { resolve(String(reader.result || '')); };
+        reader.onerror = function () { reject(reader.error || new Error('read failed')); };
+        reader.readAsDataURL(blob);
+      });
+    };
+    try {
+      var direct = await readBlob(await fetch(url, { credentials: 'omit', mode: 'cors' }));
+      if (direct) return direct;
+    } catch (e) { /* CORS 등 */ }
+    if (/^https?:\/\//i.test(url) && url.indexOf(window.location.origin) !== 0) {
+      try {
+        var proxied = window.location.origin + '/api/editor/remote-image?url=' + encodeURIComponent(url);
+        var viaProxy = await readBlob(await fetch(proxied, { credentials: 'same-origin' }));
+        if (viaProxy) return viaProxy;
+      } catch (e2) { /* ignore */ }
+    }
+    return '';
   },
   downloadBase64: function (base64, fileName, mime) {
     try {
@@ -433,14 +446,23 @@ window.labelUpEditor = {
       console.error('[LabelUp] downloadText', e);
     }
   },
-  printImages: function (dataUrls, title) {
+  printImages: function (dataUrls, title, pageWmm, pageHmm) {
     var urls = Array.isArray(dataUrls) ? dataUrls.filter(Boolean) : [dataUrls];
     if (urls.length === 0) return;
+    var w = Number(pageWmm) > 20 ? Number(pageWmm) : 210;
+    var h = Number(pageHmm) > 20 ? Number(pageHmm) : 297;
+    var page = w.toFixed(3) + 'mm ' + h.toFixed(3) + 'mm';
     var imgs = urls.map(function (u, i) {
       return '<img class="p" src="' + u + '" alt="print ' + (i + 1) + '" />';
     }).join('');
+    // PNG는 이미 용지 전체(여백 포함) 1:1이다. @page 8mm + width:100% 하면
+    // 3189처럼 칸이 많은 용지가 줄어들고 아래로 밀린다.
     var html = '<!doctype html><html><head><title>' + (title || '인쇄') + '</title>'
-      + '<style>@page{margin:8mm}html,body{margin:0;background:#fff}img{width:100%;display:block;page-break-after:always}img:last-child{page-break-after:auto}</style></head><body>'
+      + '<style>@page{size:' + page + ';margin:0}html,body{margin:0;padding:0;width:' + w.toFixed(3)
+      + 'mm;height:' + h.toFixed(3) + 'mm;background:#fff}'
+      + 'img.p{width:' + w.toFixed(3) + 'mm;height:' + h.toFixed(3)
+      + 'mm;display:block;page-break-after:always;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+      + 'img.p:last-child{page-break-after:auto}</style></head><body>'
       + imgs + '</body></html>';
     var iframe = document.getElementById('lu-print-frame');
     if (!iframe) {
@@ -2974,6 +2996,235 @@ window.labelUpEditor = {
       });
       })();
     });
+  },
+
+  richText: {
+    _el: null,
+    _dot: null,
+    _saved: null,
+    bind: function (el, dotnet) {
+      if (!el) return;
+      this._el = el;
+      this._dot = dotnet;
+      if (el._luRichBound) return;
+      el._luRichBound = true;
+      el.setAttribute('contenteditable', 'true');
+      el.setAttribute('spellcheck', 'false');
+      el.setAttribute('role', 'textbox');
+      var self = this;
+      var emit = function () {
+        if (!self._dot) return;
+        try { self._dot.invokeMethodAsync('OnRichModel', JSON.stringify(self.read(el))); }
+        catch (e) { /* ignore */ }
+      };
+      var caret = function () {
+        self.saveSel(el);
+        if (!self._dot) return;
+        try { self._dot.invokeMethodAsync('OnRichCaret', JSON.stringify(self.query(el))); }
+        catch (e) { /* ignore */ }
+      };
+      el.addEventListener('input', emit);
+      el.addEventListener('keyup', caret);
+      el.addEventListener('mouseup', caret);
+      el.addEventListener('focus', function () { el._luRichFocus = true; caret(); });
+      el.addEventListener('blur', function () {
+        el._luRichFocus = false;
+        emit();
+        if (self._dot) {
+          try { self._dot.invokeMethodAsync('OnRichBlur'); } catch (e) { /* ignore */ }
+        }
+      });
+      el.addEventListener('paste', function (e) {
+        e.preventDefault();
+        var t = ((e.clipboardData || window.clipboardData).getData('text/plain') || '');
+        document.execCommand('insertText', false, t);
+      });
+    },
+    setHtml: function (el, html) {
+      if (!el) return;
+      if (el._luRichFocus) return;
+      if (el.innerHTML === html) return;
+      el.innerHTML = html || '';
+    },
+    saveSel: function (el) {
+      var node = el || this._el;
+      var sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+      var a = sel.anchorNode;
+      if (!node || !a || !node.contains(a)) return;
+      this._saved = sel.getRangeAt(0).cloneRange();
+    },
+    restoreSel: function (el) {
+      if (!this._saved) return false;
+      var node = el || this._el;
+      try {
+        node.focus();
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(this._saved);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    },
+    hasSelection: function (el) {
+      var node = el || this._el;
+      if (this._saved && this._saved.toString().length > 0) return true;
+      var sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return false;
+      var a = sel.anchorNode, f = sel.focusNode;
+      return !!(node && a && f && node.contains(a) && node.contains(f));
+    },
+    apply: function (el, cmd, value) {
+      var node = el || this._el;
+      if (!node) return;
+      node.focus();
+      this.restoreSel(node);
+      try { document.execCommand('styleWithCSS', false, true); } catch (e) { /* ignore */ }
+      if (cmd === 'bold') document.execCommand('bold');
+      else if (cmd === 'italic') document.execCommand('italic');
+      else if (cmd === 'underline') document.execCommand('underline');
+      else if (cmd === 'strikeThrough') document.execCommand('strikeThrough');
+      else if (cmd === 'align') {
+        var map = { left: 'justifyLeft', center: 'justifyCenter', right: 'justifyRight', justify: 'justifyFull' };
+        document.execCommand(map[value] || 'justifyLeft');
+      } else if (cmd === 'font') this.paint(node, { fontFamily: value });
+      else if (cmd === 'size') this.paint(node, { fontSize: String(value) + 'pt' });
+      else if (cmd === 'color') this.paint(node, { color: value });
+      if (this._dot) {
+        try { this._dot.invokeMethodAsync('OnRichModel', JSON.stringify(this.read(node))); }
+        catch (e) { /* ignore */ }
+      }
+    },
+    paint: function (el, styles) {
+      document.execCommand('fontName', false, 'LU_MARK');
+      var nodes = el.querySelectorAll('font, span, b, i, u, strong, em');
+      for (var i = 0; i < nodes.length; i++) {
+        var n = nodes[i];
+        var face = (n.getAttribute && n.getAttribute('face')) || '';
+        var ff = (n.style && n.style.fontFamily) || '';
+        if (face.indexOf('LU_MARK') < 0 && ff.indexOf('LU_MARK') < 0) continue;
+        if (n.removeAttribute) n.removeAttribute('face');
+        if (n.style) {
+          if ((n.style.fontFamily || '').indexOf('LU_MARK') >= 0)
+            n.style.fontFamily = styles.fontFamily || '';
+          Object.keys(styles).forEach(function (k) { n.style[k] = styles[k]; });
+        }
+      }
+    },
+    query: function (el) {
+      var node = el || this._el;
+      var sel = window.getSelection();
+      var cur = (sel && sel.anchorNode) || node;
+      if (cur && cur.nodeType === 3) cur = cur.parentElement;
+      var st = this.styleOf(cur || node, this.styleOf(node, {
+        fontFamily: 'Pretendard', fontSizePt: 12, fill: '#2e2a27',
+        bold: false, italic: false, underline: false, strikeout: false
+      }));
+      var align = 'left';
+      try {
+        if (document.queryCommandState('justifyCenter')) align = 'center';
+        else if (document.queryCommandState('justifyRight')) align = 'right';
+        st.bold = document.queryCommandState('bold') || st.bold;
+        st.italic = document.queryCommandState('italic') || st.italic;
+        st.underline = document.queryCommandState('underline') || st.underline;
+      } catch (e) { /* ignore */ }
+      st.align = align;
+      return st;
+    },
+    styleOf: function (node, inherit) {
+      inherit = inherit || {
+        fontFamily: 'Pretendard', fontSizePt: 12, fill: '#2e2a27',
+        bold: false, italic: false, underline: false, strikeout: false
+      };
+      if (!node || node.nodeType !== 1) return inherit;
+      var cs = window.getComputedStyle(node);
+      var dec = ((cs.textDecorationLine || cs.textDecoration || '') + '');
+      var fam = (cs.fontFamily || '').split(',')[0].replace(/['"]/g, '').trim();
+      var px = parseFloat(cs.fontSize) || 16;
+      return {
+        fontFamily: fam || inherit.fontFamily,
+        fontSizePt: +(px * 72 / 96).toFixed(2),
+        fill: this.rgbToHex(cs.color) || inherit.fill,
+        bold: (cs.fontWeight + '') === 'bold' || parseInt(cs.fontWeight, 10) >= 600,
+        italic: (cs.fontStyle || '') === 'italic' || (cs.fontStyle || '') === 'oblique',
+        underline: dec.indexOf('underline') >= 0,
+        strikeout: dec.indexOf('line-through') >= 0
+      };
+    },
+    rgbToHex: function (c) {
+      if (!c) return '';
+      if (c[0] === '#') {
+        return c.length === 4
+          ? ('#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3]).toLowerCase()
+          : c.slice(0, 7).toLowerCase();
+      }
+      var m = String(c).match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+      if (!m) return '';
+      return '#' + [m[1], m[2], m[3]].map(function (x) {
+        return ('0' + parseInt(x, 10).toString(16)).slice(-2);
+      }).join('');
+    },
+    sameStyle: function (a, b) {
+      return a.fontFamily === b.fontFamily
+        && Math.abs(a.fontSizePt - b.fontSizePt) < 0.25
+        && a.fill === b.fill
+        && a.bold === b.bold
+        && a.italic === b.italic
+        && a.underline === b.underline
+        && a.strikeout === b.strikeout;
+    },
+    read: function (el) {
+      var self = this;
+      var paras = [];
+      var inherit = this.styleOf(el, {
+        fontFamily: 'Pretendard', fontSizePt: 12, fill: '#2e2a27',
+        bold: false, italic: false, underline: false, strikeout: false
+      });
+      function addSpan(para, text, st) {
+        if (!text) return;
+        var last = para.spans[para.spans.length - 1];
+        if (last && self.sameStyle(last, st)) last.text += text;
+        else para.spans.push(Object.assign({ text: text }, st));
+      }
+      function newPara(align) {
+        var a = align || 'left';
+        if (a === 'start') a = 'left';
+        if (a === 'end') a = 'right';
+        return { align: a, spans: [] };
+      }
+      var rootAlign = (window.getComputedStyle(el).textAlign || 'left');
+      var para = newPara(rootAlign);
+      function walk(node, st, align) {
+        if (node.nodeType === 3) {
+          addSpan(para, String(node.nodeValue || '').replace(/\u00a0/g, ' '), st);
+          return;
+        }
+        if (node.nodeType !== 1) return;
+        var tag = (node.tagName || '').toLowerCase();
+        if (tag === 'br') {
+          paras.push(para);
+          para = newPara(align);
+          return;
+        }
+        var next = self.styleOf(node, st);
+        var al = (window.getComputedStyle(node).textAlign || align || 'left');
+        var block = tag === 'div' || tag === 'p' || tag === 'li';
+        if (block && (para.spans.length > 0 || paras.length > 0)) {
+          paras.push(para);
+          para = newPara(al);
+        } else if (block) {
+          para.align = newPara(al).align;
+        }
+        for (var i = 0; i < node.childNodes.length; i++)
+          walk(node.childNodes[i], next, al);
+      }
+      for (var i = 0; i < el.childNodes.length; i++)
+        walk(el.childNodes[i], inherit, rootAlign);
+      paras.push(para);
+      if (paras.length === 0) paras.push(newPara(rootAlign));
+      return { paragraphs: paras };
+    }
   }
 };
 
