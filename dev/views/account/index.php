@@ -73,13 +73,23 @@ $usagePct = min(100, (int) round(($usage['used'] / max(1, $usage['limit'])) * 10
       <a href="<?= url('editor/') ?>">전체 보기 →</a>
     </div>
     <div class="account-design-grid">
+      <?php if (empty($dash['recentDesigns'])): ?>
+      <p class="account-empty account-design-empty">아직 저장된 디자인이 없습니다. 편집기에서 저장하면 여기에 미리보기가 표시됩니다.</p>
+      <?php endif; ?>
       <?php foreach ($dash['recentDesigns'] as $d): ?>
-      <a class="account-design-card" href="<?= url('editor/') ?>">
-        <div class="account-design-thumb"><img src="<?= e($d['thumb']) ?>" alt=""></div>
-        <span class="account-design-status <?= ($d['status'] ?? '') === 'complete' ? 'is-complete' : 'is-editing' ?>">
-          <?= ($d['status'] ?? '') === 'complete' ? '완료' : '편집중' ?>
-        </span>
-        <strong><?= e($d['name']) ?></strong>
+      <a class="account-design-card" href="<?= e((string) ($d['href'] ?? url('editor/'))) ?>">
+        <div class="account-design-thumb">
+          <?php if (!empty($d['thumb'])): ?>
+          <img src="<?= e((string) $d['thumb']) ?>" alt="<?= e((string) $d['name']) ?>">
+          <?php else: ?>
+          <span class="account-design-fallback">라벨</span>
+          <?php endif; ?>
+        </div>
+        <span class="account-design-status is-editing">편집중</span>
+        <strong><?= e((string) $d['name']) ?></strong>
+        <?php if (!empty($d['updated_label'])): ?>
+        <em class="account-design-updated"><?= e((string) $d['updated_label']) ?></em>
+        <?php endif; ?>
       </a>
       <?php endforeach; ?>
       <a class="account-design-card account-design-new" href="<?= url('editor/') ?>">
@@ -203,12 +213,23 @@ $usagePct = min(100, (int) round(($usage['used'] / max(1, $usage['limit'])) * 10
     <h2 class="account-section-title">계정 · 설정</h2>
     <div class="account-settings-grid">
       <button type="button" data-open-modal="profileModal"><span>◎</span>회원정보</button>
-      <button type="button" disabled title="준비 중"><span>♧</span>알림 설정</button>
+      <button type="button" data-open-modal="notifPrefsModal"><span>♧</span>알림 설정</button>
       <button type="button" disabled title="준비 중"><span>💳</span>결제·구독</button>
       <button type="button" data-open-modal="passwordModal"><span>🔒</span>보안 설정</button>
     </div>
   </section>
 </div>
+
+<section class="account-panel card" id="notifications">
+  <div class="account-panel-head">
+    <h2>알림 설정</h2>
+    <button type="button" class="account-btn account-btn--outline" data-open-modal="notifPrefsModal">설정 변경</button>
+  </div>
+  <p class="account-meta">받고 싶은 알림 종류와 크레딧 부족 기준을 직접 조절할 수 있습니다.</p>
+  <ul class="account-notif-summary" id="accountNotifSummary">
+    <li>설정을 불러오는 중…</li>
+  </ul>
+</section>
 
 <section class="account-panel card" id="credits">
   <h2 class="account-section-title">크레딧 내역</h2>

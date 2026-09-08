@@ -51,6 +51,6 @@ public static class SvgLibrary
         ("info", "정보", "M50 8 A42 42 0 1 1 49.9 8 Z M50 42 V72 M50 28 A4 4 0 1 1 49.9 28 Z")
     ];
 
-    public static string ToSvg(string path, string fill = "#7B2840", int size = 100)
-        => $"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' width='{size}' height='{size}'><path d='{path}' fill='{fill}'/></svg>";
+    public static string ToSvg(string path, string fill = "#7B2840", int size = 100, int viewW = 100, int viewH = 100)
+        => $"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 {viewW} {viewH}' width='{size}' height='{size}'><path d='{path}' fill='{fill}'/></svg>";
 }

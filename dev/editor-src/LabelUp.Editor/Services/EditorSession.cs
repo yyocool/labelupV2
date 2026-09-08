@@ -648,7 +648,8 @@ public sealed class EditorSession
     public string ResolveObjectText(DesignObject obj, int? globalIndex = null, DateTime? clock = null)
     {
         var idx = globalIndex ?? GlobalLabelIndex;
-        if (obj.Type == ObjectType.Image)
+        if (obj.Type == ObjectType.Image
+            || (obj.Type is ObjectType.Clipart or ObjectType.Icon && IsRasterMedia(obj.ImageData)))
         {
             if (obj.DataBound && !string.IsNullOrWhiteSpace(obj.DataColumn) && Document.Data is { } imgData)
             {
@@ -659,6 +660,8 @@ public sealed class EditorSession
                     return url;
                 }
             }
+            if (!string.IsNullOrWhiteSpace(obj.ImageData))
+                BoundImageCache.Request(obj.ImageData);
             return obj.ImageData ?? "";
         }
         var text = obj.Text ?? "";
@@ -691,5 +694,25 @@ public sealed class EditorSession
             text = FormtecRecords.ExpandCustom(obj, idx, clock);
 
         return text;
+    }
+
+    private static bool IsRasterMedia(string? data)
+    {
+        if (string.IsNullOrWhiteSpace(data)) return false;
+        if (data.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase)) return true;
+        if (data.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+            || data.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+            || data.StartsWith("//"))
+            return true;
+        if (data.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase)
+            || data.StartsWith("assets/", StringComparison.OrdinalIgnoreCase))
+            return true;
+        var q = data.IndexOf('?');
+        var path = q >= 0 ? data[..q] : data;
+        return path.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
+               || path.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
+               || path.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)
+               || path.EndsWith(".webp", StringComparison.OrdinalIgnoreCase)
+               || path.EndsWith(".gif", StringComparison.OrdinalIgnoreCase);
     }
 }

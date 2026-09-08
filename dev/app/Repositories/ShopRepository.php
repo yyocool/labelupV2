@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use App\Helpers\ShopCompatHelper;
 use App\Models\BaseModel;
 use App\Services\ShopProductImageService;
 
@@ -381,11 +382,11 @@ final class ShopRepository extends BaseModel
 
             'thumbnail' => $data['thumbnail'] ?? null,
 
-            'compat_formtec' => $this->nullableText($data['compat_formtec'] ?? null),
+            'compat_formtec' => $this->compatCodes($data['compat_formtec'] ?? null),
 
-            'compat_ilabel' => $this->nullableText($data['compat_ilabel'] ?? null),
+            'compat_ilabel' => $this->compatCodes($data['compat_ilabel'] ?? null),
 
-            'compat_anylabel' => $this->nullableText($data['compat_anylabel'] ?? null),
+            'compat_anylabel' => $this->compatCodes($data['compat_anylabel'] ?? null),
 
             'now' => $now,
 
@@ -812,9 +813,14 @@ final class ShopRepository extends BaseModel
                    WHERE p.status IN (\'active\', \'soldout\')';
 
         $exact = $this->fetchOne(
-            $select . ' AND (p.sku = :sku OR p.compat_formtec = :cf OR p.compat_ilabel = :ci OR p.compat_anylabel = :ca)
+            $select . " AND (
+                p.sku = :sku
+                OR FIND_IN_SET(:cf, IFNULL(p.compat_formtec, '')) > 0
+                OR FIND_IN_SET(:ci, IFNULL(p.compat_ilabel, '')) > 0
+                OR FIND_IN_SET(:ca, IFNULL(p.compat_anylabel, '')) > 0
+             )
              ORDER BY CASE WHEN p.sku = :sku_rank THEN 0 ELSE 1 END, p.id DESC
-             LIMIT 1',
+             LIMIT 1",
             [
                 'sku' => $code,
                 'cf' => $code,
@@ -840,7 +846,9 @@ final class ShopRepository extends BaseModel
         );
     }
 
-    /** @return array{items: array<int, array<string, mixed>>, total: int, page: int, pages: int} */
+    /**
+     * @return array{items: array<int, array<string, mixed>>, total: int, page: int, pages: int, per_page: int}
+     */
     public function activeProducts(array $filters = [], int $page = 1, int $perPage = 12): array
     {
         $page = max(1, $page);
@@ -1114,9 +1122,9 @@ final class ShopRepository extends BaseModel
              SET compat_formtec = :compat_formtec, compat_ilabel = :compat_ilabel, compat_anylabel = :compat_anylabel, updated_at = :now
              WHERE id = :id',
             [
-                'compat_formtec' => $this->nullableText($codes['compat_formtec'] ?? null),
-                'compat_ilabel' => $this->nullableText($codes['compat_ilabel'] ?? null),
-                'compat_anylabel' => $this->nullableText($codes['compat_anylabel'] ?? null),
+                'compat_formtec' => $this->compatCodes($codes['compat_formtec'] ?? null),
+                'compat_ilabel' => $this->compatCodes($codes['compat_ilabel'] ?? null),
+                'compat_anylabel' => $this->compatCodes($codes['compat_anylabel'] ?? null),
                 'now' => date('Y-m-d H:i:s'),
                 'id' => $id,
             ]
@@ -1289,6 +1297,11 @@ final class ShopRepository extends BaseModel
         }
 
         return [$where, $params];
+    }
+
+    private function compatCodes(mixed $value): ?string
+    {
+        return ShopCompatHelper::normalize($value);
     }
 
     private function nullableText(mixed $value): ?string

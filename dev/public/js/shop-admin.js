@@ -48,6 +48,11 @@ const SHOP_ENDPOINTS = {
   },
   coupon: { save: '/api/admin/shop/coupon/save', delete: '/api/admin/shop/coupon/delete' },
   banner: { save: '/api/admin/shop/banner/save', delete: '/api/admin/shop/banner/delete' },
+  pageSettings: {
+    get: '/api/admin/shop/product-page-settings',
+    save: '/api/admin/shop/product-page-settings/save',
+    uploadImages: '/api/admin/shop/product-page-settings/upload-images',
+  },
 };
 
 const PRODUCT_EDITOR_OPTS = {
@@ -186,6 +191,14 @@ function escHtml(value) {
     .replace(/"/g, '&quot;');
 }
 
+function compatToMultiline(value) {
+  return String(value ?? '')
+    .split(/[,;\n\r|]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join('\n');
+}
+
 function shopField(label, name, value = '', type = 'text', opts = {}) {
   const req = opts.required ? ' required' : '';
   const fullClass = opts.full ? ' admin-field--full' : '';
@@ -247,10 +260,12 @@ function buildProductForm(row = {}) {
   html += shopField('정렬', 'sort_order', row.sort_order ?? 0, 'number');
   html += '</div></section>';
 
-  html += '<section class="admin-product-section"><h4 class="admin-product-section-title">\uD638\uD658\uCF54\uB4DC</h4><div class="admin-product-form-grid">';
-  html += shopField('\uD3FC\uD14D', 'compat_formtec', row.compat_formtec || '');
-  html += shopField('\uC544\uC774\uB77C\uBCA8', 'compat_ilabel', row.compat_ilabel || '');
-  html += shopField('\uC560\uB2C8\uB77C\uBCA8', 'compat_anylabel', row.compat_anylabel || '');
+  html += '<section class="admin-product-section"><h4 class="admin-product-section-title">\uD638\uD658\uCF54\uB4DC</h4>';
+  html += '<p class="admin-muted" style="margin:0 0 8px;font-size:12px">\uD3FC\uD14D\u00B7\uC544\uC774\uB77C\uBCA8\u00B7\uC560\uB2C8\uB77C\uBCA8 \uCF54\uB4DC\uB294 \uD55C \uC904\uC5D0 \uD558\uB098 \uB610\uB294 \uC27C\uD45C\uB85C \uC5EC\uB7EC \uAC1C\uB97C \uC785\uB825\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.</p>';
+  html += '<div class="admin-product-form-grid">';
+  html += shopField('\uD3FC\uD14D', 'compat_formtec', compatToMultiline(row.compat_formtec), 'textarea', { rows: 3, full: true });
+  html += shopField('\uC544\uC774\uB77C\uBCA8', 'compat_ilabel', compatToMultiline(row.compat_ilabel), 'textarea', { rows: 3, full: true });
+  html += shopField('\uC560\uB2C8\uB77C\uBCA8', 'compat_anylabel', compatToMultiline(row.compat_anylabel), 'textarea', { rows: 3, full: true });
   html += '</div></section>';
 
   html += '<section class="admin-product-section"><h4 class="admin-product-section-title">가격 · 재고</h4><div class="admin-product-form-grid">';
@@ -812,5 +827,190 @@ document.addEventListener('click', (e) => {
   }
   if (e.target.closest('.js-lightbox-close')) {
     closeAdminLightbox();
+  }
+});
+
+const PAGE_SETTINGS_EDITOR_OPTS = {
+  lang: 'ko-KR',
+  height: 220,
+  placeholder: '내용을 입력하세요.',
+  toolbar: [
+    ['style', ['style']],
+    ['font', ['bold', 'italic', 'underline', 'clear']],
+    ['fontsize', ['fontsize']],
+    ['color', ['color']],
+    ['para', ['ul', 'ol', 'paragraph']],
+    ['insert', ['link', 'picture', 'table', 'hr']],
+    ['view', ['fullscreen', 'codeview']],
+  ],
+  dialogsInBody: true,
+};
+
+const pageSettingsState = {
+  header_image: '',
+  footer_image: '',
+};
+
+function destroyPageSettingsEditors() {
+  ['.js-page-header-html', '.js-page-footer-html'].forEach((sel) => {
+    const ta = document.querySelector(sel);
+    if (ta && window.jQuery && jQuery.fn.summernote && jQuery(ta).next('.note-editor').length) {
+      jQuery(ta).summernote('destroy');
+    }
+  });
+}
+
+function initPageSettingsEditors(headerHtml = '', footerHtml = '') {
+  if (!window.jQuery || !jQuery.fn.summernote) return;
+  const header = document.querySelector('.js-page-header-html');
+  const footer = document.querySelector('.js-page-footer-html');
+  if (header) {
+    const $h = jQuery(header);
+    if ($h.next('.note-editor').length) $h.summernote('destroy');
+    $h.val(headerHtml || '');
+    $h.summernote(PAGE_SETTINGS_EDITOR_OPTS);
+    if (headerHtml) $h.summernote('code', headerHtml);
+  }
+  if (footer) {
+    const $f = jQuery(footer);
+    if ($f.next('.note-editor').length) $f.summernote('destroy');
+    $f.val(footerHtml || '');
+    $f.summernote(PAGE_SETTINGS_EDITOR_OPTS);
+    if (footerHtml) $f.summernote('code', footerHtml);
+  }
+}
+
+function getPageSettingsEditorCode(selector) {
+  const ta = document.querySelector(selector);
+  if (!ta) return '';
+  if (window.jQuery && jQuery.fn.summernote && jQuery(ta).next('.note-editor').length) {
+    const code = jQuery(ta).summernote('code') || '';
+    if (code === '<p><br></p>' || code === '<p></p>') return '';
+    return code;
+  }
+  return ta.value || '';
+}
+
+function renderPageSettingsImage(kind) {
+  const isHeader = kind === 'header';
+  const path = isHeader ? pageSettingsState.header_image : pageSettingsState.footer_image;
+  const preview = document.getElementById(isHeader ? 'pageHeaderImagePreview' : 'pageFooterImagePreview');
+  const hidden = document.getElementById(isHeader ? 'pageHeaderImagePath' : 'pageFooterImagePath');
+  const removeBtn = document.getElementById(isHeader ? 'pageHeaderImageRemove' : 'pageFooterImageRemove');
+  if (hidden) hidden.value = path || '';
+  if (removeBtn) removeBtn.disabled = !path;
+  if (!preview) return;
+  if (!path) {
+    preview.innerHTML = '<span class="admin-muted">등록된 이미지가 없습니다.</span>';
+    return;
+  }
+  const src = resolveImageUrl(path);
+  preview.innerHTML = `<img src="${escHtml(src)}" alt="${isHeader ? '헤더' : '푸터'} 이미지" class="admin-category-image-preview">`;
+}
+
+function bindPageSettingsImage(kind) {
+  const isHeader = kind === 'header';
+  const addBtn = document.getElementById(isHeader ? 'pageHeaderImageAdd' : 'pageFooterImageAdd');
+  const fileInput = document.getElementById(isHeader ? 'pageHeaderImageInput' : 'pageFooterImageInput');
+  const removeBtn = document.getElementById(isHeader ? 'pageHeaderImageRemove' : 'pageFooterImageRemove');
+  if (!addBtn || !fileInput) return;
+
+  addBtn.onclick = () => fileInput.click();
+  removeBtn && (removeBtn.onclick = () => {
+    if (isHeader) pageSettingsState.header_image = '';
+    else pageSettingsState.footer_image = '';
+    renderPageSettingsImage(kind);
+  });
+  fileInput.onchange = async () => {
+    if (!fileInput.files || !fileInput.files.length) return;
+    try {
+      const data = await ShopAPI.uploadImages(SHOP_ENDPOINTS.pageSettings.uploadImages, fileInput.files);
+      const url = (data.data?.urls || data.urls || [])[0] || '';
+      if (!url) throw new Error('이미지 업로드에 실패했습니다.');
+      if (isHeader) pageSettingsState.header_image = url;
+      else pageSettingsState.footer_image = url;
+      renderPageSettingsImage(kind);
+      if (typeof showAdminAlert === 'function') showAdminAlert('이미지가 업로드되었습니다.', 'success');
+    } catch (err) {
+      if (typeof showAdminAlert === 'function') showAdminAlert(err.message, 'error');
+    } finally {
+      fileInput.value = '';
+    }
+  };
+}
+
+function closeProductPageSettingsModal() {
+  const modal = document.getElementById('productPageSettingsModal');
+  if (!modal) return;
+  destroyPageSettingsEditors();
+  modal.hidden = true;
+}
+
+async function openProductPageSettingsModal() {
+  const modal = document.getElementById('productPageSettingsModal');
+  const form = document.getElementById('productPageSettingsForm');
+  if (!modal || !form) return;
+
+  let settings = window.SHOP_PAGE_SETTINGS || {};
+  try {
+    const res = await fetch(SHOP_ENDPOINTS.pageSettings.get, { credentials: 'same-origin' });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success !== false && data.data) {
+      settings = data.data;
+      window.SHOP_PAGE_SETTINGS = settings;
+    }
+  } catch (_) {
+    // keep embedded settings
+  }
+
+  pageSettingsState.header_image = settings.header_image || '';
+  pageSettingsState.footer_image = settings.footer_image || '';
+  renderPageSettingsImage('header');
+  renderPageSettingsImage('footer');
+  bindPageSettingsImage('header');
+  bindPageSettingsImage('footer');
+  destroyPageSettingsEditors();
+  modal.hidden = false;
+  setTimeout(() => initPageSettingsEditors(settings.header_html || '', settings.footer_html || ''), 30);
+}
+
+document.querySelectorAll('.js-product-page-settings').forEach((btn) => {
+  btn.addEventListener('click', () => openProductPageSettingsModal());
+});
+
+document.querySelectorAll('.js-page-settings-close').forEach((el) => {
+  el.addEventListener('click', () => closeProductPageSettingsModal());
+});
+
+const pageSettingsForm = document.getElementById('productPageSettingsForm');
+if (pageSettingsForm) {
+  pageSettingsForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const submitBtn = document.querySelector('button[type="submit"][form="productPageSettingsForm"]');
+    if (submitBtn) submitBtn.disabled = true;
+    try {
+      const payload = {
+        header_html: getPageSettingsEditorCode('.js-page-header-html'),
+        footer_html: getPageSettingsEditorCode('.js-page-footer-html'),
+        header_image: pageSettingsState.header_image || '',
+        footer_image: pageSettingsState.footer_image || '',
+      };
+      const data = await ShopAPI.post(SHOP_ENDPOINTS.pageSettings.save, payload);
+      window.SHOP_PAGE_SETTINGS = data.data || payload;
+      if (typeof showAdminAlert === 'function') showAdminAlert(data.message || '저장되었습니다.', 'success');
+      closeProductPageSettingsModal();
+    } catch (err) {
+      if (typeof showAdminAlert === 'function') showAdminAlert(err.message, 'error');
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  });
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const modal = document.getElementById('productPageSettingsModal');
+  if (modal && !modal.hidden) {
+    closeProductPageSettingsModal();
   }
 });

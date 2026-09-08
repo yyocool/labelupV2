@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Repositories\ShopRepository;
+use App\Repositories\ShopProductPageSettingsRepository;
 use RuntimeException;
 
 final class ShopService
@@ -163,6 +164,9 @@ final class ShopService
             'soldout' => $soldout,
             'thumbnail' => $thumb,
             'description' => (string) ($product['description'] ?? ''),
+            'compat_formtec' => \App\Helpers\ShopCompatHelper::parse($product['compat_formtec'] ?? null),
+            'compat_ilabel' => \App\Helpers\ShopCompatHelper::parse($product['compat_ilabel'] ?? null),
+            'compat_anylabel' => \App\Helpers\ShopCompatHelper::parse($product['compat_anylabel'] ?? null),
         ];
     }
 
@@ -257,6 +261,14 @@ final class ShopService
             ]));
         }
         $this->clearCart();
+
+        if ($userId > 0) {
+            (new NotificationService())->notifyOrderPlaced(
+                $userId,
+                (string) $created['order_no'],
+                (int) $summary['total']
+            );
+        }
 
         return [
             'order_id' => $created['id'],
@@ -399,5 +411,25 @@ final class ShopService
         $h = $product['height_mm'] ?? null;
         return $w !== null && $w !== '' && $h !== null && $h !== ''
             && (float) $w > 0 && (float) $h > 0;
+    }
+
+    /** @return array{header_html:string,footer_html:string,header_image:string,footer_image:string,header_image_url:string,footer_image_url:string,has_header:bool,has_footer:bool} */
+    public function productPageLayout(): array
+    {
+        $row = (new ShopProductPageSettingsRepository())->get();
+        $headerHtml = trim($row['header_html']);
+        $footerHtml = trim($row['footer_html']);
+        $headerImage = trim($row['header_image']);
+        $footerImage = trim($row['footer_image']);
+        return [
+            'header_html' => $headerHtml,
+            'footer_html' => $footerHtml,
+            'header_image' => $headerImage,
+            'footer_image' => $footerImage,
+            'header_image_url' => ShopProductImageService::resolveUrl($headerImage),
+            'footer_image_url' => ShopProductImageService::resolveUrl($footerImage),
+            'has_header' => $headerHtml !== '' || $headerImage !== '',
+            'has_footer' => $footerHtml !== '' || $footerImage !== '',
+        ];
     }
 }

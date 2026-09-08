@@ -107,16 +107,19 @@ public sealed class PaperCatalog
 
         if (paper is null)
         {
-            foreach (var (vendor, code) in new (string, string?)[]
+            foreach (var (vendor, codes) in new (string, IReadOnlyList<string>)[]
             {
-                ("formtec", item.CompatFormtec),
-                ("ilabel", item.CompatIlabel),
-                ("anylabel", item.CompatAnylabel)
+                ("formtec", item.CompatFormtecCodes),
+                ("ilabel", item.CompatIlabelCodes),
+                ("anylabel", item.CompatAnylabelCodes)
             })
             {
-                if (string.IsNullOrWhiteSpace(code)) continue;
-                var mapped = MapVendor(vendor, code.Trim()) ?? code.Trim();
-                paper = Find(mapped)?.Clone();
+                foreach (var code in codes)
+                {
+                    var mapped = MapVendor(vendor, code) ?? code;
+                    paper = Find(mapped)?.Clone();
+                    if (paper is not null) break;
+                }
                 if (paper is not null) break;
             }
         }
@@ -253,7 +256,28 @@ public sealed class PaperCatalog
     public void ReplaceMap(VendorPaperMap map) => _map = map.Clone();
 
     public string? MapVendor(string vendor, string vendorPaperNo)
-        => _map.Resolve(vendor, vendorPaperNo);
+    {
+        var mapped = _map.Resolve(vendor, vendorPaperNo);
+        if (!string.IsNullOrWhiteSpace(mapped)) return mapped;
+
+        var needle = vendorPaperNo.Trim();
+        if (needle.Length == 0) return null;
+
+        foreach (var item in _shopPapers)
+        {
+            IReadOnlyList<string> codes = vendor.ToLowerInvariant() switch
+            {
+                "formtec" => item.CompatFormtecCodes,
+                "ilabel" => item.CompatIlabelCodes,
+                "anylabel" => item.CompatAnylabelCodes,
+                _ => []
+            };
+            if (codes.Any(c => string.Equals(c, needle, StringComparison.OrdinalIgnoreCase)))
+                return string.IsNullOrWhiteSpace(item.Sku) ? $"P{item.Id}" : item.Sku.Trim();
+        }
+
+        return null;
+    }
 
     private static IEnumerable<VendorPaperMapEntry> DefaultMap() =>
     [

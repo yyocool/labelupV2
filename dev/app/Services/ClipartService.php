@@ -291,6 +291,10 @@ final class ClipartService
             ['name' => '동물', 'slug' => 'animal', 'description' => '귀여운 동물 모티브'],
             ['name' => '시즌·기념일', 'slug' => 'season', 'description' => '계절·기념일 장식'],
             ['name' => '기본 도형', 'slug' => 'shape', 'description' => '원·별·체크 등 기본형'],
+            ['name' => '패턴·텍스처', 'slug' => 'pattern', 'description' => '도트·스트라이프·지오메트릭 패턴'],
+            ['name' => '간판·매장', 'slug' => 'signboard', 'description' => '매장 간판·입간판·오픈 표지'],
+            ['name' => '캐릭터', 'slug' => 'character', 'description' => '귀여운 마스코트·프렌즈 표정·행동'],
+            ['name' => '뱃지·실', 'slug' => 'badge', 'description' => '원형 실·리본·메달·어워드 뱃지'],
         ];
         $created = 0;
         foreach ($defaults as $i => $row) {
@@ -312,5 +316,55 @@ final class ClipartService
     public function count(): int
     {
         return $this->repo->countCliparts();
+    }
+
+    /**
+     * 편집기 공개 카탈로그 — 페이지 단위.
+     *
+     * @param array{page?:int,per_page?:int,q?:string,category_id?:int} $filters
+     * @return array{
+     *   items: array<int, array<string, mixed>>,
+     *   categories: array<int, array{id:int,name:string,slug:string}>,
+     *   total: int, page: int, pages: int, perPage: int, hasMore: bool
+     * }
+     */
+    public function publicCatalog(array $filters = []): array
+    {
+        $paged = $this->repo->listActiveForEditorPaged($filters);
+        $items = [];
+        foreach ($paged['items'] as $row) {
+            $items[] = [
+                'id' => (int) ($row['id'] ?? 0),
+                'title' => (string) ($row['title'] ?? ''),
+                'imageUrl' => self::resolveUrl((string) ($row['image_path'] ?? '')),
+                'categoryId' => !empty($row['category_id']) ? (int) $row['category_id'] : null,
+                'categoryName' => (string) ($row['category_name'] ?? ''),
+                'categorySlug' => (string) ($row['category_slug'] ?? ''),
+                'hashtags' => (string) ($row['hashtags'] ?? ''),
+                'description' => (string) ($row['description'] ?? ''),
+            ];
+        }
+
+        $categories = [];
+        foreach ($this->repo->categories(true) as $cat) {
+            $categories[] = [
+                'id' => (int) ($cat['id'] ?? 0),
+                'name' => (string) ($cat['name'] ?? ''),
+                'slug' => (string) ($cat['slug'] ?? ''),
+            ];
+        }
+
+        $page = (int) ($paged['page'] ?? 1);
+        $pages = (int) ($paged['pages'] ?? 1);
+
+        return [
+            'items' => $items,
+            'categories' => $categories,
+            'total' => (int) ($paged['total'] ?? 0),
+            'page' => $page,
+            'pages' => $pages,
+            'perPage' => (int) ($paged['per_page'] ?? 48),
+            'hasMore' => $page < $pages,
+        ];
     }
 }

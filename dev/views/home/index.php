@@ -19,7 +19,7 @@
 <main class="main">
   <header class="topbar">
     <div class="search"><span>라벨, 규격, 템플릿 검색</span><span class="mag">⌕</span></div>
-    <button class="bell" type="button" aria-label="알림"><?php require view_path('home/partials/bell-icon.php'); ?><span class="badge">3</span></button>
+    <?php require view_path('home/partials/notification-bell.php'); ?>
     <?php require view_path('home/partials/credit-display.php'); ?>
     <?php require view_path('home/partials/profile-menu.php'); ?>
   </header>
@@ -181,6 +181,7 @@ window.LABELUP_HOME = {
 };
 </script>
 <script src="<?= js('home.js') ?>"></script>
+<script src="<?= js('notifications.js') ?>"></script>
 <script src="<?= js('home-ai-chat.js') ?>"></script>
 <script src="<?= asset('labi-assistant.js') ?>"></script>
 <?php require view_path('home/partials/event-popup.php'); ?>

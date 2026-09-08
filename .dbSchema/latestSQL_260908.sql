@@ -171,9 +171,9 @@ CREATE TABLE IF NOT EXISTS shop_products (
     thumbnail VARCHAR(255) NULL,
     description TEXT NULL,
     meta_json TEXT NULL,
-    compat_formtec VARCHAR(80) NULL,
-    compat_ilabel VARCHAR(80) NULL,
-    compat_anylabel VARCHAR(80) NULL,
+    compat_formtec TEXT NULL,
+    compat_ilabel TEXT NULL,
+    compat_anylabel TEXT NULL,
     sort_order INT UNSIGNED NOT NULL DEFAULT 0,
     created_at DATETIME NULL,
     updated_at DATETIME NULL,
@@ -194,6 +194,16 @@ CREATE TABLE IF NOT EXISTS shop_product_detail_pages (
     UNIQUE KEY uk_shop_product_detail_pages_product (product_id),
     KEY idx_shop_product_detail_pages_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS shop_product_page_settings (
+    id TINYINT UNSIGNED NOT NULL PRIMARY KEY DEFAULT 1,
+    header_html LONGTEXT NULL,
+    footer_html LONGTEXT NULL,
+    header_image VARCHAR(500) NULL,
+    footer_image VARCHAR(500) NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS shop_product_images (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -754,4 +764,33 @@ CREATE TABLE IF NOT EXISTS site_intro (
     skip_label VARCHAR(80) NOT NULL DEFAULT '건너뛰기',
     updated_at DATETIME NULL,
     PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+-- user notifications (2026-09-08)
+CREATE TABLE IF NOT EXISTS user_notifications (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    type VARCHAR(40) NOT NULL,
+    title VARCHAR(180) NOT NULL,
+    body VARCHAR(500) NOT NULL DEFAULT '',
+    link_url VARCHAR(400) NOT NULL DEFAULT '',
+    ref_type VARCHAR(40) NOT NULL DEFAULT '',
+    ref_id VARCHAR(64) NOT NULL DEFAULT '',
+    is_read TINYINT(1) NOT NULL DEFAULT 0,
+    created_at DATETIME NULL,
+    KEY idx_user_notif_user_read (user_id, is_read, id),
+    KEY idx_user_notif_user_created (user_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS user_notification_prefs (
+    user_id BIGINT UNSIGNED NOT NULL,
+    pref_welcome TINYINT(1) NOT NULL DEFAULT 1,
+    pref_credit_low TINYINT(1) NOT NULL DEFAULT 1,
+    pref_credit_change TINYINT(1) NOT NULL DEFAULT 1,
+    pref_order_placed TINYINT(1) NOT NULL DEFAULT 1,
+    pref_order_status TINYINT(1) NOT NULL DEFAULT 1,
+    pref_system TINYINT(1) NOT NULL DEFAULT 1,
+    low_credit_threshold INT NOT NULL DEFAULT 100,
+    updated_at DATETIME NULL,
+    PRIMARY KEY (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;

@@ -46,6 +46,9 @@ final class CreditService
             'description' => $description,
             'admin_id' => $adminId,
         ]);
+        $notifier = new NotificationService();
+        $notifier->notifyCreditChange($userId, $amount, $next, $description);
+        $notifier->maybeNotifyCreditLow($userId, $current, $next);
         return $next;
     }
 

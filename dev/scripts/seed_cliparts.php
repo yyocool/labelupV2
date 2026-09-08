@@ -17,6 +17,11 @@ $service->retireLowQualitySeeds();
 
 $manifests = [
     storage_path('imports/clipart_hq_manifest.json'),
+    storage_path('imports/clipart_pattern_manifest.json'),
+    storage_path('imports/clipart_signboard_manifest.json'),
+    storage_path('imports/clipart_character_manifest.json'),
+    storage_path('imports/clipart_friends_manifest.json'),
+    storage_path('imports/clipart_badge_manifest.json'),
 ];
 $inserted = 0;
 $skipped = 0;

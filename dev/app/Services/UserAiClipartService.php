@@ -58,6 +58,32 @@ final class UserAiClipartService
         return $items;
     }
 
+    /**
+     * 편집기 사용자데이터 탭용.
+     *
+     * @return array{items: array<int, array<string, mixed>>, loggedIn: bool}
+     */
+    public function editorCatalogForUser(int $userId): array
+    {
+        $items = [];
+        if ($userId > 0) {
+            foreach ($this->repo->listByUser($userId, 120) as $row) {
+                $items[] = [
+                    'id' => (int) ($row['id'] ?? 0),
+                    'title' => (string) ($row['title'] ?? '내 클립아트'),
+                    'imageUrl' => (string) ($row['image_url'] ?? ''),
+                    'prompt' => (string) ($row['prompt'] ?? ''),
+                    'createdAt' => (string) ($row['created_at'] ?? ''),
+                ];
+            }
+        }
+
+        return [
+            'items' => $items,
+            'loggedIn' => $userId > 0,
+        ];
+    }
+
     public function countForUser(int $userId): int
     {
         return $this->repo->countByUser($userId);

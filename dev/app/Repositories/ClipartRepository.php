@@ -110,8 +110,12 @@ final class ClipartRepository extends BaseModel
             $params['category_id'] = (int) $filters['category_id'];
         }
         if (!empty($filters['q'])) {
-            $where[] = '(c.title LIKE :q OR c.hashtags LIKE :q OR c.description LIKE :q OR cat.name LIKE :q)';
-            $params['q'] = '%' . $filters['q'] . '%';
+            $where[] = '(c.title LIKE :q_title OR c.hashtags LIKE :q_tags OR c.description LIKE :q_desc OR cat.name LIKE :q_cat)';
+            $like = '%' . $filters['q'] . '%';
+            $params['q_title'] = $like;
+            $params['q_tags'] = $like;
+            $params['q_desc'] = $like;
+            $params['q_cat'] = $like;
         }
         if (!empty($filters['tag'])) {
             $where[] = 'EXISTS (
@@ -173,6 +177,90 @@ final class ClipartRepository extends BaseModel
         return $this->fetchOne(
             'SELECT * FROM cliparts WHERE image_path = :p LIMIT 1',
             ['p' => $path]
+        );
+    }
+
+    /**
+     * 편집기용 활성 클립아트 페이지.
+     *
+     * @param array{page?:int,per_page?:int,q?:string,category_id?:int} $filters
+     * @return array{items: array<int, array<string, mixed>>, total: int, page: int, pages: int, per_page: int}
+     */
+    public function listActiveForEditorPaged(array $filters = []): array
+    {
+        $page = max(1, (int) ($filters['page'] ?? 1));
+        $perPage = max(1, min(60, (int) ($filters['per_page'] ?? 48)));
+        $where = [
+            'c.is_active = 1',
+            '(cat.id IS NULL OR cat.is_active = 1)',
+            '(cat.slug IS NULL OR cat.slug NOT IN (\'vectors\', \'pngs\', \'svgs\'))',
+        ];
+        $params = [];
+
+        if (!empty($filters['category_id'])) {
+            $where[] = 'c.category_id = :category_id';
+            $params['category_id'] = (int) $filters['category_id'];
+        }
+        if (!empty($filters['q'])) {
+            $where[] = '(c.title LIKE :q_title OR c.hashtags LIKE :q_tags OR c.description LIKE :q_desc OR cat.name LIKE :q_cat)';
+            $like = '%' . $filters['q'] . '%';
+            $params['q_title'] = $like;
+            $params['q_tags'] = $like;
+            $params['q_desc'] = $like;
+            $params['q_cat'] = $like;
+        }
+
+        $clause = implode(' AND ', $where);
+        $count = $this->fetchOne(
+            "SELECT COUNT(*) AS cnt
+             FROM cliparts c
+             LEFT JOIN clipart_categories cat ON cat.id = c.category_id
+             WHERE {$clause}",
+            $params
+        );
+        $total = (int) ($count['cnt'] ?? 0);
+        $pages = max(1, (int) ceil($total / $perPage));
+        if ($page > $pages) {
+            $page = $pages;
+        }
+        $offset = ($page - 1) * $perPage;
+
+        $items = $this->fetchAll(
+            "SELECT c.*, cat.name AS category_name, cat.slug AS category_slug
+             FROM cliparts c
+             LEFT JOIN clipart_categories cat ON cat.id = c.category_id
+             WHERE {$clause}
+             ORDER BY c.sort_order ASC, c.id DESC
+             LIMIT {$perPage} OFFSET {$offset}",
+            $params
+        );
+
+        return [
+            'items' => $items,
+            'total' => $total,
+            'page' => $page,
+            'pages' => $pages,
+            'per_page' => $perPage,
+        ];
+    }
+
+    /**
+     * 편집기용 활성 클립아트 전체 (페이지네이션 없음, 상한 2000).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function listActiveForEditor(int $limit = 2000): array
+    {
+        $limit = max(1, min(5000, $limit));
+        return $this->fetchAll(
+            "SELECT c.*, cat.name AS category_name, cat.slug AS category_slug
+             FROM cliparts c
+             LEFT JOIN clipart_categories cat ON cat.id = c.category_id
+             WHERE c.is_active = 1
+               AND (cat.id IS NULL OR cat.is_active = 1)
+               AND (cat.slug IS NULL OR cat.slug NOT IN ('vectors', 'pngs', 'svgs'))
+             ORDER BY c.sort_order ASC, c.id DESC
+             LIMIT {$limit}"
         );
     }
 

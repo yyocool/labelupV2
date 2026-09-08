@@ -72,7 +72,7 @@ final class AccountService
                 ['label' => '주문하기', 'ic' => '🛒', 'href' => url('shop/cart')],
                 ['label' => '샘플 요청', 'ic' => '📦', 'href' => url('shop/products') . '?category=label-paper'],
             ],
-            'recentDesigns' => $this->sampleDesigns(),
+            'recentDesigns' => $this->recentDesigns($userId),
             'recentOrders' => $this->formatOrders($orders),
             'templates' => $this->sampleTemplates(),
             'brands' => $this->sampleBrands($user),
@@ -104,14 +104,20 @@ final class AccountService
     }
 
     /** @return array<int, array<string, mixed>> */
-    private function sampleDesigns(): array
+    private function recentDesigns(int $userId): array
     {
-        return [
-            ['name' => '올리브 오일 라벨', 'status' => 'editing', 'thumb' => asset('tpl-olive.webp')],
-            ['name' => '꿀 스티커', 'status' => 'complete', 'thumb' => asset('tpl-handmade.webp')],
-            ['name' => '배송 라벨', 'status' => 'complete', 'thumb' => asset('tpl-shipping.webp')],
-            ['name' => '커피 원두 라벨', 'status' => 'editing', 'thumb' => asset('tpl-coffee.webp')],
-        ];
+        $items = [];
+        foreach ((new EditorWorkspaceService())->recentForUser($userId, 6) as $work) {
+            $items[] = [
+                'id' => (int) ($work['id'] ?? 0),
+                'name' => (string) ($work['title'] ?? '새 라벨 디자인'),
+                'status' => 'editing',
+                'thumb' => (string) ($work['preview_url'] ?? ''),
+                'updated_label' => (string) ($work['updated_label'] ?? ''),
+                'href' => (string) ($work['editor_url'] ?? url('editor/')),
+            ];
+        }
+        return $items;
     }
 
     /** @return array<int, array<string, mixed>> */

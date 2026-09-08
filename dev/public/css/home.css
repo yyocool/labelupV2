@@ -57,7 +57,34 @@ img{display:block;max-width:100%}
 .topbar{height:72px;display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:0 31px}
 .search{width:294px;height:40px;border:1px solid #e6e6ed;background:#fff;border-radius:22px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;color:#9a9ca8;font-size:12px}
 .search .mag{font-size:20px;color:#171923}
-.bell{width:40px;height:40px;border:1px solid #e6e6ed;border-radius:50%;background:#fff;position:relative;display:grid;place-items:center;color:#333642}.bell .icon-bell{display:block}.badge{position:absolute;right:-1px;top:-5px;width:17px;height:17px;border-radius:50%;background:var(--accent);color:#fff;font-size:9px;display:grid;place-items:center;border:2px solid #fff}
+.bell{width:40px;height:40px;border:1px solid #e6e6ed;border-radius:50%;background:#fff;position:relative;display:grid;place-items:center;color:#333642}.bell .icon-bell{display:block}.badge{position:absolute;right:-1px;top:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:var(--accent);color:#fff;font-size:9px;font-weight:800;display:grid;place-items:center;border:2px solid #fff;box-sizing:border-box}
+.notif-bell-wrap{position:relative;flex:0 0 auto}
+.notif-panel{
+  position:absolute;right:0;top:calc(100% + 10px);z-index:80;width:min(360px,calc(100vw - 24px));
+  background:#fff;border:1px solid #ececf2;border-radius:16px;box-shadow:0 18px 40px rgba(46,42,39,.16);
+  overflow:hidden;
+}
+.notif-panel__head{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:12px 14px;border-bottom:1px solid #f0eef2;
+}
+.notif-panel__head strong{font-size:14px;font-weight:900;color:var(--charcoal)}
+.notif-panel__actions{display:flex;align-items:center;gap:10px}
+.notif-panel__actions button,.notif-panel__actions a{
+  border:0;background:transparent;color:var(--accent);font-size:12px;font-weight:800;cursor:pointer;text-decoration:none;padding:0
+}
+.notif-panel__list{max-height:min(420px,60vh);overflow:auto;padding:6px}
+.notif-panel__empty{margin:18px 12px;text-align:center;color:var(--muted);font-size:13px}
+.notif-item{
+  display:grid;gap:4px;padding:12px;border-radius:12px;color:inherit;text-decoration:none;
+  border:1px solid transparent;
+}
+.notif-item:hover{background:#faf8f9;border-color:#f0e8eb}
+.notif-item.is-unread{background:var(--accent-soft)}
+.notif-item__type{font-size:10px;font-weight:800;color:var(--accent);letter-spacing:.02em}
+.notif-item strong{font-size:13px;line-height:1.35;color:var(--charcoal)}
+.notif-item span{font-size:12px;line-height:1.45;color:#666978}
+.notif-item time{font-size:11px;color:#9a9ca8}
 .credit-pill{
   height:40px;display:inline-flex;align-items:center;gap:6px;
   padding:0 14px;border-radius:22px;border:1px solid #ecd9df;

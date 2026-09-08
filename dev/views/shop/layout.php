@@ -31,6 +31,7 @@
 <script src="<?= js('daum-address.js') ?>"></script>
 <script src="<?= js('address-book.js') ?>"></script>
 <script src="<?= js('home.js') ?>"></script>
+<script src="<?= js('notifications.js') ?>"></script>
 <script src="<?= js('shop.js') ?>"></script>
 <script src="<?= asset('labi-assistant.js') ?>"></script>
 <?php require view_path('home/partials/event-popup.php'); ?>

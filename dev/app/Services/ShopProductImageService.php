@@ -55,6 +55,11 @@ final class ShopProductImageService
         return public_path('assets/specs');
     }
 
+    public static function pageSettingsDir(): string
+    {
+        return public_path('assets/shop-page');
+    }
+
     private static function publicPrefixForDir(string $dir): string
     {
         if (str_contains($dir, 'categories')) {
@@ -65,6 +70,9 @@ final class ShopProductImageService
         }
         if (str_contains($dir, 'cliparts')) {
             return '/assets/cliparts/';
+        }
+        if (str_contains($dir, 'shop-page')) {
+            return '/assets/shop-page/';
         }
 
         return '/assets/products/';
@@ -138,5 +146,11 @@ final class ShopProductImageService
     public static function storeSpecUploads(array $files): array
     {
         return self::storeUploadedFiles($files, self::specsDir(), 'spec_');
+    }
+
+    /** @return array<int, string> */
+    public static function storePageSettingUploads(array $files): array
+    {
+        return self::storeUploadedFiles($files, self::pageSettingsDir(), 'page_');
     }
 }

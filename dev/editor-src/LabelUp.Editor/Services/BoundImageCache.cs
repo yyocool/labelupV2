@@ -60,7 +60,16 @@ public static class BoundImageCache
     }
 
     public static bool LooksLikeUrl(string? src)
-        => src is { Length: > 7 } && (src.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+    {
+        if (string.IsNullOrWhiteSpace(src) || src.Length < 2) return false;
+        if (src.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
             || src.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
-            || src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase));
+            || src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)
+            || src.StartsWith("//"))
+            return true;
+        if (src.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase)
+            || src.StartsWith("assets/", StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
 }

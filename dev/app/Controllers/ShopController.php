@@ -110,6 +110,7 @@ final class ShopController extends BaseController
                 ],
             ],
             'product' => $product,
+            'pageLayout' => $this->shop->productPageLayout(),
             'related' => array_values(array_filter(
                 $related['items'],
                 static fn (array $row): bool => (int) $row['id'] !== (int) $product['id']

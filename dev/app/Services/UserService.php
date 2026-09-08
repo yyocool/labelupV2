@@ -44,6 +44,7 @@ final class UserService
         $userId = $this->users->create($email, $hash);
         $this->profiles->create($userId, trim($name));
         (new MemberGradeService())->assignDefault($userId);
+        (new NotificationService())->notifyWelcome($userId, trim($name));
 
         return $this->users->findById($userId) ?? [];
     }

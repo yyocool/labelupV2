@@ -51,10 +51,9 @@ $memberGrade = $isLoggedIn ? member_grade_for_user($authUser) : null;
         <span class="profile-dropdown-ic">▧</span>
         <span>주문·배송 내역</span>
       </a>
-      <a class="profile-dropdown-item is-disabled" href="#" tabindex="-1" aria-disabled="true" onclick="return false">
+      <a class="profile-dropdown-item" href="<?= url('account') ?>#notifications">
         <span class="profile-dropdown-ic">♧</span>
         <span>알림 설정</span>
-        <em>준비중</em>
       </a>
       <?php if ($isAdmin): ?>
       <div class="profile-dropdown-divider" role="separator"></div>

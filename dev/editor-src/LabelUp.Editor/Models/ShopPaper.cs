@@ -40,9 +40,27 @@ public sealed class ShopPaperItem
     public string? CompatAnylabel { get; set; }
 
     public bool HasCompat =>
-        !string.IsNullOrWhiteSpace(CompatFormtec)
-        || !string.IsNullOrWhiteSpace(CompatIlabel)
-        || !string.IsNullOrWhiteSpace(CompatAnylabel);
+        CompatFormtecCodes.Count > 0
+        || CompatIlabelCodes.Count > 0
+        || CompatAnylabelCodes.Count > 0;
+
+    public IReadOnlyList<string> CompatFormtecCodes => SplitCompat(CompatFormtec);
+    public IReadOnlyList<string> CompatIlabelCodes => SplitCompat(CompatIlabel);
+    public IReadOnlyList<string> CompatAnylabelCodes => SplitCompat(CompatAnylabel);
+
+    public static IReadOnlyList<string> SplitCompat(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return [];
+        var list = new List<string>();
+        foreach (var part in raw.Split([',', ';', '\n', '\r', '|'], StringSplitOptions.RemoveEmptyEntries))
+        {
+            var code = part.Trim();
+            if (code.Length == 0) continue;
+            if (!list.Exists(x => string.Equals(x, code, StringComparison.OrdinalIgnoreCase)))
+                list.Add(code);
+        }
+        return list;
+    }
 
     public string SizeText
     {

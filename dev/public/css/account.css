@@ -18,6 +18,20 @@
   border-radius:999px;background:var(--accent);color:#fff;font-size:10px;font-weight:800;
   display:grid;place-items:center;border:2px solid #fff;
 }
+.account-notif-wrap{display:inline-flex}
+.account-notif-summary{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.account-notif-summary li{
+  display:flex;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid #ececf2;
+  border-radius:12px;font-size:13px;background:#fff;
+}
+.account-notif-summary em{font-style:normal;font-weight:800;color:var(--accent)}
+.account-notif-prefs{display:grid;gap:10px;margin-bottom:14px}
+.account-notif-pref{
+  display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid #ececf2;border-radius:12px;
+}
+.account-notif-pref input{margin-top:3px}
+.account-notif-pref strong{display:block;font-size:13px;margin-bottom:2px}
+.account-notif-pref span{display:block;font-size:12px;color:var(--muted);line-height:1.4}
 
 .card{background:#fff;border:1px solid #ececf2;border-radius:18px;padding:20px;box-shadow:0 8px 24px rgba(46,42,39,.04)}
 .account-section-title{margin:0 0 14px;font-size:15px;font-weight:900;color:var(--charcoal)}
@@ -98,19 +112,22 @@
 .account-panel-head a{font-size:12px;font-weight:800;color:var(--accent)}
 
 .account-design-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.account-design-empty{grid-column:1/-1;margin:0 0 4px}
 .account-design-card{
   position:relative;display:block;border:1px solid #ececf2;border-radius:14px;overflow:hidden;
   color:inherit;background:#fff;
 }
-.account-design-thumb{aspect-ratio:1.2/1;background:var(--ivory)}
-.account-design-thumb img{width:100%;height:100%;object-fit:cover}
+.account-design-thumb{aspect-ratio:1.2/1;background:#fff;display:grid;place-items:center}
+.account-design-thumb img{width:100%;height:100%;object-fit:contain;object-position:center;padding:8px;box-sizing:border-box}
+.account-design-fallback{display:grid;place-items:center;width:100%;height:100%;color:#b8b0a6;font-size:13px;font-weight:800;background:var(--ivory)}
 .account-design-status{
   position:absolute;top:10px;left:10px;padding:4px 8px;border-radius:999px;
   font-size:10px;font-weight:800;color:#fff;
 }
 .account-design-status.is-editing{background:var(--accent)}
 .account-design-status.is-complete{background:#1a7f4b}
-.account-design-card strong{display:block;padding:10px 12px;font-size:12px}
+.account-design-card strong{display:block;padding:10px 12px 2px;font-size:12px}
+.account-design-updated{display:block;padding:0 12px 10px;font-size:11px;font-style:normal;color:var(--muted)}
 .account-design-new{display:grid;place-items:center;min-height:140px;border-style:dashed;color:var(--accent)}
 .account-design-new span{font-size:32px;line-height:1}
 

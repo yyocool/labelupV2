@@ -1,18 +1,22 @@
 @using LabelUp.Editor.Models
 @using LabelUp.Editor.Services
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
 @inject EditorSession Session
 @inject HistoryService History
-@implements IDisposable
+@inject ClipartCatalog Cliparts
+@inject FontAwesomeCatalog Icons
+@inject IJSRuntime Js
+@implements IAsyncDisposable
 
 @if (Session.Dialog == EditorDialog.Clipart)
 {
   <div class="ed-modal" role="dialog" aria-label="클립아트" @onclick="Cancel">
-    <div class="ed-modal__card ed-modal__card--wide" @onclick:stopPropagation="true">
+    <div class="ed-modal__card ed-modal__card--wide ed-modal__card--clip" @onclick:stopPropagation="true">
       <header class="ed-modal__head">
         <div>
           <h3>클립아트</h3>
-          <p>항목을 클릭하면 라벨에 추가됩니다. 닫아도 기본 도형은 생기지 않습니다.</p>
+          <p>항목을 클릭하면 라벨에 추가됩니다. 스크롤하면 더 불러옵니다.</p>
         </div>
         <button type="button" class="ed-modal__close" @onclick="Cancel">×</button>
       </header>
@@ -21,20 +25,28 @@
         <button type="button" class="ed-clip-tabs__btn @(Session.ClipartTab == "fa" ? "is-active" : null)" @onclick='() => SetTab("fa")'>폰트어썸</button>
         <button type="button" class="ed-clip-tabs__btn @(Session.ClipartTab == "user" ? "is-active" : null)" @onclick='() => SetTab("user")'>사용자데이터</button>
       </nav>
-      <div class="ed-modal__body">
+      <div class="ed-modal__body ed-clip-scroll" @ref="_scrollEl">
         @if (Session.ClipartTab == "user")
         {
           <label class="ed-btn ed-btn--file ed-clip-upload">
             이미지/SVG 추가
             <InputFile OnChange="OnUserFile" accept="image/*,.svg" />
           </label>
-          @if (Session.UserAssets.Count == 0)
+          @if (_userLoading)
           {
-            <p class="ed-props__hint">업로드한 파일이 없습니다. 파일을 선택한 뒤 항목을 클릭하세요.</p>
+            <p class="ed-props__hint">내 클립아트를 불러오는 중…</p>
+          }
+          else if (!_userLoggedIn && Session.UserAssets.Count == 0 && _myCliparts.Count == 0)
+          {
+            <p class="ed-props__hint">로그인하면 계정에 저장된 클립아트가 여기에 표시됩니다. 또는 아래에서 파일을 추가하세요.</p>
+          }
+          else if (Session.UserAssets.Count == 0 && _myCliparts.Count == 0)
+          {
+            <p class="ed-props__hint">저장된 클립아트가 없습니다. 라비로 만들거나 파일을 추가해 보세요.</p>
           }
           else
           {
-            <div class="ed-shape-grid">
+            <div class="ed-shape-grid ed-shape-grid--clip">
               @foreach (var asset in Session.UserAssets)
               {
                 <button type="button" class="ed-shape-card" @onclick="() => PickUser(asset)">
@@ -42,23 +54,126 @@
                   <span>@asset.Name</span>
                 </button>
               }
+              @foreach (var item in _myCliparts)
+              {
+                var clip = item;
+                <button type="button" class="ed-shape-card" title="@clip.Title" @onclick="() => PickMyClipart(clip)" disabled="@_picking">
+                  @if (!string.IsNullOrWhiteSpace(clip.ImageUrl))
+                  {
+                    <img src="@clip.ImageUrl" alt="@clip.Title" loading="lazy" />
+                  }
+                  <span>@clip.Title</span>
+                </button>
+              }
             </div>
+          }
+        }
+        else if (Session.ClipartTab == "fa")
+        {
+          <div class="ed-paper-toolbar ed-clip-toolbar">
+            <input class="ed-paper-search" type="search" placeholder="아이콘 이름 검색 (예: heart, truck)"
+                   @bind="_faQuery" @bind:event="oninput" @bind:after="OnFaQueryChanged" />
+            <select class="ed-paper-select" @bind="_faStyle" @bind:after="OnFaStyleChanged">
+              <option value="solid">Solid</option>
+              <option value="regular">Regular</option>
+              <option value="brands">Brands</option>
+              <option value="all">전체</option>
+            </select>
+            <span class="ed-paper-count">@_faLoaded.Count / @_faTotal</span>
+          </div>
+          @if (_faBootLoading && _faLoaded.Count == 0)
+          {
+            <p class="ed-props__hint">Font Awesome 아이콘을 불러오는 중…</p>
+          }
+          else if (_faTotal == 0)
+          {
+            <p class="ed-props__hint">검색 결과가 없습니다.</p>
+          }
+          else
+          {
+            <div class="ed-shape-grid ed-shape-grid--fa">
+              @foreach (var glyph in _faLoaded)
+              {
+                var g = glyph;
+                <button type="button" class="ed-shape-card" title="@g.Slug (@g.Style)" @onclick="() => PickFa(g)">
+                  @((MarkupString)SvgLibrary.ToSvg(g.Path, "#7B2840", 40, g.Width, g.Height))
+                  <span>@g.Slug</span>
+                </button>
+              }
+            </div>
+            @if (_faHasMore)
+            {
+              <div @ref="_sentinelEl" class="ed-clip-sentinel" aria-hidden="true"></div>
+              <p class="ed-clip-more">스크롤하면 더 불러옵니다…</p>
+              <div style="text-align:center">
+                <button type="button" class="ed-btn ed-clip-more-btn" @onclick="LoadMoreFaAsync">더 보기</button>
+              </div>
+            }
           }
         }
         else
         {
-          var isFa = Session.ClipartTab == "fa";
-          var items = isFa ? SvgLibrary.Icons : SvgLibrary.Cliparts;
-          <div class="ed-shape-grid">
-            @foreach (var item in items)
-            {
-              var pick = item;
-              <button type="button" class="ed-shape-card" @onclick="() => PickSvg(pick.Id, pick.Path, isFa)">
-                @((MarkupString)SvgLibrary.ToSvg(item.Path, "#7B2840", 48))
-                <span>@item.Label</span>
-              </button>
-            }
+          <div class="ed-paper-toolbar ed-clip-toolbar">
+            <input class="ed-paper-search" type="search" placeholder="제목, 태그, 카테고리 검색"
+                   @bind="_clipQuery" @bind:event="oninput" @bind:after="OnClipQueryChanged" />
+            <select class="ed-paper-select" value="@_clipCategory" @onchange="OnClipCategoryChanged">
+              <option value="">전체 카테고리</option>
+              @foreach (var cat in Cliparts.Categories)
+              {
+                <option value="@cat.Id">@cat.Name</option>
+              }
+            </select>
+            <span class="ed-paper-count">@Cliparts.Items.Count / @Cliparts.Total</span>
           </div>
+          @if (_clipBootLoading && Cliparts.Items.Count == 0)
+          {
+            <p class="ed-props__hint">클립아트를 불러오는 중…</p>
+          }
+          else if (!string.IsNullOrWhiteSpace(_clipError) && Cliparts.Items.Count == 0)
+          {
+            <p class="ed-props__hint">@_clipError</p>
+            <div class="ed-shape-grid">
+              @foreach (var item in SvgLibrary.Cliparts)
+              {
+                var pick = item;
+                <button type="button" class="ed-shape-card" @onclick="() => PickSvg(pick.Id, pick.Path, false)">
+                  @((MarkupString)SvgLibrary.ToSvg(item.Path, "#7B2840", 48))
+                  <span>@item.Label</span>
+                </button>
+              }
+            </div>
+          }
+          else if (Cliparts.Items.Count == 0)
+          {
+            <p class="ed-props__hint">검색 결과가 없습니다.</p>
+          }
+          else
+          {
+            <div class="ed-shape-grid ed-shape-grid--clip">
+              @foreach (var item in Cliparts.Items)
+              {
+                var clip = item;
+                <button type="button" class="ed-shape-card" title="@clip.Title" @onclick="() => PickShopClipart(clip)" disabled="@_picking">
+                  @if (!string.IsNullOrWhiteSpace(clip.ImageUrl))
+                  {
+                    <img src="@clip.ImageUrl" alt="@clip.Title" loading="lazy" />
+                  }
+                  <span>@clip.Title</span>
+                </button>
+              }
+            </div>
+            @if (Cliparts.HasMore || Cliparts.IsLoading)
+            {
+              <div @ref="_sentinelEl" class="ed-clip-sentinel" aria-hidden="true"></div>
+              <p class="ed-clip-more">@(Cliparts.IsLoading ? "불러오는 중…" : "스크롤하면 더 불러옵니다…")</p>
+              @if (Cliparts.HasMore && !Cliparts.IsLoading)
+              {
+                <div style="text-align:center">
+                  <button type="button" class="ed-btn ed-clip-more-btn" @onclick="LoadMoreClipartsAsync">더 보기</button>
+                </div>
+              }
+            }
+          }
         }
       </div>
     </div>
@@ -66,14 +181,297 @@
 }
 
 @code {
+    private const int FaChunk = 96;
+
+    private ElementReference _scrollEl;
+    private ElementReference _sentinelEl;
+    private DotNetObjectReference<ShapePickerDialog>? _dotNetRef;
+    private bool _scrollBound;
+    private string? _boundScrollTab;
+    private CancellationTokenSource? _clipSearchCts;
+
+    private bool _userLoading;
+    private bool _userTried;
+    private bool _userLoggedIn;
+    private List<UserClipartItem> _myCliparts = [];
+
+    private string _clipQuery = "";
+    private string _clipCategory = "";
+    private bool _clipBootLoading;
+    private bool _clipTried;
+    private string? _clipError;
+    private bool _picking;
+
+    private string _faQuery = "";
+    private string _faStyle = "solid";
+    private bool _faBootLoading;
+    private bool _faTried;
+    private int _faSkip;
+    private int _faTotal;
+    private List<FaGlyph> _faLoaded = [];
+    private bool _faHasMore;
+
     protected override void OnInitialized() => Session.Changed += OnChanged;
-    public void Dispose() => Session.Changed -= OnChanged;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Session.Dialog != EditorDialog.Clipart)
+        {
+            await UnbindScrollAsync();
+            _boundScrollTab = null;
+            return;
+        }
+
+        if (Session.ClipartTab == "fa")
+            await EnsureFaAsync();
+        else if (Session.ClipartTab == "user")
+            await EnsureMyClipartsAsync();
+        else
+            await EnsureClipartsAsync();
+
+        await BindScrollAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Session.Changed -= OnChanged;
+        _clipSearchCts?.Cancel();
+        _clipSearchCts?.Dispose();
+        await UnbindScrollAsync();
+        _dotNetRef?.Dispose();
+    }
+
     private void OnChanged() => InvokeAsync(StateHasChanged);
 
-    private void SetTab(string tab)
+    private async Task BindScrollAsync()
     {
+        var tab = Session.ClipartTab ?? "clipart";
+        if (tab == "user")
+        {
+            await UnbindScrollAsync();
+            _boundScrollTab = tab;
+            return;
+        }
+
+        // 목록이 아직 없으면 센티널이 없어 바인딩을 미룬다
+        var ready = tab == "fa" ? _faLoaded.Count > 0 : Cliparts.Items.Count > 0;
+        if (!ready) return;
+        if (_scrollBound && _boundScrollTab == tab) return;
+
+        try
+        {
+            await UnbindScrollAsync();
+            _dotNetRef ??= DotNetObjectReference.Create(this);
+            await Js.InvokeVoidAsync(
+                "labelUpEditor.bindInfiniteSentinel",
+                _scrollEl,
+                _sentinelEl,
+                _dotNetRef,
+                nameof(OnScrollNearEnd));
+            _scrollBound = true;
+            _boundScrollTab = tab;
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("무한 스크롤 바인딩 실패: " + ex.Message);
+            try
+            {
+                _dotNetRef ??= DotNetObjectReference.Create(this);
+                await Js.InvokeVoidAsync("labelUpEditor.bindInfiniteScroll", _scrollEl, _dotNetRef, nameof(OnScrollNearEnd), 140);
+                _scrollBound = true;
+                _boundScrollTab = tab;
+            }
+            catch (Exception ex2)
+            {
+                EditorLog.Warn("무한 스크롤 폴백 실패: " + ex2.Message);
+            }
+        }
+    }
+
+    private async Task UnbindScrollAsync()
+    {
+        if (!_scrollBound) return;
+        try
+        {
+            await Js.InvokeVoidAsync("labelUpEditor.unbindInfiniteScroll", _scrollEl);
+        }
+        catch { /* ignore */ }
+        _scrollBound = false;
+    }
+
+    [JSInvokable]
+    public async Task OnScrollNearEnd()
+    {
+        if (Session.Dialog != EditorDialog.Clipart) return;
+        if (Session.ClipartTab == "fa")
+            await LoadMoreFaAsync();
+        else if (Session.ClipartTab != "user")
+            await LoadMoreClipartsAsync();
+    }
+
+    private async Task SetTab(string tab)
+    {
+        _boundScrollTab = null;
+        await UnbindScrollAsync();
         Session.ClipartTab = tab;
         Session.Notify();
+        if (tab == "fa") await EnsureFaAsync();
+        else if (tab == "user") await EnsureMyClipartsAsync(force: true);
+        else if (tab == "clipart") await EnsureClipartsAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task EnsureMyClipartsAsync(bool force = false)
+    {
+        if (_userLoading) return;
+        if (_userTried && !force) return;
+        _userTried = true;
+        _userLoading = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var (loggedIn, items) = await Cliparts.LoadMyClipartsAsync();
+            _userLoggedIn = loggedIn;
+            _myCliparts = items.ToList();
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("사용자 클립아트 로드 실패: " + ex.Message);
+            _userLoggedIn = false;
+            _myCliparts = [];
+        }
+        finally
+        {
+            _userLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task EnsureClipartsAsync()
+    {
+        if (_clipBootLoading || _clipTried) return;
+        _clipTried = true;
+        _clipBootLoading = true;
+        _clipError = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            await Cliparts.ResetAndLoadAsync(_clipQuery, ParseCategoryId(_clipCategory));
+            if (Cliparts.Items.Count == 0)
+                _clipError = "등록된 클립아트가 없어 기본 도형을 표시합니다.";
+        }
+        catch (Exception ex)
+        {
+            _clipError = "클립아트를 불러오지 못했습니다.";
+            EditorLog.Warn("클립아트 피커 로드 실패: " + ex.Message);
+        }
+        finally
+        {
+            _clipBootLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task LoadMoreClipartsAsync()
+    {
+        if (!Cliparts.HasMore || Cliparts.IsLoading) return;
+        await Cliparts.LoadMoreAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnClipQueryChanged()
+    {
+        _clipSearchCts?.Cancel();
+        _clipSearchCts = new CancellationTokenSource();
+        var token = _clipSearchCts.Token;
+        try
+        {
+            await Task.Delay(320, token);
+            await ReloadClipartsAsync();
+        }
+        catch (TaskCanceledException) { /* debounce */ }
+    }
+
+    private async Task OnClipCategoryChanged(ChangeEventArgs e)
+    {
+        _clipCategory = e.Value?.ToString() ?? "";
+        await ReloadClipartsAsync();
+    }
+
+    private async Task ReloadClipartsAsync()
+    {
+        _clipBootLoading = true;
+        _clipError = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            await Cliparts.ResetAndLoadAsync(_clipQuery, ParseCategoryId(_clipCategory));
+            if (Cliparts.Items.Count == 0 && string.IsNullOrWhiteSpace(_clipQuery) && string.IsNullOrWhiteSpace(_clipCategory))
+                _clipError = "등록된 클립아트가 없어 기본 도형을 표시합니다.";
+        }
+        finally
+        {
+            _clipBootLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task EnsureFaAsync()
+    {
+        if (_faBootLoading || (_faTried && Icons.IsReady)) return;
+        _faTried = true;
+        _faBootLoading = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            await Icons.EnsureLoadedAsync();
+            ResetFaList();
+        }
+        finally
+        {
+            _faBootLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void ResetFaList()
+    {
+        _faSkip = 0;
+        _faLoaded = [];
+        _faTotal = Icons.Count(_faQuery, _faStyle);
+        _faHasMore = _faTotal > 0;
+        AppendFaChunk();
+    }
+
+    private void AppendFaChunk()
+    {
+        if (!_faHasMore) return;
+        var chunk = Icons.Search(_faQuery, _faStyle, _faSkip, FaChunk).ToList();
+        if (chunk.Count == 0)
+        {
+            _faHasMore = false;
+            return;
+        }
+        _faLoaded.AddRange(chunk);
+        _faSkip += chunk.Count;
+        _faHasMore = _faSkip < _faTotal;
+    }
+
+    private async Task LoadMoreFaAsync()
+    {
+        if (!_faHasMore || _faBootLoading) return;
+        AppendFaChunk();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnFaQueryChanged()
+    {
+        ResetFaList();
+    }
+
+    private void OnFaStyleChanged()
+    {
+        ResetFaList();
     }
 
     private void Cancel()
@@ -100,6 +498,7 @@
             var o = Session.Selected;
             o.Type = isIcon ? ObjectType.Icon : ObjectType.Clipart;
             o.Svg = path;
+            o.ImageData = null;
             if (isIcon) o.IconName = id;
             else o.ClipartId = id;
             Session.Dirty = true;
@@ -108,6 +507,142 @@
         Session.PendingInsert = null;
         Session.SetTool(EditorTool.Select);
         Session.CloseDialog();
+    }
+
+    private void PickFa(FaGlyph glyph)
+    {
+        var id = $"{glyph.Slug}-{glyph.Style}";
+        PickSvg(id, glyph.Path, true);
+    }
+
+    private void PickShopClipart(ShopClipartItem item)
+    {
+        if (_picking) return;
+        _picking = true;
+        Session.Status = "클립아트 불러오는 중…";
+        Session.Notify();
+        try
+        {
+            var src = NormalizeMediaRef(item.ImageUrl);
+            if (string.IsNullOrEmpty(src))
+            {
+                Session.Status = "클립아트 이미지를 불러오지 못했습니다";
+                Session.Notify();
+                return;
+            }
+
+            // base64 인라인 대신 URL 참조 — 자동저장 시 max_allowed_packet 초과 방지
+            BoundImageCache.Request(src);
+
+            History.Push(Session.Document);
+            if (Session.PendingInsert is ObjectType.Clipart or ObjectType.Icon || Session.Selected is null || !IsGraphic(Session.Selected))
+            {
+                Session.PlaceDefault(ObjectType.Clipart, o =>
+                {
+                    o.ClipartId = $"shop-{item.Id}";
+                    o.ImageData = src;
+                    o.Svg = "";
+                    o.SvgParts = null;
+                    o.Fill = "transparent";
+                    o.Stroke = "transparent";
+                    o.StrokeWidth = 0;
+                    o.BackgroundTransparent = true;
+                });
+            }
+            else
+            {
+                var o = Session.Selected;
+                o.Type = ObjectType.Clipart;
+                o.ClipartId = $"shop-{item.Id}";
+                o.ImageData = src;
+                o.Svg = "";
+                o.SvgParts = null;
+                o.Fill = "transparent";
+                o.Stroke = "transparent";
+                o.StrokeWidth = 0;
+                o.BackgroundTransparent = true;
+                Session.Dirty = true;
+                Session.Notify();
+            }
+            Session.Status = $"「{item.Title}」 클립아트를 넣었습니다";
+            Session.PendingInsert = null;
+            Session.SetTool(EditorTool.Select);
+            Session.CloseDialog();
+        }
+        finally
+        {
+            _picking = false;
+        }
+    }
+
+    private void PickMyClipart(UserClipartItem item)
+    {
+        if (_picking) return;
+        _picking = true;
+        Session.Status = "클립아트 불러오는 중…";
+        Session.Notify();
+        try
+        {
+            var src = NormalizeMediaRef(item.ImageUrl);
+            if (string.IsNullOrEmpty(src))
+            {
+                Session.Status = "클립아트 이미지를 불러오지 못했습니다";
+                Session.Notify();
+                return;
+            }
+
+            BoundImageCache.Request(src);
+
+            History.Push(Session.Document);
+            if (Session.PendingInsert is ObjectType.Clipart or ObjectType.Icon || Session.Selected is null || !IsGraphic(Session.Selected))
+            {
+                Session.PlaceDefault(ObjectType.Clipart, o =>
+                {
+                    o.ClipartId = $"user-{item.Id}";
+                    o.ImageData = src;
+                    o.Svg = "";
+                    o.SvgParts = null;
+                    o.Fill = "transparent";
+                    o.Stroke = "transparent";
+                    o.StrokeWidth = 0;
+                    o.BackgroundTransparent = true;
+                });
+            }
+            else
+            {
+                var o = Session.Selected;
+                o.Type = ObjectType.Clipart;
+                o.ClipartId = $"user-{item.Id}";
+                o.ImageData = src;
+                o.Svg = "";
+                o.SvgParts = null;
+                o.Fill = "transparent";
+                o.Stroke = "transparent";
+                o.StrokeWidth = 0;
+                o.BackgroundTransparent = true;
+                Session.Dirty = true;
+                Session.Notify();
+            }
+            Session.Status = $"「{item.Title}」 클립아트를 넣었습니다";
+            Session.PendingInsert = null;
+            Session.SetTool(EditorTool.Select);
+            Session.CloseDialog();
+        }
+        finally
+        {
+            _picking = false;
+        }
+    }
+
+    private static string? NormalizeMediaRef(string? src)
+    {
+        if (string.IsNullOrWhiteSpace(src)) return null;
+        src = src.Trim();
+        if (src.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
+            return src;
+        if (src.StartsWith("//"))
+            return "https:" + src;
+        return src;
     }
 
     private void PickUser(UserAsset asset)
@@ -151,6 +686,9 @@
             Session.Notify();
         }
     }
+
+    private static int? ParseCategoryId(string raw)
+        => int.TryParse(raw, out var id) && id > 0 ? id : null;
 
     private static bool IsGraphic(DesignObject o)
         => o.Type is ObjectType.Clipart or ObjectType.Icon or ObjectType.Image;

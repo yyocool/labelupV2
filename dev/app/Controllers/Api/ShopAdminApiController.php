@@ -230,6 +230,37 @@ final class ShopAdminApiController extends BaseController
         }
     }
 
+    public function productPageSettings(): never
+    {
+        $this->guard();
+        $this->jsonSuccess($this->shop->productPageSettings());
+    }
+
+    public function saveProductPageSettings(): never
+    {
+        $this->guard();
+        try {
+            $saved = $this->shop->saveProductPageSettings(request_json());
+            $this->jsonSuccess($saved, '상품 상세 페이지 설정이 저장되었습니다.');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage());
+        }
+    }
+
+    public function uploadProductPageImages(): never
+    {
+        $this->guard();
+        try {
+            if (empty($_FILES['images'])) {
+                throw new RuntimeException('업로드할 이미지를 선택해주세요.');
+            }
+            $urls = $this->shop->uploadProductPageImages($_FILES['images']);
+            $this->jsonSuccess(['urls' => $urls], '이미지가 업로드되었습니다.');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage());
+        }
+    }
+
     private function guard(): void
     {
         (new AuthMiddleware($this->auth))->handle(true);
