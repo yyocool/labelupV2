@@ -39,6 +39,8 @@
   font-size:20px;color:var(--accent);cursor:pointer;
 }
 .shop-topbar-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.shop-notif-wrap{display:inline-flex}
+.shop-bell-btn .icon-bell{display:block;width:18px;height:18px}
 .shop-cart-btn{
   position:relative;width:44px;height:44px;border:1px solid #e6e6ed;border-radius:50%;
   background:#fff;display:grid;place-items:center;color:var(--charcoal);
@@ -231,6 +233,10 @@
 .shop-detail-gallery img{width:100%;aspect-ratio:210/297;object-fit:contain;border-radius:14px;background:#fff;border:1px solid #ececf2}
 .shop-detail-info h1{margin:8px 0 6px;font-size:24px;font-weight:900}
 .shop-detail-sku{font-size:12px;color:var(--muted)}
+.shop-detail-compat{margin:10px 0 0}
+.shop-detail-compat-label{display:block;font-size:11px;font-weight:800;color:#6b7280;margin-bottom:6px}
+.shop-detail-compat-list{display:flex;flex-wrap:wrap;gap:6px}
+.shop-detail-compat-chip{display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;background:#f3e8ec;color:#7b2840;font-size:11px;font-weight:800}
 .shop-detail-specs{list-style:none;margin:14px 0;padding:0;display:grid;gap:6px;font-size:13px;color:#4a4d5c}
 .shop-detail-price{margin:16px 0 8px;display:flex;align-items:baseline;gap:8px}
 .shop-detail-price del{color:#a0a2ad}
@@ -243,6 +249,17 @@
 .shop-detail-desc{margin-top:24px;padding-top:18px;border-top:1px solid #f0f0f5}
 .shop-detail-desc h2{margin:0 0 8px;font-size:15px}
 .shop-detail-desc p{margin:0;font-size:13px;line-height:1.65;color:#4a4d5c}
+.shop-detail-page-block{margin:0 0 22px;padding:18px;border:1px solid #ececf2;border-radius:16px;background:#fff}
+.shop-detail-page-block--footer{margin:22px 0 0}
+.shop-detail-page-media{margin:0 0 14px}
+.shop-detail-page-block--footer .shop-detail-page-media{margin:14px 0 0}
+.shop-detail-page-media img{display:block;width:100%;max-height:360px;object-fit:contain;border-radius:12px;background:#faf9fb}
+.shop-detail-page-html{font-size:14px;line-height:1.7;color:#2f3344;overflow-wrap:anywhere}
+.shop-detail-page-html h1,.shop-detail-page-html h2,.shop-detail-page-html h3{margin:0 0 10px;font-weight:900;color:var(--charcoal)}
+.shop-detail-page-html p{margin:0 0 10px}
+.shop-detail-page-html ul,.shop-detail-page-html ol{margin:0 0 10px;padding-left:1.2em}
+.shop-detail-page-html img{max-width:100%;height:auto;border-radius:8px}
+.shop-detail-page-html a{color:var(--accent);font-weight:700}
 
 .shop-cart-layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:18px}
 .shop-cart-list{display:grid;gap:12px}

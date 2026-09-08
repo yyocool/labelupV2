@@ -41,6 +41,7 @@ final class EditorWorkspaceService
      */
     public function save(int $userId, int $id, string $title, array $document, ?array $ui, string $previewDataUrl = ''): array
     {
+        $document = $this->externalizeDocumentMedia($userId, $document);
         $docJson = json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if ($docJson === false) {
             throw new RuntimeException('문서 JSON 직렬화에 실패했습니다.');
@@ -151,5 +152,84 @@ final class EditorWorkspaceService
         }
         @chmod($full, 0666);
         return $rel;
+    }
+
+    /**
+     * 큰 data-URL 이미지를 파일로 빼고 URL로 바꿔 max_allowed_packet 초과를 막는다.
+     *
+     * @param array<string, mixed> $document
+     * @return array<string, mixed>
+     */
+    private function externalizeDocumentMedia(int $userId, array $document): array
+    {
+        if ($userId <= 0) {
+            return $document;
+        }
+        $this->walkDocumentMedia($document, $userId);
+        return $document;
+    }
+
+    /**
+     * @param array<string, mixed>|list<mixed> $node
+     */
+    private function walkDocumentMedia(array &$node, int $userId): void
+    {
+        foreach ($node as $key => &$value) {
+            if (is_string($value)
+                && (strcasecmp((string) $key, 'imageData') === 0 || strcasecmp((string) $key, 'image_data') === 0)
+            ) {
+                $replaced = $this->storeMediaDataUrl($userId, $value);
+                if ($replaced !== null) {
+                    $value = $replaced;
+                }
+                continue;
+            }
+            if (is_array($value)) {
+                $this->walkDocumentMedia($value, $userId);
+            }
+        }
+        unset($value);
+    }
+
+    private function storeMediaDataUrl(int $userId, string $dataUrl): ?string
+    {
+        $dataUrl = trim($dataUrl);
+        // 이미 URL/경로면 그대로 둔다.
+        if ($dataUrl === '' || !str_starts_with(strtolower($dataUrl), 'data:image/')) {
+            return null;
+        }
+        // 작은 인라인(아이콘 등)은 유지. 임계값 초과만 파일화.
+        if (strlen($dataUrl) < 24_000) {
+            return null;
+        }
+        if (!preg_match('#^data:image/(png|jpeg|jpg|webp|gif);base64,([A-Za-z0-9+/=\s]+)$#i', $dataUrl, $m)) {
+            return null;
+        }
+        $ext = strtolower($m[1]);
+        if ($ext === 'jpeg') {
+            $ext = 'jpg';
+        }
+        $bin = base64_decode(preg_replace('/\s+/', '', $m[2]) ?? '', true);
+        if ($bin === false || strlen($bin) < 32 || strlen($bin) > 12_000_000) {
+            return null;
+        }
+
+        $dir = public_path('assets/editor-media/' . $userId);
+        if (!is_dir($dir) && !@mkdir($dir, 0777, true) && !is_dir($dir)) {
+            return null;
+        }
+        @chmod($dir, 0777);
+
+        $hash = sha1($bin);
+        $rel = 'editor-media/' . $userId . '/' . $hash . '.' . $ext;
+        $full = public_path('assets/' . $rel);
+        if (!is_file($full)) {
+            if (@file_put_contents($full, $bin) === false) {
+                return null;
+            }
+            @chmod($full, 0666);
+        }
+
+        return '/assets/' . $rel;
     }
 }

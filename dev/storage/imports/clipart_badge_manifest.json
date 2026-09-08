@@ -1,0 +1,805 @@
+{
+  "count": 100,
+  "items": [
+    {
+      "title": "원형 실 · 버건디",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_001_seal_burgundy.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #seal #버건디",
+      "description": "원형 실 고품질 뱃지 · 버건디",
+      "sort_order": 5001
+    },
+    {
+      "title": "원형 실 · 네이비",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_002_seal_navy.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #seal #네이비",
+      "description": "원형 실 고품질 뱃지 · 네이비",
+      "sort_order": 5002
+    },
+    {
+      "title": "원형 실 · 골드",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_003_seal_gold.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #seal #골드",
+      "description": "원형 실 고품질 뱃지 · 골드",
+      "sort_order": 5003
+    },
+    {
+      "title": "원형 실 · 에메랄드",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_004_seal_emerald.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #seal #에메랄드",
+      "description": "원형 실 고품질 뱃지 · 에메랄드",
+      "sort_order": 5004
+    },
+    {
+      "title": "원형 실 · 로즈",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_005_seal_rose.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #seal #로즈",
+      "description": "원형 실 고품질 뱃지 · 로즈",
+      "sort_order": 5005
+    },
+    {
+      "title": "원형 실 · 차콜",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_006_seal_charcoal.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #seal #차콜",
+      "description": "원형 실 고품질 뱃지 · 차콜",
+      "sort_order": 5006
+    },
+    {
+      "title": "원형 실 · 코랄",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_007_seal_coral.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #seal #코랄",
+      "description": "원형 실 고품질 뱃지 · 코랄",
+      "sort_order": 5007
+    },
+    {
+      "title": "원형 실 · 틸",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_008_seal_teal.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #seal #틸",
+      "description": "원형 실 고품질 뱃지 · 틸",
+      "sort_order": 5008
+    },
+    {
+      "title": "원형 실 · 바이올렛",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_009_seal_violet.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #seal #바이올렛",
+      "description": "원형 실 고품질 뱃지 · 바이올렛",
+      "sort_order": 5009
+    },
+    {
+      "title": "원형 실 · 아이보리",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_010_seal_ivory.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #seal #아이보리",
+      "description": "원형 실 고품질 뱃지 · 아이보리",
+      "sort_order": 5010
+    },
+    {
+      "title": "스캘럽 실 · 버건디",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_011_scallop_burgundy.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #scallop #버건디",
+      "description": "스캘럽 실 고품질 뱃지 · 버건디",
+      "sort_order": 5011
+    },
+    {
+      "title": "스캘럽 실 · 네이비",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_012_scallop_navy.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #scallop #네이비",
+      "description": "스캘럽 실 고품질 뱃지 · 네이비",
+      "sort_order": 5012
+    },
+    {
+      "title": "스캘럽 실 · 골드",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_013_scallop_gold.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #scallop #골드",
+      "description": "스캘럽 실 고품질 뱃지 · 골드",
+      "sort_order": 5013
+    },
+    {
+      "title": "스캘럽 실 · 에메랄드",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_014_scallop_emerald.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #scallop #에메랄드",
+      "description": "스캘럽 실 고품질 뱃지 · 에메랄드",
+      "sort_order": 5014
+    },
+    {
+      "title": "스캘럽 실 · 로즈",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_015_scallop_rose.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #scallop #로즈",
+      "description": "스캘럽 실 고품질 뱃지 · 로즈",
+      "sort_order": 5015
+    },
+    {
+      "title": "스캘럽 실 · 차콜",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_016_scallop_charcoal.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #scallop #차콜",
+      "description": "스캘럽 실 고품질 뱃지 · 차콜",
+      "sort_order": 5016
+    },
+    {
+      "title": "스캘럽 실 · 코랄",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_017_scallop_coral.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #scallop #코랄",
+      "description": "스캘럽 실 고품질 뱃지 · 코랄",
+      "sort_order": 5017
+    },
+    {
+      "title": "스캘럽 실 · 틸",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_018_scallop_teal.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #scallop #틸",
+      "description": "스캘럽 실 고품질 뱃지 · 틸",
+      "sort_order": 5018
+    },
+    {
+      "title": "스캘럽 실 · 바이올렛",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_019_scallop_violet.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #scallop #바이올렛",
+      "description": "스캘럽 실 고품질 뱃지 · 바이올렛",
+      "sort_order": 5019
+    },
+    {
+      "title": "스캘럽 실 · 아이보리",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_020_scallop_ivory.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #scallop #아이보리",
+      "description": "스캘럽 실 고품질 뱃지 · 아이보리",
+      "sort_order": 5020
+    },
+    {
+      "title": "메달 · 버건디",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_021_medal_burgundy.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #medal #버건디",
+      "description": "메달 고품질 뱃지 · 버건디",
+      "sort_order": 5021
+    },
+    {
+      "title": "메달 · 네이비",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_022_medal_navy.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #medal #네이비",
+      "description": "메달 고품질 뱃지 · 네이비",
+      "sort_order": 5022
+    },
+    {
+      "title": "메달 · 골드",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_023_medal_gold.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #medal #골드",
+      "description": "메달 고품질 뱃지 · 골드",
+      "sort_order": 5023
+    },
+    {
+      "title": "메달 · 에메랄드",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_024_medal_emerald.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #medal #에메랄드",
+      "description": "메달 고품질 뱃지 · 에메랄드",
+      "sort_order": 5024
+    },
+    {
+      "title": "메달 · 로즈",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_025_medal_rose.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #medal #로즈",
+      "description": "메달 고품질 뱃지 · 로즈",
+      "sort_order": 5025
+    },
+    {
+      "title": "메달 · 차콜",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_026_medal_charcoal.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #medal #차콜",
+      "description": "메달 고품질 뱃지 · 차콜",
+      "sort_order": 5026
+    },
+    {
+      "title": "메달 · 코랄",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_027_medal_coral.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #medal #코랄",
+      "description": "메달 고품질 뱃지 · 코랄",
+      "sort_order": 5027
+    },
+    {
+      "title": "메달 · 틸",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_028_medal_teal.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #medal #틸",
+      "description": "메달 고품질 뱃지 · 틸",
+      "sort_order": 5028
+    },
+    {
+      "title": "메달 · 바이올렛",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_029_medal_violet.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #medal #바이올렛",
+      "description": "메달 고품질 뱃지 · 바이올렛",
+      "sort_order": 5029
+    },
+    {
+      "title": "메달 · 아이보리",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_030_medal_ivory.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #medal #아이보리",
+      "description": "메달 고품질 뱃지 · 아이보리",
+      "sort_order": 5030
+    },
+    {
+      "title": "리본 배너 · 버건디",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_031_ribbon_burgundy.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #ribbon #버건디",
+      "description": "리본 배너 고품질 뱃지 · 버건디",
+      "sort_order": 5031
+    },
+    {
+      "title": "리본 배너 · 네이비",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_032_ribbon_navy.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #ribbon #네이비",
+      "description": "리본 배너 고품질 뱃지 · 네이비",
+      "sort_order": 5032
+    },
+    {
+      "title": "리본 배너 · 골드",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_033_ribbon_gold.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #ribbon #골드",
+      "description": "리본 배너 고품질 뱃지 · 골드",
+      "sort_order": 5033
+    },
+    {
+      "title": "리본 배너 · 에메랄드",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_034_ribbon_emerald.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #ribbon #에메랄드",
+      "description": "리본 배너 고품질 뱃지 · 에메랄드",
+      "sort_order": 5034
+    },
+    {
+      "title": "리본 배너 · 로즈",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_035_ribbon_rose.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #ribbon #로즈",
+      "description": "리본 배너 고품질 뱃지 · 로즈",
+      "sort_order": 5035
+    },
+    {
+      "title": "리본 배너 · 차콜",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_036_ribbon_charcoal.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #ribbon #차콜",
+      "description": "리본 배너 고품질 뱃지 · 차콜",
+      "sort_order": 5036
+    },
+    {
+      "title": "리본 배너 · 코랄",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_037_ribbon_coral.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #ribbon #코랄",
+      "description": "리본 배너 고품질 뱃지 · 코랄",
+      "sort_order": 5037
+    },
+    {
+      "title": "리본 배너 · 틸",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_038_ribbon_teal.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #ribbon #틸",
+      "description": "리본 배너 고품질 뱃지 · 틸",
+      "sort_order": 5038
+    },
+    {
+      "title": "리본 배너 · 바이올렛",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_039_ribbon_violet.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #ribbon #바이올렛",
+      "description": "리본 배너 고품질 뱃지 · 바이올렛",
+      "sort_order": 5039
+    },
+    {
+      "title": "리본 배너 · 아이보리",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_040_ribbon_ivory.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #ribbon #아이보리",
+      "description": "리본 배너 고품질 뱃지 · 아이보리",
+      "sort_order": 5040
+    },
+    {
+      "title": "방패 뱃지 · 버건디",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_041_shield_burgundy.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #shield #버건디",
+      "description": "방패 뱃지 고품질 뱃지 · 버건디",
+      "sort_order": 5041
+    },
+    {
+      "title": "방패 뱃지 · 네이비",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_042_shield_navy.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #shield #네이비",
+      "description": "방패 뱃지 고품질 뱃지 · 네이비",
+      "sort_order": 5042
+    },
+    {
+      "title": "방패 뱃지 · 골드",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_043_shield_gold.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #shield #골드",
+      "description": "방패 뱃지 고품질 뱃지 · 골드",
+      "sort_order": 5043
+    },
+    {
+      "title": "방패 뱃지 · 에메랄드",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_044_shield_emerald.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #shield #에메랄드",
+      "description": "방패 뱃지 고품질 뱃지 · 에메랄드",
+      "sort_order": 5044
+    },
+    {
+      "title": "방패 뱃지 · 로즈",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_045_shield_rose.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #shield #로즈",
+      "description": "방패 뱃지 고품질 뱃지 · 로즈",
+      "sort_order": 5045
+    },
+    {
+      "title": "방패 뱃지 · 차콜",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_046_shield_charcoal.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #shield #차콜",
+      "description": "방패 뱃지 고품질 뱃지 · 차콜",
+      "sort_order": 5046
+    },
+    {
+      "title": "방패 뱃지 · 코랄",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_047_shield_coral.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #shield #코랄",
+      "description": "방패 뱃지 고품질 뱃지 · 코랄",
+      "sort_order": 5047
+    },
+    {
+      "title": "방패 뱃지 · 틸",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_048_shield_teal.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #shield #틸",
+      "description": "방패 뱃지 고품질 뱃지 · 틸",
+      "sort_order": 5048
+    },
+    {
+      "title": "방패 뱃지 · 바이올렛",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_049_shield_violet.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #shield #바이올렛",
+      "description": "방패 뱃지 고품질 뱃지 · 바이올렛",
+      "sort_order": 5049
+    },
+    {
+      "title": "방패 뱃지 · 아이보리",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_050_shield_ivory.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #shield #아이보리",
+      "description": "방패 뱃지 고품질 뱃지 · 아이보리",
+      "sort_order": 5050
+    },
+    {
+      "title": "헥사 뱃지 · 버건디",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_051_hex_burgundy.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #hex #버건디",
+      "description": "헥사 뱃지 고품질 뱃지 · 버건디",
+      "sort_order": 5051
+    },
+    {
+      "title": "헥사 뱃지 · 네이비",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_052_hex_navy.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #hex #네이비",
+      "description": "헥사 뱃지 고품질 뱃지 · 네이비",
+      "sort_order": 5052
+    },
+    {
+      "title": "헥사 뱃지 · 골드",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_053_hex_gold.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #hex #골드",
+      "description": "헥사 뱃지 고품질 뱃지 · 골드",
+      "sort_order": 5053
+    },
+    {
+      "title": "헥사 뱃지 · 에메랄드",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_054_hex_emerald.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #hex #에메랄드",
+      "description": "헥사 뱃지 고품질 뱃지 · 에메랄드",
+      "sort_order": 5054
+    },
+    {
+      "title": "헥사 뱃지 · 로즈",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_055_hex_rose.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #hex #로즈",
+      "description": "헥사 뱃지 고품질 뱃지 · 로즈",
+      "sort_order": 5055
+    },
+    {
+      "title": "헥사 뱃지 · 차콜",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_056_hex_charcoal.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #hex #차콜",
+      "description": "헥사 뱃지 고품질 뱃지 · 차콜",
+      "sort_order": 5056
+    },
+    {
+      "title": "헥사 뱃지 · 코랄",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_057_hex_coral.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #hex #코랄",
+      "description": "헥사 뱃지 고품질 뱃지 · 코랄",
+      "sort_order": 5057
+    },
+    {
+      "title": "헥사 뱃지 · 틸",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_058_hex_teal.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #hex #틸",
+      "description": "헥사 뱃지 고품질 뱃지 · 틸",
+      "sort_order": 5058
+    },
+    {
+      "title": "헥사 뱃지 · 바이올렛",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_059_hex_violet.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #hex #바이올렛",
+      "description": "헥사 뱃지 고품질 뱃지 · 바이올렛",
+      "sort_order": 5059
+    },
+    {
+      "title": "헥사 뱃지 · 아이보리",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_060_hex_ivory.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #hex #아이보리",
+      "description": "헥사 뱃지 고품질 뱃지 · 아이보리",
+      "sort_order": 5060
+    },
+    {
+      "title": "스타 뱃지 · 버건디",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_061_star_burgundy.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #star #버건디",
+      "description": "스타 뱃지 고품질 뱃지 · 버건디",
+      "sort_order": 5061
+    },
+    {
+      "title": "스타 뱃지 · 네이비",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_062_star_navy.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #star #네이비",
+      "description": "스타 뱃지 고품질 뱃지 · 네이비",
+      "sort_order": 5062
+    },
+    {
+      "title": "스타 뱃지 · 골드",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_063_star_gold.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #star #골드",
+      "description": "스타 뱃지 고품질 뱃지 · 골드",
+      "sort_order": 5063
+    },
+    {
+      "title": "스타 뱃지 · 에메랄드",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_064_star_emerald.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #star #에메랄드",
+      "description": "스타 뱃지 고품질 뱃지 · 에메랄드",
+      "sort_order": 5064
+    },
+    {
+      "title": "스타 뱃지 · 로즈",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_065_star_rose.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #star #로즈",
+      "description": "스타 뱃지 고품질 뱃지 · 로즈",
+      "sort_order": 5065
+    },
+    {
+      "title": "스타 뱃지 · 차콜",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_066_star_charcoal.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #star #차콜",
+      "description": "스타 뱃지 고품질 뱃지 · 차콜",
+      "sort_order": 5066
+    },
+    {
+      "title": "스타 뱃지 · 코랄",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_067_star_coral.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #star #코랄",
+      "description": "스타 뱃지 고품질 뱃지 · 코랄",
+      "sort_order": 5067
+    },
+    {
+      "title": "스타 뱃지 · 틸",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_068_star_teal.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #star #틸",
+      "description": "스타 뱃지 고품질 뱃지 · 틸",
+      "sort_order": 5068
+    },
+    {
+      "title": "스타 뱃지 · 바이올렛",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_069_star_violet.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #star #바이올렛",
+      "description": "스타 뱃지 고품질 뱃지 · 바이올렛",
+      "sort_order": 5069
+    },
+    {
+      "title": "스타 뱃지 · 아이보리",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_070_star_ivory.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #star #아이보리",
+      "description": "스타 뱃지 고품질 뱃지 · 아이보리",
+      "sort_order": 5070
+    },
+    {
+      "title": "로제트 · 버건디",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_071_rosette_burgundy.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #rosette #버건디",
+      "description": "로제트 고품질 뱃지 · 버건디",
+      "sort_order": 5071
+    },
+    {
+      "title": "로제트 · 네이비",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_072_rosette_navy.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #rosette #네이비",
+      "description": "로제트 고품질 뱃지 · 네이비",
+      "sort_order": 5072
+    },
+    {
+      "title": "로제트 · 골드",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_073_rosette_gold.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #rosette #골드",
+      "description": "로제트 고품질 뱃지 · 골드",
+      "sort_order": 5073
+    },
+    {
+      "title": "로제트 · 에메랄드",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_074_rosette_emerald.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #rosette #에메랄드",
+      "description": "로제트 고품질 뱃지 · 에메랄드",
+      "sort_order": 5074
+    },
+    {
+      "title": "로제트 · 로즈",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_075_rosette_rose.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #rosette #로즈",
+      "description": "로제트 고품질 뱃지 · 로즈",
+      "sort_order": 5075
+    },
+    {
+      "title": "로제트 · 차콜",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_076_rosette_charcoal.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #rosette #차콜",
+      "description": "로제트 고품질 뱃지 · 차콜",
+      "sort_order": 5076
+    },
+    {
+      "title": "로제트 · 코랄",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_077_rosette_coral.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #rosette #코랄",
+      "description": "로제트 고품질 뱃지 · 코랄",
+      "sort_order": 5077
+    },
+    {
+      "title": "로제트 · 틸",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_078_rosette_teal.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #rosette #틸",
+      "description": "로제트 고품질 뱃지 · 틸",
+      "sort_order": 5078
+    },
+    {
+      "title": "로제트 · 바이올렛",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_079_rosette_violet.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #rosette #바이올렛",
+      "description": "로제트 고품질 뱃지 · 바이올렛",
+      "sort_order": 5079
+    },
+    {
+      "title": "로제트 · 아이보리",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_080_rosette_ivory.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #rosette #아이보리",
+      "description": "로제트 고품질 뱃지 · 아이보리",
+      "sort_order": 5080
+    },
+    {
+      "title": "하트 뱃지 · 버건디",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_081_heart_burgundy.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #heart #버건디",
+      "description": "하트 뱃지 고품질 뱃지 · 버건디",
+      "sort_order": 5081
+    },
+    {
+      "title": "하트 뱃지 · 네이비",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_082_heart_navy.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #heart #네이비",
+      "description": "하트 뱃지 고품질 뱃지 · 네이비",
+      "sort_order": 5082
+    },
+    {
+      "title": "하트 뱃지 · 골드",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_083_heart_gold.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #heart #골드",
+      "description": "하트 뱃지 고품질 뱃지 · 골드",
+      "sort_order": 5083
+    },
+    {
+      "title": "하트 뱃지 · 에메랄드",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_084_heart_emerald.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #heart #에메랄드",
+      "description": "하트 뱃지 고품질 뱃지 · 에메랄드",
+      "sort_order": 5084
+    },
+    {
+      "title": "하트 뱃지 · 로즈",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_085_heart_rose.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #heart #로즈",
+      "description": "하트 뱃지 고품질 뱃지 · 로즈",
+      "sort_order": 5085
+    },
+    {
+      "title": "하트 뱃지 · 차콜",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_086_heart_charcoal.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #heart #차콜",
+      "description": "하트 뱃지 고품질 뱃지 · 차콜",
+      "sort_order": 5086
+    },
+    {
+      "title": "하트 뱃지 · 코랄",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_087_heart_coral.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #heart #코랄",
+      "description": "하트 뱃지 고품질 뱃지 · 코랄",
+      "sort_order": 5087
+    },
+    {
+      "title": "하트 뱃지 · 틸",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_088_heart_teal.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #heart #틸",
+      "description": "하트 뱃지 고품질 뱃지 · 틸",
+      "sort_order": 5088
+    },
+    {
+      "title": "하트 뱃지 · 바이올렛",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_089_heart_violet.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #heart #바이올렛",
+      "description": "하트 뱃지 고품질 뱃지 · 바이올렛",
+      "sort_order": 5089
+    },
+    {
+      "title": "하트 뱃지 · 아이보리",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_090_heart_ivory.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #heart #아이보리",
+      "description": "하트 뱃지 고품질 뱃지 · 아이보리",
+      "sort_order": 5090
+    },
+    {
+      "title": "체크 뱃지 · 버건디",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_091_check_burgundy.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #check #버건디",
+      "description": "체크 뱃지 고품질 뱃지 · 버건디",
+      "sort_order": 5091
+    },
+    {
+      "title": "체크 뱃지 · 네이비",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_092_check_navy.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #check #네이비",
+      "description": "체크 뱃지 고품질 뱃지 · 네이비",
+      "sort_order": 5092
+    },
+    {
+      "title": "체크 뱃지 · 골드",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_093_check_gold.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #check #골드",
+      "description": "체크 뱃지 고품질 뱃지 · 골드",
+      "sort_order": 5093
+    },
+    {
+      "title": "체크 뱃지 · 에메랄드",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_094_check_emerald.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #check #에메랄드",
+      "description": "체크 뱃지 고품질 뱃지 · 에메랄드",
+      "sort_order": 5094
+    },
+    {
+      "title": "체크 뱃지 · 로즈",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_095_check_rose.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #check #로즈",
+      "description": "체크 뱃지 고품질 뱃지 · 로즈",
+      "sort_order": 5095
+    },
+    {
+      "title": "체크 뱃지 · 차콜",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_096_check_charcoal.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #check #차콜",
+      "description": "체크 뱃지 고품질 뱃지 · 차콜",
+      "sort_order": 5096
+    },
+    {
+      "title": "체크 뱃지 · 코랄",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_097_check_coral.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #check #코랄",
+      "description": "체크 뱃지 고품질 뱃지 · 코랄",
+      "sort_order": 5097
+    },
+    {
+      "title": "체크 뱃지 · 틸",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_098_check_teal.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #check #틸",
+      "description": "체크 뱃지 고품질 뱃지 · 틸",
+      "sort_order": 5098
+    },
+    {
+      "title": "체크 뱃지 · 바이올렛",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_099_check_violet.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #check #바이올렛",
+      "description": "체크 뱃지 고품질 뱃지 · 바이올렛",
+      "sort_order": 5099
+    },
+    {
+      "title": "체크 뱃지 · 아이보리",
+      "category_slug": "badge",
+      "image_path": "/assets/cliparts/hq_badge_100_check_ivory.png",
+      "hashtags": "#뱃지 #실 #리본 #메달 #라벨 #클립아트 #고품질 #check #아이보리",
+      "description": "체크 뱃지 고품질 뱃지 · 아이보리",
+      "sort_order": 5100
+    }
+  ]
+}

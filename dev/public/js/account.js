@@ -33,6 +33,101 @@
   if (location.hash === '#profile') {
     openModal('profileModal');
   }
+  if (location.hash === '#notifications') {
+    openModal('notifPrefsModal');
+  }
+
+  const notifSummary = document.getElementById('accountNotifSummary');
+  const notifForm = document.getElementById('notifPrefsForm');
+  const notifFields = document.getElementById('notifPrefsFields');
+  const notifAlert = document.getElementById('notifPrefsAlert');
+  const notifThreshold = document.getElementById('notifLowThreshold');
+
+  const renderNotifPrefs = (prefs) => {
+    if (!prefs) return;
+    if (notifSummary) {
+      const meta = prefs.meta || {};
+      notifSummary.innerHTML = Object.keys(meta).map((key) => {
+        const m = meta[key] || {};
+        const on = !!prefs[key];
+        return '<li><span>' + (m.label || key) + '</span><em>' + (on ? '수신' : '꺼짐') + '</em></li>';
+      }).join('') +
+        '<li><span>크레딧 부족 기준</span><em>' + Number(prefs.low_credit_threshold || 100).toLocaleString() + ' C</em></li>';
+    }
+    if (notifFields) {
+      const meta = prefs.meta || {};
+      notifFields.innerHTML = Object.keys(meta).map((key) => {
+        const m = meta[key] || {};
+        const checked = prefs[key] ? ' checked' : '';
+        return (
+          '<label class="account-notif-pref">' +
+            '<input type="checkbox" name="' + key + '" value="1"' + checked + '>' +
+            '<span><strong>' + (m.label || key) + '</strong><span>' + (m.hint || '') + '</span></span>' +
+          '</label>'
+        );
+      }).join('');
+    }
+    if (notifThreshold) notifThreshold.value = String(prefs.low_credit_threshold || 100);
+  };
+
+  const loadNotifPrefs = async () => {
+    if (!notifSummary && !notifForm) return;
+    try {
+      const res = await fetch('/api/notifications/prefs', {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      });
+      const json = await res.json();
+      if (!res.ok || json.success === false) throw new Error(json.message || '불러오기 실패');
+      renderNotifPrefs(json.data || {});
+    } catch (err) {
+      if (notifSummary) notifSummary.innerHTML = '<li>알림 설정을 불러오지 못했습니다.</li>';
+    }
+  };
+
+  loadNotifPrefs();
+
+  if (notifForm) {
+    notifForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(notifForm);
+      const payload = {
+        pref_welcome: fd.get('pref_welcome') ? 1 : 0,
+        pref_credit_low: fd.get('pref_credit_low') ? 1 : 0,
+        pref_credit_change: fd.get('pref_credit_change') ? 1 : 0,
+        pref_order_placed: fd.get('pref_order_placed') ? 1 : 0,
+        pref_order_status: fd.get('pref_order_status') ? 1 : 0,
+        pref_system: fd.get('pref_system') ? 1 : 0,
+        low_credit_threshold: Number(fd.get('low_credit_threshold') || 100),
+      };
+      const btn = notifForm.querySelector('[type=submit]');
+      if (btn) btn.disabled = true;
+      try {
+        const res = await fetch('/api/notifications/prefs', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const json = await res.json();
+        if (!res.ok || json.success === false) throw new Error(json.message || '저장 실패');
+        renderNotifPrefs(json.data || {});
+        if (typeof showAlert === 'function') showAlert(notifAlert, json.message || '저장했습니다.', 'success');
+        else if (notifAlert) {
+          notifAlert.textContent = json.message || '저장했습니다.';
+          notifAlert.className = 'account-alert is-success';
+        }
+      } catch (err) {
+        if (typeof showAlert === 'function') showAlert(notifAlert, err.message);
+        else if (notifAlert) {
+          notifAlert.textContent = err.message;
+          notifAlert.className = 'account-alert is-error';
+        }
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    });
+  }
 
   const ensureClipLightbox = () => {
     let root = document.getElementById('accountClipLightbox');

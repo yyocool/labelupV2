@@ -33,10 +33,12 @@ use App\Controllers\Api\AiAdminApiController;
 use App\Controllers\Api\AiChatApiController;
 use App\Controllers\Api\AiExamplePromptApiController;
 use App\Controllers\Api\AccountAddressApiController;
+use App\Controllers\Api\NotificationApiController;
 use App\Controllers\Api\AuthApiController;
 use App\Controllers\Api\EditorTemplateApiController;
 use App\Controllers\Api\EditorRemoteImageApiController;
 use App\Controllers\Api\EditorIlabelExcelApiController;
+use App\Controllers\Api\EditorClipartApiController;
 use App\Controllers\Api\EditorWorkspaceApiController;
 use App\Controllers\Api\HealthController;
 use App\Controllers\Api\SeedController;
@@ -152,9 +154,11 @@ final class Router
         $editorTemplateApi = new EditorTemplateApiController();
         $editorRemoteImageApi = new EditorRemoteImageApiController();
         $editorIlabelExcelApi = new EditorIlabelExcelApiController();
+        $editorClipartApi = new EditorClipartApiController();
         $shopPublic = new ShopController();
         $shopPublicApi = new ShopApiController();
         $accountAddressApi = new AccountAddressApiController();
+        $notificationApi = new NotificationApiController();
         $seoAdmin = new SeoAdminController();
         $seoAdminApi = new SeoAdminApiController();
         $seoPublic = new SeoPublicController();
@@ -235,6 +239,11 @@ final class Router
         $router->get('/api/auth/me', [$authApi, 'me']);
         $router->get('/api/auth/oauth', [$authApi, 'oauthProviders']);
         $router->get('/api/credit/me', [$creditApi, 'me']);
+        $router->get('/api/notifications', [$notificationApi, 'index']);
+        $router->get('/api/notifications/unread', [$notificationApi, 'unread']);
+        $router->post('/api/notifications/read', [$notificationApi, 'markRead']);
+        $router->get('/api/notifications/prefs', [$notificationApi, 'prefs']);
+        $router->post('/api/notifications/prefs', [$notificationApi, 'savePrefs']);
         $router->get('/api/auth/check-email', [$authApi, 'checkEmail']);
         $router->post('/api/auth/profile', [$authApi, 'updateProfile']);
         $router->post('/api/auth/password', [$authApi, 'changePassword']);
@@ -250,6 +259,8 @@ final class Router
         $router->get('/api/editor/templates/{id}', [$editorTemplateApi, 'show']);
         $router->get('/api/editor/remote-image', [$editorRemoteImageApi, 'show']);
         $router->get('/api/editor/ilabel-excel', [$editorIlabelExcelApi, 'show']);
+        $router->get('/api/editor/cliparts', [$editorClipartApi, 'index']);
+        $router->get('/api/editor/my-cliparts', [$editorClipartApi, 'mine']);
 
         $router->post('/api/ai/chat', [$aiChatApi, 'chat']);
         $router->get('/api/ai/example-prompts', [$aiPromptsPublic, 'index']);
@@ -332,6 +343,9 @@ final class Router
         $router->post('/api/admin/shop/coupon/delete', [$shopApi, 'deleteCoupon']);
         $router->post('/api/admin/shop/banner/save', [$shopApi, 'saveBanner']);
         $router->post('/api/admin/shop/banner/delete', [$shopApi, 'deleteBanner']);
+        $router->get('/api/admin/shop/product-page-settings', [$shopApi, 'productPageSettings']);
+        $router->post('/api/admin/shop/product-page-settings/save', [$shopApi, 'saveProductPageSettings']);
+        $router->post('/api/admin/shop/product-page-settings/upload-images', [$shopApi, 'uploadProductPageImages']);
 
         $router->get('/api/shop/editor-papers', [$shopPublicApi, 'editorPapers']);
         $router->get('/api/shop/catalog', [$shopPublicApi, 'catalog']);

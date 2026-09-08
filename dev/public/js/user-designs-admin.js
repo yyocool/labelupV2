@@ -77,7 +77,7 @@
 
   rows.forEach((row) => {
     row.addEventListener('click', (ev) => {
-      if (ev.target.closest('input[type=checkbox]')) return;
+      if (ev.target.closest('input[type=checkbox], .js-ud-approve, .ud-actions')) return;
       selectRow(row);
     });
   });
@@ -102,14 +102,27 @@
     });
   }
 
-  document.getElementById('udApprove')?.addEventListener('click', async () => {
-    if (!current?.id) return;
+  async function approveOne(id, noteText) {
+    if (!id) return;
     try {
-      await postJson(urls.review, { id: current.id, action: 'approve', note: note?.value || '' });
+      await postJson(urls.review, { id, action: 'approve', note: noteText || '' });
       location.reload();
     } catch (err) {
       showAlert(err.message || '승인 오류', false);
     }
+  }
+
+  document.getElementById('udApprove')?.addEventListener('click', async () => {
+    if (!current?.id) return;
+    await approveOne(current.id, note?.value || '');
+  });
+
+  document.querySelectorAll('.js-ud-approve').forEach((btn) => {
+    btn.addEventListener('click', async (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      await approveOne(Number(btn.getAttribute('data-id')));
+    });
   });
 
   document.getElementById('udReject')?.addEventListener('click', async () => {

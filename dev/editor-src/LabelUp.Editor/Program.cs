@@ -19,6 +19,7 @@ builder.Services.AddScoped<FontCatalog>();
 builder.Services.AddScoped<FontAwesomeCatalog>();
 builder.Services.AddScoped<PaperCatalog>();
 builder.Services.AddScoped<TemplateCatalog>();
+builder.Services.AddScoped<ClipartCatalog>();
 builder.Services.AddScoped<DataImportService>();
 builder.Services.AddScoped<ExternalImportService>();
 builder.Services.AddScoped<EditorCloudStorage>();

@@ -21,6 +21,37 @@ final class ClipartService
         return $this->repo->categories($activeOnly);
     }
 
+    /** Hide VECTORS/PNGs/SVGs and deactivate their cliparts. */
+    public function retireFormatCategories(): int
+    {
+        $retired = 0;
+        foreach (ClipartRepository::FORMAT_SLUGS as $slug) {
+            $cat = $this->repo->findCategoryBySlug($slug);
+            if (!$cat) {
+                continue;
+            }
+            $this->repo->saveCategory([
+                'id' => (int) $cat['id'],
+                'name' => (string) $cat['name'],
+                'slug' => $slug,
+                'description' => $cat['description'] ?? null,
+                'sort_order' => (int) ($cat['sort_order'] ?? 0),
+                'is_active' => 0,
+            ]);
+            $this->repo->deactivateByCategoryId((int) $cat['id']);
+            $retired++;
+        }
+        $this->repo->deactivateByImagePathPrefix('/assets/cliparts/vz_');
+        return $retired;
+    }
+
+    /** Hide older geometric/PIL seed cliparts so HQ pack is the default library. */
+    public function retireLowQualitySeeds(): void
+    {
+        $this->repo->deactivateByImagePathPrefix('/assets/cliparts/seed_');
+        $this->repo->deactivateByImagePathPrefix('/assets/cliparts/vz_');
+    }
+
     /** @param array<string, mixed> $filters */
     public function list(array $filters = []): array
     {
@@ -185,6 +216,11 @@ final class ClipartService
                 $skipped++;
                 continue;
             }
+            $full = public_path(ltrim($path, '/'));
+            if (!is_file($full)) {
+                $skipped++;
+                continue;
+            }
             if ($this->repo->findByImagePath($path)) {
                 $existing = $this->repo->findByImagePath($path);
                 $categoryId = null;
@@ -242,6 +278,8 @@ final class ClipartService
     /** Ensure default categories exist. @return int created count */
     public function ensureDefaultCategories(): int
     {
+        $this->retireFormatCategories();
+
         $defaults = [
             ['name' => '식품·카페', 'slug' => 'food', 'description' => '원두, 베이커리, 음식 라벨용'],
             ['name' => '뷰티·화장품', 'slug' => 'beauty', 'description' => '화장품·향수·스킨케어'],
@@ -253,6 +291,10 @@ final class ClipartService
             ['name' => '동물', 'slug' => 'animal', 'description' => '귀여운 동물 모티브'],
             ['name' => '시즌·기념일', 'slug' => 'season', 'description' => '계절·기념일 장식'],
             ['name' => '기본 도형', 'slug' => 'shape', 'description' => '원·별·체크 등 기본형'],
+            ['name' => '패턴·텍스처', 'slug' => 'pattern', 'description' => '도트·스트라이프·지오메트릭 패턴'],
+            ['name' => '간판·매장', 'slug' => 'signboard', 'description' => '매장 간판·입간판·오픈 표지'],
+            ['name' => '캐릭터', 'slug' => 'character', 'description' => '귀여운 마스코트·프렌즈 표정·행동'],
+            ['name' => '뱃지·실', 'slug' => 'badge', 'description' => '원형 실·리본·메달·어워드 뱃지'],
         ];
         $created = 0;
         foreach ($defaults as $i => $row) {
@@ -274,5 +316,55 @@ final class ClipartService
     public function count(): int
     {
         return $this->repo->countCliparts();
+    }
+
+    /**
+     * 편집기 공개 카탈로그 — 페이지 단위.
+     *
+     * @param array{page?:int,per_page?:int,q?:string,category_id?:int} $filters
+     * @return array{
+     *   items: array<int, array<string, mixed>>,
+     *   categories: array<int, array{id:int,name:string,slug:string}>,
+     *   total: int, page: int, pages: int, perPage: int, hasMore: bool
+     * }
+     */
+    public function publicCatalog(array $filters = []): array
+    {
+        $paged = $this->repo->listActiveForEditorPaged($filters);
+        $items = [];
+        foreach ($paged['items'] as $row) {
+            $items[] = [
+                'id' => (int) ($row['id'] ?? 0),
+                'title' => (string) ($row['title'] ?? ''),
+                'imageUrl' => self::resolveUrl((string) ($row['image_path'] ?? '')),
+                'categoryId' => !empty($row['category_id']) ? (int) $row['category_id'] : null,
+                'categoryName' => (string) ($row['category_name'] ?? ''),
+                'categorySlug' => (string) ($row['category_slug'] ?? ''),
+                'hashtags' => (string) ($row['hashtags'] ?? ''),
+                'description' => (string) ($row['description'] ?? ''),
+            ];
+        }
+
+        $categories = [];
+        foreach ($this->repo->categories(true) as $cat) {
+            $categories[] = [
+                'id' => (int) ($cat['id'] ?? 0),
+                'name' => (string) ($cat['name'] ?? ''),
+                'slug' => (string) ($cat['slug'] ?? ''),
+            ];
+        }
+
+        $page = (int) ($paged['page'] ?? 1);
+        $pages = (int) ($paged['pages'] ?? 1);
+
+        return [
+            'items' => $items,
+            'categories' => $categories,
+            'total' => (int) ($paged['total'] ?? 0),
+            'page' => $page,
+            'pages' => $pages,
+            'perPage' => (int) ($paged['per_page'] ?? 48),
+            'hasMore' => $page < $pages,
+        ];
     }
 }

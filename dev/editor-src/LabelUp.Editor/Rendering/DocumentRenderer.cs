@@ -370,7 +370,7 @@ public static class DocumentRenderer
                 case ObjectType.Icon:
                     if (obj.SvgParts is { Count: > 0 })
                         DrawSvgParts(canvas, obj, alpha);
-                    else if (obj.Type == ObjectType.Clipart && IsRasterImageData(obj.ImageData))
+                    else if (IsRasterImageData(obj.ImageData))
                         DrawImage(canvas, obj, alpha, resolve);
                     else
                         DrawSvgShape(canvas, obj, alpha);
@@ -1514,7 +1514,9 @@ public static class DocumentRenderer
 
     private static void DrawImage(SKCanvas canvas, DesignObject obj, byte alpha, Func<DesignObject, string>? resolve = null)
     {
-        var media = resolve?.Invoke(obj) ?? obj.ImageData;
+        var media = resolve?.Invoke(obj);
+        if (string.IsNullOrWhiteSpace(media))
+            media = obj.ImageData;
         var bmp = GetBitmap(obj, media);
         var dest = new SKRect(0, 0, obj.Width, obj.Height);
         if (bmp != null)
@@ -1673,12 +1675,25 @@ public static class DocumentRenderer
     }
 
     private static bool IsRasterImageData(string? data)
-        => data is not null
-           && (data.StartsWith("data:image/png", StringComparison.OrdinalIgnoreCase)
-               || data.StartsWith("data:image/jpeg", StringComparison.OrdinalIgnoreCase)
-               || data.StartsWith("data:image/jpg", StringComparison.OrdinalIgnoreCase)
-               || data.StartsWith("data:image/bmp", StringComparison.OrdinalIgnoreCase)
-               || data.StartsWith("data:image/gif", StringComparison.OrdinalIgnoreCase));
+    {
+        if (string.IsNullOrWhiteSpace(data)) return false;
+        if (data.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase)) return true;
+        if (data.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+            || data.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+            || data.StartsWith("//"))
+            return true;
+        if (data.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase)
+            || data.StartsWith("assets/", StringComparison.OrdinalIgnoreCase))
+            return true;
+        // 확장자 기반 (상대 경로 업로드 등)
+        var q = data.IndexOf('?');
+        var path = q >= 0 ? data[..q] : data;
+        return path.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
+               || path.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
+               || path.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)
+               || path.EndsWith(".webp", StringComparison.OrdinalIgnoreCase)
+               || path.EndsWith(".gif", StringComparison.OrdinalIgnoreCase);
+    }
 
     public static void DrawSelection(SKCanvas canvas, DesignObject obj, float pxPerMm, float zoom)
     {

@@ -84,17 +84,39 @@ final class ContentAdminApiController extends BaseController
         $this->guard();
         try {
             $this->cliparts->ensureDefaultCategories();
-            $manifestPath = storage_path('imports/clipart_seed_manifest.json');
-            if (!is_file($manifestPath)) {
+            $this->cliparts->retireLowQualitySeeds();
+            $manifests = [
+                storage_path('imports/clipart_hq_manifest.json'),
+                storage_path('imports/clipart_pattern_manifest.json'),
+                storage_path('imports/clipart_signboard_manifest.json'),
+                storage_path('imports/clipart_character_manifest.json'),
+                storage_path('imports/clipart_friends_manifest.json'),
+                storage_path('imports/clipart_badge_manifest.json'),
+            ];
+            $inserted = 0;
+            $skipped = 0;
+            $found = false;
+            foreach ($manifests as $manifestPath) {
+                if (!is_file($manifestPath)) {
+                    continue;
+                }
+                $found = true;
+                $raw = file_get_contents($manifestPath);
+                $data = json_decode((string) $raw, true);
+                if (!is_array($data) || !isset($data['items']) || !is_array($data['items'])) {
+                    throw new RuntimeException('시드 매니페스트 형식이 올바르지 않습니다.');
+                }
+                $part = $this->cliparts->importSeedItems($data['items']);
+                $inserted += (int) $part['inserted'];
+                $skipped += (int) $part['skipped'];
+            }
+            if (!$found) {
                 throw new RuntimeException('시드 매니페스트가 없습니다. 먼저 생성 스크립트를 실행해 주세요.');
             }
-            $raw = file_get_contents($manifestPath);
-            $data = json_decode((string) $raw, true);
-            if (!is_array($data) || !isset($data['items']) || !is_array($data['items'])) {
-                throw new RuntimeException('시드 매니페스트 형식이 올바르지 않습니다.');
-            }
-            $result = $this->cliparts->importSeedItems($data['items']);
-            $this->jsonSuccess($result + ['total' => $this->cliparts->count()], '클립아트 시드가 반영되었습니다.');
+            $this->jsonSuccess(
+                ['inserted' => $inserted, 'skipped' => $skipped, 'total' => $this->cliparts->count()],
+                '클립아트 시드가 반영되었습니다.'
+            );
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage(), null, 422);
         }

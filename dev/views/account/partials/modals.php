@@ -91,3 +91,24 @@
     </div>
   </div>
 </div>
+
+<div id="notifPrefsModal" class="account-modal" hidden aria-hidden="true">
+  <div class="account-modal-backdrop" data-close-modal></div>
+  <div class="account-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="notifPrefsModalTitle">
+    <div class="account-modal-head">
+      <h3 id="notifPrefsModalTitle">알림 설정</h3>
+      <button type="button" class="account-modal-close" data-close-modal aria-label="닫기">&times;</button>
+    </div>
+    <div class="account-modal-body">
+      <div id="notifPrefsAlert" class="account-alert"></div>
+      <form id="notifPrefsForm">
+        <div class="account-notif-prefs" id="notifPrefsFields"></div>
+        <div class="account-field">
+          <label>크레딧 부족 경고 기준 (C)</label>
+          <input type="number" name="low_credit_threshold" id="notifLowThreshold" min="0" max="100000" step="10" value="100">
+        </div>
+        <button class="account-btn account-btn--primary account-btn--block" type="submit">설정 저장</button>
+      </form>
+    </div>
+  </div>
+</div>

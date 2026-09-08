@@ -27,9 +27,12 @@
       <a class="account-icon-btn" href="<?= url('shop/cart') ?>" aria-label="장바구니">
         🛒<?php if (($cartCount ?? 0) > 0): ?><span class="account-badge"><?= (int) $cartCount ?></span><?php endif; ?>
       </a>
-      <button class="account-icon-btn" type="button" aria-label="알림" disabled title="준비 중">
-        <?php require view_path('home/partials/bell-icon.php'); ?><span class="account-badge">3</span>
-      </button>
+      <?php
+        $bellClass = 'account-icon-btn';
+        $badgeClass = 'account-badge';
+        $bellWrapClass = 'notif-bell-wrap account-notif-wrap';
+        require view_path('home/partials/notification-bell.php');
+      ?>
       <?php require view_path('home/partials/credit-display.php'); ?>
       <?php require view_path('home/partials/profile-menu.php'); ?>
     </div>
@@ -41,6 +44,7 @@
 </div>
 <?php require view_path('account/partials/modals.php'); ?>
 <script src="<?= js('home.js') ?>"></script>
+<script src="<?= js('notifications.js') ?>"></script>
 <script src="<?= js('auth.js') ?>"></script>
 <script src="<?= js('daum-address.js') ?>"></script>
 <script src="<?= js('address-book.js') ?>"></script>

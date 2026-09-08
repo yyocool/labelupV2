@@ -13,24 +13,35 @@ use App\Services\ClipartService;
 
 $service = new ClipartService();
 $createdCats = $service->ensureDefaultCategories();
+$service->retireLowQualitySeeds();
 
-$manifestPath = storage_path('imports/clipart_seed_manifest.json');
-if (!is_file($manifestPath)) {
-    fwrite(STDERR, "Manifest not found: {$manifestPath}\n");
-    exit(1);
+$manifests = [
+    storage_path('imports/clipart_hq_manifest.json'),
+    storage_path('imports/clipart_pattern_manifest.json'),
+    storage_path('imports/clipart_signboard_manifest.json'),
+    storage_path('imports/clipart_character_manifest.json'),
+    storage_path('imports/clipart_friends_manifest.json'),
+    storage_path('imports/clipart_badge_manifest.json'),
+];
+$inserted = 0;
+$skipped = 0;
+foreach ($manifests as $manifestPath) {
+    if (!is_file($manifestPath)) {
+        continue;
+    }
+    $raw = file_get_contents($manifestPath);
+    $data = json_decode((string) $raw, true);
+    if (!is_array($data) || !isset($data['items']) || !is_array($data['items'])) {
+        fwrite(STDERR, "Invalid manifest: {$manifestPath}\n");
+        continue;
+    }
+    $result = $service->importSeedItems($data['items']);
+    $inserted += (int) $result['inserted'];
+    $skipped += (int) $result['skipped'];
 }
-
-$raw = file_get_contents($manifestPath);
-$data = json_decode((string) $raw, true);
-if (!is_array($data) || !isset($data['items']) || !is_array($data['items'])) {
-    fwrite(STDERR, "Invalid manifest\n");
-    exit(1);
-}
-
-$result = $service->importSeedItems($data['items']);
 echo json_encode([
     'categories_created' => $createdCats,
-    'inserted' => $result['inserted'],
-    'skipped' => $result['skipped'],
+    'inserted' => $inserted,
+    'skipped' => $skipped,
     'total' => $service->count(),
 ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . PHP_EOL;

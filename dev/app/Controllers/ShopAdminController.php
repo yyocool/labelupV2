@@ -54,6 +54,7 @@ final class ShopAdminController extends BaseController
             'filters' => $filters,
             'categories' => $this->shop->categories(),
             'specs' => $this->shop->specs(),
+            'pageSettings' => $this->shop->productPageSettings(),
         ], true);
     }
 

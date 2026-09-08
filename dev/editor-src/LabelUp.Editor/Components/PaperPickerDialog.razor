@@ -90,9 +90,39 @@
                   }
                 </ul>
                 <div class="ed-paper-compat">
-                  <span class="ed-paper-compat__chip @(string.IsNullOrWhiteSpace(item.CompatFormtec) ? "is-empty" : null)">폼텍 @(string.IsNullOrWhiteSpace(item.CompatFormtec) ? "-" : item.CompatFormtec)</span>
-                  <span class="ed-paper-compat__chip @(string.IsNullOrWhiteSpace(item.CompatIlabel) ? "is-empty" : null)">아이라벨 @(string.IsNullOrWhiteSpace(item.CompatIlabel) ? "-" : item.CompatIlabel)</span>
-                  <span class="ed-paper-compat__chip @(string.IsNullOrWhiteSpace(item.CompatAnylabel) ? "is-empty" : null)">애니라벨 @(string.IsNullOrWhiteSpace(item.CompatAnylabel) ? "-" : item.CompatAnylabel)</span>
+                  @if (item.CompatFormtecCodes.Count == 0)
+                  {
+                    <span class="ed-paper-compat__chip is-empty">폼텍 -</span>
+                  }
+                  else
+                  {
+                    @foreach (var compatCode in item.CompatFormtecCodes)
+                    {
+                      <span class="ed-paper-compat__chip">폼텍 @compatCode</span>
+                    }
+                  }
+                  @if (item.CompatIlabelCodes.Count == 0)
+                  {
+                    <span class="ed-paper-compat__chip is-empty">아이라벨 -</span>
+                  }
+                  else
+                  {
+                    @foreach (var compatCode in item.CompatIlabelCodes)
+                    {
+                      <span class="ed-paper-compat__chip">아이라벨 @compatCode</span>
+                    }
+                  }
+                  @if (item.CompatAnylabelCodes.Count == 0)
+                  {
+                    <span class="ed-paper-compat__chip is-empty">애니라벨 -</span>
+                  }
+                  else
+                  {
+                    @foreach (var compatCode in item.CompatAnylabelCodes)
+                    {
+                      <span class="ed-paper-compat__chip">애니라벨 @compatCode</span>
+                    }
+                  }
                 </div>
               </div>
             </button>

@@ -11,7 +11,10 @@ $statuses = ['active', 'soldout', 'hidden', 'draft'];
 ?>
 <div class="admin-head">
   <div><h1>상품 관리</h1><p>라벨지·소모품 등 쇼핑몰 상품을 관리합니다.</p></div>
-  <div class="admin-head-actions"><button type="button" class="admin-btn admin-btn--primary js-shop-add" data-entity="product">+ 상품 추가</button></div>
+  <div class="admin-head-actions">
+    <button type="button" class="admin-btn admin-btn--primary js-shop-add" data-entity="product">+ 상품 추가</button>
+    <button type="button" class="admin-btn js-product-page-settings">페이지설정</button>
+  </div>
 </div>
 <form class="admin-filter-bar" method="get" action="<?= url('admin/shop/products') ?>">
   <input class="admin-input admin-input--search" type="search" name="q" value="<?= e($filters['q'] ?? '') ?>" placeholder="<?= "\u{C0C1}\u{D488}\u{BA85}, SKU \u{AC80}\u{C0C9}" ?>">
@@ -60,9 +63,9 @@ $statuses = ['active', 'soldout', 'hidden', 'draft'];
       <td>
         <strong><?= e($row['name']) ?></strong>
         <form class="admin-compat-row js-compat-form" data-id="<?= (int) $row['id'] ?>">
-          <label><?= "\u{D3FC}\u{D14D}" ?><input type="text" name="compat_formtec" value="<?= e((string) ($row['compat_formtec'] ?? '')) ?>" maxlength="80"></label>
-          <label><?= "\u{C544}\u{C774}\u{B77C}\u{BCA8}" ?><input type="text" name="compat_ilabel" value="<?= e((string) ($row['compat_ilabel'] ?? '')) ?>" maxlength="80"></label>
-          <label><?= "\u{C560}\u{B2C8}\u{B77C}\u{BCA8}" ?><input type="text" name="compat_anylabel" value="<?= e((string) ($row['compat_anylabel'] ?? '')) ?>" maxlength="80"></label>
+          <label><?= "\u{D3FC}\u{D14D}" ?><textarea name="compat_formtec" rows="2" placeholder="한 줄에 하나"><?= e(\App\Helpers\ShopCompatHelper::toMultiline($row['compat_formtec'] ?? null)) ?></textarea></label>
+          <label><?= "\u{C544}\u{C774}\u{B77C}\u{BCA8}" ?><textarea name="compat_ilabel" rows="2" placeholder="한 줄에 하나"><?= e(\App\Helpers\ShopCompatHelper::toMultiline($row['compat_ilabel'] ?? null)) ?></textarea></label>
+          <label><?= "\u{C560}\u{B2C8}\u{B77C}\u{BCA8}" ?><textarea name="compat_anylabel" rows="2" placeholder="한 줄에 하나"><?= e(\App\Helpers\ShopCompatHelper::toMultiline($row['compat_anylabel'] ?? null)) ?></textarea></label>
           <button type="submit" class="admin-btn admin-btn--sm"><?= "\u{C800}\u{C7A5}" ?></button>
         </form>
       </td>
@@ -98,7 +101,62 @@ $statuses = ['active', 'soldout', 'hidden', 'draft'];
 ?>
 <?php endif; ?>
 <script>window.SHOP_META=<?= json_encode(['categories'=>$categories??[],'specs'=>$specs??[]], JSON_UNESCAPED_UNICODE) ?>;</script>
+<script>window.SHOP_PAGE_SETTINGS=<?= json_encode($pageSettings ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;</script>
 <?php require view_path('admin/shop/partials/modal.php'); ?>
+<div id="productPageSettingsModal" class="admin-modal" hidden>
+  <div class="admin-modal-backdrop js-page-settings-close"></div>
+  <div class="admin-modal-dialog admin-modal-dialog--product" role="dialog" aria-modal="true" aria-labelledby="productPageSettingsTitle">
+    <div class="admin-modal-head">
+      <h3 id="productPageSettingsTitle">상품 상세 페이지설정</h3>
+      <button type="button" class="admin-modal-close js-page-settings-close" aria-label="닫기">×</button>
+    </div>
+    <form id="productPageSettingsForm" class="admin-modal-body admin-product-form">
+      <section>
+        <h4 class="admin-product-section-title">공통 헤더</h4>
+        <div class="admin-product-form-grid">
+          <div class="admin-field admin-field--full admin-field--images">
+            <label>헤더 이미지</label>
+            <div class="admin-category-image-wrap" id="pageHeaderImagePreview"></div>
+            <input type="file" id="pageHeaderImageInput" accept="image/jpeg,image/png,image/gif,image/webp" hidden>
+            <div class="admin-category-image-actions">
+              <button type="button" class="admin-btn admin-btn--sm" id="pageHeaderImageAdd">+ 이미지 업로드</button>
+              <button type="button" class="admin-btn admin-btn--sm" id="pageHeaderImageRemove" disabled>삭제</button>
+            </div>
+            <input type="hidden" name="header_image" id="pageHeaderImagePath" value="">
+          </div>
+          <div class="admin-field admin-field--full admin-field--editor">
+            <label for="pageHeaderHtml">헤더 내용</label>
+            <textarea id="pageHeaderHtml" class="js-page-header-html" rows="8" placeholder="상품 상세 상단에 공통으로 표시할 내용을 입력하세요."></textarea>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h4 class="admin-product-section-title">공통 푸터</h4>
+        <div class="admin-product-form-grid">
+          <div class="admin-field admin-field--full admin-field--images">
+            <label>푸터 이미지</label>
+            <div class="admin-category-image-wrap" id="pageFooterImagePreview"></div>
+            <input type="file" id="pageFooterImageInput" accept="image/jpeg,image/png,image/gif,image/webp" hidden>
+            <div class="admin-category-image-actions">
+              <button type="button" class="admin-btn admin-btn--sm" id="pageFooterImageAdd">+ 이미지 업로드</button>
+              <button type="button" class="admin-btn admin-btn--sm" id="pageFooterImageRemove" disabled>삭제</button>
+            </div>
+            <input type="hidden" name="footer_image" id="pageFooterImagePath" value="">
+          </div>
+          <div class="admin-field admin-field--full admin-field--editor">
+            <label for="pageFooterHtml">푸터 내용</label>
+            <textarea id="pageFooterHtml" class="js-page-footer-html" rows="8" placeholder="상품 상세 하단에 공통으로 표시할 내용을 입력하세요."></textarea>
+          </div>
+        </div>
+      </section>
+      <p class="admin-muted">저장된 헤더·푸터는 모든 사용자 상품 상세 페이지에 공통 적용됩니다.</p>
+    </form>
+    <div class="admin-modal-foot">
+      <button type="button" class="admin-btn js-page-settings-close">취소</button>
+      <button type="submit" form="productPageSettingsForm" class="admin-btn admin-btn--primary">저장</button>
+    </div>
+  </div>
+</div>
 <div id="adminLightbox" class="admin-lightbox" hidden>
   <div class="admin-lightbox-backdrop js-lightbox-close"></div>
   <div class="admin-lightbox-panel" role="dialog" aria-modal="true" aria-labelledby="adminLightboxTitle">

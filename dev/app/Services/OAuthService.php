@@ -144,6 +144,7 @@ final class OAuthService
         $this->oauth->upsert($userId, $provider, $providerUserId, $email, $accessToken ?: null, $refreshToken, $expiresAt);
         $this->users->updateLastLogin($userId);
         $this->loginLogs->log($userId, $email, true, 'oauth_register_' . $provider);
+        (new NotificationService())->notifyWelcome($userId, mb_substr($name, 0, 100));
 
         $user = $this->users->findById($userId);
         if (!$user) {

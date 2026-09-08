@@ -88,11 +88,12 @@ $badgeClass = static function (string $st): string {
             <th>작성자</th>
             <th>유형</th>
             <th>상태</th>
+            <th class="ud-actions">관리</th>
           </tr>
         </thead>
         <tbody>
         <?php if (empty($list['items'])): ?>
-          <tr><td colspan="5" class="empty">해당 조건의 사용자 디자인이 없습니다.</td></tr>
+          <tr><td colspan="6" class="empty">해당 조건의 사용자 디자인이 없습니다.</td></tr>
         <?php else: ?>
           <?php foreach ($list['items'] as $i => $row): ?>
           <?php $st = (string) ($row['review_status'] ?? 'pending'); ?>
@@ -110,6 +111,11 @@ $badgeClass = static function (string $st): string {
             <td><?= e((string) ($row['user_name'] ?: $row['email'] ?: '회원')) ?></td>
             <td><span class="admin-badge admin-badge--pending"><?= e((string) ($row['kind_label'] ?? 'AI 생성')) ?></span></td>
             <td><span class="admin-badge <?= e($badgeClass($st)) ?>"><?= e((string) ($row['review_status_label'] ?? '대기')) ?></span></td>
+            <td class="ud-actions">
+              <?php if ($st === 'pending'): ?>
+              <button type="button" class="admin-btn admin-btn--sm admin-btn--primary js-ud-approve" data-id="<?= (int) $row['id'] ?>">승인</button>
+              <?php endif; ?>
+            </td>
           </tr>
           <?php endforeach; ?>
         <?php endif; ?>

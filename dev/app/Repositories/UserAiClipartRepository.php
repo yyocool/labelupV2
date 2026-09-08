@@ -15,14 +15,18 @@ final class UserAiClipartRepository extends BaseModel
     {
         $now = date('Y-m-d H:i:s');
         $this->execute(
-            'INSERT INTO user_ai_cliparts (user_id, title, prompt, image_url, file_name, created_at, updated_at)
-             VALUES (:user_id, :title, :prompt, :image_url, :file_name, :created_at, :updated_at)',
+            'INSERT INTO user_ai_cliparts
+                (user_id, title, prompt, image_url, file_name, review_status, reviewed_at, created_at, updated_at)
+             VALUES
+                (:user_id, :title, :prompt, :image_url, :file_name, :review_status, :reviewed_at, :created_at, :updated_at)',
             [
                 'user_id' => (int) $data['user_id'],
                 'title' => (string) $data['title'],
                 'prompt' => $data['prompt'] ?? null,
                 'image_url' => (string) $data['image_url'],
                 'file_name' => $data['file_name'] ?? null,
+                'review_status' => 'approved',
+                'reviewed_at' => $now,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]

@@ -8,111 +8,136 @@
 
 @if (Session.Dialog == EditorDialog.VendorImport && Session.PendingVendorImport is { } r)
 {
-  <div class="ed-modal" role="dialog" aria-label="타사 포맷 변환 분석" @onclick="Cancel">
+  <div class="ed-modal" role="dialog" aria-label="타사 포맷 변환" @onclick="Cancel">
     <div class="ed-modal__card ed-modal__card--wide ed-vendor-report" @onclick:stopPropagation="true">
       <header class="ed-modal__head">
         <div>
-          <h3>타사 포맷 변환 분석</h3>
-          <p>변환하기 전에 인식된 회사·용지·데이터·항목을 확인합니다.</p>
+          <h3>@(r.Ok ? "변환할 준비가 되었어요" : "파일을 확인하지 못했어요")</h3>
+          <p>@(r.Ok ? "맞으면 변환하기를 눌러 주세요. 자세한 내용은 아래에서 볼 수 있어요." : "다른 파일을 선택하거나 취소해 주세요.")</p>
         </div>
         <button type="button" class="ed-modal__close" @onclick="Cancel">×</button>
       </header>
       <div class="ed-modal__body">
-        <dl class="ed-vendor-report__grid">
-          <div>
-            <dt>파일</dt>
-            <dd>@r.FileName</dd>
-          </div>
-          <div>
-            <dt>회사</dt>
-            <dd>@(string.IsNullOrWhiteSpace(r.VendorName) ? "판별 실패" : r.VendorName)</dd>
-          </div>
-          <div>
-            <dt>용지 번호</dt>
-            <dd>@(string.IsNullOrWhiteSpace(r.PaperNo) ? "-" : r.PaperNo)
-              @if (!string.IsNullOrWhiteSpace(r.PaperName))
-              {
-                <span class="ed-vendor-report__muted">@r.PaperName</span>
-              }
-            </dd>
-          </div>
-          <div>
-            <dt>용지 구성</dt>
-            <dd>@(string.IsNullOrWhiteSpace(r.PaperLayout) ? "-" : r.PaperLayout)</dd>
-          </div>
-        </dl>
-        @if (!string.IsNullOrWhiteSpace(r.Warning))
+        @if (r.Ok)
         {
-          <p class="ed-vendor-report__warn">@r.Warning</p>
+          <p class="ed-vendor-report__status">@(string.IsNullOrWhiteSpace(r.VendorName) ? "파일을 읽었습니다." : $"{r.VendorName} 파일을 잘 읽었습니다.")</p>
         }
-
-        <section class="ed-vendor-report__block">
-          <h4>데이터</h4>
-          @if (r.HasData)
-          {
-            <p>연결됨 · @r.DataRows 행 · 열 @string.Join(", ", r.DataColumns)</p>
-            @if (r.DataPreview.Count > 0)
-            {
-              <ul>
-                @foreach (var line in r.DataPreview)
-                {
-                  <li>@line</li>
-                }
-              </ul>
-            }
-          }
-          else if (!string.IsNullOrWhiteSpace(r.MissingExcelName))
-          {
-            <p>IDF가 <b>@r.MissingExcelName</b> 을 가리키지만, 브라우저에서는 디스크 경로를 열 수 없습니다.</p>
-            <p class="ed-vendor-report__muted">엑셀을 <code>C:\LabelupData</code>에 두었다면 PHP 사이트에서 다시 열거나, 아래에서 직접 연결하세요.</p>
-            <label class="ed-btn ed-btn--file ed-vendor-report__excel">
-              엑셀 파일 연결
-              <InputFile OnChange="OnExcelPicked" accept=".xlsx,.xls" disabled="@_excelBusy" />
-            </label>
-            @if (!string.IsNullOrWhiteSpace(_excelError))
-            {
-              <p class="ed-vendor-report__error">@_excelError</p>
-            }
-          }
-          else
-          {
-            <p class="ed-vendor-report__muted">연결된 데이터가 없습니다.</p>
-          }
-        </section>
-
-        <section class="ed-vendor-report__block">
-          <h4>분석된 항목 (@r.ObjectCount)</h4>
-          @if (r.TypeCounts.Count > 0)
-          {
-            <p class="ed-vendor-report__counts">
-              @foreach (var kv in r.TypeCounts)
-              {
-                <span>@kv.Key @kv.Value</span>
-              }
-            </p>
-          }
-          @if (r.Items.Count > 0)
-          {
-            <ul class="ed-vendor-report__items">
-              @foreach (var item in r.Items.Take(40))
-              {
-                <li><b>@item.Kind</b> @item.Summary <em>@item.Geometry</em></li>
-              }
-            </ul>
-            @if (r.Items.Count > 40)
-            {
-              <p class="ed-vendor-report__muted">외 @(r.Items.Count - 40)개</p>
-            }
-          }
-          else
-          {
-            <p class="ed-vendor-report__muted">인식된 디자인 항목이 없습니다.</p>
-          }
-        </section>
-
-        @if (!r.Ok)
+        else
         {
           <p class="ed-vendor-report__error">변환 실패: @r.Error</p>
+        }
+
+        <div class="ed-vendor-report__cards">
+          <div class="ed-vendor-report__card">
+            <small>프로그램</small>
+            <strong>@(string.IsNullOrWhiteSpace(r.VendorName) ? "확인 필요" : r.VendorName)</strong>
+          </div>
+          <div class="ed-vendor-report__card">
+            <small>용지</small>
+            <strong>@(string.IsNullOrWhiteSpace(r.PaperNo) ? (string.IsNullOrWhiteSpace(r.PaperName) ? "확인 필요" : r.PaperName) : r.PaperNo)</strong>
+          </div>
+          <div class="ed-vendor-report__card">
+            <small>데이터</small>
+            <strong>@(r.HasData ? $"{r.DataRows}개 행 연결" : (string.IsNullOrWhiteSpace(r.MissingExcelName) ? "연결된 데이터 없음" : "엑셀 연결 필요"))</strong>
+          </div>
+          <div class="ed-vendor-report__card">
+            <small>디자인</small>
+            <strong>@(r.ObjectCount > 0 ? $"{r.ObjectCount}개 항목" : "항목 없음")</strong>
+          </div>
+        </div>
+
+        <p class="ed-vendor-report__file">파일 <span>@ShortName(r.FileName)</span></p>
+
+        @if (!string.IsNullOrWhiteSpace(r.Warning))
+        {
+          <p class="ed-vendor-report__warn">참고: @r.Warning</p>
+        }
+        @if (!r.HasData && !string.IsNullOrWhiteSpace(r.MissingExcelName))
+        {
+          <p>IDF가 <b>@r.MissingExcelName</b> 을 가리키지만, 브라우저에서는 디스크 경로를 열 수 없습니다.</p>
+          <label class="ed-btn ed-btn--file ed-vendor-report__excel">
+            엑셀 파일 연결
+            <InputFile OnChange="OnExcelPicked" accept=".xlsx,.xls" disabled="@_excelBusy" />
+          </label>
+          @if (!string.IsNullOrWhiteSpace(_excelError))
+          {
+            <p class="ed-vendor-report__error">@_excelError</p>
+          }
+        }
+
+        <button type="button" class="ed-vendor-report__more" aria-expanded="@_showDetails" @onclick="ToggleDetails">
+          @(_showDetails ? "상세 내용 접기" : "상세 내용 보기")
+        </button>
+
+        @if (_showDetails)
+        {
+          <div class="ed-vendor-report__details">
+            <section class="ed-vendor-report__block">
+              <h4>파일</h4>
+              <p>@r.FileName</p>
+            </section>
+            <section class="ed-vendor-report__block">
+              <h4>용지 구성</h4>
+              <p>@(string.IsNullOrWhiteSpace(r.PaperLayout) ? "-" : r.PaperLayout)</p>
+              @if (!string.IsNullOrWhiteSpace(r.PaperName))
+              {
+                <p class="ed-vendor-report__muted">@r.PaperName</p>
+              }
+            </section>
+            <section class="ed-vendor-report__block">
+              <h4>데이터</h4>
+              @if (r.HasData)
+              {
+                <p>@r.DataRows 행 · 열 @string.Join(", ", r.DataColumns)</p>
+                @if (r.DataPreview.Count > 0)
+                {
+                  <ul>
+                    @foreach (var line in r.DataPreview)
+                    {
+                      <li>@line</li>
+                    }
+                  </ul>
+                }
+              }
+              else if (!string.IsNullOrWhiteSpace(r.MissingExcelName))
+              {
+                <p>IDF가 <b>@r.MissingExcelName</b> 을 가리킵니다. 위에서 엑셀을 연결하세요.</p>
+              }
+              else
+              {
+                <p class="ed-vendor-report__muted">연결된 데이터가 없습니다.</p>
+              }
+            </section>
+            <section class="ed-vendor-report__block">
+              <h4>분석된 항목 (@r.ObjectCount)</h4>
+              @if (r.TypeCounts.Count > 0)
+              {
+                <p class="ed-vendor-report__counts">
+                  @foreach (var kv in r.TypeCounts)
+                  {
+                    <span>@kv.Key @kv.Value</span>
+                  }
+                </p>
+              }
+              @if (r.Items.Count > 0)
+              {
+                <ul class="ed-vendor-report__items">
+                  @foreach (var item in r.Items.Take(40))
+                  {
+                    <li><b>@item.Kind</b> @item.Summary <em>@item.Geometry</em></li>
+                  }
+                </ul>
+                @if (r.Items.Count > 40)
+                {
+                  <p class="ed-vendor-report__muted">외 @(r.Items.Count - 40)개</p>
+                }
+              }
+              else
+              {
+                <p class="ed-vendor-report__muted">인식된 디자인 항목이 없습니다.</p>
+              }
+            </section>
+          </div>
         }
       </div>
       <footer class="ed-modal__foot">
@@ -126,10 +151,35 @@
 @code {
     private bool _excelBusy;
     private string _excelError = "";
+    private bool _showDetails;
+    private string _detailsKey = "";
 
     protected override void OnInitialized() => Session.Changed += OnChanged;
     public void Dispose() => Session.Changed -= OnChanged;
-    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private void OnChanged()
+    {
+        var key = Session.PendingVendorImport?.FileName ?? "";
+        if (key != _detailsKey)
+        {
+            _detailsKey = key;
+            _showDetails = false;
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleDetails() => _showDetails = !_showDetails;
+
+    private static string ShortName(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return "-";
+        }
+        var n = path.Replace('\\', '/');
+        var i = n.LastIndexOf('/');
+        return i >= 0 ? n[(i + 1)..] : path;
+    }
 
     private async Task OnExcelPicked(InputFileChangeEventArgs e)
     {

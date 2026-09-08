@@ -3,15 +3,20 @@ using System.Text;
 
 namespace LabelUp.Editor.Services;
 
+public sealed record FaGlyph(string Slug, string Style, int Width, int Height, string Path);
+
 /// <summary>Font Awesome Free 6.5.2 SVG path. 아이라벨 Cont 이름과 슬러그를 맞춘다.</summary>
 public sealed class FontAwesomeCatalog(HttpClient http)
 {
     public static FontAwesomeCatalog? Current { get; private set; }
 
     private readonly Dictionary<string, string> _paths = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<FaGlyph> _glyphs = [];
     private bool _loaded;
 
     public bool IsReady => _loaded && _paths.Count > 0;
+    public IReadOnlyList<FaGlyph> Glyphs => _glyphs;
+    public int GlyphCount => _glyphs.Count;
 
     public static bool TryResolve(string? name, out string path)
     {
@@ -45,6 +50,9 @@ public sealed class FontAwesomeCatalog(HttpClient http)
 
                 if (parts.Length < 5) continue;
                 var slug = Normalize(parts[0]);
+                var styleKey = parts[1] switch { "b" => "brands", "r" => "regular", _ => "solid" };
+                if (!int.TryParse(parts[2], out var w)) w = 512;
+                if (!int.TryParse(parts[3], out var h)) h = 512;
                 var paths = parts[4].Split('\u001e', StringSplitOptions.RemoveEmptyEntries);
                 if (slug.Length == 0 || paths.Length == 0) continue;
                 var d = string.Join(" ", paths);
@@ -56,16 +64,68 @@ public sealed class FontAwesomeCatalog(HttpClient http)
                         _paths.TryAdd(compact, d);
                 }
 
-                var style = parts[1] switch { "b" => "brands", "r" => "regular", _ => "solid" };
-                _paths.TryAdd($"{slug}-{style}", d);
+                _paths.TryAdd($"{slug}-{styleKey}", d);
+                // Prefer solid for bare slug; only overwrite if not yet set (solid usually first in file)
+                _glyphs.Add(new FaGlyph(slug, styleKey, Math.Max(1, w), Math.Max(1, h), d));
             }
 
-            EditorLog.Info($"Font Awesome 카탈로그: {glyphs}개");
+            EditorLog.Info($"Font Awesome 카탈로그: {glyphs}개 (피커 {_glyphs.Count})");
         }
         catch (Exception ex)
         {
             EditorLog.Error("Font Awesome 카탈로그 로드 실패", ex);
         }
+    }
+
+    public IReadOnlyList<FaGlyph> Search(string? query, string style = "solid", int skip = 0, int take = 96)
+    {
+        if (_glyphs.Count == 0) return [];
+        skip = Math.Max(0, skip);
+        take = Math.Clamp(take, 1, 300);
+
+        var styleKey = NormalizeStyle(style);
+        IEnumerable<FaGlyph> q = _glyphs;
+        if (!string.IsNullOrEmpty(styleKey))
+            q = q.Where(g => g.Style == styleKey);
+
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            var needle = Normalize(query);
+            if (needle.Length > 0)
+            {
+                var compact = needle.Replace("-", "", StringComparison.Ordinal);
+                q = q.Where(g =>
+                    g.Slug.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                    || g.Slug.Replace("-", "", StringComparison.Ordinal)
+                        .Contains(compact, StringComparison.OrdinalIgnoreCase));
+            }
+        }
+
+        return q.Skip(skip).Take(take).ToList();
+    }
+
+    public int Count(string? query, string style = "solid")
+    {
+        if (_glyphs.Count == 0) return 0;
+        var styleKey = NormalizeStyle(style);
+        IEnumerable<FaGlyph> q = _glyphs;
+        if (!string.IsNullOrEmpty(styleKey))
+            q = q.Where(g => g.Style == styleKey);
+
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            var needle = Normalize(query);
+            if (needle.Length > 0)
+            {
+                var compact = needle.Replace("-", "", StringComparison.Ordinal);
+                q = q.Where(g =>
+                    g.Slug.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                    || g.Slug.Replace("-", "", StringComparison.Ordinal)
+                        .Contains(compact, StringComparison.OrdinalIgnoreCase));
+            }
+        }
+
+        return q.Count();
     }
 
     public bool TryGetPath(string? name, out string path)
@@ -82,6 +142,19 @@ public sealed class FontAwesomeCatalog(HttpClient http)
         }
 
         return false;
+    }
+
+    private static string NormalizeStyle(string? style)
+    {
+        var s = (style ?? "").Trim().ToLowerInvariant();
+        return s switch
+        {
+            "" or "all" or "*" => "",
+            "s" or "solid" => "solid",
+            "r" or "regular" => "regular",
+            "b" or "brands" or "brand" => "brands",
+            _ => s
+        };
     }
 
     private static IEnumerable<string> CandidateKeys(string name)

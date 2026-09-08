@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Repositories\ShopRepository;
+use App\Repositories\ShopProductPageSettingsRepository;
 use RuntimeException;
 
 final class ShopAdminService
@@ -307,6 +308,7 @@ final class ShopAdminService
                 throw new RuntimeException('배송중 처리 시 송장번호가 필요합니다.');
             }
             $this->repo->updateOrder($id, $payload);
+            $this->notifyOrderStatusChange($current, $payload['status'], $payload['tracking_no']);
             $updated++;
         }
         return $updated;
@@ -323,6 +325,7 @@ final class ShopAdminService
         if ($id <= 0) {
             throw new RuntimeException('잘못된 요청입니다.');
         }
+        $before = $this->repo->findAdminOrder($id);
         $status = (string) ($data['status'] ?? 'pending');
         $tracking = trim((string) ($data['tracking_no'] ?? ''));
         if ($status === 'shipping' && $tracking === '') {
@@ -335,6 +338,26 @@ final class ShopAdminService
             'carrier' => trim((string) ($data['carrier'] ?? '')),
             'tracking_no' => $tracking,
         ]);
+        $this->notifyOrderStatusChange($before, $status, $tracking);
+    }
+
+    /** @param array<string, mixed>|null $before */
+    private function notifyOrderStatusChange(?array $before, string $newStatus, string $trackingNo = ''): void
+    {
+        if (!$before) {
+            return;
+        }
+        $userId = (int) ($before['user_id'] ?? 0);
+        $oldStatus = (string) ($before['status'] ?? '');
+        if ($userId <= 0 || $oldStatus === $newStatus) {
+            return;
+        }
+        (new NotificationService())->notifyOrderStatus(
+            $userId,
+            (string) ($before['order_no'] ?? ''),
+            $newStatus,
+            $trackingNo
+        );
     }
 
     /** @return array<int, array<string, mixed>> */
@@ -443,6 +466,39 @@ final class ShopAdminService
             'refunded' => '환불완료',
             default => $status,
         };
+    }
+
+    /** @return array<string, mixed> */
+    public function productPageSettings(): array
+    {
+        $row = (new ShopProductPageSettingsRepository())->get();
+        return [
+            'header_html' => $row['header_html'],
+            'footer_html' => $row['footer_html'],
+            'header_image' => $row['header_image'],
+            'footer_image' => $row['footer_image'],
+            'header_image_url' => ShopProductImageService::resolveUrl($row['header_image']),
+            'footer_image_url' => ShopProductImageService::resolveUrl($row['footer_image']),
+        ];
+    }
+
+    public function saveProductPageSettings(array $data): array
+    {
+        $headerImage = ShopProductImageService::normalizePublicPath((string) ($data['header_image'] ?? ''));
+        $footerImage = ShopProductImageService::normalizePublicPath((string) ($data['footer_image'] ?? ''));
+        (new ShopProductPageSettingsRepository())->save([
+            'header_html' => (string) ($data['header_html'] ?? ''),
+            'footer_html' => (string) ($data['footer_html'] ?? ''),
+            'header_image' => $headerImage,
+            'footer_image' => $footerImage,
+        ]);
+        return $this->productPageSettings();
+    }
+
+    /** @return array<int, string> */
+    public function uploadProductPageImages(array $files): array
+    {
+        return ShopProductImageService::storePageSettingUploads($files);
     }
 
     /** @return array<int, string> */

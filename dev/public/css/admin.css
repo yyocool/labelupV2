@@ -570,7 +570,9 @@
 .admin-filter-bar .admin-check{padding-top:0;white-space:nowrap;font-size:12px;font-weight:700;color:#374151}
 .admin-compat-row{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-end;margin-top:8px}
 .admin-compat-row label{display:flex;flex-direction:column;gap:3px;font-size:10px;font-weight:700;color:#6b7280}
-.admin-compat-row input{width:92px;height:28px;border:1px solid #e5e7eb;border-radius:8px;padding:0 8px;font-size:12px}
+.admin-compat-row input,.admin-compat-row textarea{width:112px;border:1px solid #e5e7eb;border-radius:8px;padding:4px 8px;font-size:12px;font-family:inherit;line-height:1.35;resize:vertical}
+.admin-compat-row input{height:28px}
+.admin-compat-row textarea{min-height:44px}
 .admin-order-tabs{display:flex;flex-wrap:wrap;gap:0;margin:0 0 16px;border-bottom:1px solid #e5e7eb}
 .admin-order-tab{display:inline-flex;align-items:center;gap:6px;padding:10px 14px;font-size:13px;font-weight:700;color:#6b7280;text-decoration:none;border-bottom:2px solid transparent;margin-bottom:-1px}
 .admin-order-tab b{font-size:12px;color:#111827}
@@ -603,6 +605,7 @@
 .admin-kpi .delta.up{color:#176b3a}
 .ud-layout{align-items:start}
 .ud-check{width:36px}
+.ud-actions{width:72px;white-space:nowrap}
 .ud-name{display:flex;align-items:center;gap:10px;padding:0;border:0;background:none;cursor:pointer;text-align:left;font:inherit;color:inherit}
 .ud-name strong{display:block;font-size:13px}
 .ud-name small{display:block;margin-top:2px;color:#6b7280;font-size:11px}

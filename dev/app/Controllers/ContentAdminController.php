@@ -47,6 +47,7 @@ final class ContentAdminController extends BaseController
             'tag' => $tag,
             'page' => $page,
             'per_page' => 24,
+            'is_active' => 1,
         ]);
 
         view('admin/layout', [

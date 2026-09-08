@@ -1,0 +1,805 @@
+{
+  "count": 100,
+  "items": [
+    {
+      "title": "가로 걸이간판 · burgundy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_001_hang_rect_burgundy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #hang_rect #burgundy #OPEN",
+      "description": "매장·간판용 가로 걸이간판 · burgundy 클립아트 (OPEN)",
+      "sort_order": 2001
+    },
+    {
+      "title": "가로 걸이간판 · navy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_002_hang_rect_navy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #hang_rect #navy #CAFE",
+      "description": "매장·간판용 가로 걸이간판 · navy 클립아트 (CAFE)",
+      "sort_order": 2002
+    },
+    {
+      "title": "가로 걸이간판 · forest",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_003_hang_rect_forest.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #hang_rect #forest #SALE",
+      "description": "매장·간판용 가로 걸이간판 · forest 클립아트 (SALE)",
+      "sort_order": 2003
+    },
+    {
+      "title": "가로 걸이간판 · amber",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_004_hang_rect_amber.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #hang_rect #amber #SHOP",
+      "description": "매장·간판용 가로 걸이간판 · amber 클립아트 (SHOP)",
+      "sort_order": 2004
+    },
+    {
+      "title": "가로 걸이간판 · violet",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_005_hang_rect_violet.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #hang_rect #violet #MENU",
+      "description": "매장·간판용 가로 걸이간판 · violet 클립아트 (MENU)",
+      "sort_order": 2005
+    },
+    {
+      "title": "원형 걸이간판 · burgundy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_006_hang_round_burgundy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #hang_round #burgundy #BAR",
+      "description": "매장·간판용 원형 걸이간판 · burgundy 클립아트 (BAR)",
+      "sort_order": 2006
+    },
+    {
+      "title": "원형 걸이간판 · navy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_007_hang_round_navy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #hang_round #navy #HOTEL",
+      "description": "매장·간판용 원형 걸이간판 · navy 클립아트 (HOTEL)",
+      "sort_order": 2007
+    },
+    {
+      "title": "원형 걸이간판 · forest",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_008_hang_round_forest.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #hang_round #forest #맛집",
+      "description": "매장·간판용 원형 걸이간판 · forest 클립아트 (맛집)",
+      "sort_order": 2008
+    },
+    {
+      "title": "원형 걸이간판 · amber",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_009_hang_round_amber.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #hang_round #amber #할인",
+      "description": "매장·간판용 원형 걸이간판 · amber 클립아트 (할인)",
+      "sort_order": 2009
+    },
+    {
+      "title": "원형 걸이간판 · violet",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_010_hang_round_violet.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #hang_round #violet #영업중",
+      "description": "매장·간판용 원형 걸이간판 · violet 클립아트 (영업중)",
+      "sort_order": 2010
+    },
+    {
+      "title": "세로 돌출간판 · burgundy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_011_blade_burgundy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #blade #burgundy #OPEN",
+      "description": "매장·간판용 세로 돌출간판 · burgundy 클립아트 (OPEN)",
+      "sort_order": 2011
+    },
+    {
+      "title": "세로 돌출간판 · navy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_012_blade_navy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #blade #navy #CAFE",
+      "description": "매장·간판용 세로 돌출간판 · navy 클립아트 (CAFE)",
+      "sort_order": 2012
+    },
+    {
+      "title": "세로 돌출간판 · forest",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_013_blade_forest.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #blade #forest #SALE",
+      "description": "매장·간판용 세로 돌출간판 · forest 클립아트 (SALE)",
+      "sort_order": 2013
+    },
+    {
+      "title": "세로 돌출간판 · amber",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_014_blade_amber.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #blade #amber #SHOP",
+      "description": "매장·간판용 세로 돌출간판 · amber 클립아트 (SHOP)",
+      "sort_order": 2014
+    },
+    {
+      "title": "세로 돌출간판 · violet",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_015_blade_violet.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #blade #violet #MENU",
+      "description": "매장·간판용 세로 돌출간판 · violet 클립아트 (MENU)",
+      "sort_order": 2015
+    },
+    {
+      "title": "네온 간판 · burgundy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_016_neon_burgundy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #neon #burgundy #BAR",
+      "description": "매장·간판용 네온 간판 · burgundy 클립아트 (BAR)",
+      "sort_order": 2016
+    },
+    {
+      "title": "네온 간판 · navy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_017_neon_navy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #neon #navy #HOTEL",
+      "description": "매장·간판용 네온 간판 · navy 클립아트 (HOTEL)",
+      "sort_order": 2017
+    },
+    {
+      "title": "네온 간판 · forest",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_018_neon_forest.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #neon #forest #맛집",
+      "description": "매장·간판용 네온 간판 · forest 클립아트 (맛집)",
+      "sort_order": 2018
+    },
+    {
+      "title": "네온 간판 · amber",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_019_neon_amber.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #neon #amber #할인",
+      "description": "매장·간판용 네온 간판 · amber 클립아트 (할인)",
+      "sort_order": 2019
+    },
+    {
+      "title": "네온 간판 · violet",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_020_neon_violet.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #neon #violet #영업중",
+      "description": "매장·간판용 네온 간판 · violet 클립아트 (영업중)",
+      "sort_order": 2020
+    },
+    {
+      "title": "우드 플래크 · burgundy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_021_wood_burgundy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #wood #burgundy #OPEN",
+      "description": "매장·간판용 우드 플래크 · burgundy 클립아트 (OPEN)",
+      "sort_order": 2021
+    },
+    {
+      "title": "우드 플래크 · navy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_022_wood_navy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #wood #navy #CAFE",
+      "description": "매장·간판용 우드 플래크 · navy 클립아트 (CAFE)",
+      "sort_order": 2022
+    },
+    {
+      "title": "우드 플래크 · forest",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_023_wood_forest.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #wood #forest #SALE",
+      "description": "매장·간판용 우드 플래크 · forest 클립아트 (SALE)",
+      "sort_order": 2023
+    },
+    {
+      "title": "우드 플래크 · amber",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_024_wood_amber.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #wood #amber #SHOP",
+      "description": "매장·간판용 우드 플래크 · amber 클립아트 (SHOP)",
+      "sort_order": 2024
+    },
+    {
+      "title": "우드 플래크 · violet",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_025_wood_violet.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #wood #violet #MENU",
+      "description": "매장·간판용 우드 플래크 · violet 클립아트 (MENU)",
+      "sort_order": 2025
+    },
+    {
+      "title": "화살표 안내판 · burgundy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_026_arrow_burgundy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #arrow #burgundy #BAR",
+      "description": "매장·간판용 화살표 안내판 · burgundy 클립아트 (BAR)",
+      "sort_order": 2026
+    },
+    {
+      "title": "화살표 안내판 · navy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_027_arrow_navy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #arrow #navy #HOTEL",
+      "description": "매장·간판용 화살표 안내판 · navy 클립아트 (HOTEL)",
+      "sort_order": 2027
+    },
+    {
+      "title": "화살표 안내판 · forest",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_028_arrow_forest.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #arrow #forest #맛집",
+      "description": "매장·간판용 화살표 안내판 · forest 클립아트 (맛집)",
+      "sort_order": 2028
+    },
+    {
+      "title": "화살표 안내판 · amber",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_029_arrow_amber.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #arrow #amber #할인",
+      "description": "매장·간판용 화살표 안내판 · amber 클립아트 (할인)",
+      "sort_order": 2029
+    },
+    {
+      "title": "화살표 안내판 · violet",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_030_arrow_violet.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #arrow #violet #영업중",
+      "description": "매장·간판용 화살표 안내판 · violet 클립아트 (영업중)",
+      "sort_order": 2030
+    },
+    {
+      "title": "오픈 뱃지 · burgundy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_031_open_badge_burgundy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #open_badge #burgundy #OPEN",
+      "description": "매장·간판용 오픈 뱃지 · burgundy 클립아트 (OPEN)",
+      "sort_order": 2031
+    },
+    {
+      "title": "오픈 뱃지 · navy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_032_open_badge_navy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #open_badge #navy #CAFE",
+      "description": "매장·간판용 오픈 뱃지 · navy 클립아트 (CAFE)",
+      "sort_order": 2032
+    },
+    {
+      "title": "오픈 뱃지 · forest",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_033_open_badge_forest.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #open_badge #forest #SALE",
+      "description": "매장·간판용 오픈 뱃지 · forest 클립아트 (SALE)",
+      "sort_order": 2033
+    },
+    {
+      "title": "오픈 뱃지 · amber",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_034_open_badge_amber.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #open_badge #amber #SHOP",
+      "description": "매장·간판용 오픈 뱃지 · amber 클립아트 (SHOP)",
+      "sort_order": 2034
+    },
+    {
+      "title": "오픈 뱃지 · violet",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_035_open_badge_violet.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #open_badge #violet #MENU",
+      "description": "매장·간판용 오픈 뱃지 · violet 클립아트 (MENU)",
+      "sort_order": 2035
+    },
+    {
+      "title": "어닝 간판 · burgundy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_036_awning_burgundy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #awning #burgundy #BAR",
+      "description": "매장·간판용 어닝 간판 · burgundy 클립아트 (BAR)",
+      "sort_order": 2036
+    },
+    {
+      "title": "어닝 간판 · navy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_037_awning_navy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #awning #navy #HOTEL",
+      "description": "매장·간판용 어닝 간판 · navy 클립아트 (HOTEL)",
+      "sort_order": 2037
+    },
+    {
+      "title": "어닝 간판 · forest",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_038_awning_forest.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #awning #forest #맛집",
+      "description": "매장·간판용 어닝 간판 · forest 클립아트 (맛집)",
+      "sort_order": 2038
+    },
+    {
+      "title": "어닝 간판 · amber",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_039_awning_amber.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #awning #amber #할인",
+      "description": "매장·간판용 어닝 간판 · amber 클립아트 (할인)",
+      "sort_order": 2039
+    },
+    {
+      "title": "어닝 간판 · violet",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_040_awning_violet.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #awning #violet #영업중",
+      "description": "매장·간판용 어닝 간판 · violet 클립아트 (영업중)",
+      "sort_order": 2040
+    },
+    {
+      "title": "마키 간판 · burgundy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_041_marquee_burgundy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #marquee #burgundy #OPEN",
+      "description": "매장·간판용 마키 간판 · burgundy 클립아트 (OPEN)",
+      "sort_order": 2041
+    },
+    {
+      "title": "마키 간판 · navy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_042_marquee_navy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #marquee #navy #CAFE",
+      "description": "매장·간판용 마키 간판 · navy 클립아트 (CAFE)",
+      "sort_order": 2042
+    },
+    {
+      "title": "마키 간판 · forest",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_043_marquee_forest.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #marquee #forest #SALE",
+      "description": "매장·간판용 마키 간판 · forest 클립아트 (SALE)",
+      "sort_order": 2043
+    },
+    {
+      "title": "마키 간판 · amber",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_044_marquee_amber.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #marquee #amber #SHOP",
+      "description": "매장·간판용 마키 간판 · amber 클립아트 (SHOP)",
+      "sort_order": 2044
+    },
+    {
+      "title": "마키 간판 · violet",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_045_marquee_violet.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #marquee #violet #MENU",
+      "description": "매장·간판용 마키 간판 · violet 클립아트 (MENU)",
+      "sort_order": 2045
+    },
+    {
+      "title": "다이아 간판 · burgundy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_046_diamond_burgundy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #diamond #burgundy #BAR",
+      "description": "매장·간판용 다이아 간판 · burgundy 클립아트 (BAR)",
+      "sort_order": 2046
+    },
+    {
+      "title": "다이아 간판 · navy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_047_diamond_navy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #diamond #navy #HOTEL",
+      "description": "매장·간판용 다이아 간판 · navy 클립아트 (HOTEL)",
+      "sort_order": 2047
+    },
+    {
+      "title": "다이아 간판 · forest",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_048_diamond_forest.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #diamond #forest #맛집",
+      "description": "매장·간판용 다이아 간판 · forest 클립아트 (맛집)",
+      "sort_order": 2048
+    },
+    {
+      "title": "다이아 간판 · amber",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_049_diamond_amber.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #diamond #amber #할인",
+      "description": "매장·간판용 다이아 간판 · amber 클립아트 (할인)",
+      "sort_order": 2049
+    },
+    {
+      "title": "다이아 간판 · violet",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_050_diamond_violet.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #diamond #violet #영업중",
+      "description": "매장·간판용 다이아 간판 · violet 클립아트 (영업중)",
+      "sort_order": 2050
+    },
+    {
+      "title": "엠블럼 간판 · burgundy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_051_crest_burgundy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #crest #burgundy #OPEN",
+      "description": "매장·간판용 엠블럼 간판 · burgundy 클립아트 (OPEN)",
+      "sort_order": 2051
+    },
+    {
+      "title": "엠블럼 간판 · navy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_052_crest_navy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #crest #navy #CAFE",
+      "description": "매장·간판용 엠블럼 간판 · navy 클립아트 (CAFE)",
+      "sort_order": 2052
+    },
+    {
+      "title": "엠블럼 간판 · forest",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_053_crest_forest.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #crest #forest #SALE",
+      "description": "매장·간판용 엠블럼 간판 · forest 클립아트 (SALE)",
+      "sort_order": 2053
+    },
+    {
+      "title": "엠블럼 간판 · amber",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_054_crest_amber.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #crest #amber #SHOP",
+      "description": "매장·간판용 엠블럼 간판 · amber 클립아트 (SHOP)",
+      "sort_order": 2054
+    },
+    {
+      "title": "엠블럼 간판 · violet",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_055_crest_violet.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #crest #violet #MENU",
+      "description": "매장·간판용 엠블럼 간판 · violet 클립아트 (MENU)",
+      "sort_order": 2055
+    },
+    {
+      "title": "칠판 메뉴판 · burgundy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_056_chalkboard_burgundy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #chalkboard #burgundy #BAR",
+      "description": "매장·간판용 칠판 메뉴판 · burgundy 클립아트 (BAR)",
+      "sort_order": 2056
+    },
+    {
+      "title": "칠판 메뉴판 · navy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_057_chalkboard_navy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #chalkboard #navy #HOTEL",
+      "description": "매장·간판용 칠판 메뉴판 · navy 클립아트 (HOTEL)",
+      "sort_order": 2057
+    },
+    {
+      "title": "칠판 메뉴판 · forest",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_058_chalkboard_forest.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #chalkboard #forest #맛집",
+      "description": "매장·간판용 칠판 메뉴판 · forest 클립아트 (맛집)",
+      "sort_order": 2058
+    },
+    {
+      "title": "칠판 메뉴판 · amber",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_059_chalkboard_amber.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #chalkboard #amber #할인",
+      "description": "매장·간판용 칠판 메뉴판 · amber 클립아트 (할인)",
+      "sort_order": 2059
+    },
+    {
+      "title": "칠판 메뉴판 · violet",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_060_chalkboard_violet.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #chalkboard #violet #영업중",
+      "description": "매장·간판용 칠판 메뉴판 · violet 클립아트 (영업중)",
+      "sort_order": 2060
+    },
+    {
+      "title": "메탈 플레이트 · burgundy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_061_metal_burgundy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #metal #burgundy #OPEN",
+      "description": "매장·간판용 메탈 플레이트 · burgundy 클립아트 (OPEN)",
+      "sort_order": 2061
+    },
+    {
+      "title": "메탈 플레이트 · navy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_062_metal_navy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #metal #navy #CAFE",
+      "description": "매장·간판용 메탈 플레이트 · navy 클립아트 (CAFE)",
+      "sort_order": 2062
+    },
+    {
+      "title": "메탈 플레이트 · forest",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_063_metal_forest.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #metal #forest #SALE",
+      "description": "매장·간판용 메탈 플레이트 · forest 클립아트 (SALE)",
+      "sort_order": 2063
+    },
+    {
+      "title": "메탈 플레이트 · amber",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_064_metal_amber.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #metal #amber #SHOP",
+      "description": "매장·간판용 메탈 플레이트 · amber 클립아트 (SHOP)",
+      "sort_order": 2064
+    },
+    {
+      "title": "메탈 플레이트 · violet",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_065_metal_violet.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #metal #violet #MENU",
+      "description": "매장·간판용 메탈 플레이트 · violet 클립아트 (MENU)",
+      "sort_order": 2065
+    },
+    {
+      "title": "리본 현수막 · burgundy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_066_ribbon_burgundy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #ribbon #burgundy #BAR",
+      "description": "매장·간판용 리본 현수막 · burgundy 클립아트 (BAR)",
+      "sort_order": 2066
+    },
+    {
+      "title": "리본 현수막 · navy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_067_ribbon_navy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #ribbon #navy #HOTEL",
+      "description": "매장·간판용 리본 현수막 · navy 클립아트 (HOTEL)",
+      "sort_order": 2067
+    },
+    {
+      "title": "리본 현수막 · forest",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_068_ribbon_forest.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #ribbon #forest #맛집",
+      "description": "매장·간판용 리본 현수막 · forest 클립아트 (맛집)",
+      "sort_order": 2068
+    },
+    {
+      "title": "리본 현수막 · amber",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_069_ribbon_amber.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #ribbon #amber #할인",
+      "description": "매장·간판용 리본 현수막 · amber 클립아트 (할인)",
+      "sort_order": 2069
+    },
+    {
+      "title": "리본 현수막 · violet",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_070_ribbon_violet.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #ribbon #violet #영업중",
+      "description": "매장·간판용 리본 현수막 · violet 클립아트 (영업중)",
+      "sort_order": 2070
+    },
+    {
+      "title": "A보드 입간판 · burgundy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_071_aframe_burgundy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #aframe #burgundy #OPEN",
+      "description": "매장·간판용 A보드 입간판 · burgundy 클립아트 (OPEN)",
+      "sort_order": 2071
+    },
+    {
+      "title": "A보드 입간판 · navy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_072_aframe_navy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #aframe #navy #CAFE",
+      "description": "매장·간판용 A보드 입간판 · navy 클립아트 (CAFE)",
+      "sort_order": 2072
+    },
+    {
+      "title": "A보드 입간판 · forest",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_073_aframe_forest.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #aframe #forest #SALE",
+      "description": "매장·간판용 A보드 입간판 · forest 클립아트 (SALE)",
+      "sort_order": 2073
+    },
+    {
+      "title": "A보드 입간판 · amber",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_074_aframe_amber.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #aframe #amber #SHOP",
+      "description": "매장·간판용 A보드 입간판 · amber 클립아트 (SHOP)",
+      "sort_order": 2074
+    },
+    {
+      "title": "A보드 입간판 · violet",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_075_aframe_violet.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #aframe #violet #MENU",
+      "description": "매장·간판용 A보드 입간판 · violet 클립아트 (MENU)",
+      "sort_order": 2075
+    },
+    {
+      "title": "캡슐 배너 · burgundy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_076_capsule_burgundy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #capsule #burgundy #BAR",
+      "description": "매장·간판용 캡슐 배너 · burgundy 클립아트 (BAR)",
+      "sort_order": 2076
+    },
+    {
+      "title": "캡슐 배너 · navy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_077_capsule_navy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #capsule #navy #HOTEL",
+      "description": "매장·간판용 캡슐 배너 · navy 클립아트 (HOTEL)",
+      "sort_order": 2077
+    },
+    {
+      "title": "캡슐 배너 · forest",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_078_capsule_forest.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #capsule #forest #맛집",
+      "description": "매장·간판용 캡슐 배너 · forest 클립아트 (맛집)",
+      "sort_order": 2078
+    },
+    {
+      "title": "캡슐 배너 · amber",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_079_capsule_amber.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #capsule #amber #할인",
+      "description": "매장·간판용 캡슐 배너 · amber 클립아트 (할인)",
+      "sort_order": 2079
+    },
+    {
+      "title": "캡슐 배너 · violet",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_080_capsule_violet.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #capsule #violet #영업중",
+      "description": "매장·간판용 캡슐 배너 · violet 클립아트 (영업중)",
+      "sort_order": 2080
+    },
+    {
+      "title": "헥사 모던간판 · burgundy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_081_hex_burgundy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #hex #burgundy #OPEN",
+      "description": "매장·간판용 헥사 모던간판 · burgundy 클립아트 (OPEN)",
+      "sort_order": 2081
+    },
+    {
+      "title": "헥사 모던간판 · navy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_082_hex_navy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #hex #navy #CAFE",
+      "description": "매장·간판용 헥사 모던간판 · navy 클립아트 (CAFE)",
+      "sort_order": 2082
+    },
+    {
+      "title": "헥사 모던간판 · forest",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_083_hex_forest.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #hex #forest #SALE",
+      "description": "매장·간판용 헥사 모던간판 · forest 클립아트 (SALE)",
+      "sort_order": 2083
+    },
+    {
+      "title": "헥사 모던간판 · amber",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_084_hex_amber.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #hex #amber #SHOP",
+      "description": "매장·간판용 헥사 모던간판 · amber 클립아트 (SHOP)",
+      "sort_order": 2084
+    },
+    {
+      "title": "헥사 모던간판 · violet",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_085_hex_violet.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #hex #violet #MENU",
+      "description": "매장·간판용 헥사 모던간판 · violet 클립아트 (MENU)",
+      "sort_order": 2085
+    },
+    {
+      "title": "말풍선 간판 · burgundy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_086_speech_burgundy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #speech #burgundy #BAR",
+      "description": "매장·간판용 말풍선 간판 · burgundy 클립아트 (BAR)",
+      "sort_order": 2086
+    },
+    {
+      "title": "말풍선 간판 · navy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_087_speech_navy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #speech #navy #HOTEL",
+      "description": "매장·간판용 말풍선 간판 · navy 클립아트 (HOTEL)",
+      "sort_order": 2087
+    },
+    {
+      "title": "말풍선 간판 · forest",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_088_speech_forest.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #speech #forest #맛집",
+      "description": "매장·간판용 말풍선 간판 · forest 클립아트 (맛집)",
+      "sort_order": 2088
+    },
+    {
+      "title": "말풍선 간판 · amber",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_089_speech_amber.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #speech #amber #할인",
+      "description": "매장·간판용 말풍선 간판 · amber 클립아트 (할인)",
+      "sort_order": 2089
+    },
+    {
+      "title": "말풍선 간판 · violet",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_090_speech_violet.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #speech #violet #영업중",
+      "description": "매장·간판용 말풍선 간판 · violet 클립아트 (영업중)",
+      "sort_order": 2090
+    },
+    {
+      "title": "프라이스 태그 · burgundy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_091_pricetag_burgundy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #pricetag #burgundy #OPEN",
+      "description": "매장·간판용 프라이스 태그 · burgundy 클립아트 (OPEN)",
+      "sort_order": 2091
+    },
+    {
+      "title": "프라이스 태그 · navy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_092_pricetag_navy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #pricetag #navy #CAFE",
+      "description": "매장·간판용 프라이스 태그 · navy 클립아트 (CAFE)",
+      "sort_order": 2092
+    },
+    {
+      "title": "프라이스 태그 · forest",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_093_pricetag_forest.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #pricetag #forest #SALE",
+      "description": "매장·간판용 프라이스 태그 · forest 클립아트 (SALE)",
+      "sort_order": 2093
+    },
+    {
+      "title": "프라이스 태그 · amber",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_094_pricetag_amber.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #pricetag #amber #SHOP",
+      "description": "매장·간판용 프라이스 태그 · amber 클립아트 (SHOP)",
+      "sort_order": 2094
+    },
+    {
+      "title": "프라이스 태그 · violet",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_095_pricetag_violet.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #pricetag #violet #MENU",
+      "description": "매장·간판용 프라이스 태그 · violet 클립아트 (MENU)",
+      "sort_order": 2095
+    },
+    {
+      "title": "더블바 간판 · burgundy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_096_doublebar_burgundy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #doublebar #burgundy #BAR",
+      "description": "매장·간판용 더블바 간판 · burgundy 클립아트 (BAR)",
+      "sort_order": 2096
+    },
+    {
+      "title": "더블바 간판 · navy",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_097_doublebar_navy.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #doublebar #navy #HOTEL",
+      "description": "매장·간판용 더블바 간판 · navy 클립아트 (HOTEL)",
+      "sort_order": 2097
+    },
+    {
+      "title": "더블바 간판 · forest",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_098_doublebar_forest.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #doublebar #forest #맛집",
+      "description": "매장·간판용 더블바 간판 · forest 클립아트 (맛집)",
+      "sort_order": 2098
+    },
+    {
+      "title": "더블바 간판 · amber",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_099_doublebar_amber.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #doublebar #amber #할인",
+      "description": "매장·간판용 더블바 간판 · amber 클립아트 (할인)",
+      "sort_order": 2099
+    },
+    {
+      "title": "더블바 간판 · violet",
+      "category_slug": "signboard",
+      "image_path": "/assets/cliparts/hq_sign_100_doublebar_violet.png",
+      "hashtags": "#간판 #매장 #라벨 #클립아트 #고품질 #간판 #매장 #doublebar #violet #영업중",
+      "description": "매장·간판용 더블바 간판 · violet 클립아트 (영업중)",
+      "sort_order": 2100
+    }
+  ]
+}

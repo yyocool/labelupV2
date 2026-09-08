@@ -1173,6 +1173,110 @@ window.labelUpEditor = {
     return json.data || { items: [] };
   },
 
+  listMyCliparts: async function () {
+    var res = await fetch(this.apiUrl('/api/editor/my-cliparts'), {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: { 'Accept': 'application/json' }
+    });
+    var json = await res.json().catch(function () { return null; });
+    if (res.status === 401) {
+      return { items: [], loggedIn: false };
+    }
+    if (!res.ok || !json || json.success === false) {
+      throw new Error((json && json.message) || ('HTTP ' + res.status));
+    }
+    var data = json.data || {};
+    return {
+      items: Array.isArray(data.items) ? data.items : [],
+      loggedIn: data.loggedIn !== false
+    };
+  },
+
+  bindInfiniteScroll: function (el, dotNetRef, methodName, threshold) {
+    if (!el) return;
+    this.unbindInfiniteScroll(el);
+    var gap = typeof threshold === 'number' ? threshold : 140;
+    var busy = false;
+    var trigger = function () {
+      if (busy) return;
+      busy = true;
+      Promise.resolve(dotNetRef.invokeMethodAsync(methodName))
+        .catch(function (err) { console.warn('[LabelUp] infinite scroll', err); })
+        .then(function () {
+          setTimeout(function () { busy = false; }, 220);
+        });
+    };
+    var onScroll = function () {
+      if (el.scrollTop + el.clientHeight < el.scrollHeight - gap) return;
+      trigger();
+    };
+    el.__luInfScroll = onScroll;
+    el.__luInfTrigger = trigger;
+    el.addEventListener('scroll', onScroll, { passive: true });
+    // 첫 화면이 가득 차지 않으면 바로 한 번 더 시도
+    setTimeout(function () {
+      if (el.scrollHeight <= el.clientHeight + gap) trigger();
+    }, 60);
+  },
+
+  unbindInfiniteScroll: function (el) {
+    if (!el) return;
+    if (el.__luInfScroll) {
+      el.removeEventListener('scroll', el.__luInfScroll);
+      el.__luInfScroll = null;
+    }
+    el.__luInfTrigger = null;
+    if (el.__luInfObs && el.__luInfSentinel) {
+      try { el.__luInfObs.disconnect(); } catch (e) { /* ignore */ }
+      el.__luInfObs = null;
+      el.__luInfSentinel = null;
+    }
+  },
+
+  bindInfiniteSentinel: function (root, sentinel, dotNetRef, methodName) {
+    if (!root || !dotNetRef) return;
+    this.unbindInfiniteScroll(root);
+
+    var gap = 140;
+    var busy = false;
+    var trigger = function () {
+      if (busy) return;
+      busy = true;
+      Promise.resolve(dotNetRef.invokeMethodAsync(methodName))
+        .catch(function (err) { console.warn('[LabelUp] infinite scroll', err); })
+        .then(function () {
+          setTimeout(function () { busy = false; }, 220);
+        });
+    };
+
+    var onScroll = function () {
+      if (root.scrollTop + root.clientHeight < root.scrollHeight - gap) return;
+      trigger();
+    };
+    root.__luInfScroll = onScroll;
+    root.__luInfTrigger = trigger;
+    root.addEventListener('scroll', onScroll, { passive: true });
+
+    if (sentinel && typeof IntersectionObserver !== 'undefined') {
+      var obs = new IntersectionObserver(function (entries) {
+        for (var i = 0; i < entries.length; i++) {
+          if (entries[i].isIntersecting) {
+            trigger();
+            break;
+          }
+        }
+      }, { root: root, rootMargin: '180px 0px', threshold: 0 });
+      obs.observe(sentinel);
+      root.__luInfObs = obs;
+      root.__luInfSentinel = sentinel;
+    }
+
+    setTimeout(function () {
+      if (root.scrollHeight <= root.clientHeight + gap) trigger();
+    }, 80);
+  },
+
   loadWorkspace: async function (id) {
     var url = this.apiUrl('/api/editor/workspace');
     if (id) url += (url.indexOf('?') >= 0 ? '&' : '?') + 'id=' + encodeURIComponent(id);

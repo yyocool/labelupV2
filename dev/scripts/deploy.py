@@ -158,10 +158,12 @@ GOOGLE_CLIENT_SECRET={google_secret}
         f"mkdir -p {REMOTE_ROOT}/public/assets/ai-clipart",
         f"mkdir -p {REMOTE_ROOT}/public/assets/cliparts",
         f"mkdir -p {REMOTE_ROOT}/public/assets/editor-previews",
+        f"mkdir -p {REMOTE_ROOT}/public/assets/editor-media",
+        f"mkdir -p {REMOTE_ROOT}/public/assets/shop-page",
         # labelupdev PHP-FPM runs as www-data (php8.1)
-        f"chown -R www-data:www-data {REMOTE_ROOT}/public/assets/ai-clipart {REMOTE_ROOT}/public/assets/cliparts {REMOTE_ROOT}/public/assets/editor-previews {REMOTE_ROOT}/storage/ai-clipart {REMOTE_ROOT}/storage/imports",
+        f"chown -R www-data:www-data {REMOTE_ROOT}/public/assets/ai-clipart {REMOTE_ROOT}/public/assets/cliparts {REMOTE_ROOT}/public/assets/editor-previews {REMOTE_ROOT}/public/assets/editor-media {REMOTE_ROOT}/public/assets/shop-page {REMOTE_ROOT}/storage/ai-clipart {REMOTE_ROOT}/storage/imports",
         f"chmod -R 775 {REMOTE_ROOT}/storage",
-        f"chmod 777 {REMOTE_ROOT}/public/assets/ai-clipart {REMOTE_ROOT}/public/assets/cliparts {REMOTE_ROOT}/public/assets/editor-previews {REMOTE_ROOT}/storage/ai-clipart {REMOTE_ROOT}/storage/imports",
+        f"chmod 777 {REMOTE_ROOT}/public/assets/ai-clipart {REMOTE_ROOT}/public/assets/cliparts {REMOTE_ROOT}/public/assets/editor-previews {REMOTE_ROOT}/public/assets/editor-media {REMOTE_ROOT}/public/assets/shop-page {REMOTE_ROOT}/storage/ai-clipart {REMOTE_ROOT}/storage/imports",
         f"chown www-data:www-data {REMOTE_ROOT}/.env",
         f"chmod 640 {REMOTE_ROOT}/.env",
     ]

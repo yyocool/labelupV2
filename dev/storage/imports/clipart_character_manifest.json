@@ -1,0 +1,725 @@
+{
+  "count": 90,
+  "items": [
+    {
+      "title": "모찌 · 방긋 미소",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_001_mochi_smile.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #smile",
+      "description": "모찌 고품질 · 방긋 미소",
+      "sort_order": 3001
+    },
+    {
+      "title": "모찌 · 활짝 웃음",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_002_mochi_happy.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #happy",
+      "description": "모찌 고품질 · 활짝 웃음",
+      "sort_order": 3002
+    },
+    {
+      "title": "모찌 · 윙크",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_003_mochi_wink.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #wink",
+      "description": "모찌 고품질 · 윙크",
+      "sort_order": 3003
+    },
+    {
+      "title": "모찌 · 하트눈",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_004_mochi_love.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #love",
+      "description": "모찌 고품질 · 하트눈",
+      "sort_order": 3004
+    },
+    {
+      "title": "모찌 · 깜짝",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_005_mochi_surprise.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #surprise",
+      "description": "모찌 고품질 · 깜짝",
+      "sort_order": 3005
+    },
+    {
+      "title": "모찌 · 졸린",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_006_mochi_sleepy.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #sleepy",
+      "description": "모찌 고품질 · 졸린",
+      "sort_order": 3006
+    },
+    {
+      "title": "모찌 · 울먹",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_007_mochi_cry.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #cry",
+      "description": "모찌 고품질 · 울먹",
+      "sort_order": 3007
+    },
+    {
+      "title": "모찌 · 뾰로통",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_008_mochi_pout.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #pout",
+      "description": "모찌 고품질 · 뾰로통",
+      "sort_order": 3008
+    },
+    {
+      "title": "모찌 · 수줍은",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_009_mochi_shy.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #shy",
+      "description": "모찌 고품질 · 수줍은",
+      "sort_order": 3009
+    },
+    {
+      "title": "모찌 · 생각중",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_010_mochi_think.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #think",
+      "description": "모찌 고품질 · 생각중",
+      "sort_order": 3010
+    },
+    {
+      "title": "모찌 · 손인사",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_011_mochi_wave.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #wave",
+      "description": "모찌 고품질 · 손인사",
+      "sort_order": 3011
+    },
+    {
+      "title": "모찌 · 만세",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_012_mochi_cheer.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #cheer",
+      "description": "모찌 고품질 · 만세",
+      "sort_order": 3012
+    },
+    {
+      "title": "모찌 · 점프",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_013_mochi_jump.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #jump",
+      "description": "모찌 고품질 · 점프",
+      "sort_order": 3013
+    },
+    {
+      "title": "모찌 · 앉기",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_014_mochi_sit.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #sit",
+      "description": "모찌 고품질 · 앉기",
+      "sort_order": 3014
+    },
+    {
+      "title": "모찌 · 달리기",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_015_mochi_run.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #run",
+      "description": "모찌 고품질 · 달리기",
+      "sort_order": 3015
+    },
+    {
+      "title": "모찌 · 간식먹기",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_016_mochi_eat.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #eat",
+      "description": "모찌 고품질 · 간식먹기",
+      "sort_order": 3016
+    },
+    {
+      "title": "모찌 · 음료마시기",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_017_mochi_drink.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #drink",
+      "description": "모찌 고품질 · 음료마시기",
+      "sort_order": 3017
+    },
+    {
+      "title": "모찌 · 하트안기",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_018_mochi_hug.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #hug",
+      "description": "모찌 고품질 · 하트안기",
+      "sort_order": 3018
+    },
+    {
+      "title": "모찌 · 빼꼼",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_019_mochi_peek.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #peek",
+      "description": "모찌 고품질 · 빼꼼",
+      "sort_order": 3019
+    },
+    {
+      "title": "모찌 · 댄스",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_020_mochi_dance.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #dance",
+      "description": "모찌 고품질 · 댄스",
+      "sort_order": 3020
+    },
+    {
+      "title": "모찌 · 인사",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_021_mochi_bow.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #bow",
+      "description": "모찌 고품질 · 인사",
+      "sort_order": 3021
+    },
+    {
+      "title": "모찌 · 기지개",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_022_mochi_stretch.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #stretch",
+      "description": "모찌 고품질 · 기지개",
+      "sort_order": 3022
+    },
+    {
+      "title": "모찌 · 추워",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_023_mochi_cold.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #cold",
+      "description": "모찌 고품질 · 추워",
+      "sort_order": 3023
+    },
+    {
+      "title": "모찌 · 더워",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_024_mochi_hot.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #hot",
+      "description": "모찌 고품질 · 더워",
+      "sort_order": 3024
+    },
+    {
+      "title": "모찌 · 생일케이크",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_025_mochi_cake.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #cake",
+      "description": "모찌 고품질 · 생일케이크",
+      "sort_order": 3025
+    },
+    {
+      "title": "모찌 · 선물",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_026_mochi_gift.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #gift",
+      "description": "모찌 고품질 · 선물",
+      "sort_order": 3026
+    },
+    {
+      "title": "모찌 · 전화",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_027_mochi_phone.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #phone",
+      "description": "모찌 고품질 · 전화",
+      "sort_order": 3027
+    },
+    {
+      "title": "모찌 · 독서",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_028_mochi_read.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #read",
+      "description": "모찌 고품질 · 독서",
+      "sort_order": 3028
+    },
+    {
+      "title": "모찌 · 꿀잠",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_029_mochi_sleep.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #sleep",
+      "description": "모찌 고품질 · 꿀잠",
+      "sort_order": 3029
+    },
+    {
+      "title": "모찌 · 야호",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_030_mochi_yay.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #모찌 #yay",
+      "description": "모찌 고품질 · 야호",
+      "sort_order": 3030
+    },
+    {
+      "title": "콩이 · 방긋 미소",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_031_kong_smile.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #smile",
+      "description": "콩이 고품질 · 방긋 미소",
+      "sort_order": 3031
+    },
+    {
+      "title": "콩이 · 활짝 웃음",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_032_kong_happy.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #happy",
+      "description": "콩이 고품질 · 활짝 웃음",
+      "sort_order": 3032
+    },
+    {
+      "title": "콩이 · 윙크",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_033_kong_wink.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #wink",
+      "description": "콩이 고품질 · 윙크",
+      "sort_order": 3033
+    },
+    {
+      "title": "콩이 · 하트눈",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_034_kong_love.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #love",
+      "description": "콩이 고품질 · 하트눈",
+      "sort_order": 3034
+    },
+    {
+      "title": "콩이 · 깜짝",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_035_kong_surprise.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #surprise",
+      "description": "콩이 고품질 · 깜짝",
+      "sort_order": 3035
+    },
+    {
+      "title": "콩이 · 졸린",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_036_kong_sleepy.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #sleepy",
+      "description": "콩이 고품질 · 졸린",
+      "sort_order": 3036
+    },
+    {
+      "title": "콩이 · 울먹",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_037_kong_cry.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #cry",
+      "description": "콩이 고품질 · 울먹",
+      "sort_order": 3037
+    },
+    {
+      "title": "콩이 · 뾰로통",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_038_kong_pout.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #pout",
+      "description": "콩이 고품질 · 뾰로통",
+      "sort_order": 3038
+    },
+    {
+      "title": "콩이 · 수줍은",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_039_kong_shy.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #shy",
+      "description": "콩이 고품질 · 수줍은",
+      "sort_order": 3039
+    },
+    {
+      "title": "콩이 · 생각중",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_040_kong_think.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #think",
+      "description": "콩이 고품질 · 생각중",
+      "sort_order": 3040
+    },
+    {
+      "title": "콩이 · 손인사",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_041_kong_wave.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #wave",
+      "description": "콩이 고품질 · 손인사",
+      "sort_order": 3041
+    },
+    {
+      "title": "콩이 · 만세",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_042_kong_cheer.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #cheer",
+      "description": "콩이 고품질 · 만세",
+      "sort_order": 3042
+    },
+    {
+      "title": "콩이 · 점프",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_043_kong_jump.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #jump",
+      "description": "콩이 고품질 · 점프",
+      "sort_order": 3043
+    },
+    {
+      "title": "콩이 · 앉기",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_044_kong_sit.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #sit",
+      "description": "콩이 고품질 · 앉기",
+      "sort_order": 3044
+    },
+    {
+      "title": "콩이 · 달리기",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_045_kong_run.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #run",
+      "description": "콩이 고품질 · 달리기",
+      "sort_order": 3045
+    },
+    {
+      "title": "콩이 · 간식먹기",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_046_kong_eat.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #eat",
+      "description": "콩이 고품질 · 간식먹기",
+      "sort_order": 3046
+    },
+    {
+      "title": "콩이 · 음료마시기",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_047_kong_drink.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #drink",
+      "description": "콩이 고품질 · 음료마시기",
+      "sort_order": 3047
+    },
+    {
+      "title": "콩이 · 하트안기",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_048_kong_hug.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #hug",
+      "description": "콩이 고품질 · 하트안기",
+      "sort_order": 3048
+    },
+    {
+      "title": "콩이 · 빼꼼",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_049_kong_peek.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #peek",
+      "description": "콩이 고품질 · 빼꼼",
+      "sort_order": 3049
+    },
+    {
+      "title": "콩이 · 댄스",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_050_kong_dance.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #dance",
+      "description": "콩이 고품질 · 댄스",
+      "sort_order": 3050
+    },
+    {
+      "title": "콩이 · 인사",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_051_kong_bow.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #bow",
+      "description": "콩이 고품질 · 인사",
+      "sort_order": 3051
+    },
+    {
+      "title": "콩이 · 기지개",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_052_kong_stretch.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #stretch",
+      "description": "콩이 고품질 · 기지개",
+      "sort_order": 3052
+    },
+    {
+      "title": "콩이 · 추워",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_053_kong_cold.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #cold",
+      "description": "콩이 고품질 · 추워",
+      "sort_order": 3053
+    },
+    {
+      "title": "콩이 · 더워",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_054_kong_hot.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #hot",
+      "description": "콩이 고품질 · 더워",
+      "sort_order": 3054
+    },
+    {
+      "title": "콩이 · 생일케이크",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_055_kong_cake.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #cake",
+      "description": "콩이 고품질 · 생일케이크",
+      "sort_order": 3055
+    },
+    {
+      "title": "콩이 · 선물",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_056_kong_gift.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #gift",
+      "description": "콩이 고품질 · 선물",
+      "sort_order": 3056
+    },
+    {
+      "title": "콩이 · 전화",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_057_kong_phone.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #phone",
+      "description": "콩이 고품질 · 전화",
+      "sort_order": 3057
+    },
+    {
+      "title": "콩이 · 독서",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_058_kong_read.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #read",
+      "description": "콩이 고품질 · 독서",
+      "sort_order": 3058
+    },
+    {
+      "title": "콩이 · 꿀잠",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_059_kong_sleep.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #sleep",
+      "description": "콩이 고품질 · 꿀잠",
+      "sort_order": 3059
+    },
+    {
+      "title": "콩이 · 야호",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_060_kong_yay.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #콩이 #yay",
+      "description": "콩이 고품질 · 야호",
+      "sort_order": 3060
+    },
+    {
+      "title": "별이 · 방긋 미소",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_061_byeol_smile.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #smile",
+      "description": "별이 고품질 · 방긋 미소",
+      "sort_order": 3061
+    },
+    {
+      "title": "별이 · 활짝 웃음",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_062_byeol_happy.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #happy",
+      "description": "별이 고품질 · 활짝 웃음",
+      "sort_order": 3062
+    },
+    {
+      "title": "별이 · 윙크",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_063_byeol_wink.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #wink",
+      "description": "별이 고품질 · 윙크",
+      "sort_order": 3063
+    },
+    {
+      "title": "별이 · 하트눈",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_064_byeol_love.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #love",
+      "description": "별이 고품질 · 하트눈",
+      "sort_order": 3064
+    },
+    {
+      "title": "별이 · 깜짝",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_065_byeol_surprise.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #surprise",
+      "description": "별이 고품질 · 깜짝",
+      "sort_order": 3065
+    },
+    {
+      "title": "별이 · 졸린",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_066_byeol_sleepy.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #sleepy",
+      "description": "별이 고품질 · 졸린",
+      "sort_order": 3066
+    },
+    {
+      "title": "별이 · 울먹",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_067_byeol_cry.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #cry",
+      "description": "별이 고품질 · 울먹",
+      "sort_order": 3067
+    },
+    {
+      "title": "별이 · 뾰로통",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_068_byeol_pout.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #pout",
+      "description": "별이 고품질 · 뾰로통",
+      "sort_order": 3068
+    },
+    {
+      "title": "별이 · 수줍은",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_069_byeol_shy.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #shy",
+      "description": "별이 고품질 · 수줍은",
+      "sort_order": 3069
+    },
+    {
+      "title": "별이 · 생각중",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_070_byeol_think.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #think",
+      "description": "별이 고품질 · 생각중",
+      "sort_order": 3070
+    },
+    {
+      "title": "별이 · 손인사",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_071_byeol_wave.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #wave",
+      "description": "별이 고품질 · 손인사",
+      "sort_order": 3071
+    },
+    {
+      "title": "별이 · 만세",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_072_byeol_cheer.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #cheer",
+      "description": "별이 고품질 · 만세",
+      "sort_order": 3072
+    },
+    {
+      "title": "별이 · 점프",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_073_byeol_jump.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #jump",
+      "description": "별이 고품질 · 점프",
+      "sort_order": 3073
+    },
+    {
+      "title": "별이 · 앉기",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_074_byeol_sit.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #sit",
+      "description": "별이 고품질 · 앉기",
+      "sort_order": 3074
+    },
+    {
+      "title": "별이 · 달리기",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_075_byeol_run.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #run",
+      "description": "별이 고품질 · 달리기",
+      "sort_order": 3075
+    },
+    {
+      "title": "별이 · 간식먹기",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_076_byeol_eat.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #eat",
+      "description": "별이 고품질 · 간식먹기",
+      "sort_order": 3076
+    },
+    {
+      "title": "별이 · 음료마시기",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_077_byeol_drink.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #drink",
+      "description": "별이 고품질 · 음료마시기",
+      "sort_order": 3077
+    },
+    {
+      "title": "별이 · 하트안기",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_078_byeol_hug.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #hug",
+      "description": "별이 고품질 · 하트안기",
+      "sort_order": 3078
+    },
+    {
+      "title": "별이 · 빼꼼",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_079_byeol_peek.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #peek",
+      "description": "별이 고품질 · 빼꼼",
+      "sort_order": 3079
+    },
+    {
+      "title": "별이 · 댄스",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_080_byeol_dance.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #dance",
+      "description": "별이 고품질 · 댄스",
+      "sort_order": 3080
+    },
+    {
+      "title": "별이 · 인사",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_081_byeol_bow.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #bow",
+      "description": "별이 고품질 · 인사",
+      "sort_order": 3081
+    },
+    {
+      "title": "별이 · 기지개",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_082_byeol_stretch.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #stretch",
+      "description": "별이 고품질 · 기지개",
+      "sort_order": 3082
+    },
+    {
+      "title": "별이 · 추워",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_083_byeol_cold.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #cold",
+      "description": "별이 고품질 · 추워",
+      "sort_order": 3083
+    },
+    {
+      "title": "별이 · 더워",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_084_byeol_hot.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #hot",
+      "description": "별이 고품질 · 더워",
+      "sort_order": 3084
+    },
+    {
+      "title": "별이 · 생일케이크",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_085_byeol_cake.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #cake",
+      "description": "별이 고품질 · 생일케이크",
+      "sort_order": 3085
+    },
+    {
+      "title": "별이 · 선물",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_086_byeol_gift.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #gift",
+      "description": "별이 고품질 · 선물",
+      "sort_order": 3086
+    },
+    {
+      "title": "별이 · 전화",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_087_byeol_phone.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #phone",
+      "description": "별이 고품질 · 전화",
+      "sort_order": 3087
+    },
+    {
+      "title": "별이 · 독서",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_088_byeol_read.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #read",
+      "description": "별이 고품질 · 독서",
+      "sort_order": 3088
+    },
+    {
+      "title": "별이 · 꿀잠",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_089_byeol_sleep.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #sleep",
+      "description": "별이 고품질 · 꿀잠",
+      "sort_order": 3089
+    },
+    {
+      "title": "별이 · 야호",
+      "category_slug": "character",
+      "image_path": "/assets/cliparts/hq_char_090_byeol_yay.png",
+      "hashtags": "#캐릭터 #프렌즈 #귀여운 #스티커 #라벨 #클립아트 #별이 #yay",
+      "description": "별이 고품질 · 야호",
+      "sort_order": 3090
+    }
+  ]
+}

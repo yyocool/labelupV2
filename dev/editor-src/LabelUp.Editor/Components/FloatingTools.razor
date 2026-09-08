@@ -60,7 +60,7 @@
         <strong>@Session.Document.Paper.PaperNo</strong>
         <em>@Session.Document.Paper.LabelWidthMm.ToString("0.#")×@Session.Document.Paper.LabelHeightMm.ToString("0.#") mm · @Session.Document.Paper.LabelsPerPage 칸</em>
       </button>
-      <button type="button" class="ed-float-tools__paper" data-tut="themes" @onclick="() => Session.OpenDialog(EditorDialog.ThemePicker)">
+      <button type="button" class="ed-float-tools__paper" data-tut="themes" title="@ThemeTitleFull" @onclick="() => Session.OpenDialog(EditorDialog.ThemePicker)">
         <span class="ed-float-tools__paper-kicker">템플릿선택</span>
         <strong>@ThemeTitle</strong>
         <em>@ThemeMeta</em>
@@ -136,13 +136,29 @@
         (ShapeKind.Polygon, "⬠", "정다각형")
     ];
 
-    private string ThemeTitle
+    private string ThemeTitleFull
     {
         get
         {
             var name = Session.Document.Name?.Trim();
             return string.IsNullOrWhiteSpace(name) || name is "새 라벨 디자인" ? "템플릿을 선택하세요" : name;
         }
+    }
+
+    private string ThemeTitle
+    {
+        get
+        {
+            var name = ThemeTitleFull;
+            if (name is "템플릿을 선택하세요") return name;
+            return TruncateDisplay(name, 8);
+        }
+    }
+
+    private static string TruncateDisplay(string text, int maxChars)
+    {
+        if (string.IsNullOrEmpty(text) || text.Length <= maxChars) return text;
+        return string.Concat(text.AsSpan(0, maxChars), "...");
     }
 
     private string ThemeMeta
