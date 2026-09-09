@@ -791,6 +791,21 @@ final class ShopRepository extends BaseModel
         );
     }
 
+    /** 관리자 미리보기용 — 상태와 무관하게 상품 조회 */
+    public function findProductForPreview(int $id): ?array
+    {
+        return $this->fetchOne(
+            'SELECT p.*, c.name AS category_name, c.slug AS category_slug,
+                    s.name AS spec_name, s.width_mm, s.height_mm, s.material, s.shape, s.labels_per_sheet
+             FROM shop_products p
+             LEFT JOIN shop_categories c ON c.id = p.category_id
+             LEFT JOIN label_specs s ON s.id = p.spec_id
+             WHERE p.id = :id
+             LIMIT 1',
+            ['id' => $id]
+        );
+    }
+
     public function findActiveProductByCode(string $code): ?array
     {
         $code = trim($code);

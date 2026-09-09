@@ -217,6 +217,7 @@ final class Router
         $router->get('/admin/content/user-designs', [$contentAdmin, 'userDesigns']);
         $router->get('/admin/content/templates', [$contentAdmin, 'templates']);
         $router->get('/admin/content/product-detail-pages', [$contentAdmin, 'productDetailPages']);
+        $router->get('/admin/content/product-detail-pages/preview/{id}', [$contentAdmin, 'productDetailPreview']);
 
         $router->get('/admin/shop/categories', [$shop, 'categories']);
         $router->get('/admin/shop/specs', [$shop, 'specs']);

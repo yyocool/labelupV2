@@ -335,6 +335,13 @@
   width:min(1120px,100%);
   max-height:min(92vh,920px);
 }
+.admin-modal-dialog--preview{
+  width:min(1180px,100%);
+  max-height:min(94vh,980px);
+}
+.admin-modal-head-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+.admin-preview-frame-wrap{padding:0 !important;overflow:hidden;background:#f4f4f7;min-height:min(78vh,820px)}
+.admin-preview-frame-wrap iframe{display:block;width:100%;height:min(78vh,820px);border:0;background:#fff}
 .admin-modal-dialog--wide{
   width:min(640px,100%);
   max-height:min(90vh,860px);

@@ -10,6 +10,7 @@ use App\Services\ClipartService;
 use App\Services\LabelTemplateService;
 use App\Services\ProductDetailPageService;
 use App\Services\ShopAdminService;
+use App\Services\ShopService;
 use App\Services\UserAiClipartService;
 
 final class ContentAdminController extends BaseController
@@ -162,6 +163,34 @@ final class ContentAdminController extends BaseController
             'user' => $this->auth->admin(),
             'list' => $this->detailPages->adminList($filters),
             'categories' => $this->shop->categories(),
+            'pageSettings' => $this->shop->productPageSettings(),
+            'useSummernote' => true,
+        ]);
+    }
+
+    public function productDetailPreview(string $id): void
+    {
+        $this->requireAdmin();
+        $productId = (int) $id;
+        $shopPublic = new ShopService();
+        $product = $shopPublic->productPreviewDetail($productId);
+        if (!$product) {
+            http_response_code(404);
+            echo '상품을 찾을 수 없습니다.';
+            return;
+        }
+
+        $publicUrl = url('shop/products/' . $productId);
+        $isPublic = in_array((string) ($product['status'] ?? ''), ['active', 'soldout'], true);
+
+        view('admin/content/product-detail-preview', [
+            'product' => $product,
+            'pageLayout' => $shopPublic->productPageLayout(),
+            'related' => [],
+            'shopService' => $shopPublic,
+            'publicUrl' => $publicUrl,
+            'isPublic' => $isPublic,
+            'statusLabel' => ShopAdminService::productStatusLabel((string) ($product['status'] ?? '')),
         ]);
     }
 

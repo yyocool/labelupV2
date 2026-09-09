@@ -41,6 +41,11 @@ final class ShopService
         return $this->repo->findActiveProduct($id);
     }
 
+    public function productPreviewDetail(int $id): ?array
+    {
+        return $this->repo->findProductForPreview($id);
+    }
+
     public function lookupByCode(string $code): ?array
     {
         $product = $this->repo->findActiveProductByCode($code);

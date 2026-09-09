@@ -21,7 +21,10 @@ $queryParams = array_filter([
 <div class="admin-head">
   <div>
     <h1>상세페이지관리</h1>
-    <p>등록된 상품의 상세페이지 생성 여부를 확인하고, 이후 일괄 생성할 수 있는 화면입니다.</p>
+    <p>등록된 상품의 상세페이지 생성 여부를 확인하고, 공통 헤더·푸터를 설정할 수 있습니다.</p>
+  </div>
+  <div class="admin-head-actions">
+    <button type="button" class="admin-btn admin-btn--primary js-product-page-settings">페이지설정</button>
   </div>
 </div>
 
@@ -66,14 +69,18 @@ $queryParams = array_filter([
         <th>상품코드</th>
         <th>카테고리</th>
         <th>상품상태</th>
+        <th>미리보기</th>
       </tr>
     </thead>
     <tbody>
     <?php if ($items === []): ?>
-      <tr><td colspan="5" class="empty"><?= $hasFilter ? '검색 결과가 없습니다.' : '등록된 상품이 없습니다.' ?></td></tr>
+      <tr><td colspan="6" class="empty"><?= $hasFilter ? '검색 결과가 없습니다.' : '등록된 상품이 없습니다.' ?></td></tr>
     <?php else: ?>
       <?php foreach ($items as $row): ?>
-      <?php $registered = !empty($row['has_detail_page']); ?>
+      <?php
+        $registered = !empty($row['has_detail_page']);
+        $previewUrl = url('admin/content/product-detail-pages/preview/' . (int) ($row['id'] ?? 0));
+      ?>
       <tr>
         <td>
           <?php if ($registered): ?>
@@ -86,6 +93,14 @@ $queryParams = array_filter([
         <td><code><?= e((string) ($row['sku'] ?? '')) ?></code></td>
         <td><?= e((string) ($row['category_name'] ?? '-')) ?></td>
         <td><?= e(ShopAdminService::productStatusLabel((string) ($row['product_status'] ?? ''))) ?></td>
+        <td>
+          <button
+            type="button"
+            class="admin-btn admin-btn--sm js-product-detail-preview"
+            data-preview-url="<?= e($previewUrl) ?>"
+            data-preview-title="<?= e((string) ($row['name'] ?? '상품 상세')) ?>"
+          >미리보기</button>
+        </td>
       </tr>
       <?php endforeach; ?>
     <?php endif; ?>
@@ -100,3 +115,21 @@ $queryParams = array_filter([
   require view_path('admin/partials/pagination.php');
 ?>
 <?php endif; ?>
+<script>window.SHOP_PAGE_SETTINGS=<?= json_encode($pageSettings ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;</script>
+<?php require view_path('admin/content/partials/page-settings-modal.php'); ?>
+<div id="productDetailPreviewModal" class="admin-modal" hidden>
+  <div class="admin-modal-backdrop js-product-detail-preview-close"></div>
+  <div class="admin-modal-dialog admin-modal-dialog--preview" role="dialog" aria-modal="true" aria-labelledby="productDetailPreviewTitle">
+    <div class="admin-modal-head">
+      <h3 id="productDetailPreviewTitle">상품 상세 미리보기</h3>
+      <div class="admin-modal-head-actions">
+        <a id="productDetailPreviewOpen" class="admin-btn admin-btn--sm" href="#" target="_blank" rel="noopener">새 창</a>
+        <button type="button" class="admin-modal-close js-product-detail-preview-close" aria-label="닫기">×</button>
+      </div>
+    </div>
+    <div class="admin-modal-body admin-preview-frame-wrap">
+      <iframe id="productDetailPreviewFrame" title="상품 상세 미리보기" src="about:blank"></iframe>
+    </div>
+  </div>
+</div>
+<script src="<?= js('product-page-settings.js') ?>"></script>
