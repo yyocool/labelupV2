@@ -209,6 +209,7 @@ final class Router
         $router->get('/admin/ops/inquiries', [$inquiryAdmin, 'index']);
         $router->get('/admin/qr-coupons', [$qrCouponAdmin, 'index']);
         $router->get('/admin/ai/example-prompts', [$aiAdmin, 'examplePrompts']);
+        $router->get('/admin/ai/credit-settings', [$aiAdmin, 'creditSettings']);
         $router->get('/admin/ai/token-logs', [$aiAdmin, 'tokenLogs']);
         $router->get('/admin/ai/token-logs/export', [$aiAdmin, 'tokenLogsExport']);
         $router->get('/admin/ai/member-usage', [$aiAdmin, 'memberUsage']);
@@ -217,6 +218,7 @@ final class Router
         $router->get('/admin/content/user-designs', [$contentAdmin, 'userDesigns']);
         $router->get('/admin/content/templates', [$contentAdmin, 'templates']);
         $router->get('/admin/content/product-detail-pages', [$contentAdmin, 'productDetailPages']);
+        $router->get('/admin/content/product-detail-pages/preview/{id}', [$contentAdmin, 'productDetailPreview']);
 
         $router->get('/admin/shop/categories', [$shop, 'categories']);
         $router->get('/admin/shop/specs', [$shop, 'specs']);
@@ -267,6 +269,7 @@ final class Router
 
         $router->post('/api/admin/ai/example-prompt/save', [$aiAdminApi, 'savePrompt']);
         $router->post('/api/admin/ai/example-prompt/delete', [$aiAdminApi, 'deletePrompt']);
+        $router->post('/api/admin/ai/credit-settings/save', [$aiAdminApi, 'saveCreditSettings']);
 
         $router->get('/api/admin/favorites', [$adminWorkspaceApi, 'favorites']);
         $router->post('/api/admin/favorites', [$adminWorkspaceApi, 'saveFavorites']);

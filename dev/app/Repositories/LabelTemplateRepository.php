@@ -25,7 +25,7 @@ final class LabelTemplateRepository extends BaseModel
     }
 
     /**
-     * @param array{q?:string, category?:string, active_only?:bool, page?:int, per_page?:int, with_document?:bool} $filters
+     * @param array{q?:string, category?:string, active_only?:bool, page?:int, per_page?:int, with_document?:bool, sort?:string} $filters
      * @return array{items:array<int,array<string,mixed>>, total:int, page:int, pages:int, per_page:int}
      */
     public function list(array $filters = []): array
@@ -63,9 +63,16 @@ final class LabelTemplateRepository extends BaseModel
             ? '*'
             : 'id, slug, name, category, tags, description, tone, paper_no, paper_w_mm, paper_h_mm, paper_shape, is_active, sort_order, created_at, updated_at';
 
+        $sort = (string) ($filters['sort'] ?? 'sort_order');
+        $orderBy = match ($sort) {
+            'recent', 'created_desc', 'id_desc' => 'id DESC',
+            'updated_desc' => 'updated_at DESC, id DESC',
+            default => 'sort_order ASC, id ASC',
+        };
+
         $items = $this->fetchAll(
             "SELECT {$cols} FROM label_templates WHERE {$sqlWhere}
-             ORDER BY sort_order ASC, id ASC
+             ORDER BY {$orderBy}
              LIMIT {$perPage} OFFSET {$offset}",
             $params
         );
@@ -86,7 +93,7 @@ final class LabelTemplateRepository extends BaseModel
             'SELECT id, slug, name, category, tags, description, tone, paper_no, paper_w_mm, paper_h_mm, paper_shape, document_json, sort_order
              FROM label_templates
              WHERE is_active = 1
-             ORDER BY sort_order ASC, id ASC'
+             ORDER BY id DESC'
         );
     }
 

@@ -1,0 +1,1761 @@
+{
+  "version": 1,
+  "count": 60,
+  "items": [
+    {
+      "slug": "sticker-handmade",
+      "name": "HAND MADE",
+      "category": "gift",
+      "tags": "핸드메이드,수제,원형",
+      "description": "크라프트 핸드메이드 스티커",
+      "tone": "#8B5E3C",
+      "bg": "#E8D5B5",
+      "layout": "center",
+      "art_url": "/assets/templates/pack60/sticker-handmade_art.png",
+      "texts": [
+        {
+          "text": "HAND MADE",
+          "role": "title",
+          "color": "#5C3A1E"
+        },
+        {
+          "text": "with love",
+          "role": "sub",
+          "color": "#A05050"
+        }
+      ],
+      "sort_order": 101,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-01"
+    },
+    {
+      "slug": "sticker-thankyou-smile",
+      "name": "THANK YOU 스마일",
+      "category": "gift",
+      "tags": "감사,스마일",
+      "description": "스마일 Thank You",
+      "tone": "#F5C518",
+      "bg": "#FFF9E8",
+      "layout": "stack",
+      "art_url": "/assets/templates/pack60/sticker-thankyou-smile_art.png",
+      "texts": [
+        {
+          "text": "THANK YOU",
+          "role": "title",
+          "color": "#2E2A27"
+        },
+        {
+          "text": "항상 감사합니다",
+          "role": "sub",
+          "color": "#5B5560"
+        }
+      ],
+      "sort_order": 102,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-02"
+    },
+    {
+      "slug": "sticker-olive-oil",
+      "name": "Natural Olive Oil",
+      "category": "food",
+      "tags": "올리브,오일,유기농",
+      "description": "올리브오일 라벨",
+      "tone": "#5B7A3A",
+      "bg": "#F7FAF2",
+      "layout": "product",
+      "art_url": "/assets/templates/pack60/sticker-olive-oil_art.png",
+      "texts": [
+        {
+          "text": "Natural Olive Oil",
+          "role": "title",
+          "color": "#3F5A28"
+        },
+        {
+          "text": "EXTRA VIRGIN",
+          "role": "mid",
+          "color": "#5B7A3A"
+        },
+        {
+          "text": "100% ORGANIC",
+          "role": "sub",
+          "color": "#6B8F4E"
+        }
+      ],
+      "sort_order": 103,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-03"
+    },
+    {
+      "slug": "sticker-coffee",
+      "name": "COFFEE SPECIALTY",
+      "category": "cafe",
+      "tags": "커피,카페",
+      "description": "스페셜티 커피",
+      "tone": "#5C3A1E",
+      "bg": "#3E2723",
+      "layout": "product",
+      "art_url": "/assets/templates/pack60/sticker-coffee_art.png",
+      "texts": [
+        {
+          "text": "COFFEE",
+          "role": "title",
+          "color": "#FFF8E7"
+        },
+        {
+          "text": "SPECIALTY BLEND",
+          "role": "mid",
+          "color": "#D7CCC8"
+        },
+        {
+          "text": "Better Days",
+          "role": "sub",
+          "color": "#BCAAA4"
+        }
+      ],
+      "sort_order": 104,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-04"
+    },
+    {
+      "slug": "sticker-honey",
+      "name": "HONEY Pure",
+      "category": "food",
+      "tags": "꿀,식품",
+      "description": "천연 꿀 라벨",
+      "tone": "#C9A227",
+      "bg": "#FFF8E0",
+      "layout": "product",
+      "art_url": "/assets/templates/pack60/sticker-honey_art.png",
+      "texts": [
+        {
+          "text": "HONEY",
+          "role": "title",
+          "color": "#8A6A10"
+        },
+        {
+          "text": "PURE NATURAL 100%",
+          "role": "sub",
+          "color": "#A08030"
+        }
+      ],
+      "sort_order": 105,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-05"
+    },
+    {
+      "slug": "sticker-strawberry-jam",
+      "name": "딸기잼 Homemade",
+      "category": "food",
+      "tags": "잼,딸기,수제",
+      "description": "수제 딸기잼",
+      "tone": "#C23B4A",
+      "bg": "#FFF5F7",
+      "layout": "product",
+      "art_url": "/assets/templates/pack60/sticker-strawberry-jam_art.png",
+      "texts": [
+        {
+          "text": "딸기잼",
+          "role": "title",
+          "color": "#B83246"
+        },
+        {
+          "text": "Strawberry Jam",
+          "role": "mid",
+          "color": "#C45C6E"
+        },
+        {
+          "text": "HOMEMADE",
+          "role": "sub",
+          "color": "#D46A7A"
+        }
+      ],
+      "sort_order": 106,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-06"
+    },
+    {
+      "slug": "sticker-bakery",
+      "name": "BAKERY Fresh",
+      "category": "cafe",
+      "tags": "베이커리,빵",
+      "description": "베이커리 스티커",
+      "tone": "#C4873A",
+      "bg": "#FFF8EE",
+      "layout": "product",
+      "art_url": "/assets/templates/pack60/sticker-bakery_art.png",
+      "texts": [
+        {
+          "text": "BAKERY",
+          "role": "title",
+          "color": "#8B5A20"
+        },
+        {
+          "text": "FRESH & DELICIOUS",
+          "role": "sub",
+          "color": "#B07A40"
+        }
+      ],
+      "sort_order": 107,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-07"
+    },
+    {
+      "slug": "sticker-hand-soap",
+      "name": "HAND SOAP",
+      "category": "beauty",
+      "tags": "핸드솝,화장품",
+      "description": "핸드솝 라벨",
+      "tone": "#5B8A6A",
+      "bg": "#F1F7F3",
+      "layout": "product",
+      "art_url": "/assets/templates/pack60/sticker-hand-soap_art.png",
+      "texts": [
+        {
+          "text": "HAND SOAP",
+          "role": "title",
+          "color": "#2F5A40"
+        },
+        {
+          "text": "NATURAL CARE",
+          "role": "mid",
+          "color": "#5B8A6A"
+        },
+        {
+          "text": "300ml",
+          "role": "sub",
+          "color": "#7A9E8A"
+        }
+      ],
+      "sort_order": 108,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-08"
+    },
+    {
+      "slug": "sticker-shampoo",
+      "name": "SHAMPOO Mild",
+      "category": "beauty",
+      "tags": "샴푸,헤어",
+      "description": "마일드 샴푸",
+      "tone": "#3D6B5A",
+      "bg": "#F5FAF7",
+      "layout": "product",
+      "art_url": "/assets/templates/pack60/sticker-shampoo_art.png",
+      "texts": [
+        {
+          "text": "SHAMPOO",
+          "role": "title",
+          "color": "#2A4F42"
+        },
+        {
+          "text": "MILD & PURE",
+          "role": "mid",
+          "color": "#5A8A78"
+        },
+        {
+          "text": "500ml",
+          "role": "sub",
+          "color": "#7AA090"
+        }
+      ],
+      "sort_order": 109,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-09"
+    },
+    {
+      "slug": "sticker-thankyou-script",
+      "name": "Thank you 플라워",
+      "category": "gift",
+      "tags": "감사,플라워",
+      "description": "스크립트 Thank you",
+      "tone": "#D46A8A",
+      "bg": "#FFF0F5",
+      "layout": "center",
+      "art_url": "/assets/templates/pack60/sticker-thankyou-script_art.png",
+      "texts": [
+        {
+          "text": "Thank you",
+          "role": "title",
+          "color": "#B8325A"
+        },
+        {
+          "text": "with love",
+          "role": "sub",
+          "color": "#D48AA0"
+        }
+      ],
+      "sort_order": 110,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-10"
+    },
+    {
+      "slug": "sticker-thanks-happy",
+      "name": "감사합니다 행복하세요",
+      "category": "gift",
+      "tags": "감사,한글",
+      "description": "한글 감사 메시지",
+      "tone": "#C45C7A",
+      "bg": "#FFFFFF",
+      "layout": "center",
+      "art_url": "/assets/templates/pack60/sticker-thanks-happy_art.png",
+      "texts": [
+        {
+          "text": "감사합니다",
+          "role": "title",
+          "color": "#9B3A5A"
+        },
+        {
+          "text": "늘 행복하세요",
+          "role": "sub",
+          "color": "#C45C7A"
+        }
+      ],
+      "sort_order": 111,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-11"
+    },
+    {
+      "slug": "sticker-birthday-cake",
+      "name": "생일 축하해요",
+      "category": "event",
+      "tags": "생일,케이크",
+      "description": "생일 케이크",
+      "tone": "#E891B0",
+      "bg": "#FFF5F8",
+      "layout": "stack",
+      "art_url": "/assets/templates/pack60/sticker-birthday-cake_art.png",
+      "texts": [
+        {
+          "text": "생일 축하해요",
+          "role": "title",
+          "color": "#C45C7A"
+        },
+        {
+          "text": "Happy Birthday",
+          "role": "sub",
+          "color": "#E891B0"
+        }
+      ],
+      "sort_order": 112,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-12"
+    },
+    {
+      "slug": "sticker-love-for-you",
+      "name": "LOVE For You",
+      "category": "gift",
+      "tags": "사랑,하트",
+      "description": "러브 하트",
+      "tone": "#E85A7A",
+      "bg": "#FFF0F4",
+      "layout": "badge",
+      "art_url": "/assets/templates/pack60/sticker-love-for-you_art.png",
+      "texts": [
+        {
+          "text": "LOVE",
+          "role": "title",
+          "color": "#FFFFFF"
+        },
+        {
+          "text": "For You",
+          "role": "sub",
+          "color": "#C43A5A"
+        }
+      ],
+      "sort_order": 113,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-13"
+    },
+    {
+      "slug": "sticker-congrats",
+      "name": "축하합니다",
+      "category": "event",
+      "tags": "축하,리본",
+      "description": "축하 리본",
+      "tone": "#E07A9A",
+      "bg": "#FFF5F8",
+      "layout": "stack",
+      "art_url": "/assets/templates/pack60/sticker-congrats_art.png",
+      "texts": [
+        {
+          "text": "축하합니다",
+          "role": "title",
+          "color": "#C45C7A"
+        },
+        {
+          "text": "CONGRATULATIONS",
+          "role": "sub",
+          "color": "#E07A9A"
+        }
+      ],
+      "sort_order": 114,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-14"
+    },
+    {
+      "slug": "sticker-precious",
+      "name": "소중한 당신께",
+      "category": "gift",
+      "tags": "선물,리스",
+      "description": "소중한 당신께",
+      "tone": "#D48A5A",
+      "bg": "#FFF8F0",
+      "layout": "center",
+      "art_url": "/assets/templates/pack60/sticker-precious_art.png",
+      "texts": [
+        {
+          "text": "소중한 당신께",
+          "role": "title",
+          "color": "#8B5A3A"
+        },
+        {
+          "text": "For Someone Special",
+          "role": "sub",
+          "color": "#C48A60"
+        }
+      ],
+      "sort_order": 115,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-15"
+    },
+    {
+      "slug": "sticker-good-luck",
+      "name": "GOOD LUCK",
+      "category": "gift",
+      "tags": "행운,클로버",
+      "description": "행운 클로버",
+      "tone": "#4CAF50",
+      "bg": "#F1F8F2",
+      "layout": "stack",
+      "art_url": "/assets/templates/pack60/sticker-good-luck_art.png",
+      "texts": [
+        {
+          "text": "GOOD LUCK",
+          "role": "title",
+          "color": "#2E7D32"
+        },
+        {
+          "text": "행운을 빌어요",
+          "role": "sub",
+          "color": "#66BB6A"
+        }
+      ],
+      "sort_order": 116,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-16"
+    },
+    {
+      "slug": "sticker-happy-birthday",
+      "name": "Happy Birthday",
+      "category": "event",
+      "tags": "생일,영문",
+      "description": "해피 버스데이",
+      "tone": "#7B2840",
+      "bg": "#FFFFFF",
+      "layout": "center",
+      "art_url": "/assets/templates/pack60/sticker-happy-birthday_art.png",
+      "texts": [
+        {
+          "text": "Happy Birthday",
+          "role": "title",
+          "color": "#7B2840"
+        },
+        {
+          "text": "Celebrate!",
+          "role": "sub",
+          "color": "#A05070"
+        }
+      ],
+      "sort_order": 117,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-17"
+    },
+    {
+      "slug": "sticker-merry-christmas",
+      "name": "Merry Christmas",
+      "category": "event",
+      "tags": "크리스마스",
+      "description": "메리 크리스마스",
+      "tone": "#1B4D3E",
+      "bg": "#0F3D2E",
+      "layout": "product",
+      "art_url": "/assets/templates/pack60/sticker-merry-christmas_art.png",
+      "texts": [
+        {
+          "text": "Merry Christmas",
+          "role": "title",
+          "color": "#F5F7FA"
+        },
+        {
+          "text": "Season's Greetings",
+          "role": "sub",
+          "color": "#A8D5C4"
+        }
+      ],
+      "sort_order": 118,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-18"
+    },
+    {
+      "slug": "sticker-happy-new-year",
+      "name": "Happy New Year",
+      "category": "event",
+      "tags": "새해,겨울",
+      "description": "해피 뉴이어",
+      "tone": "#1A237E",
+      "bg": "#0D1B4C",
+      "layout": "product",
+      "art_url": "/assets/templates/pack60/sticker-happy-new-year_art.png",
+      "texts": [
+        {
+          "text": "Happy New Year",
+          "role": "title",
+          "color": "#E8EEFF"
+        },
+        {
+          "text": "새해 복 많이 받으세요",
+          "role": "sub",
+          "color": "#9FB4E8"
+        }
+      ],
+      "sort_order": 119,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-19"
+    },
+    {
+      "slug": "sticker-halloween",
+      "name": "Halloween",
+      "category": "event",
+      "tags": "할로윈,호박",
+      "description": "할로윈",
+      "tone": "#E65100",
+      "bg": "#FF6D00",
+      "layout": "product",
+      "art_url": "/assets/templates/pack60/sticker-halloween_art.png",
+      "texts": [
+        {
+          "text": "Halloween",
+          "role": "title",
+          "color": "#1A1208"
+        },
+        {
+          "text": "Trick or Treat",
+          "role": "sub",
+          "color": "#3E2723"
+        }
+      ],
+      "sort_order": 120,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-20"
+    },
+    {
+      "slug": "sticker-apple",
+      "name": "사과 국내산",
+      "category": "food",
+      "tags": "사과,과일",
+      "description": "사과 라벨",
+      "tone": "#C62828",
+      "bg": "#FFFFFF",
+      "layout": "product",
+      "art_url": "/assets/templates/pack60/sticker-apple_art.png",
+      "texts": [
+        {
+          "text": "사과",
+          "role": "title",
+          "color": "#B71C1C"
+        },
+        {
+          "text": "Apple",
+          "role": "mid",
+          "color": "#C62828"
+        },
+        {
+          "text": "국내산 100%",
+          "role": "sub",
+          "color": "#E57373"
+        }
+      ],
+      "sort_order": 121,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-21"
+    },
+    {
+      "slug": "sticker-tomato",
+      "name": "토마토 Fresh",
+      "category": "food",
+      "tags": "토마토,채소",
+      "description": "토마토 라벨",
+      "tone": "#D32F2F",
+      "bg": "#FFFFFF",
+      "layout": "product",
+      "art_url": "/assets/templates/pack60/sticker-tomato_art.png",
+      "texts": [
+        {
+          "text": "토마토",
+          "role": "title",
+          "color": "#C62828"
+        },
+        {
+          "text": "TOMATO",
+          "role": "mid",
+          "color": "#D32F2F"
+        },
+        {
+          "text": "FRESH VEGETABLE",
+          "role": "sub",
+          "color": "#EF9A9A"
+        }
+      ],
+      "sort_order": 122,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-22"
+    },
+    {
+      "slug": "sticker-organic-veg",
+      "name": "유기농 채소",
+      "category": "food",
+      "tags": "유기농,채소",
+      "description": "유기농 채소",
+      "tone": "#558B2F",
+      "bg": "#FFFFFF",
+      "layout": "product",
+      "art_url": "/assets/templates/pack60/sticker-organic-veg_art.png",
+      "texts": [
+        {
+          "text": "유기농 채소",
+          "role": "title",
+          "color": "#33691E"
+        },
+        {
+          "text": "ORGANIC",
+          "role": "mid",
+          "color": "#558B2F"
+        },
+        {
+          "text": "FARM FRESH",
+          "role": "sub",
+          "color": "#7CB342"
+        }
+      ],
+      "sort_order": 123,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-23"
+    },
+    {
+      "slug": "sticker-hanwoo",
+      "name": "한우 Premium",
+      "category": "food",
+      "tags": "한우,육류",
+      "description": "한우 라벨",
+      "tone": "#5D4037",
+      "bg": "#FBF6F0",
+      "layout": "product",
+      "art_url": "/assets/templates/pack60/sticker-hanwoo_art.png",
+      "texts": [
+        {
+          "text": "한우",
+          "role": "title",
+          "color": "#3E2723"
+        },
+        {
+          "text": "PREMIUM BEEF",
+          "role": "mid",
+          "color": "#5D4037"
+        },
+        {
+          "text": "신선한 우리한우",
+          "role": "sub",
+          "color": "#8D6E63"
+        }
+      ],
+      "sort_order": 124,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-24"
+    },
+    {
+      "slug": "sticker-cookie",
+      "name": "수제 쿠키",
+      "category": "food",
+      "tags": "쿠키,수제",
+      "description": "수제 쿠키",
+      "tone": "#A1887F",
+      "bg": "#FFF8F0",
+      "layout": "product",
+      "art_url": "/assets/templates/pack60/sticker-cookie_art.png",
+      "texts": [
+        {
+          "text": "수제 쿠키",
+          "role": "title",
+          "color": "#6D4C41"
+        },
+        {
+          "text": "HANDMADE COOKIE",
+          "role": "mid",
+          "color": "#8D6E63"
+        },
+        {
+          "text": "맛있는 하루",
+          "role": "sub",
+          "color": "#A1887F"
+        }
+      ],
+      "sort_order": 125,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-25"
+    },
+    {
+      "slug": "sticker-macaron",
+      "name": "마카롱",
+      "category": "cafe",
+      "tags": "마카롱,디저트",
+      "description": "마카롱",
+      "tone": "#EC407A",
+      "bg": "#FFF5F8",
+      "layout": "product",
+      "art_url": "/assets/templates/pack60/sticker-macaron_art.png",
+      "texts": [
+        {
+          "text": "마카롱",
+          "role": "title",
+          "color": "#AD1457"
+        },
+        {
+          "text": "MACARON",
+          "role": "mid",
+          "color": "#EC407A"
+        },
+        {
+          "text": "SWEET DESSERT",
+          "role": "sub",
+          "color": "#F48FB1"
+        }
+      ],
+      "sort_order": 126,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-26"
+    },
+    {
+      "slug": "sticker-salad",
+      "name": "샐러드",
+      "category": "food",
+      "tags": "샐러드,건강",
+      "description": "프레시 샐러드",
+      "tone": "#689F38",
+      "bg": "#FFFFFF",
+      "layout": "product",
+      "art_url": "/assets/templates/pack60/sticker-salad_art.png",
+      "texts": [
+        {
+          "text": "샐러드",
+          "role": "title",
+          "color": "#558B2F"
+        },
+        {
+          "text": "FRESH SALAD",
+          "role": "mid",
+          "color": "#689F38"
+        },
+        {
+          "text": "HEALTHY LIFE",
+          "role": "sub",
+          "color": "#AED581"
+        }
+      ],
+      "sort_order": 127,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-27"
+    },
+    {
+      "slug": "sticker-banchan",
+      "name": "반찬 Homemade",
+      "category": "food",
+      "tags": "반찬,집밥",
+      "description": "반찬 라벨",
+      "tone": "#8D6E63",
+      "bg": "#FFF8F0",
+      "layout": "product",
+      "art_url": "/assets/templates/pack60/sticker-banchan_art.png",
+      "texts": [
+        {
+          "text": "반찬",
+          "role": "title",
+          "color": "#5D4037"
+        },
+        {
+          "text": "HOMEMADE",
+          "role": "mid",
+          "color": "#8D6E63"
+        },
+        {
+          "text": "맛있는 집밥",
+          "role": "sub",
+          "color": "#A1887F"
+        }
+      ],
+      "sort_order": 128,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-28"
+    },
+    {
+      "slug": "sticker-kimchi",
+      "name": "김치",
+      "category": "food",
+      "tags": "김치,발효",
+      "description": "김치 라벨",
+      "tone": "#C62828",
+      "bg": "#FFFFFF",
+      "layout": "product",
+      "art_url": "/assets/templates/pack60/sticker-kimchi_art.png",
+      "texts": [
+        {
+          "text": "김치",
+          "role": "title",
+          "color": "#B71C1C"
+        },
+        {
+          "text": "KIMCHI",
+          "role": "mid",
+          "color": "#C62828"
+        },
+        {
+          "text": "국내산 재료",
+          "role": "sub",
+          "color": "#E57373"
+        }
+      ],
+      "sort_order": 129,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-29"
+    },
+    {
+      "slug": "sticker-pure-honey",
+      "name": "벌꿀 Pure Honey",
+      "category": "food",
+      "tags": "벌꿀,천연",
+      "description": "벌꿀 딥퍼",
+      "tone": "#F9A825",
+      "bg": "#FFFDE7",
+      "layout": "product",
+      "art_url": "/assets/templates/pack60/sticker-pure-honey_art.png",
+      "texts": [
+        {
+          "text": "벌꿀",
+          "role": "title",
+          "color": "#F57F17"
+        },
+        {
+          "text": "PURE HONEY",
+          "role": "mid",
+          "color": "#F9A825"
+        },
+        {
+          "text": "자연 그대로",
+          "role": "sub",
+          "color": "#FFB300"
+        }
+      ],
+      "sort_order": 130,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-30"
+    },
+    {
+      "slug": "sticker-organic",
+      "name": "ORGANIC Eco",
+      "category": "warning",
+      "tags": "유기농,에코",
+      "description": "오가닉 마크",
+      "tone": "#43A047",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack60/sticker-organic_art.png",
+      "texts": [
+        {
+          "text": "ORGANIC",
+          "role": "title",
+          "color": "#2E7D32"
+        },
+        {
+          "text": "ECO FRIENDLY",
+          "role": "sub",
+          "color": "#66BB6A"
+        }
+      ],
+      "sort_order": 131,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-31"
+    },
+    {
+      "slug": "sticker-vegan",
+      "name": "VEGAN Plant",
+      "category": "warning",
+      "tags": "비건,식물",
+      "description": "비건 마크",
+      "tone": "#66BB6A",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack60/sticker-vegan_art.png",
+      "texts": [
+        {
+          "text": "VEGAN",
+          "role": "title",
+          "color": "#388E3C"
+        },
+        {
+          "text": "PLANT BASED",
+          "role": "sub",
+          "color": "#81C784"
+        }
+      ],
+      "sort_order": 132,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-32"
+    },
+    {
+      "slug": "sticker-gluten-free",
+      "name": "GLUTEN FREE",
+      "category": "warning",
+      "tags": "글루텐프리",
+      "description": "글루텐프리",
+      "tone": "#8D6E63",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack60/sticker-gluten-free_art.png",
+      "texts": [
+        {
+          "text": "GLUTEN FREE",
+          "role": "title",
+          "color": "#5D4037"
+        },
+        {
+          "text": "No Wheat",
+          "role": "sub",
+          "color": "#A1887F"
+        }
+      ],
+      "sort_order": 133,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-33"
+    },
+    {
+      "slug": "sticker-non-gmo",
+      "name": "NON GMO",
+      "category": "warning",
+      "tags": "논지엠오",
+      "description": "논지엠오",
+      "tone": "#558B2F",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack60/sticker-non-gmo_art.png",
+      "texts": [
+        {
+          "text": "NON GMO",
+          "role": "title",
+          "color": "#33691E"
+        },
+        {
+          "text": "Natural Choice",
+          "role": "sub",
+          "color": "#7CB342"
+        }
+      ],
+      "sort_order": 134,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-34"
+    },
+    {
+      "slug": "sticker-recycle",
+      "name": "RECYCLE",
+      "category": "warning",
+      "tags": "재활용,환경",
+      "description": "리사이클",
+      "tone": "#43A047",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack60/sticker-recycle_art.png",
+      "texts": [
+        {
+          "text": "RECYCLE",
+          "role": "title",
+          "color": "#2E7D32"
+        },
+        {
+          "text": "SAVE OUR PLANET",
+          "role": "sub",
+          "color": "#66BB6A"
+        }
+      ],
+      "sort_order": 135,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-35"
+    },
+    {
+      "slug": "sticker-fragile",
+      "name": "FRAGILE 취급주의",
+      "category": "shipping",
+      "tags": "파손,취급주의",
+      "description": "파손주의",
+      "tone": "#C62828",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack60/sticker-fragile_art.png",
+      "texts": [
+        {
+          "text": "FRAGILE",
+          "role": "title",
+          "color": "#B71C1C"
+        },
+        {
+          "text": "취급주의",
+          "role": "sub",
+          "color": "#E57373"
+        }
+      ],
+      "sort_order": 136,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-36"
+    },
+    {
+      "slug": "sticker-this-side-up",
+      "name": "THIS SIDE UP",
+      "category": "shipping",
+      "tags": "방향,배송",
+      "description": "이 면이 위로",
+      "tone": "#212121",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack60/sticker-this-side-up_art.png",
+      "texts": [
+        {
+          "text": "THIS SIDE UP",
+          "role": "title",
+          "color": "#212121"
+        },
+        {
+          "text": "위로 가게",
+          "role": "sub",
+          "color": "#757575"
+        }
+      ],
+      "sort_order": 137,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-37"
+    },
+    {
+      "slug": "sticker-keep-dry",
+      "name": "KEEP DRY",
+      "category": "shipping",
+      "tags": "습기,배송",
+      "description": "습기주의",
+      "tone": "#1976D2",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack60/sticker-keep-dry_art.png",
+      "texts": [
+        {
+          "text": "KEEP DRY",
+          "role": "title",
+          "color": "#1565C0"
+        },
+        {
+          "text": "습기주의",
+          "role": "sub",
+          "color": "#64B5F6"
+        }
+      ],
+      "sort_order": 138,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-38"
+    },
+    {
+      "slug": "sticker-caution",
+      "name": "CAUTION 주의",
+      "category": "warning",
+      "tags": "주의,경고",
+      "description": "주의 표시",
+      "tone": "#F9A825",
+      "bg": "#FFFDE7",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack60/sticker-caution_art.png",
+      "texts": [
+        {
+          "text": "CAUTION",
+          "role": "title",
+          "color": "#212121"
+        },
+        {
+          "text": "주의",
+          "role": "sub",
+          "color": "#F57F17"
+        }
+      ],
+      "sort_order": 139,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-39"
+    },
+    {
+      "slug": "sticker-handle-care",
+      "name": "HANDLE WITH CARE",
+      "category": "shipping",
+      "tags": "취급,배송",
+      "description": "취급주의",
+      "tone": "#5D4037",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack60/sticker-handle-care_art.png",
+      "texts": [
+        {
+          "text": "HANDLE WITH CARE",
+          "role": "title",
+          "color": "#3E2723"
+        },
+        {
+          "text": "조심히 다뤄주세요",
+          "role": "sub",
+          "color": "#8D6E63"
+        }
+      ],
+      "sort_order": 140,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-40"
+    },
+    {
+      "slug": "sticker-order-thanks",
+      "name": "주문 감사합니다",
+      "category": "gift",
+      "tags": "주문,감사",
+      "description": "주문 감사",
+      "tone": "#7B2840",
+      "bg": "#FFFFFF",
+      "layout": "center",
+      "art_url": "/assets/templates/pack60/sticker-order-thanks_art.png",
+      "texts": [
+        {
+          "text": "주문해 주셔서 감사합니다",
+          "role": "title",
+          "color": "#5A1E30"
+        },
+        {
+          "text": "좋은 하루 되세요",
+          "role": "sub",
+          "color": "#9A6070"
+        }
+      ],
+      "sort_order": 141,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-41"
+    },
+    {
+      "slug": "sticker-fast-ship",
+      "name": "빠른 배송 감사",
+      "category": "shipping",
+      "tags": "배송,감사",
+      "description": "빠른 배송",
+      "tone": "#1976D2",
+      "bg": "#FFFFFF",
+      "layout": "stack",
+      "art_url": "/assets/templates/pack60/sticker-fast-ship_art.png",
+      "texts": [
+        {
+          "text": "빠른 배송 감사합니다!",
+          "role": "title",
+          "color": "#1565C0"
+        },
+        {
+          "text": "Thank you",
+          "role": "sub",
+          "color": "#64B5F6"
+        }
+      ],
+      "sort_order": 142,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-42"
+    },
+    {
+      "slug": "sticker-gift-for-you",
+      "name": "선물입니다",
+      "category": "gift",
+      "tags": "선물,리본",
+      "description": "선물 메시지",
+      "tone": "#C62828",
+      "bg": "#FFF5F5",
+      "layout": "stack",
+      "art_url": "/assets/templates/pack60/sticker-gift-for-you_art.png",
+      "texts": [
+        {
+          "text": "선물입니다",
+          "role": "title",
+          "color": "#B71C1C"
+        },
+        {
+          "text": "FOR YOU",
+          "role": "sub",
+          "color": "#E57373"
+        }
+      ],
+      "sort_order": 143,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-43"
+    },
+    {
+      "slug": "sticker-open-me",
+      "name": "OPEN ME",
+      "category": "gift",
+      "tags": "편지,하트",
+      "description": "Open Me",
+      "tone": "#E91E63",
+      "bg": "#FFF0F5",
+      "layout": "stack",
+      "art_url": "/assets/templates/pack60/sticker-open-me_art.png",
+      "texts": [
+        {
+          "text": "OPEN ME",
+          "role": "title",
+          "color": "#AD1457"
+        },
+        {
+          "text": "A little surprise",
+          "role": "sub",
+          "color": "#F48FB1"
+        }
+      ],
+      "sort_order": 144,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-44"
+    },
+    {
+      "slug": "sticker-special-gift",
+      "name": "특별한 선물",
+      "category": "gift",
+      "tags": "선물,벚꽃",
+      "description": "특별한 선물",
+      "tone": "#EC407A",
+      "bg": "#FFFFFF",
+      "layout": "center",
+      "art_url": "/assets/templates/pack60/sticker-special-gift_art.png",
+      "texts": [
+        {
+          "text": "특별한 날, 특별한 선물",
+          "role": "title",
+          "color": "#AD1457"
+        },
+        {
+          "text": "Special Gift",
+          "role": "sub",
+          "color": "#F48FB1"
+        }
+      ],
+      "sort_order": 145,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-45"
+    },
+    {
+      "slug": "sticker-just-for-you",
+      "name": "JUST FOR YOU",
+      "category": "gift",
+      "tags": "하트,선물",
+      "description": "Just For You",
+      "tone": "#E53935",
+      "bg": "#FFF5F5",
+      "layout": "stack",
+      "art_url": "/assets/templates/pack60/sticker-just-for-you_art.png",
+      "texts": [
+        {
+          "text": "JUST FOR YOU",
+          "role": "title",
+          "color": "#C62828"
+        },
+        {
+          "text": "with love",
+          "role": "sub",
+          "color": "#EF9A9A"
+        }
+      ],
+      "sort_order": 146,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-46"
+    },
+    {
+      "slug": "sticker-love-yourself",
+      "name": "LOVE YOURSELF",
+      "category": "gift",
+      "tags": "셀프케어,하트",
+      "description": "Love Yourself",
+      "tone": "#C62828",
+      "bg": "#FFF8F0",
+      "layout": "center",
+      "art_url": "/assets/templates/pack60/sticker-love-yourself_art.png",
+      "texts": [
+        {
+          "text": "LOVE YOURSELF",
+          "role": "title",
+          "color": "#8B1E1E"
+        },
+        {
+          "text": "You are enough",
+          "role": "sub",
+          "color": "#C62828"
+        }
+      ],
+      "sort_order": 147,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-47"
+    },
+    {
+      "slug": "sticker-good-day",
+      "name": "오늘도 좋은 하루",
+      "category": "gift",
+      "tags": "응원,스마일",
+      "description": "좋은 하루",
+      "tone": "#FBC02D",
+      "bg": "#FFFFFF",
+      "layout": "stack",
+      "art_url": "/assets/templates/pack60/sticker-good-day_art.png",
+      "texts": [
+        {
+          "text": "오늘도 좋은 하루",
+          "role": "title",
+          "color": "#F57F17"
+        },
+        {
+          "text": "Have a nice day",
+          "role": "sub",
+          "color": "#FFB300"
+        }
+      ],
+      "sort_order": 148,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-48"
+    },
+    {
+      "slug": "sticker-cheer",
+      "name": "빛나는 내일을 응원",
+      "category": "gift",
+      "tags": "응원,메시지",
+      "description": "응원 메시지",
+      "tone": "#C2185B",
+      "bg": "#FFFFFF",
+      "layout": "center",
+      "art_url": "/assets/templates/pack60/sticker-cheer_art.png",
+      "texts": [
+        {
+          "text": "당신의 빛나는 내일을",
+          "role": "title",
+          "color": "#AD1457"
+        },
+        {
+          "text": "응원합니다",
+          "role": "sub",
+          "color": "#EC407A"
+        }
+      ],
+      "sort_order": 149,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-49"
+    },
+    {
+      "slug": "sticker-good-things",
+      "name": "좋은 일만 가득하길",
+      "category": "gift",
+      "tags": "행운,클로버",
+      "description": "좋은 일 가득",
+      "tone": "#43A047",
+      "bg": "#FFFFFF",
+      "layout": "stack",
+      "art_url": "/assets/templates/pack60/sticker-good-things_art.png",
+      "texts": [
+        {
+          "text": "좋은 일만 가득하길",
+          "role": "title",
+          "color": "#2E7D32"
+        },
+        {
+          "text": "Good things ahead",
+          "role": "sub",
+          "color": "#66BB6A"
+        }
+      ],
+      "sort_order": 150,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-50"
+    },
+    {
+      "slug": "sticker-barcode",
+      "name": "바코드 PRODUCT",
+      "category": "price",
+      "tags": "바코드,상품",
+      "description": "상품 바코드",
+      "tone": "#212121",
+      "bg": "#FFFFFF",
+      "layout": "special_barcode",
+      "art_url": "/assets/templates/pack60/sticker-barcode_art.png",
+      "texts": [
+        {
+          "text": "PRODUCT",
+          "role": "title",
+          "color": "#212121"
+        },
+        {
+          "text": "8801234567890",
+          "role": "sub",
+          "color": "#616161"
+        }
+      ],
+      "sort_order": 151,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-51"
+    },
+    {
+      "slug": "sticker-price",
+      "name": "PRICE 가격표",
+      "category": "price",
+      "tags": "가격,원",
+      "description": "가격표",
+      "tone": "#C62828",
+      "bg": "#FFFFFF",
+      "layout": "special_price",
+      "art_url": "",
+      "texts": [
+        {
+          "text": "PRICE",
+          "role": "title",
+          "color": "#C62828"
+        },
+        {
+          "text": "₩ 3,900",
+          "role": "sub",
+          "color": "#B71C1C"
+        }
+      ],
+      "sort_order": 152,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-52"
+    },
+    {
+      "slug": "sticker-sale",
+      "name": "SALE 50% OFF",
+      "category": "price",
+      "tags": "세일,할인",
+      "description": "세일",
+      "tone": "#C62828",
+      "bg": "#C62828",
+      "layout": "special_sale",
+      "art_url": "",
+      "texts": [
+        {
+          "text": "SALE",
+          "role": "title",
+          "color": "#FFFFFF"
+        },
+        {
+          "text": "UP TO 50% OFF",
+          "role": "sub",
+          "color": "#FFCDD2"
+        }
+      ],
+      "sort_order": 153,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-53"
+    },
+    {
+      "slug": "sticker-new",
+      "name": "NEW 신상품",
+      "category": "event",
+      "tags": "신상품,NEW",
+      "description": "신상품",
+      "tone": "#EF6C00",
+      "bg": "#FFF8F0",
+      "layout": "badge",
+      "art_url": "/assets/templates/pack60/sticker-new_art.png",
+      "texts": [
+        {
+          "text": "NEW",
+          "role": "title",
+          "color": "#FFFFFF"
+        },
+        {
+          "text": "신상품",
+          "role": "sub",
+          "color": "#E65100"
+        }
+      ],
+      "sort_order": 154,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-54"
+    },
+    {
+      "slug": "sticker-best",
+      "name": "BEST 인기상품",
+      "category": "event",
+      "tags": "베스트,인기",
+      "description": "베스트",
+      "tone": "#F9A825",
+      "bg": "#FFFDE7",
+      "layout": "badge",
+      "art_url": "/assets/templates/pack60/sticker-best_art.png",
+      "texts": [
+        {
+          "text": "BEST",
+          "role": "title",
+          "color": "#F57F17"
+        },
+        {
+          "text": "인기상품",
+          "role": "sub",
+          "color": "#FFB300"
+        }
+      ],
+      "sort_order": 155,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-55"
+    },
+    {
+      "slug": "sticker-one-plus-one",
+      "name": "1+1 SPECIAL",
+      "category": "event",
+      "tags": "이벤트,1+1",
+      "description": "1+1 이벤트",
+      "tone": "#C62828",
+      "bg": "#FFFFFF",
+      "layout": "special_event",
+      "art_url": "",
+      "texts": [
+        {
+          "text": "1+1",
+          "role": "title",
+          "color": "#C62828"
+        },
+        {
+          "text": "SPECIAL EVENT",
+          "role": "sub",
+          "color": "#E57373"
+        }
+      ],
+      "sort_order": 156,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-56"
+    },
+    {
+      "slug": "sticker-coupon-20",
+      "name": "20% 할인쿠폰",
+      "category": "price",
+      "tags": "쿠폰,할인",
+      "description": "20% 쿠폰",
+      "tone": "#2E7D32",
+      "bg": "#FFFFFF",
+      "layout": "special_coupon",
+      "art_url": "",
+      "texts": [
+        {
+          "text": "20%",
+          "role": "title",
+          "color": "#2E7D32"
+        },
+        {
+          "text": "할인쿠폰",
+          "role": "sub",
+          "color": "#66BB6A"
+        }
+      ],
+      "sort_order": 157,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-57"
+    },
+    {
+      "slug": "sticker-sample",
+      "name": "SAMPLE 샘플",
+      "category": "warehouse",
+      "tags": "샘플,재고",
+      "description": "샘플 상품",
+      "tone": "#757575",
+      "bg": "#F5F5F5",
+      "layout": "special_sample",
+      "art_url": "",
+      "texts": [
+        {
+          "text": "SAMPLE",
+          "role": "title",
+          "color": "#424242"
+        },
+        {
+          "text": "샘플상품 · NOT FOR SALE",
+          "role": "sub",
+          "color": "#9E9E9E"
+        }
+      ],
+      "sort_order": 158,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-58"
+    },
+    {
+      "slug": "sticker-lot-exp",
+      "name": "LOT / EXP",
+      "category": "warehouse",
+      "tags": "유통기한,로트",
+      "description": "LOT/유통기한",
+      "tone": "#212121",
+      "bg": "#FFFFFF",
+      "layout": "special_lot",
+      "art_url": "",
+      "texts": [
+        {
+          "text": "LOT NO.",
+          "role": "title",
+          "color": "#212121"
+        },
+        {
+          "text": "EXP. DATE",
+          "role": "sub",
+          "color": "#616161"
+        }
+      ],
+      "sort_order": 159,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-59"
+    },
+    {
+      "slug": "sticker-qr-scan",
+      "name": "SCAN ME QR",
+      "category": "price",
+      "tags": "QR,스캔",
+      "description": "QR 스캔",
+      "tone": "#212121",
+      "bg": "#FFFFFF",
+      "layout": "special_qr",
+      "art_url": "/assets/templates/pack60/sticker-qr-scan_art.png",
+      "texts": [
+        {
+          "text": "SCAN ME",
+          "role": "title",
+          "color": "#212121"
+        },
+        {
+          "text": "www.labelup.co.kr",
+          "role": "sub",
+          "color": "#757575"
+        }
+      ],
+      "sort_order": 160,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P60-60"
+    }
+  ]
+}

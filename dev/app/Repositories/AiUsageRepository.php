@@ -55,6 +55,35 @@ final class AiUsageRepository extends BaseModel
         return (int) $this->lastInsertId();
     }
 
+    /** @return array{items:array<int,array<string,mixed>>,total:int,page:int,pages:int,per_page:int} */
+    public function listForUser(int $userId, int $page = 1, int $perPage = 20): array
+    {
+        $page = max(1, $page);
+        $perPage = max(1, min(50, $perPage));
+        $offset = ($page - 1) * $perPage;
+        $costCols = $this->hasCostColumns() ? ', cost_krw, cost_usd' : '';
+        $items = $this->fetchAll(
+            "SELECT id, surface, intent, model, prompt_tokens, completion_tokens, total_tokens,
+                    has_image, status, error_message, created_at{$costCols}
+             FROM ai_usage_logs
+             WHERE user_id = :user_id
+             ORDER BY id DESC
+             LIMIT {$perPage} OFFSET {$offset}",
+            ['user_id' => $userId]
+        );
+        $total = (int) ($this->fetchOne(
+            'SELECT COUNT(*) AS c FROM ai_usage_logs WHERE user_id = :user_id',
+            ['user_id' => $userId]
+        )['c'] ?? 0);
+        return [
+            'items' => $items,
+            'total' => $total,
+            'page' => $page,
+            'pages' => max(1, (int) ceil($total / max(1, $perPage))),
+            'per_page' => $perPage,
+        ];
+    }
+
     /** @return array<string, mixed> */
     public function summary(?string $from = null): array
     {

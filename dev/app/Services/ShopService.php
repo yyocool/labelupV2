@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Repositories\ShopRepository;
 use App\Repositories\ShopProductPageSettingsRepository;
+use App\Repositories\ProductDetailPageRepository;
 use RuntimeException;
 
 final class ShopService
@@ -38,7 +39,25 @@ final class ShopService
 
     public function productDetail(int $id): ?array
     {
-        return $this->repo->findActiveProduct($id);
+        $product = $this->repo->findActiveProduct($id);
+        return $product ? $this->withDetailHtml($product, true) : null;
+    }
+
+    public function productPreviewDetail(int $id): ?array
+    {
+        $product = $this->repo->findProductForPreview($id);
+        return $product ? $this->withDetailHtml($product, false) : null;
+    }
+
+    /**
+     * @param array<string, mixed> $product
+     * @return array<string, mixed>
+     */
+    private function withDetailHtml(array $product, bool $publishedOnly): array
+    {
+        $html = (new ProductDetailPageRepository())->findHtmlByProductId((int) ($product['id'] ?? 0), $publishedOnly);
+        $product['detail_html'] = $html ?? '';
+        return $product;
     }
 
     public function lookupByCode(string $code): ?array

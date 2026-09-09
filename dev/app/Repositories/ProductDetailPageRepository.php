@@ -8,6 +8,23 @@ use App\Models\BaseModel;
 
 final class ProductDetailPageRepository extends BaseModel
 {
+    public function findHtmlByProductId(int $productId, bool $publishedOnly = true): ?string
+    {
+        if ($productId <= 0) {
+            return null;
+        }
+        $sql = 'SELECT html_content, status FROM shop_product_detail_pages WHERE product_id = :product_id LIMIT 1';
+        $row = $this->fetchOne($sql, ['product_id' => $productId]);
+        if (!$row) {
+            return null;
+        }
+        if ($publishedOnly && (string) ($row['status'] ?? '') !== 'published') {
+            return null;
+        }
+        $html = trim((string) ($row['html_content'] ?? ''));
+        return $html !== '' ? $html : null;
+    }
+
     /**
      * @param array{q?:string,registered?:string,category_id?:int,product_status?:string} $filters
      * @return array{items: array<int, array<string, mixed>>, total: int, page: int, pages: int}

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Middleware\AuthMiddleware;
+use App\Services\AiCreditService;
 use App\Services\AiExamplePromptService;
 use App\Services\AiUsageService;
 use App\Services\AuthService;
@@ -130,6 +131,20 @@ final class AiAdminController extends BaseController
             'crumbTitle' => 'AI 관리 › 회원별 사용',
             'user' => $this->auth->admin(),
             'result' => (new AiUsageService())->memberUsage($filters, 100),
+        ]);
+    }
+
+    public function creditSettings(): void
+    {
+        (new AuthMiddleware($this->auth))->handle(true);
+        view('admin/layout', [
+            'contentTemplate' => 'admin/ai-credit-settings',
+            'pageTitle' => 'AI 관리 › AI 크레딧 설정 — 라벨업 관리자',
+            'activeMenu' => 'ai-credit-settings',
+            'menuGroup' => 'ai',
+            'crumbTitle' => 'AI 관리 › AI 크레딧 설정',
+            'user' => $this->auth->admin(),
+            'settings' => (new AiCreditService())->adminSettings(),
         ]);
     }
 }

@@ -126,6 +126,8 @@ final class AdminAccessService
             '/api/admin/inquiry' => 'ops-inquiries',
             '/admin/ai/example-prompts' => 'ai-example-prompts',
             '/api/admin/ai/example-prompt' => 'ai-example-prompts',
+            '/admin/ai/credit-settings' => 'ai-credit-settings',
+            '/api/admin/ai/credit-settings' => 'ai-credit-settings',
             '/admin/ai/token-logs' => 'ai-token-logs',
             '/admin/ai/member-usage' => 'ai-member-usage',
             '/admin/ai/usage' => 'ai-usage',

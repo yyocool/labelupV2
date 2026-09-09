@@ -55,7 +55,13 @@ final class LabelTemplateService
         $inserted = 0;
         $updated = 0;
         $skipped = 0;
-        foreach ((new LabelTemplateSeedService())->all() as $item) {
+        $catalog = array_merge(
+            (new LabelTemplateSeedService())->all(),
+            (new LabelTemplatePack60SeedService())->all(),
+            (new LabelTemplatePack60SeedService('imports/template_pack61_manifest.json'))->all(),
+            (new LabelTemplatePack60SeedService('imports/template_pack62_manifest.json'))->all()
+        );
+        foreach ($catalog as $item) {
             $existing = $this->repo->findBySlug((string) $item['slug']);
             if ($existing && !$force) {
                 $skipped++;
@@ -230,12 +236,48 @@ final class LabelTemplateService
             'sort_order' => (int) ($row['sort_order'] ?? 0),
             'previewText' => (string) $row['name'],
             'previewSvg' => LabelTemplatePreview::svgFromRow($row, $this->documentPayload($row)),
+            'thumbUrl' => $this->firstImageUrl($this->documentPayload($row)),
         ];
         if ($withDocument && isset($row['document_json'])) {
             $out['document_json'] = (string) $row['document_json'];
             $out['document'] = $this->documentPayload($row);
         }
         return $out;
+    }
+
+    /** @param array<string, mixed> $document */
+    private function firstImageUrl(array $document): string
+    {
+        $pages = $document['pages'] ?? [];
+        if (!is_array($pages) || $pages === []) {
+            return '';
+        }
+        $cells = $pages[0]['cells'] ?? [];
+        if (!is_array($cells) || $cells === []) {
+            return '';
+        }
+        $objects = $cells[0]['objects'] ?? [];
+        if (!is_array($objects)) {
+            return '';
+        }
+        foreach ($objects as $obj) {
+            if (!is_array($obj)) {
+                continue;
+            }
+            $type = strtolower((string) ($obj['type'] ?? ''));
+            if (!in_array($type, ['image', 'clipart', 'icon'], true)) {
+                continue;
+            }
+            $src = trim((string) ($obj['imageData'] ?? ''));
+            if ($src === '' || str_starts_with($src, 'data:')) {
+                continue;
+            }
+            if (!str_starts_with($src, 'http') && !str_starts_with($src, '/')) {
+                $src = '/' . ltrim($src, '/');
+            }
+            return $src;
+        }
+        return '';
     }
 
     private function normalizeSlug(string $slug, string $name): string

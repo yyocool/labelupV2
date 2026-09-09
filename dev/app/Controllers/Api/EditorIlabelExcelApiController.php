@@ -9,7 +9,7 @@ use App\Controllers\BaseController;
 /** 아이라벨 IDF가 InnerDB 없이 외부 엑셀만 가리킬 때, 허용 폴더에서 파일을 찾아 준다. */
 final class EditorIlabelExcelApiController extends BaseController
 {
-    private const int MaxBytes = 8 * 1024 * 1024;
+    private const MaxBytes = 8 * 1024 * 1024;
 
     public function show(): never
     {

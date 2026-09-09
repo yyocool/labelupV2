@@ -45,6 +45,8 @@ $filters = $filters ?? ['q' => '', 'category' => ''];
             style="--tpl-tone: <?= e($row['tone'] ?? '#7B2840') ?>">
       <?php if (!empty($row['previewSvg'])): ?>
       <span class="tpl-card-preview"><?= $row['previewSvg'] ?></span>
+      <?php elseif (!empty($row['thumbUrl'])): ?>
+      <span class="tpl-card-preview tpl-card-preview--img"><img src="<?= e((string) $row['thumbUrl']) ?>" alt="<?= e((string) ($row['name'] ?? '')) ?>" loading="lazy"></span>
       <?php else: ?>
       <span class="tpl-card-swatch"><?= e(mb_substr((string) ($row['name'] ?? ''), 0, 6)) ?></span>
       <?php endif; ?>

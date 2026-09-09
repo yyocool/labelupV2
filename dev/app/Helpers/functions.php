@@ -215,6 +215,7 @@ function admin_menu_catalog(): array
         ['key' => 'content-user-designs', 'label' => '사용자디자인', 'href' => 'admin/content/user-designs', 'group' => '컨텐츠관리', 'ic' => '★'],
         ['key' => 'content-templates', 'label' => '템플릿관리', 'href' => 'admin/content/templates', 'group' => '컨텐츠관리', 'ic' => '▦'],
         ['key' => 'content-product-detail-pages', 'label' => '상세페이지관리', 'href' => 'admin/content/product-detail-pages', 'group' => '컨텐츠관리', 'ic' => '▣'],
+        ['key' => 'ai-credit-settings', 'label' => 'AI 크레딧 설정', 'href' => 'admin/ai/credit-settings', 'group' => 'AI 관리', 'ic' => 'C'],
         ['key' => 'ai-example-prompts', 'label' => '예시프롬프트 관리', 'href' => 'admin/ai/example-prompts', 'group' => 'AI 관리', 'ic' => '✦'],
         ['key' => 'ai-token-logs', 'label' => '토큰사용로그', 'href' => 'admin/ai/token-logs', 'group' => 'AI 관리', 'ic' => '◎'],
         ['key' => 'ai-member-usage', 'label' => '회원별 사용', 'href' => 'admin/ai/member-usage', 'group' => 'AI 관리', 'ic' => '◇'],

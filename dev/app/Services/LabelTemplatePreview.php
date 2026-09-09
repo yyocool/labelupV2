@@ -82,8 +82,24 @@ final class LabelTemplatePreview
             'barcode' => self::barcodeSvg($x, $y, $w, $h, $fill),
             'qr' => self::qrSvg($x, $y, $w, $h, $fill),
             'table' => self::tableSvg($obj, $x, $y, $w, $h, $fill, $stroke),
+            'image', 'clipart', 'icon' => self::imageSvg($obj, $x, $y, $w, $h),
             default => '<rect x="' . self::n($x) . '" y="' . self::n($y) . '" width="' . self::n($w) . '" height="' . self::n($h) . '" fill="' . $fill . '"' . $strokeAttr . '/>',
         };
+    }
+
+    /** @param array<string, mixed> $obj */
+    private static function imageSvg(array $obj, float $x, float $y, float $w, float $h): string
+    {
+        $src = trim((string) ($obj['imageData'] ?? $obj['svg'] ?? ''));
+        if ($src === '' || str_starts_with($src, 'data:')) {
+            // data URL은 미리보기에서 생략하고 플레이스홀더
+            return '<rect x="' . self::n($x) . '" y="' . self::n($y) . '" width="' . self::n($w) . '" height="' . self::n($h) . '" fill="#f3f1ef" rx="1"/>';
+        }
+        if (!str_starts_with($src, 'http') && !str_starts_with($src, '/')) {
+            $src = '/' . ltrim($src, '/');
+        }
+        $href = htmlspecialchars($src, ENT_QUOTES, 'UTF-8');
+        return '<image href="' . $href . '" xlink:href="' . $href . '" x="' . self::n($x) . '" y="' . self::n($y) . '" width="' . self::n($w) . '" height="' . self::n($h) . '" preserveAspectRatio="xMidYMid meet"/>';
     }
 
     /** @param array<string, mixed> $obj */
@@ -182,6 +198,6 @@ final class LabelTemplatePreview
     private static function xml(string $text): string
     {
         $text = preg_replace('/\s+/u', ' ', $text) ?? $text;
-        return htmlspecialchars(mb_substr($text, 0, 40), ENT_QUOTES, 'UTF-8');
+        return htmlspecialchars(mb_substr($text, 0, 80), ENT_QUOTES, 'UTF-8');
     }
 }

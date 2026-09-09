@@ -1,0 +1,1621 @@
+{
+  "version": 1,
+  "count": 60,
+  "items": [
+    {
+      "slug": "p61-for-you",
+      "name": "For You 리스",
+      "category": "gift",
+      "tags": "선물,포유,리스",
+      "description": "포유 플라워 리스",
+      "tone": "#8B5E3C",
+      "bg": "#F3E6D4",
+      "layout": "center",
+      "art_url": "/assets/templates/pack61/p61-for-you_art.png",
+      "texts": [
+        {
+          "text": "For You",
+          "role": "title",
+          "color": "#5C3A1E"
+        },
+        {
+          "text": "♥",
+          "role": "sub",
+          "color": "#C45C6E"
+        }
+      ],
+      "sort_order": 201,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-01"
+    },
+    {
+      "slug": "p61-handmade",
+      "name": "HANDMADE with love",
+      "category": "gift",
+      "tags": "핸드메이드,크라프트",
+      "description": "크라프트 핸드메이드",
+      "tone": "#8B5E3C",
+      "bg": "#E8D5B5",
+      "layout": "center",
+      "art_url": "/assets/templates/pack61/p61-handmade_art.png",
+      "texts": [
+        {
+          "text": "HANDMADE",
+          "role": "title",
+          "color": "#5C3A1E"
+        },
+        {
+          "text": "with love",
+          "role": "sub",
+          "color": "#A05050"
+        }
+      ],
+      "sort_order": 202,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-02"
+    },
+    {
+      "slug": "p61-thank-you",
+      "name": "Thank You 리프",
+      "category": "gift",
+      "tags": "감사,리프",
+      "description": "Thank You 리프",
+      "tone": "#5B7A3A",
+      "bg": "#F7F3EA",
+      "layout": "art_bottom",
+      "art_url": "/assets/templates/pack61/p61-thank-you_art.png",
+      "texts": [
+        {
+          "text": "Thank You",
+          "role": "title",
+          "color": "#3F5A28"
+        }
+      ],
+      "sort_order": 203,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-03"
+    },
+    {
+      "slug": "p61-special-gift",
+      "name": "SPECIAL GIFT",
+      "category": "gift",
+      "tags": "선물,리본",
+      "description": "스페셜 기프트",
+      "tone": "#E07A9A",
+      "bg": "#FFFFFF",
+      "layout": "deco_top",
+      "art_url": "/assets/templates/pack61/p61-special-gift_art.png",
+      "texts": [
+        {
+          "text": "SPECIAL GIFT",
+          "role": "title",
+          "color": "#C45C7A"
+        }
+      ],
+      "sort_order": 204,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-04"
+    },
+    {
+      "slug": "p61-gamsahamnida",
+      "name": "감사합니다 행복하세요",
+      "category": "gift",
+      "tags": "감사,한글",
+      "description": "한글 감사",
+      "tone": "#C45C7A",
+      "bg": "#FFFFFF",
+      "layout": "art_bottom",
+      "art_url": "/assets/templates/pack61/p61-gamsahamnida_art.png",
+      "texts": [
+        {
+          "text": "감사합니다",
+          "role": "title",
+          "color": "#9B3A5A"
+        },
+        {
+          "text": "항상 행복하세요",
+          "role": "sub",
+          "color": "#C45C7A"
+        }
+      ],
+      "sort_order": 205,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-05"
+    },
+    {
+      "slug": "p61-happy-birthday",
+      "name": "HAPPY BIRTHDAY",
+      "category": "event",
+      "tags": "생일,콘페티",
+      "description": "해피 버스데이 콘페티",
+      "tone": "#2E2A27",
+      "bg": "#FFFFFF",
+      "layout": "center",
+      "art_url": "/assets/templates/pack61/p61-happy-birthday_art.png",
+      "texts": [
+        {
+          "text": "HAPPY BIRTHDAY",
+          "role": "title",
+          "color": "#2E2A27"
+        }
+      ],
+      "sort_order": 206,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-06"
+    },
+    {
+      "slug": "p61-especially",
+      "name": "Especially for you",
+      "category": "gift",
+      "tags": "하트,스크립트",
+      "description": "Especially for you",
+      "tone": "#C45C7A",
+      "bg": "#FFF0F4",
+      "layout": "art_bottom",
+      "art_url": "/assets/templates/pack61/p61-especially_art.png",
+      "texts": [
+        {
+          "text": "Especially for you",
+          "role": "title",
+          "color": "#9B3A5A"
+        }
+      ],
+      "sort_order": 207,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-07"
+    },
+    {
+      "slug": "p61-just-for-you",
+      "name": "Just for you",
+      "category": "gift",
+      "tags": "리프,스크립트",
+      "description": "Just for you",
+      "tone": "#5B7A3A",
+      "bg": "#FFFFFF",
+      "layout": "art_bottom",
+      "art_url": "/assets/templates/pack61/p61-just-for-you_art.png",
+      "texts": [
+        {
+          "text": "Just for you",
+          "role": "title",
+          "color": "#3F5A28"
+        }
+      ],
+      "sort_order": 208,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-08"
+    },
+    {
+      "slug": "p61-love",
+      "name": "LOVE 하트",
+      "category": "gift",
+      "tags": "사랑,하트",
+      "description": "LOVE 하트",
+      "tone": "#E85A7A",
+      "bg": "#FFF0F4",
+      "layout": "badge",
+      "art_url": "/assets/templates/pack61/p61-love_art.png",
+      "texts": [
+        {
+          "text": "LOVE",
+          "role": "title",
+          "color": "#FFFFFF"
+        }
+      ],
+      "sort_order": 209,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-09"
+    },
+    {
+      "slug": "p61-congrats",
+      "name": "축하합니다",
+      "category": "event",
+      "tags": "축하,꽃다발",
+      "description": "축하합니다",
+      "tone": "#C45C7A",
+      "bg": "#FFFFFF",
+      "layout": "art_bottom",
+      "art_url": "/assets/templates/pack61/p61-congrats_art.png",
+      "texts": [
+        {
+          "text": "축하합니다",
+          "role": "title",
+          "color": "#9B3A5A"
+        }
+      ],
+      "sort_order": 210,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-10"
+    },
+    {
+      "slug": "p61-birthday-cake",
+      "name": "생일 축하해요",
+      "category": "event",
+      "tags": "생일,케이크",
+      "description": "생일 케이크",
+      "tone": "#E891B0",
+      "bg": "#FFF5F8",
+      "layout": "art_bottom",
+      "art_url": "/assets/templates/pack61/p61-birthday-cake_art.png",
+      "texts": [
+        {
+          "text": "생일 축하해요",
+          "role": "title",
+          "color": "#C45C7A"
+        }
+      ],
+      "sort_order": 211,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-11"
+    },
+    {
+      "slug": "p61-happy-wedding",
+      "name": "HAPPY WEDDING",
+      "category": "event",
+      "tags": "웨딩,꽃",
+      "description": "해피 웨딩",
+      "tone": "#C45C7A",
+      "bg": "#FFFFFF",
+      "layout": "art_bottom",
+      "art_url": "/assets/templates/pack61/p61-happy-wedding_art.png",
+      "texts": [
+        {
+          "text": "HAPPY WEDDING",
+          "role": "title",
+          "color": "#9B3A5A"
+        }
+      ],
+      "sort_order": 212,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-12"
+    },
+    {
+      "slug": "p61-saranghamnida",
+      "name": "사랑합니다",
+      "category": "gift",
+      "tags": "사랑,카네이션",
+      "description": "사랑합니다",
+      "tone": "#C62828",
+      "bg": "#FFFFFF",
+      "layout": "art_bottom",
+      "art_url": "/assets/templates/pack61/p61-saranghamnida_art.png",
+      "texts": [
+        {
+          "text": "사랑합니다",
+          "role": "title",
+          "color": "#B71C1C"
+        }
+      ],
+      "sort_order": 213,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-13"
+    },
+    {
+      "slug": "p61-grandma",
+      "name": "할머니 사랑해요",
+      "category": "gift",
+      "tags": "가족,하트",
+      "description": "할머니 사랑해요",
+      "tone": "#C45C7A",
+      "bg": "#FFF5F8",
+      "layout": "art_bottom",
+      "art_url": "/assets/templates/pack61/p61-grandma_art.png",
+      "texts": [
+        {
+          "text": "할머니 사랑해요",
+          "role": "title",
+          "color": "#9B3A5A"
+        }
+      ],
+      "sort_order": 214,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-14"
+    },
+    {
+      "slug": "p61-teacher",
+      "name": "Thank you Teacher",
+      "category": "gift",
+      "tags": "선생님,감사",
+      "description": "선생님 감사합니다",
+      "tone": "#C45C7A",
+      "bg": "#FFFFFF",
+      "layout": "art_bottom",
+      "art_url": "/assets/templates/pack61/p61-teacher_art.png",
+      "texts": [
+        {
+          "text": "Thank you Teacher",
+          "role": "title",
+          "color": "#9B3A5A"
+        }
+      ],
+      "sort_order": 215,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-15"
+    },
+    {
+      "slug": "p61-good-job",
+      "name": "수고했어요 Good Job",
+      "category": "gift",
+      "tags": "응원,스마일",
+      "description": "수고했어요",
+      "tone": "#F5C518",
+      "bg": "#FFF9E8",
+      "layout": "stack",
+      "art_url": "/assets/templates/pack61/p61-good-job_art.png",
+      "texts": [
+        {
+          "text": "수고했어요",
+          "role": "title",
+          "color": "#2E2A27"
+        },
+        {
+          "text": "Good Job!",
+          "role": "sub",
+          "color": "#5B5560"
+        }
+      ],
+      "sort_order": 216,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-16"
+    },
+    {
+      "slug": "p61-cheer-up",
+      "name": "Cheer Up!",
+      "category": "gift",
+      "tags": "응원,곰돌이",
+      "description": "Cheer Up 곰돌이",
+      "tone": "#8B5E3C",
+      "bg": "#FFF8F0",
+      "layout": "stack",
+      "art_url": "/assets/templates/pack61/p61-cheer-up_art.png",
+      "texts": [
+        {
+          "text": "Cheer Up!",
+          "role": "title",
+          "color": "#5C3A1E"
+        }
+      ],
+      "sort_order": 217,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-17"
+    },
+    {
+      "slug": "p61-good-day",
+      "name": "좋은 하루 되세요",
+      "category": "gift",
+      "tags": "응원,태양",
+      "description": "좋은 하루",
+      "tone": "#5B7A3A",
+      "bg": "#FFFFFF",
+      "layout": "art_bottom",
+      "art_url": "/assets/templates/pack61/p61-good-day_art.png",
+      "texts": [
+        {
+          "text": "좋은 하루 되세요",
+          "role": "title",
+          "color": "#3F5A28"
+        }
+      ],
+      "sort_order": 218,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-18"
+    },
+    {
+      "slug": "p61-welcome",
+      "name": "WELCOME 환영",
+      "category": "gift",
+      "tags": "환영,집",
+      "description": "환영합니다",
+      "tone": "#8B5E3C",
+      "bg": "#FFF8F0",
+      "layout": "stack",
+      "art_url": "/assets/templates/pack61/p61-welcome_art.png",
+      "texts": [
+        {
+          "text": "WELCOME",
+          "role": "title",
+          "color": "#5C3A1E"
+        },
+        {
+          "text": "우리집에 오신 것을 환영합니다",
+          "role": "sub",
+          "color": "#A08060"
+        }
+      ],
+      "sort_order": 219,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-19"
+    },
+    {
+      "slug": "p61-good-luck",
+      "name": "행운을 빕니다",
+      "category": "gift",
+      "tags": "행운,클로버",
+      "description": "행운을 빕니다",
+      "tone": "#43A047",
+      "bg": "#F1F8F2",
+      "layout": "art_bottom",
+      "art_url": "/assets/templates/pack61/p61-good-luck_art.png",
+      "texts": [
+        {
+          "text": "행운을 빕니다",
+          "role": "title",
+          "color": "#2E7D32"
+        }
+      ],
+      "sort_order": 220,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-20"
+    },
+    {
+      "slug": "p61-strawberry",
+      "name": "FRESH STRAWBERRY",
+      "category": "food",
+      "tags": "딸기,과일",
+      "description": "딸기 라벨",
+      "tone": "#C23B4A",
+      "bg": "#FFFFFF",
+      "layout": "product",
+      "art_url": "/assets/templates/pack61/p61-strawberry_art.png",
+      "texts": [
+        {
+          "text": "FRESH STRAWBERRY",
+          "role": "title",
+          "color": "#B83246"
+        },
+        {
+          "text": "딸기",
+          "role": "mid",
+          "color": "#C45C6E"
+        },
+        {
+          "text": "국내산 100%",
+          "role": "sub",
+          "color": "#D46A7A"
+        }
+      ],
+      "sort_order": 221,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-21"
+    },
+    {
+      "slug": "p61-orange",
+      "name": "ORANGE Fresh",
+      "category": "food",
+      "tags": "오렌지,과일",
+      "description": "오렌지 라벨",
+      "tone": "#EF6C00",
+      "bg": "#FFFFFF",
+      "layout": "product",
+      "art_url": "/assets/templates/pack61/p61-orange_art.png",
+      "texts": [
+        {
+          "text": "ORANGE",
+          "role": "title",
+          "color": "#E65100"
+        },
+        {
+          "text": "신선한 오렌지",
+          "role": "sub",
+          "color": "#FF9800"
+        }
+      ],
+      "sort_order": 222,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-22"
+    },
+    {
+      "slug": "p61-apple",
+      "name": "APPLE 국내산",
+      "category": "food",
+      "tags": "사과,과일",
+      "description": "사과 라벨",
+      "tone": "#C62828",
+      "bg": "#FFFFFF",
+      "layout": "product",
+      "art_url": "/assets/templates/pack61/p61-apple_art.png",
+      "texts": [
+        {
+          "text": "APPLE",
+          "role": "title",
+          "color": "#B71C1C"
+        },
+        {
+          "text": "국내산 사과",
+          "role": "sub",
+          "color": "#E57373"
+        }
+      ],
+      "sort_order": 223,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-23"
+    },
+    {
+      "slug": "p61-tomato",
+      "name": "TOMATO Farm",
+      "category": "food",
+      "tags": "토마토,채소",
+      "description": "토마토 라벨",
+      "tone": "#D32F2F",
+      "bg": "#FFFFFF",
+      "layout": "product",
+      "art_url": "/assets/templates/pack61/p61-tomato_art.png",
+      "texts": [
+        {
+          "text": "TOMATO",
+          "role": "title",
+          "color": "#C62828"
+        },
+        {
+          "text": "FARM FRESH",
+          "role": "sub",
+          "color": "#EF9A9A"
+        }
+      ],
+      "sort_order": 224,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-24"
+    },
+    {
+      "slug": "p61-lemon",
+      "name": "LEMON Natural",
+      "category": "food",
+      "tags": "레몬,과일",
+      "description": "레몬 라벨",
+      "tone": "#F9A825",
+      "bg": "#FFFDE7",
+      "layout": "product",
+      "art_url": "/assets/templates/pack61/p61-lemon_art.png",
+      "texts": [
+        {
+          "text": "LEMON",
+          "role": "title",
+          "color": "#F57F17"
+        },
+        {
+          "text": "100% NATURAL",
+          "role": "sub",
+          "color": "#FFB300"
+        }
+      ],
+      "sort_order": 225,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-25"
+    },
+    {
+      "slug": "p61-organic-veg",
+      "name": "유기농 채소",
+      "category": "food",
+      "tags": "유기농,채소",
+      "description": "유기농 채소",
+      "tone": "#558B2F",
+      "bg": "#E8F5E9",
+      "layout": "product",
+      "art_url": "/assets/templates/pack61/p61-organic-veg_art.png",
+      "texts": [
+        {
+          "text": "유기농 채소",
+          "role": "title",
+          "color": "#33691E"
+        },
+        {
+          "text": "ORGANIC",
+          "role": "sub",
+          "color": "#7CB342"
+        }
+      ],
+      "sort_order": 226,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-26"
+    },
+    {
+      "slug": "p61-honey",
+      "name": "HONEY Pure",
+      "category": "food",
+      "tags": "꿀,식품",
+      "description": "천연 꿀",
+      "tone": "#C9A227",
+      "bg": "#FFF8E0",
+      "layout": "product",
+      "art_url": "/assets/templates/pack61/p61-honey_art.png",
+      "texts": [
+        {
+          "text": "HONEY",
+          "role": "title",
+          "color": "#8A6A10"
+        },
+        {
+          "text": "PURE NATURAL",
+          "role": "sub",
+          "color": "#A08030"
+        }
+      ],
+      "sort_order": 227,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-27"
+    },
+    {
+      "slug": "p61-coffee",
+      "name": "PREMIUM COFFEE",
+      "category": "cafe",
+      "tags": "커피,원두",
+      "description": "프리미엄 커피",
+      "tone": "#5C3A1E",
+      "bg": "#FFF8F0",
+      "layout": "product",
+      "art_url": "/assets/templates/pack61/p61-coffee_art.png",
+      "texts": [
+        {
+          "text": "PREMIUM COFFEE",
+          "role": "title",
+          "color": "#3E2723"
+        },
+        {
+          "text": "100% ARABICA",
+          "role": "sub",
+          "color": "#8D6E63"
+        }
+      ],
+      "sort_order": 228,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-28"
+    },
+    {
+      "slug": "p61-bakery",
+      "name": "BAKERY Fresh",
+      "category": "cafe",
+      "tags": "베이커리,빵",
+      "description": "베이커리",
+      "tone": "#C4873A",
+      "bg": "#FFF8EE",
+      "layout": "product",
+      "art_url": "/assets/templates/pack61/p61-bakery_art.png",
+      "texts": [
+        {
+          "text": "BAKERY",
+          "role": "title",
+          "color": "#8B5A20"
+        },
+        {
+          "text": "FRESH & DELICIOUS",
+          "role": "sub",
+          "color": "#B07A40"
+        }
+      ],
+      "sort_order": 229,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-29"
+    },
+    {
+      "slug": "p61-hand-soap",
+      "name": "HAND SOAP",
+      "category": "beauty",
+      "tags": "핸드솝,리프",
+      "description": "핸드솝",
+      "tone": "#5B8A6A",
+      "bg": "#F1F7F3",
+      "layout": "product",
+      "art_url": "/assets/templates/pack61/p61-hand-soap_art.png",
+      "texts": [
+        {
+          "text": "HAND SOAP",
+          "role": "title",
+          "color": "#2F5A40"
+        },
+        {
+          "text": "NATURAL CARE",
+          "role": "sub",
+          "color": "#5B8A6A"
+        }
+      ],
+      "sort_order": 230,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-30"
+    },
+    {
+      "slug": "p61-shampoo",
+      "name": "SHAMPOO Mild",
+      "category": "beauty",
+      "tags": "샴푸,헤어",
+      "description": "샴푸",
+      "tone": "#3D6B5A",
+      "bg": "#F5FAF7",
+      "layout": "product",
+      "art_url": "/assets/templates/pack61/p61-shampoo_art.png",
+      "texts": [
+        {
+          "text": "SHAMPOO",
+          "role": "title",
+          "color": "#2A4F42"
+        },
+        {
+          "text": "MILD & PURE",
+          "role": "mid",
+          "color": "#5A8A78"
+        },
+        {
+          "text": "500ml",
+          "role": "sub",
+          "color": "#7AA090"
+        }
+      ],
+      "sort_order": 231,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-31"
+    },
+    {
+      "slug": "p61-body-wash",
+      "name": "BODY WASH",
+      "category": "beauty",
+      "tags": "바디워시,라벤더",
+      "description": "바디워시",
+      "tone": "#7E57C2",
+      "bg": "#F8F5FC",
+      "layout": "product",
+      "art_url": "/assets/templates/pack61/p61-body-wash_art.png",
+      "texts": [
+        {
+          "text": "BODY WASH",
+          "role": "title",
+          "color": "#5E35B1"
+        },
+        {
+          "text": "RELAXING",
+          "role": "mid",
+          "color": "#9575CD"
+        },
+        {
+          "text": "500ml",
+          "role": "sub",
+          "color": "#B39DDB"
+        }
+      ],
+      "sort_order": 232,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-32"
+    },
+    {
+      "slug": "p61-skin-lotion",
+      "name": "SKIN LOTION",
+      "category": "beauty",
+      "tags": "로션,스킨",
+      "description": "스킨로션",
+      "tone": "#EC407A",
+      "bg": "#FFF5F8",
+      "layout": "product",
+      "art_url": "/assets/templates/pack61/p61-skin-lotion_art.png",
+      "texts": [
+        {
+          "text": "SKIN LOTION",
+          "role": "title",
+          "color": "#AD1457"
+        },
+        {
+          "text": "MOISTURE",
+          "role": "mid",
+          "color": "#EC407A"
+        },
+        {
+          "text": "200ml",
+          "role": "sub",
+          "color": "#F48FB1"
+        }
+      ],
+      "sort_order": 233,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-33"
+    },
+    {
+      "slug": "p61-olive-oil",
+      "name": "NATURAL OLIVE OIL",
+      "category": "food",
+      "tags": "올리브,오일",
+      "description": "올리브오일",
+      "tone": "#5B7A3A",
+      "bg": "#F7FAF2",
+      "layout": "product",
+      "art_url": "/assets/templates/pack61/p61-olive-oil_art.png",
+      "texts": [
+        {
+          "text": "NATURAL OLIVE OIL",
+          "role": "title",
+          "color": "#3F5A28"
+        },
+        {
+          "text": "EXTRA VIRGIN 100%",
+          "role": "sub",
+          "color": "#6B8F4E"
+        }
+      ],
+      "sort_order": 234,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-34"
+    },
+    {
+      "slug": "p61-hand-cream",
+      "name": "HAND CREAM",
+      "category": "beauty",
+      "tags": "핸드크림",
+      "description": "핸드크림",
+      "tone": "#8D6E63",
+      "bg": "#FFF8F0",
+      "layout": "product",
+      "art_url": "/assets/templates/pack61/p61-hand-cream_art.png",
+      "texts": [
+        {
+          "text": "HAND CREAM",
+          "role": "title",
+          "color": "#5D4037"
+        },
+        {
+          "text": "MOISTURIZING",
+          "role": "mid",
+          "color": "#8D6E63"
+        },
+        {
+          "text": "50ml",
+          "role": "sub",
+          "color": "#A1887F"
+        }
+      ],
+      "sort_order": 235,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-35"
+    },
+    {
+      "slug": "p61-aroma-candle",
+      "name": "AROMA CANDLE",
+      "category": "beauty",
+      "tags": "캔들,아로마",
+      "description": "아로마 캔들",
+      "tone": "#8B5E3C",
+      "bg": "#FFF8F0",
+      "layout": "product",
+      "art_url": "/assets/templates/pack61/p61-aroma-candle_art.png",
+      "texts": [
+        {
+          "text": "AROMA CANDLE",
+          "role": "title",
+          "color": "#5C3A1E"
+        },
+        {
+          "text": "Sweet Life",
+          "role": "sub",
+          "color": "#A08060"
+        }
+      ],
+      "sort_order": 236,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-36"
+    },
+    {
+      "slug": "p61-diffuser",
+      "name": "DIFFUSER Relax",
+      "category": "beauty",
+      "tags": "디퓨저",
+      "description": "디퓨저",
+      "tone": "#5C6BC0",
+      "bg": "#F5F7FF",
+      "layout": "product",
+      "art_url": "/assets/templates/pack61/p61-diffuser_art.png",
+      "texts": [
+        {
+          "text": "DIFFUSER",
+          "role": "title",
+          "color": "#3949AB"
+        },
+        {
+          "text": "RELAX",
+          "role": "sub",
+          "color": "#7986CB"
+        }
+      ],
+      "sort_order": 237,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-37"
+    },
+    {
+      "slug": "p61-natural-soap",
+      "name": "NATURAL SOAP",
+      "category": "beauty",
+      "tags": "비누,에코",
+      "description": "내추럴 솝",
+      "tone": "#43A047",
+      "bg": "#F1F8F2",
+      "layout": "product",
+      "art_url": "/assets/templates/pack61/p61-natural-soap_art.png",
+      "texts": [
+        {
+          "text": "NATURAL SOAP",
+          "role": "title",
+          "color": "#2E7D32"
+        },
+        {
+          "text": "ECO FRIENDLY",
+          "role": "sub",
+          "color": "#66BB6A"
+        }
+      ],
+      "sort_order": 238,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-38"
+    },
+    {
+      "slug": "p61-pet-food",
+      "name": "PET FOOD",
+      "category": "food",
+      "tags": "반려견,펫",
+      "description": "펫푸드",
+      "tone": "#8B5E3C",
+      "bg": "#FFF8F0",
+      "layout": "product",
+      "art_url": "/assets/templates/pack61/p61-pet-food_art.png",
+      "texts": [
+        {
+          "text": "PET FOOD",
+          "role": "title",
+          "color": "#5C3A1E"
+        },
+        {
+          "text": "FOR YOUR PET",
+          "role": "sub",
+          "color": "#A08060"
+        }
+      ],
+      "sort_order": 239,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-39"
+    },
+    {
+      "slug": "p61-cat-food",
+      "name": "CAT FOOD",
+      "category": "food",
+      "tags": "고양이,펫",
+      "description": "캣푸드",
+      "tone": "#6D4C41",
+      "bg": "#FFF8F0",
+      "layout": "product",
+      "art_url": "/assets/templates/pack61/p61-cat-food_art.png",
+      "texts": [
+        {
+          "text": "CAT FOOD",
+          "role": "title",
+          "color": "#4E342E"
+        },
+        {
+          "text": "HEALTHY LIFE",
+          "role": "sub",
+          "color": "#8D6E63"
+        }
+      ],
+      "sort_order": 240,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-40"
+    },
+    {
+      "slug": "p61-barcode",
+      "name": "PRODUCT 바코드",
+      "category": "price",
+      "tags": "바코드,상품",
+      "description": "상품 바코드",
+      "tone": "#212121",
+      "bg": "#FFFFFF",
+      "layout": "special_barcode",
+      "art_url": "/assets/templates/pack61/p61-barcode_art.png",
+      "texts": [
+        {
+          "text": "PRODUCT",
+          "role": "title",
+          "color": "#212121"
+        },
+        {
+          "text": "8801234567890",
+          "role": "sub",
+          "color": "#616161"
+        }
+      ],
+      "sort_order": 241,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-41"
+    },
+    {
+      "slug": "p61-scan-me",
+      "name": "SCAN ME QR",
+      "category": "price",
+      "tags": "QR,스캔",
+      "description": "SCAN ME",
+      "tone": "#212121",
+      "bg": "#FFFFFF",
+      "layout": "special_qr",
+      "art_url": "/assets/templates/pack61/p61-scan-me_art.png",
+      "texts": [
+        {
+          "text": "SCAN ME",
+          "role": "title",
+          "color": "#212121"
+        },
+        {
+          "text": "www.labelup.co.kr",
+          "role": "sub",
+          "color": "#757575"
+        }
+      ],
+      "sort_order": 242,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-42"
+    },
+    {
+      "slug": "p61-follow-us",
+      "name": "Follow Us! QR",
+      "category": "price",
+      "tags": "SNS,QR",
+      "description": "Follow Us",
+      "tone": "#C2185B",
+      "bg": "#FFFFFF",
+      "layout": "special_qr",
+      "art_url": "/assets/templates/pack61/p61-follow-us_art.png",
+      "texts": [
+        {
+          "text": "Follow Us!",
+          "role": "title",
+          "color": "#AD1457"
+        },
+        {
+          "text": "@labelup",
+          "role": "sub",
+          "color": "#EC407A"
+        }
+      ],
+      "sort_order": 243,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-43"
+    },
+    {
+      "slug": "p61-fragile",
+      "name": "FRAGILE 취급주의",
+      "category": "shipping",
+      "tags": "파손,취급주의",
+      "description": "파손주의",
+      "tone": "#C62828",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack61/p61-fragile_art.png",
+      "texts": [
+        {
+          "text": "FRAGILE",
+          "role": "title",
+          "color": "#B71C1C"
+        },
+        {
+          "text": "취급주의",
+          "role": "sub",
+          "color": "#E57373"
+        }
+      ],
+      "sort_order": 244,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-44"
+    },
+    {
+      "slug": "p61-this-side-up",
+      "name": "THIS SIDE UP",
+      "category": "shipping",
+      "tags": "방향,배송",
+      "description": "이 면이 위로",
+      "tone": "#212121",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack61/p61-this-side-up_art.png",
+      "texts": [
+        {
+          "text": "THIS SIDE UP",
+          "role": "title",
+          "color": "#212121"
+        },
+        {
+          "text": "위로 가세요",
+          "role": "sub",
+          "color": "#757575"
+        }
+      ],
+      "sort_order": 245,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-45"
+    },
+    {
+      "slug": "p61-keep-dry",
+      "name": "KEEP DRY",
+      "category": "shipping",
+      "tags": "습기,배송",
+      "description": "습기주의",
+      "tone": "#1976D2",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack61/p61-keep-dry_art.png",
+      "texts": [
+        {
+          "text": "KEEP DRY",
+          "role": "title",
+          "color": "#1565C0"
+        },
+        {
+          "text": "습기주의",
+          "role": "sub",
+          "color": "#64B5F6"
+        }
+      ],
+      "sort_order": 246,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-46"
+    },
+    {
+      "slug": "p61-caution",
+      "name": "CAUTION 주의",
+      "category": "warning",
+      "tags": "주의,경고",
+      "description": "주의 표시",
+      "tone": "#F9A825",
+      "bg": "#FFFDE7",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack61/p61-caution_art.png",
+      "texts": [
+        {
+          "text": "CAUTION",
+          "role": "title",
+          "color": "#212121"
+        },
+        {
+          "text": "주의",
+          "role": "sub",
+          "color": "#F57F17"
+        }
+      ],
+      "sort_order": 247,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-47"
+    },
+    {
+      "slug": "p61-fast-ship",
+      "name": "빠른배송",
+      "category": "shipping",
+      "tags": "배송,트럭",
+      "description": "빠른배송",
+      "tone": "#1976D2",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack61/p61-fast-ship_art.png",
+      "texts": [
+        {
+          "text": "빠른배송",
+          "role": "title",
+          "color": "#1565C0"
+        },
+        {
+          "text": "안전하게 배송해드립니다",
+          "role": "sub",
+          "color": "#64B5F6"
+        }
+      ],
+      "sort_order": 248,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-48"
+    },
+    {
+      "slug": "p61-chilled",
+      "name": "냉장보관",
+      "category": "shipping",
+      "tags": "냉장,보관",
+      "description": "냉장보관",
+      "tone": "#0288D1",
+      "bg": "#E1F5FE",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack61/p61-chilled_art.png",
+      "texts": [
+        {
+          "text": "냉장보관",
+          "role": "title",
+          "color": "#0277BD"
+        },
+        {
+          "text": "0~10°C",
+          "role": "sub",
+          "color": "#4FC3F7"
+        }
+      ],
+      "sort_order": 249,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-49"
+    },
+    {
+      "slug": "p61-frozen",
+      "name": "냉동보관",
+      "category": "shipping",
+      "tags": "냉동,보관",
+      "description": "냉동보관",
+      "tone": "#0277BD",
+      "bg": "#E3F2FD",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack61/p61-frozen_art.png",
+      "texts": [
+        {
+          "text": "냉동보관",
+          "role": "title",
+          "color": "#01579B"
+        },
+        {
+          "text": "-18°C 이하",
+          "role": "sub",
+          "color": "#4FC3F7"
+        }
+      ],
+      "sort_order": 250,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-50"
+    },
+    {
+      "slug": "p61-best-seller",
+      "name": "BEST SELLER",
+      "category": "event",
+      "tags": "베스트,왕관",
+      "description": "베스트셀러",
+      "tone": "#F9A825",
+      "bg": "#FFFDE7",
+      "layout": "badge",
+      "art_url": "/assets/templates/pack61/p61-best-seller_art.png",
+      "texts": [
+        {
+          "text": "BEST SELLER",
+          "role": "title",
+          "color": "#F57F17"
+        }
+      ],
+      "sort_order": 251,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-51"
+    },
+    {
+      "slug": "p61-new",
+      "name": "NEW 신상품",
+      "category": "event",
+      "tags": "신상품,NEW",
+      "description": "신상품",
+      "tone": "#EF6C00",
+      "bg": "#FFF8F0",
+      "layout": "badge",
+      "art_url": "/assets/templates/pack61/p61-new_art.png",
+      "texts": [
+        {
+          "text": "NEW",
+          "role": "title",
+          "color": "#FFFFFF"
+        },
+        {
+          "text": "신상품",
+          "role": "sub",
+          "color": "#E65100"
+        }
+      ],
+      "sort_order": 252,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-52"
+    },
+    {
+      "slug": "p61-sale",
+      "name": "SALE 50% OFF",
+      "category": "price",
+      "tags": "세일,할인",
+      "description": "세일",
+      "tone": "#C62828",
+      "bg": "#C62828",
+      "layout": "special_sale",
+      "art_url": "",
+      "texts": [
+        {
+          "text": "SALE",
+          "role": "title",
+          "color": "#FFFFFF"
+        },
+        {
+          "text": "UP TO 50% OFF",
+          "role": "sub",
+          "color": "#FFCDD2"
+        }
+      ],
+      "sort_order": 253,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-53"
+    },
+    {
+      "slug": "p61-coupon-20",
+      "name": "20% 할인쿠폰",
+      "category": "price",
+      "tags": "쿠폰,할인",
+      "description": "20% 쿠폰",
+      "tone": "#2E7D32",
+      "bg": "#FFFFFF",
+      "layout": "special_coupon",
+      "art_url": "/assets/templates/pack61/p61-coupon-20_art.png",
+      "texts": [
+        {
+          "text": "20%",
+          "role": "title",
+          "color": "#2E7D32"
+        },
+        {
+          "text": "할인쿠폰",
+          "role": "sub",
+          "color": "#66BB6A"
+        }
+      ],
+      "sort_order": 254,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-54"
+    },
+    {
+      "slug": "p61-sample",
+      "name": "SAMPLE 샘플",
+      "category": "warehouse",
+      "tags": "샘플,재고",
+      "description": "샘플",
+      "tone": "#757575",
+      "bg": "#F5F5F5",
+      "layout": "special_sample",
+      "art_url": "",
+      "texts": [
+        {
+          "text": "SAMPLE",
+          "role": "title",
+          "color": "#424242"
+        },
+        {
+          "text": "샘플상품 · NOT FOR SALE",
+          "role": "sub",
+          "color": "#9E9E9E"
+        }
+      ],
+      "sort_order": 255,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-55"
+    },
+    {
+      "slug": "p61-lot-exp",
+      "name": "LOT / EXP",
+      "category": "warehouse",
+      "tags": "유통기한,로트",
+      "description": "LOT/유통기한",
+      "tone": "#212121",
+      "bg": "#FFFFFF",
+      "layout": "special_lot",
+      "art_url": "",
+      "texts": [
+        {
+          "text": "LOT NO.",
+          "role": "title",
+          "color": "#212121"
+        },
+        {
+          "text": "EXP. DATE",
+          "role": "sub",
+          "color": "#616161"
+        }
+      ],
+      "sort_order": 256,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-56"
+    },
+    {
+      "slug": "p61-mfg-exp",
+      "name": "제조일자 / 유통기한",
+      "category": "warehouse",
+      "tags": "제조일자,유통기한",
+      "description": "제조/유통기한",
+      "tone": "#212121",
+      "bg": "#FFFFFF",
+      "layout": "special_dates",
+      "art_url": "",
+      "texts": [
+        {
+          "text": "제조일자",
+          "role": "title",
+          "color": "#212121"
+        },
+        {
+          "text": "유통기한",
+          "role": "sub",
+          "color": "#616161"
+        }
+      ],
+      "sort_order": 257,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-57"
+    },
+    {
+      "slug": "p61-premium",
+      "name": "PREMIUM QUALITY",
+      "category": "event",
+      "tags": "프리미엄,품질",
+      "description": "프리미엄 퀄리티",
+      "tone": "#C9A227",
+      "bg": "#FFFDE7",
+      "layout": "center",
+      "art_url": "/assets/templates/pack61/p61-premium_art.png",
+      "texts": [
+        {
+          "text": "PREMIUM QUALITY",
+          "role": "title",
+          "color": "#8A6A10"
+        }
+      ],
+      "sort_order": 258,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-58"
+    },
+    {
+      "slug": "p61-eco",
+      "name": "ECO FRIENDLY",
+      "category": "warning",
+      "tags": "에코,친환경",
+      "description": "에코 프렌들리",
+      "tone": "#43A047",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack61/p61-eco_art.png",
+      "texts": [
+        {
+          "text": "ECO FRIENDLY",
+          "role": "title",
+          "color": "#2E7D32"
+        }
+      ],
+      "sort_order": 259,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-59"
+    },
+    {
+      "slug": "p61-recycle",
+      "name": "재활용",
+      "category": "warning",
+      "tags": "재활용,환경",
+      "description": "재활용",
+      "tone": "#43A047",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack61/p61-recycle_art.png",
+      "texts": [
+        {
+          "text": "재활용",
+          "role": "title",
+          "color": "#2E7D32"
+        },
+        {
+          "text": "지구를 지켜요",
+          "role": "sub",
+          "color": "#66BB6A"
+        }
+      ],
+      "sort_order": 260,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P61-60"
+    }
+  ]
+}
