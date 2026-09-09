@@ -62,7 +62,8 @@ final class LabelTemplateService
             (new LabelTemplatePack60SeedService('imports/template_pack61_manifest.json'))->all(),
             (new LabelTemplatePack60SeedService('imports/template_pack62_manifest.json'))->all(),
             (new LabelTemplateOfficePackSeedService())->all(),
-            (new LabelTemplateMarkPackSeedService())->all()
+            (new LabelTemplateMarkPackSeedService())->all(),
+            (new LabelTemplateLogiPackSeedService())->all()
         );
         foreach ($catalog as $item) {
             $existing = $this->repo->findBySlug((string) $item['slug']);
