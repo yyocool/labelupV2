@@ -229,7 +229,7 @@
             try
             {
                 await Fonts.EnsureFamiliesAsync(
-                    r.Document.Pages.SelectMany(p => p.Cells).SelectMany(c => c.Objects).Select(o => o.FontFamily));
+                    r.Document.Pages.SelectMany(p => p.Cells).SelectMany(c => c.Objects).SelectMany(RichTextModel.Families));
             }
             catch (Exception fontEx)
             {

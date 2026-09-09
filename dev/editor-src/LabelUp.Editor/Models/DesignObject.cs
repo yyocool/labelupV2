@@ -405,6 +405,30 @@ public sealed class DesignObject
                 o.StrokeWidth = 0.4f;
                 o.PolygonSides = 5;
                 break;
+            case ShapeKind.Star:
+                o.Width = 22f;
+                o.Height = 22f;
+                o.Fill = "transparent";
+                o.Stroke = "#2E2A27";
+                o.StrokeWidth = 0.4f;
+                o.PolygonSides = 5;
+                break;
+            case ShapeKind.Trapezoid:
+                o.Width = 26f;
+                o.Height = 18f;
+                o.Fill = "transparent";
+                o.Stroke = "#2E2A27";
+                o.StrokeWidth = 0.4f;
+                o.CornerRadiusMm = 0.22f;
+                break;
+            case ShapeKind.Parallelogram:
+                o.Width = 26f;
+                o.Height = 18f;
+                o.Fill = "transparent";
+                o.Stroke = "#2E2A27";
+                o.StrokeWidth = 0.4f;
+                o.CornerRadiusMm = 0.22f;
+                break;
             default:
                 o.Width = 32f;
                 o.Height = 18f;

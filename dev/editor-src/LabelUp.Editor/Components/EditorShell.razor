@@ -704,6 +704,7 @@
             try { await Js.InvokeVoidAsync("labelUpEditor.bindHotkeys", _self); } catch { }
             try { await Js.InvokeVoidAsync("labelUpEditor.bindVendorDrop", "[data-ed-workspace]", _self); } catch { }
             try { await Js.InvokeVoidAsync("labelUpEditor.bindLabi", _self); } catch { }
+            try { await Js.InvokeVoidAsync("labelUpEditor.watchLocalFonts", _self); } catch { }
             try { await Js.InvokeVoidAsync("labelUpEditor.hideErrorUi"); } catch { }
             try { await TryApplyPendingVendorAsync(); } catch { }
         }
@@ -730,6 +731,13 @@
         }
 
         try { await Js.InvokeVoidAsync("labelUpEditor.hideErrorUi"); } catch { }
+    }
+
+    [JSInvokable]
+    public void RetryLocalFonts()
+    {
+        _fontEpoch = -1;
+        _ = WarmDocumentFontsAsync();
     }
 
     [JSInvokable]
@@ -1049,7 +1057,7 @@
             var families = Session.Document.Pages
                 .SelectMany(p => p.Cells)
                 .SelectMany(c => c.Objects)
-                .Select(o => o.FontFamily);
+                .SelectMany(RichTextModel.Families);
             var loaded = await Fonts.EnsureFamiliesAsync(families);
             _fontEpoch = epoch;
             if (loaded)

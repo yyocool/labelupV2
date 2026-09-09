@@ -39,7 +39,10 @@ public enum ShapeKind
     Line,
     Arrow,
     Polygon,
-    Arc
+    Arc,
+    Trapezoid,
+    Parallelogram,
+    Star
 }
 
 public enum ArrowHeads
@@ -101,5 +104,15 @@ public enum WordArtStyle
     Wave,
     Circle,
     Stretch,
-    Rounded
+    Rounded,
+    /// <summary>아이라벨 점점 크게. 왼쪽에서 오른쪽으로 글자 키가 커진다.</summary>
+    GrowRight,
+    /// <summary>아이라벨 점점 작게.</summary>
+    ShrinkRight,
+    /// <summary>아이라벨 위로 크게. 위가 넓은 사다리꼴.</summary>
+    TopWide,
+    /// <summary>아이라벨 위로 작게. 위가 좁은 사다리꼴.</summary>
+    TopNarrow,
+    /// <summary>아이라벨 스마일. 아래로 둥근 호.</summary>
+    Smile
 }

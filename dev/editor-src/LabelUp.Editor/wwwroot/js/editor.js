@@ -4,6 +4,100 @@ window.labelUpEditor = {
   pageQuery: function () {
     return window.location.search || '';
   },
+  _localFonts: null,
+  _localFontDenied: false,
+  canQueryLocalFonts: function () {
+    return typeof window.queryLocalFonts === 'function';
+  },
+  ensureLocalFontList: async function () {
+    if (this._localFontDenied) return [];
+    if (this._localFonts) return this._localFonts;
+    if (!this.canQueryLocalFonts()) {
+      this._localFontDenied = true;
+      return [];
+    }
+    try {
+      this._localFonts = await window.queryLocalFonts();
+      return this._localFonts || [];
+    } catch (e) {
+      return [];
+    }
+  },
+  watchLocalFonts: function (dotnet) {
+    if (!dotnet || this._localFontWatch || !this.canQueryLocalFonts()) return;
+    var self = this;
+    var tries = 0;
+    var onDown = function () {
+      self.ensureLocalFontList().then(function (list) {
+        tries += 1;
+        if (list && list.length) {
+          document.removeEventListener('pointerdown', onDown, true);
+          self._localFontWatch = true;
+          dotnet.invokeMethodAsync('RetryLocalFonts');
+        } else if (self._localFontDenied || tries >= 4) {
+          document.removeEventListener('pointerdown', onDown, true);
+        }
+      });
+    };
+    document.addEventListener('pointerdown', onDown, true);
+  },
+  normalizeFontKey: function (s) {
+    return String(s || '').replace(/[\s\-_]+/g, '').toLowerCase();
+  },
+  localFontKeyMatches: function (key, wanted) {
+    if (key === wanted) return true;
+    if (key.indexOf(wanted) !== 0) return false;
+    var rest = key.slice(wanted.length);
+    return /^(regular|bold|italic|oblique|black|light|medium|semibold|semilight)+$/.test(rest);
+  },
+  localFontStyleScore: function (f, want) {
+    var blob = [f.style, f.fullName, f.postscriptName].join(' ').toLowerCase();
+    var style = String(f.style || '').toLowerCase();
+    var bold = /\bbold\b|\bblack\b|\bheavy\b|굵/.test(blob);
+    var italic = /\bitalic\b|\boblique\b|기울/.test(blob);
+    var light = /\blight\b|\bsemilight\b|\bthin\b|\bextralight\b/.test(blob);
+    if (style === 'regular' || style === 'normal') {
+      bold = false;
+      italic = false;
+      light = false;
+    }
+    var wantBold = want === 'bold' || want === 'bolditalic';
+    var wantItalic = want === 'italic' || want === 'bolditalic';
+    var score = 0;
+    if (bold === wantBold) score += 4;
+    if (italic === wantItalic) score += 4;
+    if (!light) score += 1;
+    if ((style === 'regular' || style === 'normal') && want === 'regular') score += 2;
+    return score;
+  },
+  loadLocalFont: async function (names, style) {
+    var self = window.labelUpEditor;
+    var list = await self.ensureLocalFontList();
+    if (!list.length) return null;
+    var wanted = (names || []).map(self.normalizeFontKey).filter(Boolean);
+    if (!wanted.length) return null;
+    var hits = [];
+    for (var i = 0; i < list.length; i++) {
+      var f = list[i];
+      var keys = [f.family, f.fullName, f.postscriptName].map(self.normalizeFontKey);
+      var match = keys.some(function (k) {
+        return wanted.some(function (w) { return self.localFontKeyMatches(k, w); });
+      });
+      if (match) hits.push(f);
+    }
+    if (!hits.length) return null;
+    var want = String(style || 'regular').toLowerCase();
+    hits.sort(function (a, b) {
+      return self.localFontStyleScore(b, want) - self.localFontStyleScore(a, want);
+    });
+    try {
+      var blob = await hits[0].blob();
+      var buf = await blob.arrayBuffer();
+      return new Uint8Array(buf);
+    } catch (e) {
+      return null;
+    }
+  },
   measureStage: function (el) {
     if (!el) return { w: 0, h: 0, x: 0, y: 0 };
     var r = el.getBoundingClientRect ? el.getBoundingClientRect() : null;

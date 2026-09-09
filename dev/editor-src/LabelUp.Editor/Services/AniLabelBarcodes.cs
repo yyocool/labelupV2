@@ -67,6 +67,26 @@ internal static class AniLabelBarcodes
         obj.BackgroundFill = TColorCss(BitConverter.ToUInt32(data, opt + 4));
         obj.BackgroundTransparent = false;
         obj.BarcodeShowText = data[opt + 8] != 0;
+
+        var pos = opt + 9;
+        if (pos + 4 > payloadEnd) return;
+        var fontLen = BitConverter.ToInt32(data, pos);
+        if (fontLen is < 1 or > 64 || pos + 4 + fontLen + 8 > payloadEnd) return;
+        var font = ExternalImportService.DecodeAnsi(data.AsSpan(pos + 4, fontLen));
+        if (!string.IsNullOrWhiteSpace(font) && !font.Contains('?'))
+            obj.FontFamily = font.Trim();
+        pos += 4 + fontLen;
+        var fontSize = BitConverter.ToUInt32(data, pos);
+        if (fontSize is >= 6 and <= 96)
+            obj.FontSize = Math.Clamp(fontSize * 25.4f / 72f, 1.2f, 12f);
+        pos += 8;
+        if (pos + 4 > payloadEnd) return;
+        var style = BitConverter.ToUInt32(data, pos);
+        if (style > 0x0F) return;
+        obj.Bold = (style & 0x01) != 0;
+        obj.Italic = (style & 0x02) != 0;
+        obj.Underline = (style & 0x04) != 0;
+        obj.Strikeout = (style & 0x08) != 0;
     }
 
     public static void Apply2DStyle(DesignObject obj, byte[] data, int afterBmp, int payloadEnd)
@@ -163,12 +183,21 @@ internal static class AniLabelBarcodes
         0x21 => "EAN_13",
         0x22 => "CODE_128",
         0x23 => "EAN_128",
+        0x24 => "CODE_128",
+        0x25 => "CODE_128",
+        0x26 => "CODE_128",
+        0x27 => "CODE_128",
+        0x28 => "CODE_128",
         0x29 => "FIM",
+        0x2A => "CODE_128",
         0x2B => "PLANET",
         0x2C => "POSTNET",
         0x2D => "KIX",
         0x2E => "JAPAN_POST",
         0x2F => "RM4SCC",
+        0x30 => "CODE_128",
+        0x31 => "CODE_128",
+        0x32 => "CODE_128",
         0x33 => "ONECODE",
         _ => "CODE_128"
     };
@@ -176,27 +205,53 @@ internal static class AniLabelBarcodes
     public static string Map2D(uint type) => type switch
     {
         0x00 or 0x01 => "AZTEC",
+        0x02 => "PDF_417",
         0x03 or 0x04 => "DATA_MATRIX",
+        0x05 => "QR_CODE",
         0x06 => "PDF_417",
         0x07 => "MICRO_PDF417",
         0x08 or 0x09 => "QR_CODE",
+        0x0A or 0x0B or 0x0C => "DATA_MATRIX",
         0x0D => "RSS_14",
         0x0E => "RSS_14",
         0x0F => "RSS_EXPANDED",
         _ => "QR_CODE"
     };
 
+    /// <summary>구형 0x07 PSOFT 1-byte enum. md_anylabel 바코드 타입 전체 분석.</summary>
     private static string MapLegacy(byte type) => type switch
     {
+        0x01 => "EAN_8",
+        0x02 => "EAN_13",
         0x03 => "CODABAR",
-        0x0C => "CODE_39",
-        0x0E => "CODE_93",
-        0x10 => "CODE_128",
-        0x18 => "EAN_13",
-        0x19 => "EAN_8",
-        0x1A => "UPC_A",
+        0x04 => "CODE_39",
+        0x05 => "CODE_39_EXT",
+        0x06 => "CODE_93",
+        0x07 => "CODE_93_EXT",
+        0x08 => "CODE_128",
+        0x09 => "ABC_CODABAR",
+        0x0A => "I25_DATALOGIC",
+        0x0B => "ITF",
+        0x0C => "I25_MATRIX",
+        0x0D => "I25_INDUSTRIAL",
+        0x0E => "I25_IATA",
+        0x0F => "I25_INVERT",
+        0x10 => "ITF",
+        0x11 => "ISBN",
+        0x12 => "ISSN",
+        0x13 => "ISMN",
+        0x14 => "UPC_A",
+        0x15 => "UPC_E0",
+        0x16 => "UPC_E1",
+        0x17 => "ITF_14",
+        0x19 => "JAN_8",
+        0x1A => "JAN_13",
         0x1B => "UPC_E",
         0x1C => "ITF",
+        0x25 => "POSTNET",
+        0x29 => "PZN",
+        0x32 => "ONECODE",
+        0x33 => "KOREAN_POST",
         _ => "CODE_128"
     };
 

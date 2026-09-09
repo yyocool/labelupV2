@@ -64,6 +64,9 @@
             ShapeKind.Line => "선",
             ShapeKind.Arrow => "화살표",
             ShapeKind.Polygon => $"{o.PolygonSides}각형",
+            ShapeKind.Star => $"별 {o.PolygonSides}꼭지",
+            ShapeKind.Trapezoid => "사다리꼴",
+            ShapeKind.Parallelogram => "평행사변형",
             _ => "사각형"
         },
         ObjectType.Barcode => "바코드",

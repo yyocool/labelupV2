@@ -7,9 +7,46 @@ public static class SvgPathParser
 {
     public static SKPath Parse(string pathData, float destW, float destH, float src = 100f, bool fitToBounds = true)
     {
-        var path = new SKPath();
-        if (string.IsNullOrWhiteSpace(pathData)) return path;
+        if (string.IsNullOrWhiteSpace(pathData)) return new SKPath();
 
+        var path = SKPath.ParseSvgPathData(pathData);
+        if (path is null || path.IsEmpty || path.PointCount == 0)
+        {
+            path?.Dispose();
+            path = ParseManual(pathData);
+        }
+
+        if (fitToBounds)
+            FitToBox(path, destW, destH, src);
+        return path;
+    }
+
+    private static void FitToBox(SKPath path, float destW, float destH, float src)
+    {
+        var bounds = path.TightBounds;
+        if (bounds.Width <= 0.01f || bounds.Height <= 0.01f)
+            bounds = path.Bounds;
+        if (bounds.Width > 0.01f && bounds.Height > 0.01f)
+        {
+            var matrix = SKMatrix.CreateIdentity();
+            matrix = matrix.PostConcat(SKMatrix.CreateTranslation(-bounds.Left, -bounds.Top));
+            var scale = Math.Min(destW / bounds.Width, destH / bounds.Height);
+            matrix = matrix.PostConcat(SKMatrix.CreateScale(scale, scale));
+            var ox = (destW - bounds.Width * scale) / 2f;
+            var oy = (destH - bounds.Height * scale) / 2f;
+            matrix = matrix.PostConcat(SKMatrix.CreateTranslation(ox, oy));
+            path.Transform(matrix);
+        }
+        else
+        {
+            var scale = Math.Min(destW / src, destH / src);
+            path.Transform(SKMatrix.CreateScale(scale, scale));
+        }
+    }
+
+    private static SKPath ParseManual(string pathData)
+    {
+        var path = new SKPath();
         var tokens = Tokenize(pathData);
         float cx = 0, cy = 0, sx = 0, sy = 0, lastCx = 0, lastCy = 0;
         float ctrlX = 0, ctrlY = 0;
@@ -111,27 +148,6 @@ public static class SvgPathParser
             lastCy = cy;
             prevCubic = cubic;
             prevQuad = quad;
-        }
-
-        if (fitToBounds)
-        {
-            var bounds = path.Bounds;
-            if (bounds.Width > 0.01f && bounds.Height > 0.01f)
-            {
-                var matrix = SKMatrix.CreateIdentity();
-                matrix = matrix.PostConcat(SKMatrix.CreateTranslation(-bounds.Left, -bounds.Top));
-                var scale = Math.Min(destW / bounds.Width, destH / bounds.Height);
-                matrix = matrix.PostConcat(SKMatrix.CreateScale(scale, scale));
-                var ox = (destW - bounds.Width * scale) / 2f;
-                var oy = (destH - bounds.Height * scale) / 2f;
-                matrix = matrix.PostConcat(SKMatrix.CreateTranslation(ox, oy));
-                path.Transform(matrix);
-            }
-            else
-            {
-                var scale = Math.Min(destW / src, destH / src);
-                path.Transform(SKMatrix.CreateScale(scale, scale));
-            }
         }
 
         return path;

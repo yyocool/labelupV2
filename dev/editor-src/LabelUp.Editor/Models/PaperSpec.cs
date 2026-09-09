@@ -179,7 +179,7 @@ public sealed class PaperShape
     {
         var fillEsc = string.IsNullOrWhiteSpace(fill) ? "#fff" : fill;
         var stroke = "#c4b8aa";
-        return Kind switch
+        var outer = Kind switch
         {
             "ellipse" or "circle" =>
                 $"<ellipse cx='{x + w / 2f}' cy='{y + h / 2f}' rx='{w / 2f}' ry='{h / 2f}' fill='{fillEsc}' stroke='{stroke}' stroke-width='0.25'/>",
@@ -190,6 +190,13 @@ public sealed class PaperShape
             _ =>
                 $"<rect x='{x}' y='{y}' width='{w}' height='{h}' rx='0.6' ry='0.6' fill='{fillEsc}' stroke='{stroke}' stroke-width='0.25'/>"
         };
+        if (Hole is not { Width: > 0, Height: > 0 } hole)
+            return outer;
+        var hx = (x + hole.X + hole.Width / 2f).ToString("0.###", CultureInfo.InvariantCulture);
+        var hy = (y + hole.Y + hole.Height / 2f).ToString("0.###", CultureInfo.InvariantCulture);
+        var rx = (hole.Width / 2f).ToString("0.###", CultureInfo.InvariantCulture);
+        var ry = (hole.Height / 2f).ToString("0.###", CultureInfo.InvariantCulture);
+        return $"<g>{outer}<ellipse cx='{hx}' cy='{hy}' rx='{rx}' ry='{ry}' fill='#d8d2cc' stroke='{stroke}' stroke-width='0.2'/></g>";
     }
 
     private static string WrapShapeSvg(string svg, float w, float h, string fill)

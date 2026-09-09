@@ -18,10 +18,13 @@
 
   <ItemGroup>
     <FormtecWmfSource Include="..\formtecWmf\*.*" />
+    <AniLabelWmfSource Include="..\anylabelWMF\*.*" />
   </ItemGroup>
   <Target Name="CopyFormtecWmf" BeforeTargets="BeforeBuild">
     <MakeDir Directories="$(MSBuildProjectDirectory)\wwwroot\assets\formtec_wmf" />
     <Copy SourceFiles="@(FormtecWmfSource)" DestinationFolder="$(MSBuildProjectDirectory)\wwwroot\assets\formtec_wmf" SkipUnchangedFiles="true" />
+    <MakeDir Directories="$(MSBuildProjectDirectory)\wwwroot\assets\anylabel_wmf" />
+    <Copy SourceFiles="@(AniLabelWmfSource)" DestinationFolder="$(MSBuildProjectDirectory)\wwwroot\assets\anylabel_wmf" SkipUnchangedFiles="true" />
   </Target>
 
   <ItemGroup>

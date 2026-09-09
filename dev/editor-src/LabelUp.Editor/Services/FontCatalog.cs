@@ -1,29 +1,38 @@
 using LabelUp.Editor.Models;
+using Microsoft.JSInterop;
 using SkiaSharp;
 
 namespace LabelUp.Editor.Services;
 
 public sealed record EditorFontSpec(
     string Id, string Label, string Group, string[] RegularUrls,
-    string[]? BoldUrls = null, string[]? ItalicUrls = null);
+    string[]? BoldUrls = null, string[]? ItalicUrls = null,
+    bool Picker = true);
 
-/// <summary>무료 TTF/OTF를 필요할 때만 불러온다. WASM에는 시스템 한글 글꼴이 없다.</summary>
+/// <summary>웹 글꼴 URL과, Chrome/Edge의 로컬 설치 글꼴을 필요할 때만 불러온다.</summary>
 public sealed class FontCatalog : IAsyncDisposable
 {
     public const float MmPerPt = 0.3528f;
 
     private readonly HttpClient _http;
+    private readonly IJSRuntime _js;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private SKTypeface? _regular;
     private SKTypeface? _bold;
     private SKTypeface? _symbols;
     private bool _loaded;
+    private bool _localDisabled;
     private readonly Dictionary<string, SKTypeface?> _faces = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, SKTypeface?> _boldFaces = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, SKTypeface?> _italicFaces = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _loading = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _localFaces = new(StringComparer.OrdinalIgnoreCase);
 
-    public FontCatalog(HttpClient http) => _http = http;
+    public FontCatalog(HttpClient http, IJSRuntime js)
+    {
+        _http = http;
+        _js = js;
+    }
 
     public bool IsReady => _loaded && _regular is not null;
 
@@ -114,20 +123,24 @@ public sealed class FontCatalog : IAsyncDisposable
         Gf("ofl/archivonarrow/ArchivoNarrow-Italic.ttf")
     ];
 
-    private static EditorFontSpec F(string id, string group, string[] regular, string[]? bold = null, string[]? italic = null)
-        => new(id, id, group, regular, bold, italic);
+    private static EditorFontSpec F(string id, string group, string[] regular, string[]? bold = null, string[]? italic = null, bool picker = true)
+        => new(id, id, group, regular, bold, italic, picker);
+
+    /// <summary>윈도우 시스템 글꼴. 로컬 글꼴 API로 불러오고, 없으면 대체 얼굴로 그린다. 변환 문서에만 목록에 나온다.</summary>
+    private static EditorFontSpec Win(string id, string group, string[] regular, string[]? bold = null, string[]? italic = null)
+        => F(id, group, regular, bold, italic, picker: false);
 
     private static readonly EditorFontSpec[] Specs =
     [
         F("Pretendard", "기본", PretendardReg, PretendardBold),
 
-        F("맑은 고딕", "한글 고딕", NotoSansReg, NotoSansBold),
-        F("Malgun Gothic", "한글 고딕", NotoSansReg, NotoSansBold),
+        Win("맑은 고딕", "한글 고딕", NotoSansReg, NotoSansBold),
+        Win("Malgun Gothic", "한글 고딕", NotoSansReg, NotoSansBold),
         F("Noto Sans KR", "한글 고딕", NotoSansReg, NotoSansBold),
         F("나눔고딕", "한글 고딕", NanumGothicReg, NanumGothicBold),
         F("Nanum Gothic", "한글 고딕", NanumGothicReg, NanumGothicBold),
-        F("굴림", "한글 고딕", NanumGothicReg, NanumGothicBold),
-        F("돋움", "한글 고딕", NanumGothicReg, NanumGothicBold),
+        Win("굴림", "한글 고딕", NanumGothicReg, NanumGothicBold),
+        Win("돋움", "한글 고딕", NanumGothicReg, NanumGothicBold),
         F("Gothic A1", "한글 고딕", [Local("GothicA1-Regular.ttf"), Gf("ofl/gothica1/GothicA1-Regular.ttf")], [Gf("ofl/gothica1/GothicA1-Bold.ttf")]),
         F("IBM Plex Sans KR", "한글 고딕", [Local("IBMPlexSansKR-Regular.ttf"), Gf("ofl/ibmplexsanskr/IBMPlexSansKR-Regular.ttf")], [Gf("ofl/ibmplexsanskr/IBMPlexSansKR-Bold.ttf")]),
         F("Black Han Sans", "한글 고딕", [Gf("ofl/blackhansans/BlackHanSans-Regular.ttf")]),
@@ -136,8 +149,8 @@ public sealed class FontCatalog : IAsyncDisposable
         F("Orbit", "한글 고딕", [Gf("ofl/orbit/Orbit-Regular.ttf")]),
         F("Sunflower", "한글 고딕", [Gf("ofl/sunflower/Sunflower-Medium.ttf")]),
 
-        F("바탕", "명조·손글씨", NanumMyeongReg, NanumMyeongBold),
-        F("궁서", "명조·손글씨", NanumMyeongReg, NanumMyeongBold),
+        Win("바탕", "명조·손글씨", NanumMyeongReg, NanumMyeongBold),
+        Win("궁서", "명조·손글씨", NanumMyeongReg, NanumMyeongBold),
         F("나눔명조", "명조·손글씨", NanumMyeongReg, NanumMyeongBold),
         F("Nanum Myeongjo", "명조·손글씨", NanumMyeongReg, NanumMyeongBold),
         F("Noto Serif KR", "명조·손글씨", NotoSerifReg, NotoSerifBold),
@@ -145,7 +158,7 @@ public sealed class FontCatalog : IAsyncDisposable
         F("Gowun Dodum", "명조·손글씨", [Gf("ofl/gowundodum/GowunDodum-Regular.ttf")]),
         F("Song Myung", "명조·손글씨", [Gf("ofl/songmyung/SongMyung-Regular.ttf")]),
         F("Hahmlet", "명조·손글씨", [Gf("ofl/hahmlet/Hahmlet%5Bwght%5D.ttf")]),
-        F("휴먼편지체", "명조·손글씨", [Gf("ofl/gaegu/Gaegu-Regular.ttf"), Gf("ofl/nanumpenscript/NanumPenScript-Regular.ttf")]),
+        Win("휴먼편지체", "명조·손글씨", [Gf("ofl/gaegu/Gaegu-Regular.ttf"), Gf("ofl/nanumpenscript/NanumPenScript-Regular.ttf")]),
         F("Gaegu", "명조·손글씨", [Gf("ofl/gaegu/Gaegu-Regular.ttf")]),
         F("Nanum Pen Script", "명조·손글씨", [Gf("ofl/nanumpenscript/NanumPenScript-Regular.ttf")]),
         F("Nanum Brush Script", "명조·손글씨", [Gf("ofl/nanumbrushscript/NanumBrushScript-Regular.ttf")]),
@@ -162,13 +175,14 @@ public sealed class FontCatalog : IAsyncDisposable
         F("Grandiflora One", "명조·손글씨", [Gf("ofl/grandifloraone/GrandifloraOne-Regular.ttf")]),
         F("Diphylleia", "명조·손글씨", [Gf("ofl/diphylleia/Diphylleia-Regular.ttf")]),
 
-        F("Arial", "영문", LiberationSansReg, LiberationSansBold),
-        F("Arial Narrow", "영문", LiberationNarrowReg, LiberationNarrowBold, LiberationNarrowItalic),
-        F("Times New Roman", "영문", NotoSerifReg, NotoSerifBold),
-        F("Georgia", "영문", NotoSerifReg, NotoSerifBold),
-        F("Calibri", "영문", PretendardReg, PretendardBold),
-        F("Tahoma", "영문", PretendardReg, PretendardBold),
-        F("Verdana", "영문", PretendardReg, PretendardBold),
+        Win("Arial", "영문", LiberationSansReg, LiberationSansBold),
+        Win("Arial Narrow", "영문", LiberationNarrowReg, LiberationNarrowBold, LiberationNarrowItalic),
+        Win("Times New Roman", "영문", NotoSerifReg, NotoSerifBold),
+        Win("Georgia", "영문", NotoSerifReg, NotoSerifBold),
+        Win("Calibri", "영문", PretendardReg, PretendardBold),
+        Win("Candara", "영문", PretendardReg, PretendardBold),
+        Win("Tahoma", "영문", PretendardReg, PretendardBold),
+        Win("Verdana", "영문", PretendardReg, PretendardBold),
         F("Inter", "영문", [Gf("ofl/inter/Inter%5Bopsz%2Cwght%5D.ttf"), Local("Pretendard-Regular.otf")]),
         F("Roboto", "영문", [Gf("apache/roboto/Roboto%5Bwdth%2Cwght%5D.ttf"), Gf("apache/roboto/static/Roboto-Regular.ttf")], [Gf("apache/roboto/static/Roboto-Bold.ttf")]),
         F("Open Sans", "영문", [Gf("ofl/opensans/OpenSans%5Bwdth%2Cwght%5D.ttf")]),
@@ -188,7 +202,7 @@ public sealed class FontCatalog : IAsyncDisposable
 
         F("Inconsolata", "고정폭", [Gf("ofl/inconsolata/Inconsolata%5Bwdth%2Cwght%5D.ttf")]),
         F("Courier Prime", "고정폭", [Gf("ofl/courierprime/CourierPrime-Regular.ttf")], [Gf("ofl/courierprime/CourierPrime-Bold.ttf")]),
-        F("Courier New", "고정폭", [Gf("ofl/courierprime/CourierPrime-Regular.ttf")])
+        Win("Courier New", "고정폭", [Gf("ofl/courierprime/CourierPrime-Regular.ttf")])
     ];
 
     private static readonly Dictionary<string, string> Aliases = new(StringComparer.OrdinalIgnoreCase)
@@ -201,13 +215,35 @@ public sealed class FontCatalog : IAsyncDisposable
         ["돋움체"] = "돋움",
         ["문체부 돋움체"] = "돋움",
         ["Batang"] = "바탕",
+        ["BatangChe"] = "바탕",
         ["Gungsuh"] = "궁서",
+        ["GungsuhChe"] = "궁서",
         ["NanumGothic"] = "나눔고딕",
         ["NanumMyeongjo"] = "나눔명조",
         ["Liberation Sans"] = "Arial",
         ["Liberation Sans Narrow"] = "Arial Narrow",
         ["Times"] = "Times New Roman",
         ["Courier"] = "Courier New"
+    };
+
+    private static readonly Dictionary<string, string[]> LocalQueryNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["맑은 고딕"] = ["맑은 고딕", "Malgun Gothic"],
+        ["Malgun Gothic"] = ["Malgun Gothic", "맑은 고딕"],
+        ["굴림"] = ["굴림", "굴림체", "Gulim", "GulimChe"],
+        ["돋움"] = ["돋움", "돋움체", "Dotum", "DotumChe"],
+        ["바탕"] = ["바탕", "Batang", "BatangChe"],
+        ["궁서"] = ["궁서", "Gungsuh", "GungsuhChe"],
+        ["휴먼편지체"] = ["휴먼편지체"],
+        ["Arial"] = ["Arial"],
+        ["Arial Narrow"] = ["Arial Narrow"],
+        ["Times New Roman"] = ["Times New Roman"],
+        ["Georgia"] = ["Georgia"],
+        ["Calibri"] = ["Calibri"],
+        ["Candara"] = ["Candara"],
+        ["Tahoma"] = ["Tahoma"],
+        ["Verdana"] = ["Verdana"],
+        ["Courier New"] = ["Courier New"]
     };
 
     public static string CanonicalId(string? family)
@@ -271,13 +307,33 @@ public sealed class FontCatalog : IAsyncDisposable
     public static bool IsKnownFamily(string? family)
         => Specs.Any(s => s.Id.Equals(CanonicalId(family), StringComparison.OrdinalIgnoreCase));
 
-    public static IEnumerable<IGrouping<string, EditorFontSpec>> GroupedChoices(string? extraFamily = null, string? filter = null)
+    /// <summary>에디터에서 고를 수 있는 웹 글꼴인가. 윈도우 전용·미등록 이름은 false.</summary>
+    public static bool IsPickerFamily(string? family)
+    {
+        var raw = (family ?? "").Trim();
+        if (raw.Length == 0) return true;
+        var id = CanonicalId(raw);
+        return Specs.Any(s => s.Picker && s.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public bool IsLocalFamily(string? family)
+    {
+        var raw = (family ?? "").Trim();
+        return raw.Length > 0 && _localFaces.Contains(CanonicalId(raw));
+    }
+
+    public IEnumerable<IGrouping<string, EditorFontSpec>> GroupedChoices(string? extraFamily = null, string? filter = null)
     {
         var q = (filter ?? "").Trim();
-        var list = new List<EditorFontSpec>(Specs);
-        var extra = (extraFamily ?? "").Trim();
+        var list = Specs.Where(s => s.Picker).ToList();
+        var raw = (extraFamily ?? "").Trim();
+        var extra = raw.Length == 0 ? "" : CanonicalId(raw);
+        // 변환 문서의 현재 글꼴만. 목록에서 바꿀 때는 미사용 항목이 없다.
         if (extra.Length > 0 && !list.Any(s => s.Id.Equals(extra, StringComparison.OrdinalIgnoreCase)))
-            list.Insert(0, new EditorFontSpec(extra, extra + " (미사용 폰트)", "현재", []));
+        {
+            var label = _localFaces.Contains(extra) ? extra : extra + " (미사용폰트)";
+            list.Insert(0, new EditorFontSpec(extra, label, "현재", [], Picker: false));
+        }
 
         IEnumerable<EditorFontSpec> items = list;
         if (q.Length > 0)
@@ -349,13 +405,19 @@ public sealed class FontCatalog : IAsyncDisposable
         try
         {
             var id = CanonicalId(family);
-            if (_faces.ContainsKey(id))
+            var spec = Specs.FirstOrDefault(s => s.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+            var have = _faces.ContainsKey(id);
+            if (have && (_localFaces.Contains(id) || !ShouldTryLocal(spec) || _localDisabled))
                 return false;
             if (!_loading.Add(id)) return false;
 
             try
             {
-                var spec = Specs.FirstOrDefault(s => s.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+                if (ShouldTryLocal(spec) && await TryAttachLocalAsync(id))
+                    return true;
+                if (have)
+                    return false;
+
                 if (spec is null || spec.RegularUrls.Length == 0)
                 {
                     _faces[id] = _regular;
@@ -435,6 +497,95 @@ public sealed class FontCatalog : IAsyncDisposable
             or 0x00B2 or 0x00B3 or 0x03A9 or 0x6C34;
 
     public SKTypeface? Symbols => _symbols;
+
+    private static bool ShouldTryLocal(EditorFontSpec? spec)
+        => spec is null || !spec.Picker;
+
+    private string[] QueryNamesFor(string id)
+    {
+        if (LocalQueryNames.TryGetValue(id, out var mapped))
+            return mapped;
+        var aliases = Aliases
+            .Where(kv => kv.Value.Equals(id, StringComparison.OrdinalIgnoreCase))
+            .Select(kv => kv.Key);
+        return aliases.Prepend(id).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+    }
+
+    private async Task<bool> TryAttachLocalAsync(string id)
+    {
+        if (_localDisabled) return false;
+        try
+        {
+            var names = QueryNamesFor(id);
+            var regularBytes = await _js.InvokeAsync<byte[]?>("labelUpEditor.loadLocalFont", names, "regular");
+            if (regularBytes is not { Length: >= 100 })
+                return false;
+
+            SKTypeface? regular = null, bold = null, italic = null;
+            CollectFaces(regularBytes, ref regular, ref bold, ref italic);
+            if (bold is null)
+            {
+                var boldBytes = await _js.InvokeAsync<byte[]?>("labelUpEditor.loadLocalFont", names, "bold");
+                if (boldBytes is { Length: >= 100 })
+                    CollectFaces(boldBytes, ref regular, ref bold, ref italic);
+            }
+            if (italic is null)
+            {
+                var italicBytes = await _js.InvokeAsync<byte[]?>("labelUpEditor.loadLocalFont", names, "italic");
+                if (italicBytes is { Length: >= 100 })
+                    CollectFaces(italicBytes, ref regular, ref bold, ref italic);
+            }
+
+            var face = regular ?? bold ?? italic;
+            if (face is null) return false;
+
+            _faces[id] = face;
+            if (bold is not null) _boldFaces[id] = bold;
+            if (italic is not null) _italicFaces[id] = italic;
+            _localFaces.Add(id);
+            EditorLog.Info($"로컬 글꼴 로드: {id}");
+            return true;
+        }
+        catch (JSException ex)
+        {
+            _localDisabled = true;
+            EditorLog.Warn("로컬 글꼴 API 사용 불가: " + ex.Message);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn($"로컬 글꼴 로드 실패: {id} · {ex.Message}");
+            return false;
+        }
+    }
+
+    private static void CollectFaces(byte[] bytes, ref SKTypeface? regular, ref SKTypeface? bold, ref SKTypeface? italic)
+    {
+        using var data = SKData.CreateCopy(bytes);
+        SKTypeface? prev = null;
+        for (var i = 0; i < 24; i++)
+        {
+            SKTypeface? face;
+            try { face = SKTypeface.FromData(data, i); }
+            catch { break; }
+            if (face is null) break;
+            if (prev is not null
+                && face.FontWeight == prev.FontWeight
+                && face.IsItalic == prev.IsItalic
+                && string.Equals(face.FamilyName, prev.FamilyName, StringComparison.OrdinalIgnoreCase))
+            {
+                face.Dispose();
+                break;
+            }
+            prev = face;
+            var isBold = face.IsBold || (int)face.FontWeight >= 600;
+            var isItalic = face.IsItalic;
+            if (!isBold && !isItalic && regular is null) { regular = face; continue; }
+            if (isBold && !isItalic && bold is null) { bold = face; continue; }
+            if (isItalic && italic is null) { italic = face; continue; }
+            face.Dispose();
+        }
+    }
 
     private async Task<SKTypeface?> LoadFirstAsync(IReadOnlyList<string> urls)
     {

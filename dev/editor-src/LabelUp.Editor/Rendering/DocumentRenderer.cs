@@ -217,9 +217,9 @@ public static class DocumentRenderer
 
         if (shape.Hole is { Width: > 0, Height: > 0 } hole)
         {
+            // 애니라벨 타공은 HoleW×HoleH 타원. W==H이면 원.
             path.FillType = SKPathFillType.EvenOdd;
-            var r = Math.Min(hole.Width, hole.Height) * 0.12f;
-            path.AddRoundRect(new SKRoundRect(new SKRect(hole.X, hole.Y, hole.X + hole.Width, hole.Y + hole.Height), r, r));
+            path.AddOval(new SKRect(hole.X, hole.Y, hole.X + hole.Width, hole.Y + hole.Height));
         }
 
         if (shape.Guides is { Count: > 0 })
@@ -513,11 +513,41 @@ public static class DocumentRenderer
                     if (sw > 0) canvas.DrawPath(path, stroke);
                 }
                 break;
+            case ShapeKind.Star:
+                using (var path = StarPath(strokeRect.Width, strokeRect.Height, obj.PolygonSides, obj.CornerRadiusMm))
+                {
+                    path.Transform(SKMatrix.CreateTranslation(strokeRect.Left, strokeRect.Top));
+                    canvas.DrawPath(path, fill);
+                    if (sw > 0) canvas.DrawPath(path, stroke);
+                }
+                break;
+            case ShapeKind.Trapezoid:
+                using (var path = TrapezoidPath(strokeRect.Width, strokeRect.Height, obj.CornerRadiusMm))
+                {
+                    path.Transform(SKMatrix.CreateTranslation(strokeRect.Left, strokeRect.Top));
+                    canvas.DrawPath(path, fill);
+                    if (sw > 0) canvas.DrawPath(path, stroke);
+                }
+                break;
+            case ShapeKind.Parallelogram:
+                using (var path = ParallelogramPath(strokeRect.Width, strokeRect.Height, obj.CornerRadiusMm))
+                {
+                    path.Transform(SKMatrix.CreateTranslation(strokeRect.Left, strokeRect.Top));
+                    canvas.DrawPath(path, fill);
+                    if (sw > 0) canvas.DrawPath(path, stroke);
+                }
+                break;
             case ShapeKind.Line:
-                canvas.DrawLine(0, obj.Height / 2f, obj.Width, obj.Height / 2f, stroke);
+                if (IsAniLabelStroke(obj))
+                    DrawAniLabelLine(canvas, obj, stroke);
+                else
+                    canvas.DrawLine(0, obj.Height / 2f, obj.Width, obj.Height / 2f, stroke);
                 break;
             case ShapeKind.Arrow:
-                DrawArrow(canvas, obj, fill, stroke);
+                if (IsAniLabelStroke(obj))
+                    DrawAniLabelArrow(canvas, obj, stroke);
+                else
+                    DrawArrow(canvas, obj, fill, stroke);
                 break;
             default:
                 canvas.DrawRect(strokeRect, fill);
@@ -583,7 +613,7 @@ public static class DocumentRenderer
 
     private static SKPath PolygonPath(float w, float h, int sides)
     {
-        sides = Math.Clamp(sides, 3, 16);
+        sides = Math.Clamp(sides, 3, 24);
         var path = new SKPath();
         var cx = w / 2f;
         var cy = h / 2f;
@@ -601,6 +631,123 @@ public static class DocumentRenderer
         return path;
     }
 
+    /// <summary>꼭지 n개를 안쪽·바깥을 번갈아 이은 별. n이 늘어도 같은 규칙.</summary>
+    private static SKPath StarPath(float w, float h, int points, float innerRatio = 0.38f)
+    {
+        points = Math.Clamp(points, 3, 24);
+        var path = new SKPath();
+        var cx = w / 2f;
+        var cy = h / 2f;
+        var rx = w / 2f;
+        var ry = h / 2f;
+        var inner = innerRatio is >= 0.18f and <= 0.62f ? innerRatio : 0.38f;
+        var count = points * 2;
+        for (var i = 0; i < count; i++)
+        {
+            var a = -MathF.PI / 2f + i * (MathF.PI / points);
+            var t = (i & 1) == 0 ? 1f : inner;
+            var x = cx + rx * t * MathF.Cos(a);
+            var y = cy + ry * t * MathF.Sin(a);
+            if (i == 0) path.MoveTo(x, y);
+            else path.LineTo(x, y);
+        }
+        path.Close();
+        return path;
+    }
+
+    private static SKPath TrapezoidPath(float w, float h, float insetRatio)
+    {
+        var t = insetRatio is >= 0.04f and <= 0.45f ? insetRatio : 0.22f;
+        var inset = w * t;
+        var path = new SKPath();
+        path.MoveTo(inset, 0);
+        path.LineTo(w - inset, 0);
+        path.LineTo(w, h);
+        path.LineTo(0, h);
+        path.Close();
+        return path;
+    }
+
+    private static SKPath ParallelogramPath(float w, float h, float skewRatio)
+    {
+        var t = skewRatio is >= 0.04f and <= 0.49f ? skewRatio : 0.40f;
+        var skew = w * t;
+        var path = new SKPath();
+        path.MoveTo(skew, 0);
+        path.LineTo(w, 0);
+        path.LineTo(w - skew, h);
+        path.LineTo(0, h);
+        path.Close();
+        return path;
+    }
+
+    private const float AniLabelLineMarginMm = 3f;
+
+    private static bool IsAniLabelStroke(DesignObject obj)
+        => string.Equals(obj.BarcodeVendor, "anylabel", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>애니라벨 선/화살표. 크기 박스 안쪽 3mm를 비우고 가로·세로·대각을 그린다.</summary>
+    private static void DrawAniLabelLine(SKCanvas canvas, DesignObject obj, SKPaint stroke)
+    {
+        var box = InsetRect(obj.Width, obj.Height, AniLabelLineMarginMm);
+        var (x1, y1, x2, y2) = AniLabelLineEnds(box);
+        canvas.DrawLine(x1, y1, x2, y2, stroke);
+    }
+
+    private static void DrawAniLabelArrow(SKCanvas canvas, DesignObject obj, SKPaint stroke)
+    {
+        var box = InsetRect(obj.Width, obj.Height, AniLabelLineMarginMm);
+        var (x1, y1, x2, y2) = AniLabelLineEnds(box);
+        var dx = x2 - x1;
+        var dy = y2 - y1;
+        var len = MathF.Sqrt(dx * dx + dy * dy);
+        if (len < 0.2f) return;
+        var ux = dx / len;
+        var uy = dy / len;
+        var head = Math.Clamp(Math.Min(len * 0.22f, Math.Min(box.Width, box.Height) * 0.55f), 1.2f, 8f) * 0.5f;
+        var start = obj.ArrowHeads is ArrowHeads.Start or ArrowHeads.Both;
+        var end = obj.ArrowHeads is ArrowHeads.End or ArrowHeads.Both;
+        var sx = start ? x1 + ux * head : x1;
+        var sy = start ? y1 + uy * head : y1;
+        var ex = end ? x2 - ux * head : x2;
+        var ey = end ? y2 - uy * head : y2;
+        canvas.DrawLine(sx, sy, ex, ey, stroke);
+        var headAlpha = stroke.Color.Alpha == 0 ? (byte)255 : stroke.Color.Alpha;
+        using var headFill = new SKPaint
+        {
+            Color = new SKColor(0, 0, 0, headAlpha),
+            IsAntialias = true,
+            Style = SKPaintStyle.Fill
+        };
+        if (end) DrawArrowHeadDir(canvas, x2, y2, ux, uy, head, headFill, stroke);
+        if (start) DrawArrowHeadDir(canvas, x1, y1, -ux, -uy, head, headFill, stroke);
+    }
+
+    private static SKRect InsetRect(float w, float h, float margin)
+    {
+        var maxM = Math.Min(w, h) / 2f - 0.1f;
+        if (maxM < 0.05f)
+            return new SKRect(0, 0, Math.Max(0.05f, w), Math.Max(0.05f, h));
+        var m = Math.Min(margin, maxM);
+        return new SKRect(m, m, w - m, h - m);
+    }
+
+    /// <summary>납작하면 긴 변 방향, 아니면 왼쪽 위→오른쪽 아래.</summary>
+    private static (float X1, float Y1, float X2, float Y2) AniLabelLineEnds(SKRect box)
+    {
+        var w = box.Width;
+        var h = box.Height;
+        var longSide = Math.Max(w, h);
+        var aspect = longSide < 0.01f ? 0 : Math.Min(w, h) / longSide;
+        if (aspect < 0.45f)
+        {
+            if (w >= h)
+                return (box.Left, box.MidY, box.Right, box.MidY);
+            return (box.MidX, box.Top, box.MidX, box.Bottom);
+        }
+        return (box.Left, box.Top, box.Right, box.Bottom);
+    }
+
     private static void DrawArrow(SKCanvas canvas, DesignObject obj, SKPaint fill, SKPaint stroke)
     {
         var y = obj.Height / 2f;
@@ -612,6 +759,22 @@ public static class DocumentRenderer
         canvas.DrawLine(x1, y, x2, y, stroke);
         if (end) DrawArrowHead(canvas, obj.Width, y, -1, head, fill, stroke);
         if (start) DrawArrowHead(canvas, 0, y, 1, head, fill, stroke);
+    }
+
+    private static void DrawArrowHeadDir(
+        SKCanvas canvas, float tipX, float tipY, float ux, float uy, float size, SKPaint fill, SKPaint stroke)
+    {
+        var bx = tipX - ux * size;
+        var by = tipY - uy * size;
+        var px = -uy * size * 0.55f;
+        var py = ux * size * 0.55f;
+        using var path = new SKPath();
+        path.MoveTo(tipX, tipY);
+        path.LineTo(bx + px, by + py);
+        path.LineTo(bx - px, by - py);
+        path.Close();
+        canvas.DrawPath(path, fill);
+        canvas.DrawPath(path, stroke);
     }
 
     private static void DrawArrowHead(SKCanvas canvas, float tipX, float y, int dir, float size, SKPaint fill, SKPaint stroke)
@@ -659,9 +822,17 @@ public static class DocumentRenderer
             canvas.Skew(-0.25f, 0);
 
         var style = obj.TextMode == TextMode.WordArt ? obj.WordArtStyle : WordArtStyle.None;
+        var vertical = string.Equals(obj.TextDirection, "vertical", StringComparison.OrdinalIgnoreCase);
         if (obj.TextMode == TextMode.WordArt && style != WordArtStyle.Stretch)
         {
-            DrawWordArt(canvas, obj, text, alpha, style == WordArtStyle.Rounded ? WordArtStyle.ArcUp : style);
+            if (vertical && style == WordArtStyle.None)
+            {
+                using var vPaint = new SKPaint { Color = ColorUtil.Parse(obj.Fill, alpha), IsAntialias = true };
+                using var vFont = new SKFont(ResolveTypeface(obj.FontFamily, obj.Bold, obj.Italic), obj.FontSize);
+                DrawVerticalText(canvas, obj, text, vFont, vPaint, alpha);
+            }
+            else
+                DrawWordArt(canvas, obj, text, alpha, style);
             canvas.Restore();
             return;
         }
@@ -1074,18 +1245,46 @@ public static class DocumentRenderer
         }
         if (obj.Outline)
         {
-            using var stroke = new SKPaint
-            {
-                Color = ColorUtil.Parse(obj.Fill, alpha),
-                IsAntialias = true,
-                Style = SKPaintStyle.Stroke,
-                StrokeWidth = Math.Max(0.18f, obj.FontSize * 0.1f),
-                StrokeJoin = SKStrokeJoin.Round
-            };
-            canvas.DrawText(text, x, y, align, font, stroke);
+            DrawOutlineText(canvas, text, x, y, align, font, ColorUtil.Parse(obj.Fill, alpha));
             return;
         }
         canvas.DrawText(text, x, y, align, font, paint);
+    }
+
+    private static void DrawOutlineText(SKCanvas canvas, string text, float x, float y, SKTextAlign align, SKFont font, SKColor color)
+    {
+        var thick = Math.Max(0.12f, font.Size * 0.08f);
+        using var stroke = new SKPaint
+        {
+            Color = color,
+            IsAntialias = true,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = thick,
+            StrokeJoin = SKStrokeJoin.Round,
+            StrokeCap = SKStrokeCap.Round
+        };
+        try
+        {
+            using var path = font.GetTextPath(text, new SKPoint(0, 0));
+            if (!path.IsEmpty)
+            {
+                var tw = font.MeasureText(text);
+                var ox = align switch
+                {
+                    SKTextAlign.Right => x - tw,
+                    SKTextAlign.Center => x - tw * 0.5f,
+                    _ => x
+                };
+                path.Transform(SKMatrix.CreateTranslation(ox, y));
+                canvas.DrawPath(path, stroke);
+                return;
+            }
+        }
+        catch
+        {
+            // DrawText 스트로크로 대체
+        }
+        canvas.DrawText(text, x, y, align, font, stroke);
     }
 
     private static string StripInvisibleFormat(string text)
@@ -1176,15 +1375,7 @@ public static class DocumentRenderer
         }
         if (obj.Outline)
         {
-            using var stroke = new SKPaint
-            {
-                Color = ColorUtil.Parse(obj.Fill, alpha),
-                IsAntialias = true,
-                Style = SKPaintStyle.Stroke,
-                StrokeWidth = Math.Max(0.18f, obj.FontSize * 0.1f),
-                StrokeJoin = SKStrokeJoin.Round
-            };
-            DrawMixedRun(canvas, obj.FontFamily, obj.Bold, text, cursor, y, font, stroke);
+            DrawOutlineText(canvas, text, x, y, align, font, ColorUtil.Parse(obj.Fill, alpha));
             return;
         }
         DrawMixedRun(canvas, obj.FontFamily, obj.Bold, text, cursor, y, font, paint);
@@ -1298,7 +1489,7 @@ public static class DocumentRenderer
     {
         var chars = text.Replace("\r\n", "").Replace("\n", "").ToCharArray();
         if (chars.Length == 0) return;
-        var lineH = obj.FontSize * Math.Max(0.9f, obj.LineHeight);
+        var lineH = obj.FontSize * Math.Max(0.7f, obj.LineHeight);
         var colW = obj.FontSize * 1.15f;
         var rows = Math.Max(1, (int)Math.Floor(obj.Height / lineH));
         var cols = (int)Math.Ceiling(chars.Length / (double)rows);
@@ -1368,6 +1559,30 @@ public static class DocumentRenderer
             return;
         }
 
+        if (style == WordArtStyle.Rounded)
+        {
+            DrawRoundedWordArt(canvas, obj, chars, font, paint, alpha, smile: false);
+            return;
+        }
+
+        if (style == WordArtStyle.Smile)
+        {
+            DrawRoundedWordArt(canvas, obj, chars, font, paint, alpha, smile: true);
+            return;
+        }
+
+        if (style is WordArtStyle.GrowRight or WordArtStyle.ShrinkRight)
+        {
+            DrawTaperedWordArt(canvas, obj, chars, font, paint, alpha, grow: style == WordArtStyle.GrowRight);
+            return;
+        }
+
+        if (style is WordArtStyle.TopWide or WordArtStyle.TopNarrow)
+        {
+            DrawPerspectiveWordArt(canvas, obj, chars, font, paint, alpha, topWide: style == WordArtStyle.TopWide);
+            return;
+        }
+
         if (style == WordArtStyle.Wave)
         {
             var total = chars.Sum(ch => font.MeasureText(ch.ToString()) + obj.LetterSpacing);
@@ -1390,7 +1605,10 @@ public static class DocumentRenderer
 
         if (style == WordArtStyle.Circle)
         {
-            DrawCircularWordArt(canvas, obj, chars, cx, cy, rx, ry, font, paint, alpha);
+            if (obj.Width > obj.Height * 2.2f && MathF.Abs(obj.WordArtBend) < 0.5f)
+                DrawILabelCircleWordArt(canvas, obj, chars, font, paint, alpha);
+            else
+                DrawCircularWordArt(canvas, obj, chars, cx, cy, rx, ry, font, paint, alpha);
             return;
         }
 
@@ -1458,6 +1676,271 @@ public static class DocumentRenderer
         var y = cy + obj.FontSize * 0.35f;
         DrawGlyph(canvas, obj, line, x, y, SKTextAlign.Left, font, paint, alpha);
         canvas.Restore();
+    }
+
+    /// <summary>아이라벨 워드아트 둥글게/스마일. smile이면 아래로 볼록한 호.</summary>
+    private static void DrawRoundedWordArt(
+        SKCanvas canvas, DesignObject obj, char[] chars, SKFont font, SKPaint paint, byte alpha, bool smile)
+    {
+        var fs = Math.Max(0.8f, obj.FontSize);
+        var pad = Math.Max(fs * 0.2f, 0.5f);
+        var yHigh = Math.Min(fs * 0.75f, obj.Height * 0.35f);
+        var yLow = obj.Height - fs * 0.2f;
+        if (yLow < yHigh + 1.2f)
+            yLow = Math.Min(obj.Height * 0.88f, yHigh + Math.Max(1.6f, obj.Height * 0.4f));
+        var yPeak = smile ? yLow : yHigh;
+        var yEnd = smile ? yHigh : yLow;
+
+        var left = new SKPoint(pad, yEnd);
+        var mid = new SKPoint(obj.Width * 0.5f, yPeak);
+        var right = new SKPoint(Math.Max(pad + 1f, obj.Width - pad), yEnd);
+
+        var widths = new float[chars.Length];
+        var total = 0f;
+        for (var i = 0; i < chars.Length; i++)
+        {
+            widths[i] = Math.Max(0.2f, font.MeasureText(chars[i].ToString()));
+            total += widths[i];
+            if (i < chars.Length - 1) total += obj.LetterSpacing;
+        }
+        if (total < 0.2f) return;
+
+        var hasCircle = TryCircleFrom3(left, mid, right, out var cx, out var cy, out var radius);
+        var startDeg = 0f;
+        var sweep = 0f;
+        if (hasCircle)
+        {
+            startDeg = MathF.Atan2(left.Y - cy, left.X - cx) * (180f / MathF.PI);
+            var midDeg = UnwrapDeg(startDeg, MathF.Atan2(mid.Y - cy, mid.X - cx) * (180f / MathF.PI));
+            var endDeg = UnwrapDeg(startDeg, MathF.Atan2(right.Y - cy, right.X - cx) * (180f / MathF.PI));
+            if ((midDeg - startDeg) * (endDeg - startDeg) < 0)
+                endDeg += endDeg > startDeg ? -360f : 360f;
+            sweep = endDeg - startDeg;
+        }
+
+        var acc = 0f;
+        for (var i = 0; i < chars.Length; i++)
+        {
+            var t = chars.Length == 1 ? 0.5f : (acc + widths[i] * 0.5f) / total;
+            float x, y, rot;
+            if (hasCircle && MathF.Abs(sweep) > 1f)
+            {
+                var deg = startDeg + sweep * t;
+                var rad = deg * (MathF.PI / 180f);
+                x = cx + radius * MathF.Cos(rad);
+                y = cy + radius * MathF.Sin(rad);
+                rot = smile ? deg - 90f : deg + 90f;
+            }
+            else
+            {
+                x = left.X + (right.X - left.X) * t;
+                y = yEnd + (yPeak - yEnd) * MathF.Sin(t * MathF.PI);
+                var dx = right.X - left.X;
+                var dy = (yPeak - yEnd) * MathF.PI * MathF.Cos(t * MathF.PI);
+                rot = MathF.Atan2(dy, dx) * (180f / MathF.PI);
+            }
+
+            canvas.Save();
+            canvas.Translate(x, y);
+            canvas.RotateDegrees(rot);
+            DrawGlyph(canvas, obj, chars[i].ToString(), 0, 0, SKTextAlign.Center, font, paint, alpha);
+            canvas.Restore();
+            acc += widths[i] + obj.LetterSpacing;
+        }
+    }
+
+    private static void DrawTaperedWordArt(
+        SKCanvas canvas, DesignObject obj, char[] chars, SKFont font, SKPaint paint, byte alpha, bool grow)
+    {
+        var widths = MeasureGlyphWidths(chars, font, obj.LetterSpacing, out _);
+        if (chars.Length == 0) return;
+        var fs = Math.Max(0.8f, obj.FontSize);
+        var maxScale = Math.Max(1f, (obj.Height - fs * 0.15f) / fs);
+        var minScale = Math.Max(0.35f, maxScale * 0.38f);
+        var gap = Math.Max(0, obj.LetterSpacing);
+        var n = chars.Length;
+        var scales = new float[n];
+        var advance = new float[n];
+        var natural = 0f;
+        for (var i = 0; i < n; i++)
+        {
+            var t = n == 1 ? 0.5f : i / (float)(n - 1);
+            var scale = grow ? Lerp(minScale, maxScale, t) : Lerp(maxScale, minScale, t);
+            if (char.IsWhiteSpace(chars[i]))
+            {
+                scales[i] = 1f;
+                advance[i] = Math.Max(fs * 0.28f, widths[i]);
+            }
+            else
+            {
+                scales[i] = scale;
+                advance[i] = widths[i] * scale;
+            }
+            natural += advance[i];
+            if (i < n - 1) natural += gap;
+        }
+
+        BeginWordArtFitWidth(canvas, obj.Width, fs, natural);
+        var baseline = obj.Height - fs * 0.12f;
+        var x = 0f;
+        for (var i = 0; i < n; i++)
+        {
+            if (!char.IsWhiteSpace(chars[i]))
+            {
+                canvas.Save();
+                canvas.Translate(x + advance[i] * 0.5f, baseline);
+                canvas.Scale(scales[i], scales[i]);
+                DrawGlyph(canvas, obj, chars[i].ToString(), 0, 0, SKTextAlign.Center, font, paint, alpha);
+                canvas.Restore();
+            }
+            x += advance[i] + gap;
+        }
+        canvas.Restore();
+    }
+
+    private static void DrawPerspectiveWordArt(
+        SKCanvas canvas, DesignObject obj, char[] chars, SKFont font, SKPaint paint, byte alpha, bool topWide)
+    {
+        var widths = MeasureGlyphWidths(chars, font, obj.LetterSpacing, out var total);
+        if (chars.Length == 0) return;
+        var fs = Math.Max(0.8f, obj.FontSize);
+        var scaleY = Math.Max(1.05f, (obj.Height - fs * 0.1f) / fs);
+        var gap = Math.Max(0, obj.LetterSpacing);
+        var topY = Math.Min(font.Metrics.Ascent, font.Metrics.Top);
+        var botY = Math.Max(font.Metrics.Descent, font.Metrics.Bottom);
+        if (topY > -fs * 0.55f) topY = -fs * 0.85f;
+        if (botY < fs * 0.05f) botY = fs * 0.12f;
+
+        var minX = 0f;
+        var maxX = Math.Max(total, 0.2f);
+        var x = 0f;
+        var walked = 0f;
+        for (var i = 0; i < chars.Length; i++)
+        {
+            var t = chars.Length == 1 || total < 0.2f ? 0.5f : (walked + widths[i] * 0.5f) / total;
+            var skew = PerspectiveSkew(t, topWide);
+            var cx = x + widths[i] * 0.5f;
+            var half = widths[i] * 0.5f;
+            ExpandSkewedX(cx, -half, topY, skew, scaleY, ref minX, ref maxX);
+            ExpandSkewedX(cx, half, topY, skew, scaleY, ref minX, ref maxX);
+            ExpandSkewedX(cx, -half, botY, skew, scaleY, ref minX, ref maxX);
+            ExpandSkewedX(cx, half, botY, skew, scaleY, ref minX, ref maxX);
+            x += widths[i] + gap;
+            walked += widths[i] + gap;
+        }
+
+        // 위로 크게: 가장 넓은 위쪽이 상자 가로. 위로 작게: 가장 넓은 아래쪽이 상자 가로.
+        BeginWordArtFitRange(canvas, obj.Width, fs, minX, maxX);
+        var baseline = obj.Height - fs * 0.12f;
+        x = 0f;
+        walked = 0f;
+        for (var i = 0; i < chars.Length; i++)
+        {
+            var t = chars.Length == 1 || total < 0.2f ? 0.5f : (walked + widths[i] * 0.5f) / total;
+            if (!char.IsWhiteSpace(chars[i]))
+            {
+                var skew = PerspectiveSkew(t, topWide);
+                canvas.Save();
+                canvas.Translate(x + widths[i] * 0.5f, baseline);
+                canvas.Skew(skew, 0);
+                canvas.Scale(1f, scaleY);
+                DrawGlyph(canvas, obj, chars[i].ToString(), 0, 0, SKTextAlign.Center, font, paint, alpha);
+                canvas.Restore();
+            }
+            x += widths[i] + gap;
+            walked += widths[i] + gap;
+        }
+        canvas.Restore();
+    }
+
+    private static float PerspectiveSkew(float t, bool topWide)
+    {
+        var lean = (t - 0.5f) * 2f;
+        return topWide ? -lean * 0.62f : lean * 0.5f;
+    }
+
+    private static void ExpandSkewedX(
+        float cx, float localX, float localY, float skew, float scaleY, ref float minX, ref float maxX)
+    {
+        var wx = cx + localX + skew * localY * scaleY;
+        if (wx < minX) minX = wx;
+        if (wx > maxX) maxX = wx;
+    }
+
+    /// <summary>자간은 유지하고, 문장 전체를 가로로 맞춰 상자 폭을 채운다.</summary>
+    private static void BeginWordArtFitWidth(SKCanvas canvas, float boxW, float fs, float natural)
+        => BeginWordArtFitRange(canvas, boxW, fs, 0, natural);
+
+    /// <summary>기울어진 글자의 실제 가로 범위(minX~maxX)를 상자 폭에 맞춘다.</summary>
+    private static void BeginWordArtFitRange(SKCanvas canvas, float boxW, float fs, float minX, float maxX)
+    {
+        var pad = Math.Max(fs * 0.06f, 0.15f);
+        var usable = Math.Max(fs, boxW - pad * 2f);
+        var visual = Math.Max(0.2f, maxX - minX);
+        var fitX = usable / visual;
+        canvas.Save();
+        canvas.Translate(pad - minX * fitX, 0);
+        canvas.Scale(fitX, 1f);
+    }
+
+    private static void DrawILabelCircleWordArt(
+        SKCanvas canvas, DesignObject obj, char[] chars, SKFont font, SKPaint paint, byte alpha)
+    {
+        var widths = MeasureGlyphWidths(chars, font, obj.LetterSpacing, out var total);
+        if (total < 0.2f) return;
+        var r = Math.Max(obj.FontSize * 1.8f, obj.Height * 0.95f);
+        var cx = obj.Width * 0.5f;
+        var cy = obj.Height;
+        var acc = 0f;
+        for (var i = 0; i < chars.Length; i++)
+        {
+            var t = chars.Length == 1 ? 0.5f : (acc + widths[i] * 0.5f) / total;
+            var deg = 180f + 180f * t;
+            var rad = deg * (MathF.PI / 180f);
+            canvas.Save();
+            canvas.Translate(cx + r * MathF.Cos(rad), cy + r * MathF.Sin(rad));
+            canvas.RotateDegrees(deg + 90f);
+            DrawGlyph(canvas, obj, chars[i].ToString(), 0, 0, SKTextAlign.Center, font, paint, alpha);
+            canvas.Restore();
+            acc += widths[i] + obj.LetterSpacing;
+        }
+    }
+
+    private static float[] MeasureGlyphWidths(char[] chars, SKFont font, float letterSpacing, out float total)
+    {
+        var widths = new float[chars.Length];
+        total = 0f;
+        for (var i = 0; i < chars.Length; i++)
+        {
+            widths[i] = Math.Max(0.2f, font.MeasureText(chars[i].ToString()));
+            total += widths[i];
+            if (i < chars.Length - 1) total += letterSpacing;
+        }
+        return widths;
+    }
+
+    private static float Lerp(float a, float b, float t) => a + (b - a) * Math.Clamp(t, 0, 1);
+
+    private static bool TryCircleFrom3(SKPoint a, SKPoint b, SKPoint c, out float cx, out float cy, out float r)
+    {
+        cx = cy = r = 0;
+        var d = 2f * (a.X * (b.Y - c.Y) + b.X * (c.Y - a.Y) + c.X * (a.Y - b.Y));
+        if (MathF.Abs(d) < 1e-3f) return false;
+        var a2 = a.X * a.X + a.Y * a.Y;
+        var b2 = b.X * b.X + b.Y * b.Y;
+        var c2 = c.X * c.X + c.Y * c.Y;
+        cx = (a2 * (b.Y - c.Y) + b2 * (c.Y - a.Y) + c2 * (a.Y - b.Y)) / d;
+        cy = (a2 * (c.X - b.X) + b2 * (a.X - c.X) + c2 * (b.X - a.X)) / d;
+        r = MathF.Sqrt((cx - a.X) * (cx - a.X) + (cy - a.Y) * (cy - a.Y));
+        return r > 1f;
+    }
+
+    private static float UnwrapDeg(float from, float to)
+    {
+        var d = to - from;
+        while (d > 180f) d -= 360f;
+        while (d < -180f) d += 360f;
+        return from + d;
     }
 
     private static void ApplyContentFlip(SKCanvas canvas, DesignObject obj)
@@ -1627,14 +2110,17 @@ public static class DocumentRenderer
             }
             if (part.StrokeWidth > 0.01f && !ColorUtil.IsTransparent(part.Stroke))
             {
+                var partSw = part.StrokeWidth * Math.Min(sx, sy);
+                using var dash = ShapeDash(obj.DashStyle, partSw);
                 using var stroke = new SKPaint
                 {
                     Color = ColorUtil.Parse(part.Stroke, alpha),
                     IsAntialias = true,
                     Style = SKPaintStyle.Stroke,
-                    StrokeWidth = part.StrokeWidth * Math.Min(sx, sy),
+                    StrokeWidth = partSw,
                     StrokeJoin = SKStrokeJoin.Round,
-                    StrokeCap = SKStrokeCap.Round
+                    StrokeCap = obj.DashStyle == 2 ? SKStrokeCap.Round : SKStrokeCap.Butt,
+                    PathEffect = dash
                 };
                 canvas.DrawPath(path, stroke);
             }
@@ -1658,20 +2144,52 @@ public static class DocumentRenderer
         }
         if (string.IsNullOrWhiteSpace(d)) d = SvgLibrary.StarPath;
 
-        using var path = SvgPathParser.Parse(d, obj.Width, obj.Height);
-        using var fill = new SKPaint { Color = ColorUtil.Parse(obj.Fill, alpha), IsAntialias = true, Style = SKPaintStyle.Fill };
-        canvas.DrawPath(path, fill);
-        if (obj.StrokeWidth > 0)
+        // 굵은 선은 경로 중심 기준이라 박스 밖으로 돌기(miter/오버플로)가 생긴다.
+        // 선 두께의 절반만큼 안쪽에 맞추고 칸을 클립한다.
+        var sw = obj.StrokeWidth;
+        var strokeOn = sw > 0 && !ColorUtil.IsTransparent(obj.Stroke);
+        var pad = 0f;
+        if (strokeOn)
         {
+            var maxPad = Math.Min(obj.Width, obj.Height) * 0.45f;
+            pad = Math.Min(sw * 0.5f, maxPad);
+        }
+
+        using var path = SvgPathParser.Parse(d, Math.Max(0.2f, obj.Width - pad * 2f), Math.Max(0.2f, obj.Height - pad * 2f));
+        if (pad > 0)
+            path.Transform(SKMatrix.CreateTranslation(pad, pad));
+
+        // 채우기와 선이 같은 색이면 파선이 가려진다. 아이라벨은 선 종류를 글리프 윤곽에 보여 준다.
+        var dashed = obj.DashStyle is >= 1 and <= 4;
+        var fillOn = !ColorUtil.IsTransparent(obj.Fill);
+        var sameInk = fillOn && strokeOn
+            && ColorUtil.ToHtmlColor(obj.Fill) == ColorUtil.ToHtmlColor(obj.Stroke);
+        var drawFill = fillOn && !(dashed && sameInk);
+
+        canvas.Save();
+        canvas.ClipRect(new SKRect(0, 0, obj.Width, obj.Height), SKClipOperation.Intersect, true);
+        if (drawFill)
+        {
+            using var fill = new SKPaint { Color = ColorUtil.Parse(obj.Fill, alpha), IsAntialias = true, Style = SKPaintStyle.Fill };
+            canvas.DrawPath(path, fill);
+        }
+        if (strokeOn)
+        {
+            using var dash = ShapeDash(obj.DashStyle, sw);
             using var stroke = new SKPaint
             {
                 Color = ColorUtil.Parse(obj.Stroke, alpha),
                 IsAntialias = true,
                 Style = SKPaintStyle.Stroke,
-                StrokeWidth = obj.StrokeWidth
+                StrokeWidth = sw,
+                StrokeJoin = SKStrokeJoin.Round,
+                StrokeCap = obj.DashStyle is 0 or 2 ? SKStrokeCap.Round : SKStrokeCap.Butt,
+                StrokeMiter = 1.05f,
+                PathEffect = dash
             };
             canvas.DrawPath(path, stroke);
         }
+        canvas.Restore();
     }
 
     private static bool IsRasterImageData(string? data)

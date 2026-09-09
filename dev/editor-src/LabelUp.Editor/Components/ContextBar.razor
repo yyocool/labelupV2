@@ -26,6 +26,16 @@
           <input type="color" title="테두리 색" value="@ColorUtil.ToHtmlColor(o.Stroke)" @oninput="e => LiveStroke(e)" @onchange="e => CommitStroke(e)" />
           <em class="ed-ctx-bar__lab">테두리</em>
           <input type="number" min="0" step="0.05" title="테두리 굵기" value="@o.StrokeWidth.ToString("0.##")" @onchange="e => SetFloat(v => ApplySelected(obj => obj.StrokeWidth = Math.Max(0, v)), e)" />
+          @if (o.Type is ObjectType.Icon or ObjectType.Clipart)
+          {
+            <select title="선 종류" value="@o.DashStyle" @onchange="OnDashStyle">
+              <option value="0">실선</option>
+              <option value="1">파선</option>
+              <option value="2">점선</option>
+              <option value="3">1점쇄선</option>
+              <option value="4">2점쇄선</option>
+            </select>
+          }
         </span>
       }
       @if (ShowFont(o))
@@ -33,7 +43,7 @@
         <span class="ed-ctx-bar__div"></span>
         <span class="ed-ctx-bar__slot" data-slot="font" @onpointerdown="SaveRichSel">
           <select title="글꼴" value="@FontSelectValue(o)" @onchange="OnFontFamily">
-            @foreach (var group in FontCatalog.GroupedChoices(DisplayFamily(o), _fontFilter))
+            @foreach (var group in Fonts.GroupedChoices(DisplayFamily(o), _fontFilter))
             {
               <optgroup label="@group.Key">
                 @foreach (var font in group)
@@ -153,6 +163,11 @@
               <option value="@WordArtStyle.None">일반</option>
               <option value="@WordArtStyle.Stretch">늘리기</option>
               <option value="@WordArtStyle.Rounded">둥글게</option>
+              <option value="@WordArtStyle.GrowRight">점점 크게</option>
+              <option value="@WordArtStyle.ShrinkRight">점점 작게</option>
+              <option value="@WordArtStyle.TopWide">위로 크게</option>
+              <option value="@WordArtStyle.TopNarrow">위로 작게</option>
+              <option value="@WordArtStyle.Smile">스마일</option>
               <option value="@WordArtStyle.ArcUp">위로 호</option>
               <option value="@WordArtStyle.ArcDown">아래로 호</option>
               <option value="@WordArtStyle.Wave">물결</option>
@@ -227,6 +242,9 @@
             <option value="@ShapeKind.Line">선</option>
             <option value="@ShapeKind.Arrow">화살표</option>
             <option value="@ShapeKind.Polygon">정다각형</option>
+            <option value="@ShapeKind.Star">별</option>
+            <option value="@ShapeKind.Trapezoid">사다리꼴</option>
+            <option value="@ShapeKind.Parallelogram">평행사변형</option>
           </select>
           @if (o.ShapeKind == ShapeKind.Arrow)
           {
@@ -236,9 +254,9 @@
               <option value="@ArrowHeads.Both">양쪽</option>
             </select>
           }
-          @if (o.ShapeKind == ShapeKind.Polygon)
+          @if (o.ShapeKind is ShapeKind.Polygon or ShapeKind.Star)
           {
-            <label class="ed-field">각 <input type="number" min="3" max="16" value="@o.PolygonSides" @onchange="e => SetInt(v => o.PolygonSides = Math.Clamp(v, 3, 16), e)" /></label>
+            <label class="ed-field">각 <input type="number" min="3" max="24" value="@o.PolygonSides" @onchange="e => SetInt(v => o.PolygonSides = Math.Clamp(v, 3, 24), e)" /></label>
           }
           @if (o.ShapeKind == ShapeKind.RoundRect)
           {
@@ -381,12 +399,12 @@
     private bool BindGuarded => Environment.TickCount64 < _bindGuardUntil;
 
     private static bool ShowFill(DesignObject o)
-        => o.Type is not (ObjectType.Gradient or ObjectType.Clipart or ObjectType.Table
-            or ObjectType.Barcode or ObjectType.Qr or ObjectType.Image or ObjectType.Icon);
+        => o.Type is not (ObjectType.Gradient or ObjectType.Table
+            or ObjectType.Barcode or ObjectType.Qr or ObjectType.Image);
 
     private static bool ShowStroke(DesignObject o)
-        => o.Type is not (ObjectType.Clipart or ObjectType.Table or ObjectType.Barcode
-            or ObjectType.Qr or ObjectType.Image or ObjectType.Icon);
+        => o.Type is not (ObjectType.Table or ObjectType.Barcode
+            or ObjectType.Qr or ObjectType.Image);
 
     private static bool ShowFont(DesignObject o)
         => o.Type == ObjectType.Text

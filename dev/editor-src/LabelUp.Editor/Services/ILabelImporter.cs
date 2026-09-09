@@ -129,7 +129,7 @@ internal static class ILabelImporter
     }
 
     private static string ObjectKey(DesignObject obj, int labelId)
-        => $"{labelId}|{(int)obj.Type}|{(int)obj.ShapeKind}|{(int)obj.TextMode}|{obj.X:0.###}|{obj.Y:0.###}|{obj.Width:0.###}|{obj.Height:0.###}|{obj.Fill}|{obj.Stroke}|{obj.StrokeWidth:0.###}|{obj.Text}|{obj.BarcodeValue}|{obj.IconName}";
+        => $"{labelId}|{(int)obj.Type}|{(int)obj.ShapeKind}|{(int)obj.TextMode}|{obj.X:0.###}|{obj.Y:0.###}|{obj.Width:0.###}|{obj.Height:0.###}|{obj.Fill}|{obj.Stroke}|{obj.StrokeWidth:0.###}|{obj.DashStyle}|{obj.Text}|{obj.BarcodeValue}|{obj.IconName}";
 
     private static void LoadData(Jet4Database db, LabelDocument doc, string name, string dataSrc, byte[]? excelSidecar)
     {
@@ -396,7 +396,7 @@ internal static class ILabelImporter
             4 => MakeWordArt(x, y, w, h, cont, row.GetInt("Attribute"), fore, back, fillOn),
             5 or 6 or 7 or 8 or 9 or 13 => MakeShape(type, shape, x, y),
             14 => MakeTable(x, y, w, h, cont),
-            16 => MakeIcon(x, y, w, h, cont, fore),
+            16 => MakeIcon(x, y, w, h, cont),
             _ => FallbackText(x, y, w, h, type, cont)
         };
 
@@ -417,7 +417,7 @@ internal static class ILabelImporter
         ApplyColors(obj, type, fillOn, back, fore);
         if (type == 1)
             obj.VerticalAlign = "top";
-        if (DesignObject.IsShape(obj.Type) || obj.Type == ObjectType.Table)
+        if (DesignObject.IsShape(obj.Type) || obj.Type is ObjectType.Table or ObjectType.Icon)
             obj.DashStyle = Math.Clamp(row.GetInt("DashStyle"), 0, 4);
         // Frame은 Jet에서 Boolean이 아니라 빈 Binary로 들어오는 경우가 많다.
         // 값이 명시적으로 False일 때만 선을 끈다. 비어 있으면 LineThickness를 유지한다.
@@ -510,10 +510,13 @@ internal static class ILabelImporter
 
         if (obj.Type == ObjectType.Icon)
         {
-            obj.Fill = stroke;
+            // 아이라벨 배경(바탕)=우리 채우기, 아이라벨 선색=우리 선. 투명이면 채우기 없이 선만 그린다.
+            obj.Fill = fill;
             obj.Stroke = stroke;
             obj.BackgroundFill = fill;
             obj.BackgroundTransparent = transparent;
+            if (obj.StrokeWidth <= 0)
+                obj.StrokeWidth = 0.3f;
             return;
         }
 
@@ -601,13 +604,9 @@ internal static class ILabelImporter
         o.VerticalAlign = "middle";
         o.TextWrap = "none";
         o.StrokeWidth = 0;
-        o.WordArtStyle = attribute switch
-        {
-            11 => WordArtStyle.Stretch,
-            16 => WordArtStyle.Rounded,
-            _ => WordArtStyle.None
-        };
-        o.WordArtBend = attribute == 16 ? 28f : 30f;
+        o.WordArtStyle = MapWordArtAttribute(attribute);
+        // 아이라벨 각도는 Rotate(객체 회전). 워드아트 굽힘 기본 30은 폼텍용이라 넣지 않는다.
+        o.WordArtBend = 0;
         o.Fill = ArgbToCss(fore == 0 ? -16777216 : fore);
         o.BackgroundTransparent = !fillOn || back == -1;
         o.BackgroundFill = o.BackgroundTransparent ? "transparent" : ArgbToCss(back);
@@ -623,19 +622,38 @@ internal static class ILabelImporter
             if (float.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var fs) && fs > 0)
                 o.FontSize = FontCatalog.FromPt(fs);
         }
-        if (parts.Length >= 9)
+        if (parts.Length >= 6)
         {
             o.Bold = IsTrue(parts[2]);
             o.Italic = IsTrue(parts[3]);
             o.Underline = IsTrue(parts[4]);
             o.Outline = IsTrue(parts[5]);
-            if (IsTrue(parts[6]))
-                o.TextDirection = "vertical";
-            o.Shadow = IsTrue(parts[7]);
-            o.FlipHorizontal = IsTrue(parts[8]);
         }
+        if (parts.Length >= 7 && IsTrue(parts[6]))
+            o.TextDirection = "vertical";
+        if (parts.Length >= 8)
+            o.Shadow = IsTrue(parts[7]);
+        if (parts.Length >= 9)
+            o.FlipHorizontal = IsTrue(parts[8]);
         return o;
     }
+
+    /// <summary>
+    /// 아이라벨 Type=4 Attribute. 워드아트.idf 텍스트가 모양을 설명한다.
+    /// 0보통 11늘리기 12점점크게 13점점작게 14위로크게 15위로작게 16둥글게 17스마일 18원.
+    /// </summary>
+    private static WordArtStyle MapWordArtAttribute(int attribute) => attribute switch
+    {
+        11 => WordArtStyle.Stretch,
+        12 => WordArtStyle.GrowRight,
+        13 => WordArtStyle.ShrinkRight,
+        14 => WordArtStyle.TopWide,
+        15 => WordArtStyle.TopNarrow,
+        16 => WordArtStyle.Rounded,
+        17 => WordArtStyle.Smile,
+        18 => WordArtStyle.Circle,
+        _ => WordArtStyle.None
+    };
 
     private static DesignObject MakeImage(float x, float y, float w, float h, byte[]? bytes)
     {
@@ -704,15 +722,13 @@ internal static class ILabelImporter
     }
 
     /// <summary>Type=16 Shape=7. Cont = Font Awesome 아이콘 이름.</summary>
-    private static DesignObject MakeIcon(float x, float y, float w, float h, string cont, int fore)
+    private static DesignObject MakeIcon(float x, float y, float w, float h, string cont)
     {
         var o = DesignObject.CreateDefault(ObjectType.Icon, x, y);
         o.Width = w;
         o.Height = h;
         o.IconName = IconNameFromCont(cont);
         o.Text = o.IconName;
-        o.Fill = ArgbToCss(fore == 0 ? -16777216 : fore);
-        o.Stroke = o.Fill;
         if (FontAwesomeCatalog.TryResolve(o.IconName, out var d))
             o.Svg = d;
         return o;

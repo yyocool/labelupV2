@@ -17,9 +17,11 @@ public sealed class PaperCatalog
     {
         _http = http;
         FormtecWmf = new FormtecWmfCatalog(http);
+        AniLabelWmf = new AniLabelWmfCatalog(http);
     }
 
     public FormtecWmfCatalog FormtecWmf { get; }
+    public AniLabelWmfCatalog AniLabelWmf { get; }
 
     public IReadOnlyList<PaperSpec> Papers => _papers;
     public IReadOnlyList<ShopPaperItem> ShopPapers => _shopPapers;
@@ -71,6 +73,7 @@ public sealed class PaperCatalog
             _map.Entries.AddRange(DefaultMap());
 
         await FormtecWmf.EnsureLoadedAsync();
+        await AniLabelWmf.EnsureLoadedAsync();
         _loaded = true;
         EditorLog.Info($"용지 카탈로그 {_papers.Count}종 로드");
     }

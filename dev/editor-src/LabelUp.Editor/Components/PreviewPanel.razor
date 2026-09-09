@@ -1,7 +1,6 @@
 @using LabelUp.Editor.Models
 @using LabelUp.Editor.Rendering
 @using LabelUp.Editor.Services
-@using SkiaSharp
 @inject EditorSession Session
 @inject FontCatalog Fonts
 @inject HistoryService History
@@ -146,24 +145,6 @@
         return h.ToString("X8");
     }
 
-    private static bool TryImageThumb(LabelCell cell, out string dataUrl)
-    {
-        dataUrl = "";
-        var obj = cell.Objects.FirstOrDefault(o => !string.IsNullOrEmpty(o.ImageData));
-        if (obj is null) return false;
-        var bmp = DocumentRenderer.GetBitmap(obj);
-        if (bmp is null) return false;
-        var w = Math.Max(1, Math.Min(120, bmp.Width));
-        var h = Math.Max(1, (int)Math.Round(bmp.Height * (w / (double)bmp.Width)));
-        using var small = bmp.Resize(new SKImageInfo(w, h), new SKSamplingOptions(SKFilterMode.Linear));
-        if (small is null) return false;
-        using var image = SKImage.FromBitmap(small);
-        using var encoded = image.Encode(SKEncodedImageFormat.Png, 50);
-        if (encoded is null) return false;
-        dataUrl = "data:image/png;base64," + Convert.ToBase64String(encoded.ToArray());
-        return true;
-    }
-
     private void RebuildThumbs(bool force)
     {
         try
@@ -203,16 +184,6 @@
 
                 try
                 {
-                    if (cell.Objects.Count > 0
-                        && cell.Objects.All(o => o.Type is ObjectType.Image or ObjectType.Clipart)
-                        && TryImageThumb(cell, out var imageThumb))
-                    {
-                        _thumbs[key] = imageThumb;
-                        _thumbSig[key] = sig;
-                        rendered++;
-                        continue;
-                    }
-
                     var global = Session.PageIndex * per + i;
                     var bytes = DocumentRenderer.ExportPng(
                         doc, cell, 48f, o => Session.ResolveObjectText(o, global),
