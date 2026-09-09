@@ -105,6 +105,9 @@ function migrate_dev_scope_items_table($db)
             `description` TEXT NULL,
             `priority` VARCHAR(10) NOT NULL DEFAULT 'P1',
             `status` VARCHAR(20) NOT NULL DEFAULT 'planned',
+            `client_confirmed` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '고객사 확인',
+            `client_confirmed_at` DATETIME NULL,
+            `client_confirmed_by` INT UNSIGNED DEFAULT NULL,
             `sort_order` INT NOT NULL DEFAULT 0,
             `style_json` TEXT NULL COMMENT '셀 스타일 JSON',
             `created_by` INT UNSIGNED DEFAULT NULL,
@@ -120,6 +123,13 @@ function migrate_dev_scope_items_table($db)
     $col = $db->query("SHOW COLUMNS FROM dev_scope_items LIKE 'style_json'")->fetch();
     if (!$col) {
         $db->exec("ALTER TABLE `dev_scope_items` ADD COLUMN `style_json` TEXT NULL COMMENT '셀 스타일 JSON' AFTER `sort_order`");
+    }
+    $col = $db->query("SHOW COLUMNS FROM dev_scope_items LIKE 'client_confirmed'")->fetch();
+    if (!$col) {
+        $db->exec("ALTER TABLE `dev_scope_items`
+            ADD COLUMN `client_confirmed` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '고객사 확인' AFTER `status`,
+            ADD COLUMN `client_confirmed_at` DATETIME NULL AFTER `client_confirmed`,
+            ADD COLUMN `client_confirmed_by` INT UNSIGNED DEFAULT NULL AFTER `client_confirmed_at`");
     }
 }
 

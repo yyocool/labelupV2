@@ -2713,6 +2713,7 @@ body.sheet-page { background: #fff; }
 .ds-c-d3 { width: 28%; }
 .ds-c-prio { width: 72px; }
 .ds-c-status { width: 88px; }
+.ds-c-client { width: 92px; text-align: center; }
 .ds-c-phase { width: 96px; }
 .ds-c-desc { width: auto; }
 .ds-c-act { width: 72px; text-align: center; white-space: nowrap; }
@@ -2728,8 +2729,25 @@ body.sheet-page { background: #fff; }
 .ds-c-depth { padding: 0 2px !important; }
 .ds-r.is-done .ds-cell { color: #64748b; }
 .ds-r.is-out .ds-cell { color: #94a3b8; text-decoration: line-through; }
+.ds-r.is-client-ok .ds-c-client { background: #ecfdf5; }
 .ds-r.is-saving { outline: 1px solid #217346; outline-offset: -1px; }
 .ds-r.is-focus { outline: 2px solid #217346; outline-offset: -2px; }
+
+.ds-client-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+    padding: 2px 4px;
+    cursor: pointer;
+    font-size: 11px;
+    color: #64748b;
+    user-select: none;
+}
+.ds-client-check.is-on { color: #15803d; font-weight: 700; }
+.ds-client-check input { margin: 0; cursor: pointer; }
+.ds-client-readonly { font-size: 11px; color: #64748b; }
+.ds-client-readonly.is-on { color: #15803d; font-weight: 700; }
 
 .ds-dbadge {
     display: inline-block;

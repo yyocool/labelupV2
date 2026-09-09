@@ -10,6 +10,7 @@ $saveUrl = url('dev-scope.php?phase=' . urlencode($phaseKey));
      data-csrf="<?= e($csrfToken) ?>"
      data-phase="<?= e($phaseKey) ?>"
      data-can-edit="<?= !empty($canEdit) ? '1' : '0' ?>"
+     data-can-confirm="<?= !empty($canConfirmClient) ? '1' : '0' ?>"
      data-phases="<?= e(json_encode($phases, JSON_UNESCAPED_UNICODE)) ?>">
 
     <header class="ds-bar">
@@ -21,7 +22,7 @@ $saveUrl = url('dev-scope.php?phase=' . urlencode($phaseKey));
                    class="ds-tab<?= $phaseKey === $key ? ' is-active' : '' ?>"><?= e($ph['label']) ?></a>
                 <?php endforeach; ?>
             </nav>
-            <span class="ds-meta"><?= e($phaseMeta['period']) ?> · D1 <?= (int) $stats['d1'] ?> / D2 <?= (int) $stats['d2'] ?> / D3 <?= (int) $stats['d3'] ?> · 완료 <?= (int) $stats['done'] ?></span>
+            <span class="ds-meta"><?= e($phaseMeta['period']) ?> · D1 <?= (int) $stats['d1'] ?> / D2 <?= (int) $stats['d2'] ?> / D3 <?= (int) $stats['d3'] ?> · 완료 <?= (int) $stats['done'] ?> · 고객확인 <?= (int) (isset($stats['client_ok']) ? $stats['client_ok'] : 0) ?></span>
             <span class="ds-save-hint" id="dsSaveHint" aria-live="polite"></span>
         </div>
         <div class="ds-bar-right">
@@ -101,6 +102,7 @@ $saveUrl = url('dev-scope.php?phase=' . urlencode($phaseKey));
                     <th class="ds-c-d3">내용</th>
                     <th class="ds-c-prio">우선순위</th>
                     <th class="ds-c-status">상태</th>
+                    <th class="ds-c-client">고객사 확인</th>
                     <th class="ds-c-phase">단계</th>
                     <th class="ds-c-desc">설명</th>
                     <th class="ds-c-act"></th>
@@ -109,7 +111,7 @@ $saveUrl = url('dev-scope.php?phase=' . urlencode($phaseKey));
             <tbody>
                 <?php if (empty($sheetRows)): ?>
                 <tr class="ds-empty-row">
-                    <td colspan="10">데이터가 없습니다. 상단 「시드」또는 ＋영역으로 시작하세요.</td>
+                    <td colspan="11">데이터가 없습니다. 상단 「시드」또는 ＋영역으로 시작하세요.</td>
                 </tr>
                 <?php else: ?>
                 <?php
@@ -142,6 +144,9 @@ $saveUrl = url('dev-scope.php?phase=' . urlencode($phaseKey));
                     if (isset($it['status']) && $it['status'] === 'out') {
                         $rowClass .= ' is-out';
                     }
+                    if (!empty($it['client_confirmed'])) {
+                        $rowClass .= ' is-client-ok';
+                    }
                     if ($focusId && $focusId === $id) {
                         $rowClass .= ' is-focus';
                     }
@@ -149,6 +154,7 @@ $saveUrl = url('dev-scope.php?phase=' . urlencode($phaseKey));
                     $desc = isset($it['description']) ? $it['description'] : '';
                     $prio = isset($it['priority']) ? $it['priority'] : 'P1';
                     $st = isset($it['status']) ? $it['status'] : 'planned';
+                    $clientOk = !empty($it['client_confirmed']);
                     $rowStyles = DevScopeService::parseStyle(isset($it['style_json']) ? $it['style_json'] : null);
                     $titleStyle = DevScopeService::fieldStyleAttr($rowStyles, 'title');
                     $descStyle = DevScopeService::fieldStyleAttr($rowStyles, 'description');
@@ -212,6 +218,16 @@ $saveUrl = url('dev-scope.php?phase=' . urlencode($phaseKey));
                         </select>
                         <?php else: ?>
                         <?= e(isset($statuses[$st]) ? $statuses[$st] : $st) ?>
+                        <?php endif; ?>
+                    </td>
+                    <td class="ds-c-client">
+                        <?php if (!empty($canConfirmClient)): ?>
+                        <label class="ds-client-check<?= $clientOk ? ' is-on' : '' ?>" title="고객사에서 작업 확인">
+                            <input type="checkbox" class="ds-cell ds-cell--client" data-field="client_confirmed" value="1" <?= $clientOk ? 'checked' : '' ?>>
+                            <span class="ds-client-label"><?= $clientOk ? '확인' : '미확인' ?></span>
+                        </label>
+                        <?php else: ?>
+                        <span class="ds-client-readonly<?= $clientOk ? ' is-on' : '' ?>"><?= $clientOk ? '확인' : '미확인' ?></span>
                         <?php endif; ?>
                     </td>
                     <td class="ds-c-phase">
@@ -579,6 +595,36 @@ $saveUrl = url('dev-scope.php?phase=' . urlencode($phaseKey));
         });
     }
 
+    function saveClientConfirm(tr, checked) {
+        if (!tr || !tr.getAttribute('data-id')) return;
+        var label = tr.querySelector('.ds-client-label');
+        var wrap = tr.querySelector('.ds-client-check');
+        tr.classList.add('is-saving');
+        setHint('고객사 확인 저장 중…', true);
+        postForm({
+            action: 'client_confirm',
+            item_id: tr.getAttribute('data-id'),
+            client_confirmed: checked ? '1' : '0'
+        }).then(function (res) {
+            tr.classList.remove('is-saving');
+            if (!res.ok) {
+                var cb = tr.querySelector('[data-field="client_confirmed"]');
+                if (cb) cb.checked = !checked;
+                setHint((res.json && res.json.error) || '고객사 확인 저장 실패', false);
+                return;
+            }
+            tr.classList.toggle('is-client-ok', !!checked);
+            if (label) label.textContent = checked ? '확인' : '미확인';
+            if (wrap) wrap.classList.toggle('is-on', !!checked);
+            setHint(checked ? '고객사 확인됨' : '고객사 확인 해제', true);
+        }).catch(function () {
+            tr.classList.remove('is-saving');
+            var cb = tr.querySelector('[data-field="client_confirmed"]');
+            if (cb) cb.checked = !checked;
+            setHint('고객사 확인 저장 실패', false);
+        });
+    }
+
     var phaseLabels = {};
     try {
         var rawPhases = JSON.parse(app.getAttribute('data-phases') || '{}');
@@ -629,6 +675,11 @@ $saveUrl = url('dev-scope.php?phase=' . urlencode($phaseKey));
         grid.addEventListener('change', function (e) {
             var el = e.target;
             if (!el.classList.contains('ds-cell')) return;
+            if (el.getAttribute('data-field') === 'client_confirmed') {
+                var trConfirm = el.closest('tr[data-id]');
+                if (trConfirm) saveClientConfirm(trConfirm, !!el.checked);
+                return;
+            }
             if (el.getAttribute('data-move-phase')) {
                 movePhase(
                     el.getAttribute('data-move-phase'),

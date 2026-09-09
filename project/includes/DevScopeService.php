@@ -349,6 +349,37 @@ class DevScopeService
     }
 
     /**
+     * 고객사 확인 토글
+     * @param int $id
+     * @param bool|int|string $confirmed
+     * @param int|null $userId
+     */
+    public static function setClientConfirmed($id, $confirmed, $userId = null)
+    {
+        $existing = self::getById($id);
+        if (!$existing) {
+            throw new InvalidArgumentException('항목을 찾을 수 없습니다.');
+        }
+        $flag = ((string) $confirmed === '1' || $confirmed === 1 || $confirmed === true) ? 1 : 0;
+        $db = Database::getConnection();
+        try {
+            $stmt = $db->prepare('
+                UPDATE dev_scope_items
+                SET client_confirmed = ?,
+                    client_confirmed_at = IF(? = 1, NOW(), NULL),
+                    client_confirmed_by = IF(? = 1, ?, NULL),
+                    updated_by = ?,
+                    updated_at = NOW()
+                WHERE id = ?
+            ');
+            $stmt->execute(array($flag, $flag, $flag, $userId, $userId, $id));
+        } catch (Exception $e) {
+            throw new RuntimeException('고객사 확인 컬럼이 없습니다. 페이지를 새로고침해 마이그레이션을 적용해 주세요.');
+        }
+        return true;
+    }
+
+    /**
      * 셀 스타일만 저장 (title / description 필드별)
      * @param array $fieldStyle eg array('bg'=>'#fff','color'=>'#000','bold'=>true)
      */
@@ -913,7 +944,7 @@ class DevScopeService
         $phases = self::getPhases();
         $priorities = self::getPriorities();
         $statuses = self::getStatuses();
-        $headers = array('Depth', '구분', '항목', '내용', '우선순위', '상태', '설명');
+        $headers = array('Depth', '구분', '항목', '내용', '우선순위', '상태', '고객사 확인', '설명');
 
         $sheets = array();
         if ($scope === 'current' && isset($phases[$phaseKey])) {
@@ -931,6 +962,7 @@ class DevScopeService
                 $it = $r['item'];
                 $prio = isset($it['priority']) ? $it['priority'] : '';
                 $st = isset($it['status']) ? $it['status'] : '';
+                $clientOk = !empty($it['client_confirmed']);
                 $rows[] = array(
                     (string) $r['depth'],
                     isset($r['d1']) ? $r['d1'] : '',
@@ -938,6 +970,7 @@ class DevScopeService
                     isset($r['d3']) ? $r['d3'] : '',
                     isset($priorities[$prio]) ? $priorities[$prio] : $prio,
                     isset($statuses[$st]) ? $statuses[$st] : $st,
+                    $clientOk ? '확인' : '미확인',
                     isset($it['description']) ? $it['description'] : '',
                 );
             }

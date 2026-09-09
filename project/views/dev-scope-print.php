@@ -141,6 +141,7 @@ foreach ($printSections as $sec) {
         .ds-print-table .col-d3 { width: 22%; }
         .ds-print-table .col-prio { width: 48px; text-align: center; white-space: nowrap; }
         .ds-print-table .col-status { width: 56px; text-align: center; white-space: nowrap; }
+        .ds-print-table .col-client { width: 64px; text-align: center; white-space: nowrap; }
         .ds-print-table .col-desc { width: auto; color: #475569; }
 
         .ds-print-table tr.is-d1 td { background: #f8fafc; }
@@ -149,6 +150,7 @@ foreach ($printSections as $sec) {
         .ds-print-table tr.is-done td { color: #64748b; }
         .ds-print-table tr.is-out td { color: #94a3b8; text-decoration: line-through; }
         .ds-print-table tr.is-out .col-desc { text-decoration: none; }
+        .ds-print-table tr.is-client-ok .col-client { background: #ecfdf5; }
 
         .ds-print-badge {
             display: inline-block;
@@ -163,6 +165,8 @@ foreach ($printSections as $sec) {
         .ds-print-badge--in_progress { background: #dbeafe; color: #1d4ed8; }
         .ds-print-badge--deferred { background: #fef3c7; color: #a16207; }
         .ds-print-badge--out { background: #f1f5f9; color: #64748b; }
+        .ds-print-badge--client-ok { background: #dcfce7; color: #15803d; }
+        .ds-print-badge--client-pending { background: #f1f5f9; color: #64748b; }
 
         .ds-print-empty {
             padding: 24px; text-align: center;
@@ -241,6 +245,7 @@ foreach ($printSections as $sec) {
                         <th class="col-d3">내용</th>
                         <th class="col-prio">우선</th>
                         <th class="col-status">상태</th>
+                        <th class="col-client">고객확인</th>
                         <th class="col-desc">설명</th>
                     </tr>
                 </thead>
@@ -261,6 +266,7 @@ foreach ($printSections as $sec) {
                         $prio = isset($it['priority']) ? $it['priority'] : 'P1';
                         $st = isset($it['status']) ? $it['status'] : 'planned';
                         $stLabel = isset($statuses[$st]) ? $statuses[$st] : $st;
+                        $clientOk = !empty($it['client_confirmed']);
 
                         $rowStyles = DevScopeService::parseStyle(isset($it['style_json']) ? $it['style_json'] : null);
                         $titleStyle = DevScopeService::fieldStyleAttr($rowStyles, 'title');
@@ -269,6 +275,7 @@ foreach ($printSections as $sec) {
                         $trClass = 'is-d' . $d;
                         if ($st === 'done') $trClass .= ' is-done';
                         if ($st === 'out') $trClass .= ' is-out';
+                        if ($clientOk) $trClass .= ' is-client-ok';
 
                         $cellD1 = '';
                         $cellD2 = '';
@@ -291,6 +298,7 @@ foreach ($printSections as $sec) {
                         <td class="col-d3"<?= ($d === 3 && $titleStyle !== '') ? ' style="' . e($titleStyle) . '"' : '' ?>><?= e($cellD3) ?></td>
                         <td class="col-prio"><span class="ds-print-badge ds-print-badge--<?= e(strtolower($prio)) ?>"><?= e($prio) ?></span></td>
                         <td class="col-status"><span class="ds-print-badge ds-print-badge--<?= e($st) ?>"><?= e($stLabel) ?></span></td>
+                        <td class="col-client"><span class="ds-print-badge ds-print-badge--<?= $clientOk ? 'client-ok' : 'client-pending' ?>"><?= $clientOk ? '확인' : '미확인' ?></span></td>
                         <td class="col-desc"<?= $descStyle !== '' ? ' style="' . e($descStyle) . '"' : '' ?>><?= e($desc) ?></td>
                     </tr>
                     <?php
