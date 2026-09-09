@@ -233,6 +233,25 @@ final class CreditRepository extends BaseModel
         return ['items' => $items, 'total' => $total, 'page' => $page, 'pages' => max(1, (int) ceil($total / $perPage)), 'per_page' => $perPage];
     }
 
+    public function sumSpendBySourceSince(int $userId, string $source, string $since): int
+    {
+        $row = $this->fetchOne(
+            "SELECT COALESCE(SUM(ABS(amount)), 0) AS spent
+             FROM credit_transactions
+             WHERE user_id = :user_id
+               AND source = :source
+               AND tx_type = 'spend'
+               AND amount < 0
+               AND created_at >= :since",
+            [
+                'user_id' => $userId,
+                'source' => $source,
+                'since' => $since,
+            ]
+        );
+        return (int) ($row['spent'] ?? 0);
+    }
+
     /** @return array{items: array, total: int, page: int, pages: int, per_page: int} */
     public function adminGrants(?int $userId = null, int $page = 1, int $perPage = 20): array
     {

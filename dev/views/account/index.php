@@ -6,8 +6,11 @@ $plan = $dash['plan'];
 $grade = $dash['grade'] ?? ['name' => $plan['name'] ?? '일반', 'color' => '#7B2D3E', 'description' => ''];
 $stats = $dash['stats'];
 $usage = $dash['usage'];
+$aiUsage = $dash['ai_usage'] ?? ['items' => [], 'used' => 0, 'limit' => 0];
 $initial = mb_substr((string) ($user['name'] ?? '회'), 0, 1);
-$usagePct = min(100, (int) round(($usage['used'] / max(1, $usage['limit'])) * 100));
+$usageLimit = (int) ($usage['limit'] ?? 0);
+$usageUsed = (int) ($usage['used'] ?? 0);
+$usagePct = $usageLimit > 0 ? min(100, (int) round(($usageUsed / max(1, $usageLimit)) * 100)) : 0;
 ?>
 <section class="account-hero card">
   <div class="account-hero-user">
@@ -32,13 +35,16 @@ $usagePct = min(100, (int) round(($usage['used'] / max(1, $usage['limit'])) * 10
     <div class="account-usage">
       <div class="account-usage-head">
         <span><?= e($usage['label']) ?></span>
-        <span><?= (int) $usage['used'] ?> / <?= (int) $usage['limit'] ?></span>
+        <span><?php if ($usageLimit > 0): ?><?= number_format($usageUsed) ?> / <?= number_format($usageLimit) ?> C<?php else: ?><?= number_format($usageUsed) ?> C<?php endif; ?></span>
       </div>
+      <?php if ($usageLimit > 0): ?>
       <div class="account-usage-bar"><span style="width:<?= $usagePct ?>%"></span></div>
+      <?php endif; ?>
     </div>
   </div>
   <div class="account-hero-stats">
     <a class="account-stat" href="#credits"><span class="account-stat-ic purple">C</span><span class="account-stat-val"><?= number_format((int) $stats['points']) ?> C</span><span class="account-stat-label">크레딧</span></a>
+    <a class="account-stat" href="#ai-usage"><span class="account-stat-ic yellow">✦</span><span class="account-stat-val"><?= number_format((int) ($aiUsage['used'] ?? 0)) ?> C</span><span class="account-stat-label">이번달 AI</span></a>
     <a class="account-stat" href="<?= url('shop/cart') ?>"><span class="account-stat-ic green">🎫</span><span class="account-stat-val"><?= (int) $stats['coupons'] ?></span><span class="account-stat-label">쿠폰</span></a>
     <a class="account-stat" href="#orders"><span class="account-stat-ic yellow">📦</span><span class="account-stat-val"><?= (int) $stats['orders'] ?></span><span class="account-stat-label">최근 주문</span></a>
     <a class="account-stat" href="#orders"><span class="account-stat-ic blue">🚚</span><span class="account-stat-val"><?= (int) $stats['shipping'] ?></span><span class="account-stat-label">배송중</span></a>
@@ -243,11 +249,37 @@ $usagePct = min(100, (int) round(($usage['used'] / max(1, $usage['limit'])) * 10
     <div class="account-credit-row">
       <div>
         <strong><?= e($tx['description'] ?? '') ?></strong>
-        <span class="account-meta"><?= e(substr((string) ($tx['created_at'] ?? ''), 0, 16)) ?> · <?= e(\App\Services\CreditService::txTypeLabel((string) ($tx['tx_type'] ?? ''))) ?></span>
+        <span class="account-meta"><?= e(substr((string) ($tx['created_at'] ?? ''), 0, 16)) ?> · <?= e(\App\Services\CreditService::txTypeLabel((string) ($tx['tx_type'] ?? ''))) ?><?php if (!empty($tx['source'])): ?> · <?= e(\App\Services\CreditService::sourceLabel((string) $tx['source'])) ?><?php endif; ?></span>
       </div>
       <span class="account-credit-amt<?= (int) ($tx['amount'] ?? 0) >= 0 ? ' is-plus' : ' is-minus' ?>">
         <?= (int) ($tx['amount'] ?? 0) >= 0 ? '+' : '' ?><?= number_format((int) ($tx['amount'] ?? 0)) ?> C
       </span>
+    </div>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
+</section>
+
+<section class="account-panel card" id="ai-usage">
+  <h2 class="account-section-title">AI 사용 이력</h2>
+  <p class="account-meta">이번 달 AI 사용 크레딧 <strong><?= number_format((int) ($aiUsage['used'] ?? 0)) ?> C</strong>
+    · 보유 <?= number_format((int) ($aiUsage['balance'] ?? 0)) ?> C</p>
+  <?php $aiItems = $aiUsage['items'] ?? []; ?>
+  <?php if (empty($aiItems)): ?>
+  <p class="account-empty">아직 AI 사용 이력이 없습니다.</p>
+  <?php else: ?>
+  <div class="account-credit-list">
+    <?php foreach ($aiItems as $row): ?>
+    <div class="account-credit-row">
+      <div>
+        <strong><?= e((string) ($row['intent_label'] ?? 'AI')) ?></strong>
+        <span class="account-meta"><?= e(substr((string) ($row['created_at'] ?? ''), 0, 16)) ?>
+          · <?= e((string) ($row['surface_label'] ?? '')) ?>
+          · <?= ((string) ($row['status'] ?? '')) === 'ok' ? '성공' : '오류' ?>
+          <?php if ((int) ($row['total_tokens'] ?? 0) > 0): ?> · <?= number_format((int) $row['total_tokens']) ?> 토큰<?php endif; ?>
+        </span>
+      </div>
+      <span class="account-credit-amt"><?= e((string) ($row['intent'] ?? '')) ?></span>
     </div>
     <?php endforeach; ?>
   </div>

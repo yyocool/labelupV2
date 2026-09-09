@@ -32,9 +32,13 @@ final class AccountService
         $creditRepo->ensureBalanceRow($userId);
         $creditBalance = $creditRepo->getBalance($userId);
         $creditTx = $creditRepo->transactionsForUser($userId, 1, 10);
+        $aiCredit = (new AiCreditService())->memberSummary($userId, 1, 15);
         $cliparts = new UserAiClipartService();
         $myCliparts = $cliparts->listForUser($userId, 48);
         $clipartCount = $cliparts->countForUser($userId);
+
+        $usageLimit = (int) ($aiCredit['limit'] ?? 0);
+        $usageUsed = (int) ($aiCredit['used'] ?? 0);
 
         return [
             'user' => $user,
@@ -50,10 +54,11 @@ final class AccountService
                 'balance' => $creditBalance,
                 'transactions' => $creditTx['items'] ?? [],
             ],
+            'ai_usage' => $aiCredit,
             'usage' => [
-                'used' => 68,
-                'limit' => 200,
-                'label' => '이번 달 디자인/출력 사용량',
+                'used' => $usageUsed,
+                'limit' => $usageLimit,
+                'label' => (string) ($aiCredit['label'] ?? '이번 달 AI 사용 크레딧'),
             ],
             'cliparts' => $myCliparts,
             'clipartCount' => $clipartCount,

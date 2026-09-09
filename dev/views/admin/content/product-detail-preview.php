@@ -32,7 +32,7 @@ $pageTitle = '미리보기 · ' . (string) ($product['name'] ?? '상품');
       font:inherit;font-weight:700;cursor:pointer;text-decoration:none;color:#1f2430;background:#fff;
     }
     .preview-banner a.is-muted{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35)}
-    .preview-wrap{max-width:1080px;margin:0 auto;padding:20px 16px 40px}
+    .preview-wrap{width:100%;max-width:100%;margin:0;padding:20px 16px 40px;box-sizing:border-box}
   </style>
 </head>
 <body>

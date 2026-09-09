@@ -1,0 +1,1616 @@
+{
+  "version": 1,
+  "count": 60,
+  "items": [
+    {
+      "slug": "p62-thank-you-wreath",
+      "name": "Thank you Small Business",
+      "category": "gift",
+      "tags": "감사,리스",
+      "description": "Thank you 리스",
+      "tone": "#5B7A3A",
+      "bg": "#F7F3EA",
+      "layout": "center",
+      "art_url": "/assets/templates/pack62/p62-thank-you-wreath_art.png",
+      "texts": [
+        {
+          "text": "Thank you",
+          "role": "title",
+          "color": "#3F5A28"
+        },
+        {
+          "text": "SMALL BUSINESS BIG HAPPINESS",
+          "role": "sub",
+          "color": "#6B8F4E"
+        }
+      ],
+      "sort_order": 301,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-01"
+    },
+    {
+      "slug": "p62-handmade-love",
+      "name": "HANDMADE with love",
+      "category": "gift",
+      "tags": "핸드메이드",
+      "description": "핸드메이드 with love",
+      "tone": "#8B5E3C",
+      "bg": "#E8D5B5",
+      "layout": "center",
+      "art_url": "/assets/templates/pack62/p62-handmade-love_art.png",
+      "texts": [
+        {
+          "text": "HANDMADE with love",
+          "role": "title",
+          "color": "#5C3A1E"
+        },
+        {
+          "text": "♥",
+          "role": "sub",
+          "color": "#C45C6E"
+        }
+      ],
+      "sort_order": 302,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-02"
+    },
+    {
+      "slug": "p62-handmade-jam",
+      "name": "수제잼 HANDMADE JAM",
+      "category": "food",
+      "tags": "잼,딸기",
+      "description": "수제잼",
+      "tone": "#C23B4A",
+      "bg": "#FFF5F7",
+      "layout": "product",
+      "art_url": "/assets/templates/pack62/p62-handmade-jam_art.png",
+      "texts": [
+        {
+          "text": "수제잼",
+          "role": "title",
+          "color": "#B83246"
+        },
+        {
+          "text": "HANDMADE JAM",
+          "role": "mid",
+          "color": "#C45C6E"
+        },
+        {
+          "text": "100% NATURAL",
+          "role": "sub",
+          "color": "#D46A7A"
+        }
+      ],
+      "sort_order": 303,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-03"
+    },
+    {
+      "slug": "p62-natural-cosmetic",
+      "name": "NATURAL COSMETIC",
+      "category": "beauty",
+      "tags": "화장품,내추럴",
+      "description": "내추럴 코스메틱",
+      "tone": "#5B7A3A",
+      "bg": "#F1F7F3",
+      "layout": "product",
+      "art_url": "/assets/templates/pack62/p62-natural-cosmetic_art.png",
+      "texts": [
+        {
+          "text": "NATURAL COSMETIC",
+          "role": "title",
+          "color": "#2F5A40"
+        },
+        {
+          "text": "PURE & MILD",
+          "role": "sub",
+          "color": "#5B8A6A"
+        }
+      ],
+      "sort_order": 304,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-04"
+    },
+    {
+      "slug": "p62-sugoheosseoyo",
+      "name": "오늘도 수고했어요",
+      "category": "gift",
+      "tags": "응원,스마일",
+      "description": "오늘도 수고했어요",
+      "tone": "#F5C518",
+      "bg": "#FFF9E8",
+      "layout": "stack",
+      "art_url": "/assets/templates/pack62/p62-sugoheosseoyo_art.png",
+      "texts": [
+        {
+          "text": "오늘도 수고했어요",
+          "role": "title",
+          "color": "#2E2A27"
+        },
+        {
+          "text": "You're Amazing!",
+          "role": "sub",
+          "color": "#5B5560"
+        }
+      ],
+      "sort_order": 305,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-05"
+    },
+    {
+      "slug": "p62-premium-coffee",
+      "name": "PREMIUM COFFEE",
+      "category": "cafe",
+      "tags": "커피,원두",
+      "description": "프리미엄 커피",
+      "tone": "#5C3A1E",
+      "bg": "#3E2723",
+      "layout": "product",
+      "art_url": "/assets/templates/pack62/p62-premium-coffee_art.png",
+      "texts": [
+        {
+          "text": "PREMIUM COFFEE",
+          "role": "title",
+          "color": "#FFF8E7"
+        },
+        {
+          "text": "100% ARABICA",
+          "role": "sub",
+          "color": "#D7CCC8"
+        }
+      ],
+      "sort_order": 306,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-06"
+    },
+    {
+      "slug": "p62-especially-floral",
+      "name": "Especially for you",
+      "category": "gift",
+      "tags": "선물,플라워",
+      "description": "Especially for you",
+      "tone": "#C45C7A",
+      "bg": "#FFF0F5",
+      "layout": "center",
+      "art_url": "/assets/templates/pack62/p62-especially-floral_art.png",
+      "texts": [
+        {
+          "text": "Especially for you",
+          "role": "title",
+          "color": "#9B3A5A"
+        }
+      ],
+      "sort_order": 307,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-07"
+    },
+    {
+      "slug": "p62-teddy-good-day",
+      "name": "좋은 하루 되세요",
+      "category": "gift",
+      "tags": "곰돌이,응원",
+      "description": "좋은 하루 되세요",
+      "tone": "#8B5E3C",
+      "bg": "#FFE8F0",
+      "layout": "stack",
+      "art_url": "/assets/templates/pack62/p62-teddy-good-day_art.png",
+      "texts": [
+        {
+          "text": "좋은 하루 되세요",
+          "role": "title",
+          "color": "#5C3A1E"
+        }
+      ],
+      "sort_order": 308,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-08"
+    },
+    {
+      "slug": "p62-plant-based",
+      "name": "PLANT BASED",
+      "category": "warning",
+      "tags": "비건,에코",
+      "description": "플랜트 베이스드",
+      "tone": "#43A047",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack62/p62-plant-based_art.png",
+      "texts": [
+        {
+          "text": "PLANT BASED",
+          "role": "title",
+          "color": "#2E7D32"
+        },
+        {
+          "text": "ECO FRIENDLY",
+          "role": "sub",
+          "color": "#66BB6A"
+        }
+      ],
+      "sort_order": 309,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-09"
+    },
+    {
+      "slug": "p62-big-sale",
+      "name": "BIG SALE 70%",
+      "category": "price",
+      "tags": "세일,할인",
+      "description": "빅세일",
+      "tone": "#C62828",
+      "bg": "#FFFFFF",
+      "layout": "stack",
+      "art_url": "/assets/templates/pack62/p62-big-sale_art.png",
+      "texts": [
+        {
+          "text": "BIG SALE",
+          "role": "title",
+          "color": "#C62828"
+        },
+        {
+          "text": "UP TO 70% OFF",
+          "role": "sub",
+          "color": "#E57373"
+        }
+      ],
+      "sort_order": 310,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-10"
+    },
+    {
+      "slug": "p62-happy-day",
+      "name": "행복한 하루 되세요",
+      "category": "gift",
+      "tags": "응원,꽃",
+      "description": "행복한 하루",
+      "tone": "#F9A825",
+      "bg": "#FFFDE7",
+      "layout": "art_bottom",
+      "art_url": "/assets/templates/pack62/p62-happy-day_art.png",
+      "texts": [
+        {
+          "text": "행복한 하루 되세요",
+          "role": "title",
+          "color": "#F57F17"
+        },
+        {
+          "text": "Have a Nice Day",
+          "role": "sub",
+          "color": "#FFB300"
+        }
+      ],
+      "sort_order": 311,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-11"
+    },
+    {
+      "slug": "p62-bakery",
+      "name": "BAKERY Fresh",
+      "category": "cafe",
+      "tags": "베이커리,빵",
+      "description": "베이커리",
+      "tone": "#C4873A",
+      "bg": "#FFF8EE",
+      "layout": "product",
+      "art_url": "/assets/templates/pack62/p62-bakery_art.png",
+      "texts": [
+        {
+          "text": "BAKERY",
+          "role": "title",
+          "color": "#8B5A20"
+        },
+        {
+          "text": "FRESHLY BAKED EVERYDAY",
+          "role": "sub",
+          "color": "#B07A40"
+        }
+      ],
+      "sort_order": 312,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-12"
+    },
+    {
+      "slug": "p62-cookie",
+      "name": "수제 쿠키",
+      "category": "food",
+      "tags": "쿠키,수제",
+      "description": "수제 쿠키",
+      "tone": "#A1887F",
+      "bg": "#FFF8F0",
+      "layout": "product",
+      "art_url": "/assets/templates/pack62/p62-cookie_art.png",
+      "texts": [
+        {
+          "text": "수제 쿠키",
+          "role": "title",
+          "color": "#6D4C41"
+        },
+        {
+          "text": "HANDMADE COOKIE",
+          "role": "mid",
+          "color": "#8D6E63"
+        },
+        {
+          "text": "달콤한 하루",
+          "role": "sub",
+          "color": "#A1887F"
+        }
+      ],
+      "sort_order": 313,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-13"
+    },
+    {
+      "slug": "p62-vegan",
+      "name": "VEGAN",
+      "category": "warning",
+      "tags": "비건",
+      "description": "비건",
+      "tone": "#66BB6A",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack62/p62-vegan_art.png",
+      "texts": [
+        {
+          "text": "VEGAN",
+          "role": "title",
+          "color": "#388E3C"
+        },
+        {
+          "text": "GOOD FOR YOU GOOD FOR EARTH",
+          "role": "sub",
+          "color": "#81C784"
+        }
+      ],
+      "sort_order": 314,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-14"
+    },
+    {
+      "slug": "p62-love-yourself",
+      "name": "LOVE YOURSELF",
+      "category": "gift",
+      "tags": "하트,셀프",
+      "description": "러브 유어셀프",
+      "tone": "#E85A7A",
+      "bg": "#FFF0F4",
+      "layout": "badge",
+      "art_url": "/assets/templates/pack62/p62-love-yourself_art.png",
+      "texts": [
+        {
+          "text": "LOVE YOURSELF",
+          "role": "title",
+          "color": "#FFFFFF"
+        }
+      ],
+      "sort_order": 315,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-15"
+    },
+    {
+      "slug": "p62-fresh-food",
+      "name": "신선식품 FRESH",
+      "category": "food",
+      "tags": "신선,채소",
+      "description": "신선식품",
+      "tone": "#558B2F",
+      "bg": "#FFFFFF",
+      "layout": "product",
+      "art_url": "/assets/templates/pack62/p62-fresh-food_art.png",
+      "texts": [
+        {
+          "text": "신선식품",
+          "role": "title",
+          "color": "#33691E"
+        },
+        {
+          "text": "FRESH FOOD",
+          "role": "mid",
+          "color": "#558B2F"
+        },
+        {
+          "text": "맛있는 오늘",
+          "role": "sub",
+          "color": "#7CB342"
+        }
+      ],
+      "sort_order": 316,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-16"
+    },
+    {
+      "slug": "p62-baby-on-board",
+      "name": "BABY ON BOARD",
+      "category": "warning",
+      "tags": "아기,주의",
+      "description": "베이비 온 보드",
+      "tone": "#EC407A",
+      "bg": "#FFF5F8",
+      "layout": "stack",
+      "art_url": "/assets/templates/pack62/p62-baby-on-board_art.png",
+      "texts": [
+        {
+          "text": "BABY ON BOARD",
+          "role": "title",
+          "color": "#AD1457"
+        }
+      ],
+      "sort_order": 317,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-17"
+    },
+    {
+      "slug": "p62-caution-fragile",
+      "name": "주의 파손주의",
+      "category": "shipping",
+      "tags": "주의,파손",
+      "description": "파손주의",
+      "tone": "#C62828",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack62/p62-caution-fragile_art.png",
+      "texts": [
+        {
+          "text": "주의",
+          "role": "title",
+          "color": "#B71C1C"
+        },
+        {
+          "text": "파손주의",
+          "role": "mid",
+          "color": "#E57373"
+        },
+        {
+          "text": "취급을 주의해 주세요",
+          "role": "sub",
+          "color": "#EF9A9A"
+        }
+      ],
+      "sort_order": 318,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-18"
+    },
+    {
+      "slug": "p62-parfum",
+      "name": "EAU DE PARFUM",
+      "category": "beauty",
+      "tags": "향수,플라워",
+      "description": "오드퍼퓸",
+      "tone": "#C45C7A",
+      "bg": "#FFFFFF",
+      "layout": "art_bottom",
+      "art_url": "/assets/templates/pack62/p62-parfum_art.png",
+      "texts": [
+        {
+          "text": "EAU DE PARFUM",
+          "role": "title",
+          "color": "#9B3A5A"
+        },
+        {
+          "text": "NATURAL SCENT",
+          "role": "sub",
+          "color": "#C45C7A"
+        }
+      ],
+      "sort_order": 319,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-19"
+    },
+    {
+      "slug": "p62-love-pets",
+      "name": "LOVE PETS",
+      "category": "gift",
+      "tags": "반려견,펫",
+      "description": "러브 펫츠",
+      "tone": "#8B5E3C",
+      "bg": "#FFF8F0",
+      "layout": "product",
+      "art_url": "/assets/templates/pack62/p62-love-pets_art.png",
+      "texts": [
+        {
+          "text": "LOVE PETS",
+          "role": "title",
+          "color": "#5C3A1E"
+        },
+        {
+          "text": "♥ ♥",
+          "role": "sub",
+          "color": "#A08060"
+        }
+      ],
+      "sort_order": 320,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-20"
+    },
+    {
+      "slug": "p62-organic-apple",
+      "name": "ORGANIC APPLE",
+      "category": "food",
+      "tags": "사과,유기농",
+      "description": "오가닉 애플",
+      "tone": "#C62828",
+      "bg": "#FFFFFF",
+      "layout": "product",
+      "art_url": "/assets/templates/pack62/p62-organic-apple_art.png",
+      "texts": [
+        {
+          "text": "ORGANIC APPLE",
+          "role": "title",
+          "color": "#B71C1C"
+        },
+        {
+          "text": "NATURAL & FRESH",
+          "role": "sub",
+          "color": "#E57373"
+        }
+      ],
+      "sort_order": 321,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-21"
+    },
+    {
+      "slug": "p62-fast-delivery",
+      "name": "FAST DELIVERY",
+      "category": "shipping",
+      "tags": "배송,트럭",
+      "description": "빠른배송",
+      "tone": "#1976D2",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack62/p62-fast-delivery_art.png",
+      "texts": [
+        {
+          "text": "FAST DELIVERY",
+          "role": "title",
+          "color": "#1565C0"
+        },
+        {
+          "text": "빠른배송",
+          "role": "mid",
+          "color": "#42A5F5"
+        },
+        {
+          "text": "안전하게 도착합니다",
+          "role": "sub",
+          "color": "#64B5F6"
+        }
+      ],
+      "sort_order": 322,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-22"
+    },
+    {
+      "slug": "p62-gamsahamnida",
+      "name": "감사합니다",
+      "category": "gift",
+      "tags": "감사,카네이션",
+      "description": "감사합니다",
+      "tone": "#C45C7A",
+      "bg": "#FFFFFF",
+      "layout": "art_bottom",
+      "art_url": "/assets/templates/pack62/p62-gamsahamnida_art.png",
+      "texts": [
+        {
+          "text": "감사합니다",
+          "role": "title",
+          "color": "#9B3A5A"
+        },
+        {
+          "text": "항상 고맙습니다",
+          "role": "sub",
+          "color": "#C45C7A"
+        }
+      ],
+      "sort_order": 323,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-23"
+    },
+    {
+      "slug": "p62-home-sweet",
+      "name": "HOME SWEET HOME",
+      "category": "gift",
+      "tags": "집,홈",
+      "description": "홈 스위트 홈",
+      "tone": "#8B5E3C",
+      "bg": "#FFF8F0",
+      "layout": "stack",
+      "art_url": "/assets/templates/pack62/p62-home-sweet_art.png",
+      "texts": [
+        {
+          "text": "HOME SWEET HOME",
+          "role": "title",
+          "color": "#5C3A1E"
+        }
+      ],
+      "sort_order": 324,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-24"
+    },
+    {
+      "slug": "p62-lavender",
+      "name": "LAVENDER Relax",
+      "category": "beauty",
+      "tags": "라벤더",
+      "description": "라벤더",
+      "tone": "#7E57C2",
+      "bg": "#F8F5FC",
+      "layout": "product",
+      "art_url": "/assets/templates/pack62/p62-lavender_art.png",
+      "texts": [
+        {
+          "text": "LAVENDER",
+          "role": "title",
+          "color": "#5E35B1"
+        },
+        {
+          "text": "RELAXING",
+          "role": "sub",
+          "color": "#9575CD"
+        }
+      ],
+      "sort_order": 325,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-25"
+    },
+    {
+      "slug": "p62-clean-beauty",
+      "name": "CLEAN BEAUTY",
+      "category": "beauty",
+      "tags": "뷰티,클린",
+      "description": "클린 뷰티",
+      "tone": "#43A047",
+      "bg": "#F1F8F2",
+      "layout": "product",
+      "art_url": "/assets/templates/pack62/p62-clean-beauty_art.png",
+      "texts": [
+        {
+          "text": "CLEAN BEAUTY",
+          "role": "title",
+          "color": "#2E7D32"
+        },
+        {
+          "text": "FOR A BETTER TOMORROW",
+          "role": "sub",
+          "color": "#66BB6A"
+        }
+      ],
+      "sort_order": 326,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-26"
+    },
+    {
+      "slug": "p62-best-quality",
+      "name": "BEST QUALITY",
+      "category": "event",
+      "tags": "베스트,왕관",
+      "description": "베스트 퀄리티",
+      "tone": "#F9A825",
+      "bg": "#FFFDE7",
+      "layout": "badge",
+      "art_url": "/assets/templates/pack62/p62-best-quality_art.png",
+      "texts": [
+        {
+          "text": "BEST QUALITY",
+          "role": "title",
+          "color": "#F57F17"
+        },
+        {
+          "text": "PREMIUM PRODUCT",
+          "role": "sub",
+          "color": "#FFB300"
+        }
+      ],
+      "sort_order": 327,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-27"
+    },
+    {
+      "slug": "p62-expiry",
+      "name": "유통기한",
+      "category": "warehouse",
+      "tags": "유통기한",
+      "description": "유통기한",
+      "tone": "#212121",
+      "bg": "#FFFFFF",
+      "layout": "special_dates",
+      "art_url": "",
+      "texts": [
+        {
+          "text": "유통기한",
+          "role": "title",
+          "color": "#212121"
+        },
+        {
+          "text": "개봉 후에는 빠른 시일 내에 드세요",
+          "role": "sub",
+          "color": "#616161"
+        }
+      ],
+      "sort_order": 328,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-28"
+    },
+    {
+      "slug": "p62-barcode",
+      "name": "PRODUCT 바코드",
+      "category": "price",
+      "tags": "바코드",
+      "description": "바코드",
+      "tone": "#212121",
+      "bg": "#FFFFFF",
+      "layout": "special_barcode",
+      "art_url": "/assets/templates/pack62/p62-barcode_art.png",
+      "texts": [
+        {
+          "text": "PRODUCT",
+          "role": "title",
+          "color": "#212121"
+        },
+        {
+          "text": "8801234567890",
+          "role": "sub",
+          "color": "#616161"
+        }
+      ],
+      "sort_order": 329,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-29"
+    },
+    {
+      "slug": "p62-scan-me",
+      "name": "SCAN ME QR",
+      "category": "price",
+      "tags": "QR",
+      "description": "SCAN ME",
+      "tone": "#212121",
+      "bg": "#FFFFFF",
+      "layout": "special_qr",
+      "art_url": "/assets/templates/pack62/p62-scan-me_art.png",
+      "texts": [
+        {
+          "text": "SCAN ME",
+          "role": "title",
+          "color": "#212121"
+        },
+        {
+          "text": "더 많은 이야기를 만나보세요",
+          "role": "sub",
+          "color": "#757575"
+        }
+      ],
+      "sort_order": 330,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-30"
+    },
+    {
+      "slug": "p62-chilled",
+      "name": "냉장보관",
+      "category": "shipping",
+      "tags": "냉장",
+      "description": "냉장보관",
+      "tone": "#0288D1",
+      "bg": "#E1F5FE",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack62/p62-chilled_art.png",
+      "texts": [
+        {
+          "text": "냉장보관",
+          "role": "title",
+          "color": "#0277BD"
+        },
+        {
+          "text": "0~10°C",
+          "role": "sub",
+          "color": "#4FC3F7"
+        }
+      ],
+      "sort_order": 331,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-31"
+    },
+    {
+      "slug": "p62-frozen",
+      "name": "냉동보관",
+      "category": "shipping",
+      "tags": "냉동",
+      "description": "냉동보관",
+      "tone": "#0277BD",
+      "bg": "#E3F2FD",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack62/p62-frozen_art.png",
+      "texts": [
+        {
+          "text": "냉동보관",
+          "role": "title",
+          "color": "#01579B"
+        },
+        {
+          "text": "-18°C 이하",
+          "role": "sub",
+          "color": "#4FC3F7"
+        }
+      ],
+      "sort_order": 332,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-32"
+    },
+    {
+      "slug": "p62-microwave",
+      "name": "전자레인지 사용 가능",
+      "category": "warning",
+      "tags": "전자레인지",
+      "description": "전자레인지",
+      "tone": "#455A64",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack62/p62-microwave_art.png",
+      "texts": [
+        {
+          "text": "전자레인지 사용 가능",
+          "role": "title",
+          "color": "#37474F"
+        }
+      ],
+      "sort_order": 333,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-33"
+    },
+    {
+      "slug": "p62-oven",
+      "name": "오븐 사용 가능",
+      "category": "warning",
+      "tags": "오븐",
+      "description": "오븐",
+      "tone": "#5D4037",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack62/p62-oven_art.png",
+      "texts": [
+        {
+          "text": "오븐 사용 가능",
+          "role": "title",
+          "color": "#3E2723"
+        },
+        {
+          "text": "180°C 이하",
+          "role": "sub",
+          "color": "#8D6E63"
+        }
+      ],
+      "sort_order": 334,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-34"
+    },
+    {
+      "slug": "p62-dishwasher",
+      "name": "식기세척기 사용 가능",
+      "category": "warning",
+      "tags": "식기세척기",
+      "description": "식기세척기",
+      "tone": "#0277BD",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack62/p62-dishwasher_art.png",
+      "texts": [
+        {
+          "text": "식기세척기 사용 가능",
+          "role": "title",
+          "color": "#01579B"
+        }
+      ],
+      "sort_order": 335,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-35"
+    },
+    {
+      "slug": "p62-bpa-free",
+      "name": "BPA FREE",
+      "category": "warning",
+      "tags": "BPA,안전",
+      "description": "BPA FREE",
+      "tone": "#43A047",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack62/p62-bpa-free_art.png",
+      "texts": [
+        {
+          "text": "BPA FREE",
+          "role": "title",
+          "color": "#2E7D32"
+        },
+        {
+          "text": "안전한 소재",
+          "role": "sub",
+          "color": "#66BB6A"
+        }
+      ],
+      "sort_order": 336,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-36"
+    },
+    {
+      "slug": "p62-recycle",
+      "name": "RECYCLE",
+      "category": "warning",
+      "tags": "재활용",
+      "description": "리사이클",
+      "tone": "#43A047",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack62/p62-recycle_art.png",
+      "texts": [
+        {
+          "text": "RECYCLE",
+          "role": "title",
+          "color": "#2E7D32"
+        },
+        {
+          "text": "지구를 지켜요",
+          "role": "sub",
+          "color": "#66BB6A"
+        }
+      ],
+      "sort_order": 337,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-37"
+    },
+    {
+      "slug": "p62-gluten-free",
+      "name": "GLUTEN FREE",
+      "category": "warning",
+      "tags": "글루텐프리",
+      "description": "글루텐프리",
+      "tone": "#8D6E63",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack62/p62-gluten-free_art.png",
+      "texts": [
+        {
+          "text": "GLUTEN FREE",
+          "role": "title",
+          "color": "#5D4037"
+        },
+        {
+          "text": "글루텐 프리",
+          "role": "sub",
+          "color": "#A1887F"
+        }
+      ],
+      "sort_order": 338,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-38"
+    },
+    {
+      "slug": "p62-non-gmo",
+      "name": "NON GMO",
+      "category": "warning",
+      "tags": "논지엠오",
+      "description": "논지엠오",
+      "tone": "#558B2F",
+      "bg": "#FFFFFF",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack62/p62-non-gmo_art.png",
+      "texts": [
+        {
+          "text": "NON GMO",
+          "role": "title",
+          "color": "#33691E"
+        },
+        {
+          "text": "자연 그대로",
+          "role": "sub",
+          "color": "#7CB342"
+        }
+      ],
+      "sort_order": 339,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-39"
+    },
+    {
+      "slug": "p62-kids-safe",
+      "name": "KIDS SAFE",
+      "category": "warning",
+      "tags": "어린이,안전",
+      "description": "키즈 세이프",
+      "tone": "#EC407A",
+      "bg": "#FFF5F8",
+      "layout": "icon",
+      "art_url": "/assets/templates/pack62/p62-kids-safe_art.png",
+      "texts": [
+        {
+          "text": "어린이 보호제품",
+          "role": "title",
+          "color": "#AD1457"
+        },
+        {
+          "text": "KIDS SAFE",
+          "role": "sub",
+          "color": "#F48FB1"
+        }
+      ],
+      "sort_order": 340,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-40"
+    },
+    {
+      "slug": "p62-just-for-you",
+      "name": "Just For You",
+      "category": "gift",
+      "tags": "리본,선물",
+      "description": "Just For You",
+      "tone": "#E07A9A",
+      "bg": "#FFFFFF",
+      "layout": "deco_top",
+      "art_url": "/assets/templates/pack62/p62-just-for-you_art.png",
+      "texts": [
+        {
+          "text": "Just For You",
+          "role": "title",
+          "color": "#C45C7A"
+        }
+      ],
+      "sort_order": 341,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-41"
+    },
+    {
+      "slug": "p62-limited",
+      "name": "한정판 LIMITED",
+      "category": "event",
+      "tags": "한정판",
+      "description": "한정판",
+      "tone": "#F9A825",
+      "bg": "#FFFDE7",
+      "layout": "badge",
+      "art_url": "/assets/templates/pack62/p62-limited_art.png",
+      "texts": [
+        {
+          "text": "한정판",
+          "role": "title",
+          "color": "#F57F17"
+        },
+        {
+          "text": "LIMITED EDITION",
+          "role": "sub",
+          "color": "#FFB300"
+        }
+      ],
+      "sort_order": 342,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-42"
+    },
+    {
+      "slug": "p62-new-arrival",
+      "name": "NEW ARRIVAL",
+      "category": "event",
+      "tags": "신상품",
+      "description": "뉴 어라이벌",
+      "tone": "#C62828",
+      "bg": "#FFF8F0",
+      "layout": "badge",
+      "art_url": "/assets/templates/pack62/p62-new-arrival_art.png",
+      "texts": [
+        {
+          "text": "NEW ARRIVAL",
+          "role": "title",
+          "color": "#FFFFFF"
+        }
+      ],
+      "sort_order": 343,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-43"
+    },
+    {
+      "slug": "p62-skin-care",
+      "name": "SKIN CARE",
+      "category": "beauty",
+      "tags": "스킨케어",
+      "description": "스킨케어",
+      "tone": "#8D6E63",
+      "bg": "#FFF8F0",
+      "layout": "product",
+      "art_url": "/assets/templates/pack62/p62-skin-care_art.png",
+      "texts": [
+        {
+          "text": "SKIN CARE",
+          "role": "title",
+          "color": "#5D4037"
+        },
+        {
+          "text": "BEAUTY LIFE",
+          "role": "sub",
+          "color": "#A1887F"
+        }
+      ],
+      "sort_order": 344,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-44"
+    },
+    {
+      "slug": "p62-thank-you-lily",
+      "name": "Thank You 백합",
+      "category": "gift",
+      "tags": "감사,꽃",
+      "description": "Thank You 백합",
+      "tone": "#5B7A3A",
+      "bg": "#FFFFFF",
+      "layout": "art_bottom",
+      "art_url": "/assets/templates/pack62/p62-thank-you-lily_art.png",
+      "texts": [
+        {
+          "text": "Thank You",
+          "role": "title",
+          "color": "#3F5A28"
+        }
+      ],
+      "sort_order": 345,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-45"
+    },
+    {
+      "slug": "p62-wedding",
+      "name": "결혼을 축하합니다",
+      "category": "event",
+      "tags": "결혼,반지",
+      "description": "결혼 축하",
+      "tone": "#C9A227",
+      "bg": "#FFFDE7",
+      "layout": "stack",
+      "art_url": "/assets/templates/pack62/p62-wedding_art.png",
+      "texts": [
+        {
+          "text": "결혼을 축하합니다",
+          "role": "title",
+          "color": "#8A6A10"
+        }
+      ],
+      "sort_order": 346,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-46"
+    },
+    {
+      "slug": "p62-christmas",
+      "name": "Merry Christmas",
+      "category": "event",
+      "tags": "크리스마스",
+      "description": "메리 크리스마스",
+      "tone": "#1B4D3E",
+      "bg": "#0F3D2E",
+      "layout": "product",
+      "art_url": "/assets/templates/pack62/p62-christmas_art.png",
+      "texts": [
+        {
+          "text": "Merry Christmas",
+          "role": "title",
+          "color": "#F5F7FA"
+        }
+      ],
+      "sort_order": 347,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-47"
+    },
+    {
+      "slug": "p62-halloween",
+      "name": "Happy Halloween",
+      "category": "event",
+      "tags": "할로윈",
+      "description": "해피 할로윈",
+      "tone": "#E65100",
+      "bg": "#FF6D00",
+      "layout": "product",
+      "art_url": "/assets/templates/pack62/p62-halloween_art.png",
+      "texts": [
+        {
+          "text": "Happy Halloween",
+          "role": "title",
+          "color": "#1A1208"
+        }
+      ],
+      "sort_order": 348,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-48"
+    },
+    {
+      "slug": "p62-new-year",
+      "name": "Happy New Year",
+      "category": "event",
+      "tags": "새해",
+      "description": "해피 뉴이어",
+      "tone": "#1A237E",
+      "bg": "#0D1B4C",
+      "layout": "product",
+      "art_url": "/assets/templates/pack62/p62-new-year_art.png",
+      "texts": [
+        {
+          "text": "Happy New Year",
+          "role": "title",
+          "color": "#E8EEFF"
+        }
+      ],
+      "sort_order": 349,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-49"
+    },
+    {
+      "slug": "p62-spring",
+      "name": "봄이 왔어요",
+      "category": "event",
+      "tags": "봄,벚꽃",
+      "description": "봄이 왔어요",
+      "tone": "#EC407A",
+      "bg": "#FFF5F8",
+      "layout": "art_bottom",
+      "art_url": "/assets/templates/pack62/p62-spring_art.png",
+      "texts": [
+        {
+          "text": "봄이 왔어요",
+          "role": "title",
+          "color": "#AD1457"
+        }
+      ],
+      "sort_order": 350,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-50"
+    },
+    {
+      "slug": "p62-summer",
+      "name": "SUMMER VACATION",
+      "category": "event",
+      "tags": "여름,휴가",
+      "description": "서머 베케이션",
+      "tone": "#0288D1",
+      "bg": "#E1F5FE",
+      "layout": "product",
+      "art_url": "/assets/templates/pack62/p62-summer_art.png",
+      "texts": [
+        {
+          "text": "SUMMER VACATION",
+          "role": "title",
+          "color": "#01579B"
+        }
+      ],
+      "sort_order": 351,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-51"
+    },
+    {
+      "slug": "p62-autumn",
+      "name": "Hello Autumn",
+      "category": "event",
+      "tags": "가을,단풍",
+      "description": "헬로 오텀",
+      "tone": "#EF6C00",
+      "bg": "#FFF3E0",
+      "layout": "product",
+      "art_url": "/assets/templates/pack62/p62-autumn_art.png",
+      "texts": [
+        {
+          "text": "Hello Autumn",
+          "role": "title",
+          "color": "#E65100"
+        }
+      ],
+      "sort_order": 352,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-52"
+    },
+    {
+      "slug": "p62-winter",
+      "name": "WINTER SEASON",
+      "category": "event",
+      "tags": "겨울,눈사람",
+      "description": "윈터 시즌",
+      "tone": "#0277BD",
+      "bg": "#E3F2FD",
+      "layout": "product",
+      "art_url": "/assets/templates/pack62/p62-winter_art.png",
+      "texts": [
+        {
+          "text": "WINTER SEASON",
+          "role": "title",
+          "color": "#01579B"
+        }
+      ],
+      "sort_order": 353,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-53"
+    },
+    {
+      "slug": "p62-hello-spring",
+      "name": "Hello Spring",
+      "category": "event",
+      "tags": "봄,튤립",
+      "description": "헬로 스프링",
+      "tone": "#EC407A",
+      "bg": "#FFF5F8",
+      "layout": "product",
+      "art_url": "/assets/templates/pack62/p62-hello-spring_art.png",
+      "texts": [
+        {
+          "text": "Hello Spring",
+          "role": "title",
+          "color": "#AD1457"
+        }
+      ],
+      "sort_order": 354,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-54"
+    },
+    {
+      "slug": "p62-coffee-time",
+      "name": "Coffee Time",
+      "category": "cafe",
+      "tags": "커피,컵",
+      "description": "커피 타임",
+      "tone": "#5C3A1E",
+      "bg": "#FFF8F0",
+      "layout": "stack",
+      "art_url": "/assets/templates/pack62/p62-coffee-time_art.png",
+      "texts": [
+        {
+          "text": "Coffee Time",
+          "role": "title",
+          "color": "#3E2723"
+        },
+        {
+          "text": "GOOD DAY",
+          "role": "sub",
+          "color": "#8D6E63"
+        }
+      ],
+      "sort_order": 355,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-55"
+    },
+    {
+      "slug": "p62-tea-time",
+      "name": "TEA TIME",
+      "category": "cafe",
+      "tags": "차,티팟",
+      "description": "티 타임",
+      "tone": "#5B7A3A",
+      "bg": "#F1F7F3",
+      "layout": "stack",
+      "art_url": "/assets/templates/pack62/p62-tea-time_art.png",
+      "texts": [
+        {
+          "text": "TEA TIME",
+          "role": "title",
+          "color": "#2F5A40"
+        },
+        {
+          "text": "Relax & Enjoy",
+          "role": "sub",
+          "color": "#5B8A6A"
+        }
+      ],
+      "sort_order": 356,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-56"
+    },
+    {
+      "slug": "p62-enjoy-meal",
+      "name": "맛있게 드세요",
+      "category": "food",
+      "tags": "식사,하트",
+      "description": "맛있게 드세요",
+      "tone": "#C62828",
+      "bg": "#FFFFFF",
+      "layout": "stack",
+      "art_url": "/assets/templates/pack62/p62-enjoy-meal_art.png",
+      "texts": [
+        {
+          "text": "맛있게 드세요",
+          "role": "title",
+          "color": "#B71C1C"
+        }
+      ],
+      "sort_order": 357,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-57"
+    },
+    {
+      "slug": "p62-healthy-salad",
+      "name": "다이어트 식단",
+      "category": "food",
+      "tags": "샐러드,건강",
+      "description": "다이어트 식단",
+      "tone": "#689F38",
+      "bg": "#FFFFFF",
+      "layout": "product",
+      "art_url": "/assets/templates/pack62/p62-healthy-salad_art.png",
+      "texts": [
+        {
+          "text": "다이어트 식단",
+          "role": "title",
+          "color": "#558B2F"
+        },
+        {
+          "text": "HEALTHY FOOD",
+          "role": "mid",
+          "color": "#7CB342"
+        },
+        {
+          "text": "가벼운 하루",
+          "role": "sub",
+          "color": "#AED581"
+        }
+      ],
+      "sort_order": 358,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-58"
+    },
+    {
+      "slug": "p62-handmade-soap",
+      "name": "수제비누",
+      "category": "beauty",
+      "tags": "비누,수제",
+      "description": "수제비누",
+      "tone": "#43A047",
+      "bg": "#F1F8F2",
+      "layout": "product",
+      "art_url": "/assets/templates/pack62/p62-handmade-soap_art.png",
+      "texts": [
+        {
+          "text": "수제비누",
+          "role": "title",
+          "color": "#2E7D32"
+        },
+        {
+          "text": "NATURAL SOAP",
+          "role": "sub",
+          "color": "#66BB6A"
+        }
+      ],
+      "sort_order": 359,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-59"
+    },
+    {
+      "slug": "p62-interior",
+      "name": "INTERIOR DECOR",
+      "category": "gift",
+      "tags": "인테리어,화분",
+      "description": "인테리어 데코",
+      "tone": "#5B7A3A",
+      "bg": "#F7FAF2",
+      "layout": "product",
+      "art_url": "/assets/templates/pack62/p62-interior_art.png",
+      "texts": [
+        {
+          "text": "INTERIOR DECOR",
+          "role": "title",
+          "color": "#3F5A28"
+        },
+        {
+          "text": "SIMPLE LIFE",
+          "role": "sub",
+          "color": "#6B8F4E"
+        }
+      ],
+      "sort_order": 360,
+      "paper_w_mm": 50,
+      "paper_h_mm": 50,
+      "paper_shape": "roundrect",
+      "paper_no": "LU-P62-60"
+    }
+  ]
+}

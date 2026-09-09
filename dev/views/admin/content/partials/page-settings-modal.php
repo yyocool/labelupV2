@@ -21,7 +21,7 @@
           </div>
           <div class="admin-field admin-field--full admin-field--editor">
             <label for="pageHeaderHtml">헤더 내용</label>
-            <textarea id="pageHeaderHtml" class="js-page-header-html" rows="8" placeholder="상품 상세 상단에 공통으로 표시할 내용을 입력하세요."></textarea>
+            <textarea id="pageHeaderHtml" class="js-page-header-html" rows="8" placeholder="상품 상세 내용 바로 위에 공통으로 표시할 내용을 입력하세요."></textarea>
           </div>
         </div>
       </section>
@@ -40,11 +40,11 @@
           </div>
           <div class="admin-field admin-field--full admin-field--editor">
             <label for="pageFooterHtml">푸터 내용</label>
-            <textarea id="pageFooterHtml" class="js-page-footer-html" rows="8" placeholder="상품 상세 하단에 공통으로 표시할 내용을 입력하세요."></textarea>
+            <textarea id="pageFooterHtml" class="js-page-footer-html" rows="8" placeholder="상품 상세 내용 바로 아래에 공통으로 표시할 내용을 입력하세요."></textarea>
           </div>
         </div>
       </section>
-      <p class="admin-muted">저장된 헤더·푸터는 모든 사용자 상품 상세 페이지에 공통 적용됩니다.</p>
+      <p class="admin-muted">헤더·푸터는 상품 구매 정보(이미지·가격) 아래, 상세 내용의 위·아래에 가로 100%로 공통 적용됩니다.</p>
     </form>
     <div class="admin-modal-foot">
       <button type="button" class="admin-btn js-page-settings-close">취소</button>

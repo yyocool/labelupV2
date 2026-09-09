@@ -6,6 +6,7 @@ namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
 use App\Middleware\AuthMiddleware;
+use App\Services\AiCreditService;
 use App\Services\AiExamplePromptService;
 use App\Services\AuthService;
 use RuntimeException;
@@ -38,6 +39,20 @@ final class AiAdminApiController extends BaseController
         try {
             $this->prompts->delete((int) (request_json()['id'] ?? 0));
             $this->jsonSuccess(null, '삭제되었습니다.');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
+        }
+    }
+
+    public function saveCreditSettings(): never
+    {
+        $this->guard();
+        try {
+            (new AiCreditService())->saveAdminSettings(request_json());
+            $this->jsonSuccess(
+                (new AiCreditService())->adminSettings(),
+                'AI 크레딧 설정이 저장되었습니다.'
+            );
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage(), null, 422);
         }

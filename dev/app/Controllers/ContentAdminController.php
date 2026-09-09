@@ -123,6 +123,7 @@ final class ContentAdminController extends BaseController
             'page' => $page,
             'per_page' => 24,
             'with_document' => true,
+            'sort' => 'recent',
         ]);
 
         view('admin/layout', [

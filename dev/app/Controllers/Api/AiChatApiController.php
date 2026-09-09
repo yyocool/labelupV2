@@ -6,8 +6,10 @@ namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
 use App\Middleware\AuthMiddleware;
+use App\Services\AiCreditService;
 use App\Services\AiUsageService;
 use App\Services\AuthService;
+use App\Services\CreditService;
 use App\Services\LabiDesignService;
 use RuntimeException;
 
@@ -37,7 +39,28 @@ final class AiChatApiController extends BaseController
 
         try {
             $messages = $this->normalizeMessages($rawMessages);
+            $aiCredits = new AiCreditService();
+            if ($userId > 0 && $aiCredits->isEnabled()) {
+                $previewIntent = $forceIntent !== '' ? $forceIntent : 'chat';
+                $aiCredits->assertCanAfford($userId, $previewIntent);
+            }
             $result = (new LabiDesignService())->handle($messages, $userId, $surface, $forceIntent);
+            $creditInfo = null;
+            if ($userId > 0) {
+                try {
+                    $creditInfo = $aiCredits->charge(
+                        $userId,
+                        (string) ($result['intent'] ?? 'chat'),
+                        $surface
+                    );
+                } catch (RuntimeException $creditError) {
+                    $creditInfo = [
+                        'charged' => 0,
+                        'balance' => (new CreditService())->balance($userId),
+                        'error' => $creditError->getMessage(),
+                    ];
+                }
+            }
             $this->jsonSuccess([
                 'reply' => $result['reply'],
                 'role' => 'assistant',
@@ -47,8 +70,13 @@ final class AiChatApiController extends BaseController
                 'template' => $result['template'] ?? null,
                 'choices' => $result['choices'] ?? null,
                 'usage' => $result['usage'] ?? null,
+                'credit' => $creditInfo,
             ]);
         } catch (RuntimeException $e) {
+            $status = str_contains($e->getMessage(), '크레딧') ? 402 : 502;
+            if ($status === 402) {
+                $this->jsonError($e->getMessage(), ['code' => 'insufficient_credit'], $status);
+            }
             (new AiUsageService())->log([
                 'user_id' => $userId ?? 0,
                 'surface' => $surface,

@@ -70,6 +70,42 @@ final class CreditService
         return $this->adjust($userId, $amount, $reason, $adminId, 'earn');
     }
 
+    public function spend(
+        int $userId,
+        int $amount,
+        string $description,
+        string $source = 'system',
+        ?string $sourceRef = null
+    ): int {
+        if ($userId <= 0) {
+            throw new RuntimeException('유효하지 않은 회원입니다.');
+        }
+        if ($amount <= 0) {
+            throw new RuntimeException('사용 크레딧은 1 이상이어야 합니다.');
+        }
+        $this->repo->ensureBalanceRow($userId);
+        $current = $this->repo->getBalance($userId);
+        if ($current < $amount) {
+            throw new RuntimeException('크레딧 잔액이 부족합니다.');
+        }
+        $next = $current - $amount;
+        $this->repo->setBalance($userId, $next);
+        $this->repo->addTransaction([
+            'user_id' => $userId,
+            'amount' => -$amount,
+            'balance_after' => $next,
+            'tx_type' => 'spend',
+            'source' => $source,
+            'source_ref' => $sourceRef,
+            'description' => mb_substr(trim($description), 0, 255),
+            'admin_id' => null,
+        ]);
+        $notifier = new NotificationService();
+        $notifier->notifyCreditChange($userId, -$amount, $next, $description);
+        $notifier->maybeNotifyCreditLow($userId, $current, $next);
+        return $next;
+    }
+
     public static function format(int $amount): string
     {
         return number_format($amount) . ' C';
@@ -93,6 +129,7 @@ final class CreditService
             'purchase_code' => '구매코드',
             'admin' => '관리자',
             'order' => '주문/사용',
+            'ai' => 'AI 사용',
             default => '시스템',
         };
     }
