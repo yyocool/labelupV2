@@ -9,7 +9,7 @@ use App\Controllers\BaseController;
 /** 아이라벨 디자인 배경처럼 CORS로 직접 못 받는 원격 이미지를 같은 출처로 중계한다. */
 final class EditorRemoteImageApiController extends BaseController
 {
-    private const int MaxBytes = 8 * 1024 * 1024;
+    private const MaxBytes = 8 * 1024 * 1024;
 
     public function show(): never
     {
