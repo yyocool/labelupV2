@@ -206,7 +206,7 @@
   });
 
   document.querySelector(".js-tpl-seed")?.addEventListener("click", async () => {
-    if (!confirm("기본 테마 50종을 반영할까요? 같은 슬러그는 덮어씁니다.")) return;
+    if (!confirm("기본·스티커·사무 테마를 반영할까요? 같은 슬러그는 덮어씁니다.")) return;
     try {
       showAlert("시드 반영 중…", true);
       const res = await fetch(urls.seed, {

@@ -12,7 +12,7 @@ $filters = $filters ?? ['q' => '', 'category' => ''];
     <p>편집기에서 바로 불러 수정할 수 있는 라벨 디자인 테마를 관리합니다.</p>
   </div>
   <div class="admin-head-actions">
-    <button type="button" class="admin-btn js-tpl-seed" title="기본 테마 50종 반영">시드 반영</button>
+    <button type="button" class="admin-btn js-tpl-seed" title="기본·스티커·사무 테마 시드 반영">시드 반영</button>
     <button type="button" class="admin-btn admin-btn--primary js-tpl-add">+ 템플릿 추가</button>
   </div>
 </div>

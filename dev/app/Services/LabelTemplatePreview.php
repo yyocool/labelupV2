@@ -78,13 +78,53 @@ final class LabelTemplatePreview
 
         return match ($type) {
             'ellipse' => '<ellipse cx="' . self::n($x + $w / 2) . '" cy="' . self::n($y + $h / 2) . '" rx="' . self::n($w / 2) . '" ry="' . self::n($h / 2) . '" fill="' . $fill . '"' . $strokeAttr . '/>',
+            'shape' => self::shapeSvg($obj, $x, $y, $w, $h, $fill, $strokeAttr),
             'text' => self::textSvg($obj, $x, $y, $w, $h, $fill),
             'barcode' => self::barcodeSvg($x, $y, $w, $h, $fill),
             'qr' => self::qrSvg($x, $y, $w, $h, $fill),
             'table' => self::tableSvg($obj, $x, $y, $w, $h, $fill, $stroke),
-            'image', 'clipart', 'icon' => self::imageSvg($obj, $x, $y, $w, $h),
+            'icon' => self::iconSvg($obj, $x, $y, $w, $h, $fill),
+            'image', 'clipart' => self::imageSvg($obj, $x, $y, $w, $h),
             default => '<rect x="' . self::n($x) . '" y="' . self::n($y) . '" width="' . self::n($w) . '" height="' . self::n($h) . '" fill="' . $fill . '"' . $strokeAttr . '/>',
         };
+    }
+
+    /** @param array<string, mixed> $obj */
+    private static function shapeSvg(array $obj, float $x, float $y, float $w, float $h, string $fill, string $strokeAttr): string
+    {
+        $kind = strtolower((string) ($obj['shapeKind'] ?? 'rect'));
+        if ($kind === 'triangle') {
+            $points = self::n($x + $w / 2) . ',' . self::n($y)
+                . ' ' . self::n($x + $w) . ',' . self::n($y + $h)
+                . ' ' . self::n($x) . ',' . self::n($y + $h);
+            return '<polygon points="' . $points . '" fill="' . $fill . '"' . $strokeAttr . '/>';
+        }
+        if ($kind === 'ellipse' || $kind === 'circle') {
+            return '<ellipse cx="' . self::n($x + $w / 2) . '" cy="' . self::n($y + $h / 2) . '" rx="' . self::n($w / 2) . '" ry="' . self::n($h / 2) . '" fill="' . $fill . '"' . $strokeAttr . '/>';
+        }
+        return '<rect x="' . self::n($x) . '" y="' . self::n($y) . '" width="' . self::n($w) . '" height="' . self::n($h) . '" fill="' . $fill . '"' . $strokeAttr . '/>';
+    }
+
+    /** @param array<string, mixed> $obj */
+    private static function iconSvg(array $obj, float $x, float $y, float $w, float $h, string $fill): string
+    {
+        $cx = $x + $w / 2;
+        $cy = $y + $h / 2;
+        $r = min($w, $h) / 2;
+        $name = strtolower((string) ($obj['iconName'] ?? ''));
+        $mark = match (true) {
+            str_contains($name, 'check') => '✓',
+            str_contains($name, 'xmark') || $name === 'ban' || $name === 'xmark' => '✕',
+            str_contains($name, 'arrow-up') => '↑',
+            str_contains($name, 'truck') => '🚚',
+            str_contains($name, 'lock') => '🔒',
+            default => '',
+        };
+        $circle = '<ellipse cx="' . self::n($cx) . '" cy="' . self::n($cy) . '" rx="' . self::n($r) . '" ry="' . self::n($r) . '" fill="' . $fill . '"/>';
+        if ($mark === '') {
+            return $circle;
+        }
+        return '<g>' . $circle . '<text x="' . self::n($cx) . '" y="' . self::n($cy) . '" fill="#FFFFFF" font-size="' . self::n(max(2.4, $r * 0.9)) . '" font-weight="700" text-anchor="middle" dominant-baseline="middle">' . self::xml($mark) . '</text></g>';
     }
 
     /** @param array<string, mixed> $obj */
