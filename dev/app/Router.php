@@ -53,6 +53,9 @@ use App\Controllers\Api\SiteIntroAdminApiController;
 use App\Controllers\MemberGradeAdminController;
 use App\Controllers\Api\MemberGradeAdminApiController;
 use App\Controllers\QrCouponAdminController;
+use App\Controllers\Api\QrCouponAdminApiController;
+use App\Controllers\QrCouponPublicController;
+use App\Controllers\CompatCodePublicController;
 
 final class Router
 {
@@ -167,9 +170,18 @@ final class Router
         $memberGradeAdmin = new MemberGradeAdminController();
         $memberGradeAdminApi = new MemberGradeAdminApiController();
         $qrCouponAdmin = new QrCouponAdminController();
+        $qrCouponAdminApi = new QrCouponAdminApiController();
+        $qrCouponPublic = new QrCouponPublicController();
+        $compatPublic = new CompatCodePublicController();
 
         $router->get('/', [$home, 'index']);
         $router->get('/faq', [$faqPublic, 'index']);
+        $router->get('/compat', [$compatPublic, 'index']);
+        $router->get('/compat-codes', [$compatPublic, 'index']);
+        $router->get('/compat/qr', [$compatPublic, 'qrSample']);
+        $router->get('/compat-codes/qr', [$compatPublic, 'qrSample']);
+        $router->get('/qr-coupon', [$qrCouponPublic, 'index']);
+        $router->get('/qr-coupon/{code}', [$qrCouponPublic, 'show']);
 
         $router->get('/shop', [$shopPublic, 'index']);
         $router->get('/shop/products', [$shopPublic, 'products']);
@@ -208,6 +220,10 @@ final class Router
         $router->get('/admin/ops/faq', [$faqAdmin, 'index']);
         $router->get('/admin/ops/inquiries', [$inquiryAdmin, 'index']);
         $router->get('/admin/qr-coupons', [$qrCouponAdmin, 'index']);
+        $router->post('/api/admin/qr-coupons/credit/save', [$qrCouponAdminApi, 'saveCredit']);
+        $router->post('/api/admin/qr-coupons/generate', [$qrCouponAdminApi, 'generate']);
+        $router->post('/api/admin/qr-coupons/generation-history', [$qrCouponAdminApi, 'generationHistory']);
+        $router->post('/api/admin/qr-coupons/usage-history', [$qrCouponAdminApi, 'usageHistory']);
         $router->get('/admin/ai/example-prompts', [$aiAdmin, 'examplePrompts']);
         $router->get('/admin/ai/credit-settings', [$aiAdmin, 'creditSettings']);
         $router->get('/admin/ai/token-logs', [$aiAdmin, 'tokenLogs']);

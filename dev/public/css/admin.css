@@ -637,3 +637,67 @@
 .admin-intro-anim-card strong{display:block;font-size:14px;font-weight:800;color:#1c1e2b;margin-bottom:6px}
 .admin-intro-anim-card p{margin:0;font-size:13px;line-height:1.55;color:#5b6070;word-break:keep-all}
 .admin-intro-anim-card ul{margin:10px 0 0;padding-left:1.15em;font-size:12px;line-height:1.6;color:#4e5163}
+
+/* QR coupon groups matrix */
+.qr-group-wrap{overflow:auto}
+.qr-group-title{
+  padding:14px 16px 10px;
+  font-size:15px;
+  font-weight:800;
+  color:#5d4037;
+  background:linear-gradient(180deg,#fff8f0,#fff);
+  border-bottom:1px solid var(--line);
+}
+.qr-group-table{border-collapse:collapse}
+.qr-group-table th{
+  background:#ffe0b2;
+  color:#5d4037;
+  text-align:center;
+  border:1px solid #e0c09a;
+  white-space:nowrap;
+}
+.qr-group-table td{
+  border:1px solid #d7ccc8;
+  text-align:center;
+  vertical-align:middle;
+  background:#fff;
+}
+.qr-group-table .qr-col-name,
+.qr-group-table .qr-name{text-align:left}
+.qr-group-table .qr-catno{
+  color:#fff;
+  font-size:18px;
+  font-weight:800;
+  min-width:72px;
+  text-shadow:0 1px 1px rgba(0,0,0,.25);
+}
+.qr-group-table .qr-groupno{font-weight:700;min-width:110px;vertical-align:top}
+.qr-groupno-wrap{display:flex;flex-direction:column;align-items:center;gap:6px}
+.qr-groupno-wrap > strong{font-size:16px}
+.qr-group-qr{
+  display:block;padding:4px;border:1px solid #e5ddd4;border-radius:10px;background:#fff;line-height:0;
+}
+.qr-group-qr img{display:block;width:72px;height:72px}
+.qr-group-qr-meta{font-size:10px;color:var(--muted);line-height:1.3;text-align:center;word-break:break-all;max-width:110px}
+.qr-group-table .qr-sheets,
+.qr-group-table .qr-price{font-variant-numeric:tabular-nums;white-space:nowrap}
+.qr-group-table .qr-products{color:var(--muted);min-width:72px;font-variant-numeric:tabular-nums}
+.qr-group-table .qr-qrcount{min-width:80px;font-variant-numeric:tabular-nums;font-weight:600}
+.qr-group-table .qr-credit{min-width:110px}
+.qr-group-table .qr-credit-input{
+  width:96px;
+  height:32px;
+  padding:0 8px;
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+  font-weight:700;
+}
+.qr-group-table .qr-credit-input.is-saving{opacity:.65}
+.qr-group-table .qr-credit-input.is-saved{border-color:#176b3a;box-shadow:0 0 0 2px rgba(23,107,58,.15)}
+.qr-group-table .qr-products-link{color:var(--accent);font-weight:700;text-decoration:none}
+.qr-group-table .qr-products-link:hover{text-decoration:underline}
+.qr-group-table .qr-col-actions,
+.qr-group-table .qr-actions{text-align:left;white-space:nowrap;min-width:260px}
+.qr-actions-btns{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-start}
+.qr-group-notes ul{margin:8px 0 0;padding-left:1.2em;line-height:1.65;color:var(--muted)}
+.qr-group-notes li{margin:0 0 4px}

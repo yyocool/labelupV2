@@ -88,15 +88,22 @@ def parse_excel(path: Path) -> list[dict]:
                 parts.append(f"{sheets}매")
             name = "/".join(parts)
 
+        product_no = clean(ws.cell(r, COL["product_no"]).value)  # 폼텍 No
+        art_no = clean(ws.cell(r, COL["art_no"]).value)  # 애니라벨No
+        barcode_no = clean(ws.cell(r, COL["barcode_no"]).value)  # 아이라벨 No
+
         rows.append(
             {
                 "row": r,
                 "group": current_group or "라벨지",
                 "sku": sku,
                 "name": name,
-                "product_no": clean(ws.cell(r, COL["product_no"]).value),
-                "art_no": clean(ws.cell(r, COL["art_no"]).value),
-                "barcode_no": clean(ws.cell(r, COL["barcode_no"]).value),
+                "product_no": product_no,
+                "art_no": art_no,
+                "barcode_no": barcode_no,
+                "compat_formtec": None if product_no is None else str(product_no),
+                "compat_anylabel": None if art_no is None else str(art_no),
+                "compat_ilabel": None if barcode_no is None else str(barcode_no),
                 "material_name": clean(ws.cell(r, COL["material_name"]).value),
                 "barcode": clean(ws.cell(r, COL["barcode"]).value),
                 "box_barcode": clean(ws.cell(r, COL["box_barcode"]).value),

@@ -108,6 +108,12 @@ function migrate_dev_scope_items_table($db)
             `client_confirmed` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '고객사 확인',
             `client_confirmed_at` DATETIME NULL,
             `client_confirmed_by` INT UNSIGNED DEFAULT NULL,
+            `review_confirmed` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '검수 확인(레거시)',
+            `review_confirmed_at` DATETIME NULL,
+            `review_confirmed_by` INT UNSIGNED DEFAULT NULL,
+            `review_comment` TEXT NULL COMMENT '검수 코멘트',
+            `review_status` VARCHAR(20) NOT NULL DEFAULT 'in_review' COMMENT '검수중/검수완료/보완필요',
+            `page_url` VARCHAR(1000) NULL COMMENT '페이지 URL',
             `sort_order` INT NOT NULL DEFAULT 0,
             `style_json` TEXT NULL COMMENT '셀 스타일 JSON',
             `created_by` INT UNSIGNED DEFAULT NULL,
@@ -130,6 +136,40 @@ function migrate_dev_scope_items_table($db)
             ADD COLUMN `client_confirmed` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '고객사 확인' AFTER `status`,
             ADD COLUMN `client_confirmed_at` DATETIME NULL AFTER `client_confirmed`,
             ADD COLUMN `client_confirmed_by` INT UNSIGNED DEFAULT NULL AFTER `client_confirmed_at`");
+    }
+    $col = $db->query("SHOW COLUMNS FROM dev_scope_items LIKE 'review_confirmed'")->fetch();
+    if (!$col) {
+        $after = $db->query("SHOW COLUMNS FROM dev_scope_items LIKE 'client_confirmed_by'")->fetch()
+            ? 'client_confirmed_by'
+            : 'status';
+        $db->exec("ALTER TABLE `dev_scope_items`
+            ADD COLUMN `review_confirmed` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '검수 확인(레거시)' AFTER `{$after}`,
+            ADD COLUMN `review_confirmed_at` DATETIME NULL AFTER `review_confirmed`,
+            ADD COLUMN `review_confirmed_by` INT UNSIGNED DEFAULT NULL AFTER `review_confirmed_at`,
+            ADD COLUMN `review_comment` TEXT NULL COMMENT '검수 코멘트' AFTER `review_confirmed_by`");
+    }
+    $col = $db->query("SHOW COLUMNS FROM dev_scope_items LIKE 'review_status'")->fetch();
+    if (!$col) {
+        $after = $db->query("SHOW COLUMNS FROM dev_scope_items LIKE 'review_comment'")->fetch()
+            ? 'review_comment'
+            : ($db->query("SHOW COLUMNS FROM dev_scope_items LIKE 'client_confirmed_by'")->fetch() ? 'client_confirmed_by' : 'status');
+        $db->exec("ALTER TABLE `dev_scope_items`
+            ADD COLUMN `review_status` VARCHAR(20) NOT NULL DEFAULT 'in_review' COMMENT '검수중/검수완료/보완필요' AFTER `{$after}`");
+        // 기존 체크박스 값 이전
+        try {
+            $db->exec("UPDATE `dev_scope_items` SET `review_status` = 'done' WHERE `review_confirmed` = 1");
+            $db->exec("UPDATE `dev_scope_items` SET `review_status` = 'in_review' WHERE (`review_confirmed` = 0 OR `review_confirmed` IS NULL) AND (`review_status` IS NULL OR `review_status` = '')");
+        } catch (Exception $e) {
+            // ignore
+        }
+    }
+    $col = $db->query("SHOW COLUMNS FROM dev_scope_items LIKE 'page_url'")->fetch();
+    if (!$col) {
+        $after = $db->query("SHOW COLUMNS FROM dev_scope_items LIKE 'review_status'")->fetch()
+            ? 'review_status'
+            : ($db->query("SHOW COLUMNS FROM dev_scope_items LIKE 'review_comment'")->fetch() ? 'review_comment' : 'status');
+        $db->exec("ALTER TABLE `dev_scope_items`
+            ADD COLUMN `page_url` VARCHAR(1000) NULL COMMENT '페이지 URL' AFTER `{$after}`");
     }
 }
 

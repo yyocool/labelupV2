@@ -945,6 +945,33 @@ final class ShopRepository extends BaseModel
         ];
     }
 
+    /**
+     * 공개 호환코드표용 — 판매중/품절 상품 + 규격 + 호환코드.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function compatCodeCatalog(int $limit = 3000): array
+    {
+        $limit = max(1, min(5000, $limit));
+        return $this->fetchAll(
+            "SELECT p.id, p.name, p.sku, p.category_id, p.spec_id, p.status, p.meta_json,
+                    p.compat_formtec, p.compat_ilabel, p.compat_anylabel, p.sort_order,
+                    c.name AS category_name, c.slug AS category_slug, c.sort_order AS category_sort,
+                    s.name AS spec_name, s.width_mm, s.height_mm, s.material, s.shape, s.labels_per_sheet
+             FROM shop_products p
+             LEFT JOIN shop_categories c ON c.id = p.category_id
+             LEFT JOIN label_specs s ON s.id = p.spec_id
+             WHERE p.status IN ('active','soldout')
+               AND (
+                    IFNULL(p.compat_formtec,'') <> ''
+                 OR IFNULL(p.compat_ilabel,'') <> ''
+                 OR IFNULL(p.compat_anylabel,'') <> ''
+               )
+             ORDER BY COALESCE(c.sort_order, 9999) ASC, c.name ASC, p.sort_order ASC, p.sku ASC, p.id ASC
+             LIMIT {$limit}"
+        );
+    }
+
     public function countActiveProducts(array $filters = []): int
     {
         [$where, $params] = $this->productFilterClause($filters);

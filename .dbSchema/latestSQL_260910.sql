@@ -285,12 +285,19 @@ CREATE TABLE IF NOT EXISTS shop_banners (
     updated_at DATETIME NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
-INSERT INTO shop_categories (name, slug, sort_order, is_active, created_at, updated_at) VALUES
-('????', 'label-paper', 1, 1, NOW(), NOW()),
-('???', 'thermal-paper', 2, 1, NOW(), NOW()),
-('??????', 'packaging', 3, 1, NOW(), NOW()),
-('??????????, 'supplies', 4, 1, NOW(), NOW())
-ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at);
+INSERT INTO shop_categories (name, slug, image_path, sort_order, is_active, created_at, updated_at) VALUES
+('물류관리용/주소용/바코드용/인덱스용', 'logistics-label', '/assets/categories/cat_logistics-label.webp', 1, 1, NOW(), NOW()),
+('정부문서화일 라벨', 'government-doc', '/assets/categories/cat_government-doc.webp', 2, 1, NOW(), NOW()),
+('광택 라벨', 'gloss-label', '/assets/categories/cat_gloss-label.webp', 3, 1, NOW(), NOW()),
+('방수 라벨', 'waterproof-label', '/assets/categories/cat_waterproof-label.webp', 4, 1, NOW(), NOW()),
+('반투명 라벨', 'translucent-label', '/assets/categories/cat_translucent-label.webp', 5, 1, NOW(), NOW()),
+('잉크젯 투명 라벨', 'inkjet-clear-label', '/assets/categories/cat_inkjet-clear-label.webp', 6, 1, NOW(), NOW()),
+('레이저 투명 라벨', 'laser-clear-label', '/assets/categories/cat_laser-clear-label.webp', 7, 1, NOW(), NOW()),
+('보호용 필름', 'protective-film', '/assets/categories/cat_protective-film.webp', 8, 1, NOW(), NOW()),
+('컬러 라벨(형광)', 'color-label', '/assets/categories/cat_color-label.webp', 9, 1, NOW(), NOW()),
+('파스텔 컬러 라벨', 'pastel-color-label', '/assets/categories/cat_pastel-color-label.webp', 10, 1, NOW(), NOW()),
+('크라프트 라벨', 'kraft-label', '/assets/categories/cat_kraft-label.webp', 11, 1, NOW(), NOW())
+ON DUPLICATE KEY UPDATE name = VALUES(name), image_path = VALUES(image_path), sort_order = VALUES(sort_order), is_active = VALUES(is_active), updated_at = VALUES(updated_at);
 
 INSERT INTO label_specs (name, width_mm, height_mm, material, shape, labels_per_sheet, description, is_active, created_at, updated_at) VALUES
 ('50x30mm ????', 50.00, 30.00, '????', 'rect', 40, '???????????? ???', 1, NOW(), NOW()),
@@ -813,7 +820,8 @@ CREATE TABLE IF NOT EXISTS ai_credit_costs (
     updated_at DATETIME NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- project DB: 개발범위 고객사 확인
+
+-- project DB: 개발범위 (고객사 확인 + 검수)
 CREATE TABLE IF NOT EXISTS `dev_scope_items` (
     `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `project_id` INT UNSIGNED NOT NULL,
@@ -827,6 +835,10 @@ CREATE TABLE IF NOT EXISTS `dev_scope_items` (
     `client_confirmed` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '고객사 확인',
     `client_confirmed_at` DATETIME NULL,
     `client_confirmed_by` INT UNSIGNED DEFAULT NULL,
+    `review_confirmed` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '검수 확인',
+    `review_confirmed_at` DATETIME NULL,
+    `review_confirmed_by` INT UNSIGNED DEFAULT NULL,
+    `review_comment` TEXT NULL COMMENT '검수 코멘트',
     `sort_order` INT NOT NULL DEFAULT 0,
     `style_json` TEXT NULL COMMENT '셀 스타일 JSON',
     `created_by` INT UNSIGNED DEFAULT NULL,
@@ -837,3 +849,54 @@ CREATE TABLE IF NOT EXISTS `dev_scope_items` (
     INDEX `idx_dev_scope_parent` (`parent_id`),
     INDEX `idx_dev_scope_depth` (`depth`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+-- QR coupon groups (������� QR �׷� ü��)
+CREATE TABLE IF NOT EXISTS qr_coupon_groups (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    group_no SMALLINT UNSIGNED NOT NULL COMMENT 'QR �׷�No. 1-19',
+    category_no SMALLINT UNSIGNED NOT NULL COMMENT '��ǰ �з�No. 1-11',
+    category_slug VARCHAR(100) NOT NULL,
+    category_name VARCHAR(150) NOT NULL,
+    sheets_per_pack INT UNSIGNED NOT NULL COMMENT '�ż�/��',
+    list_price INT UNSIGNED NOT NULL COMMENT '���� �Һ��ڰ�(��)',
+    credit_amount INT UNSIGNED NULL COMMENT '���� ũ����(���� Ȯ��)',
+    color_hex CHAR(7) NOT NULL DEFAULT '#9b1c1c' COMMENT '�з�No. �� ����',
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uk_qr_coupon_groups_no (group_no),
+    KEY idx_qr_coupon_groups_category (category_no),
+    KEY idx_qr_coupon_groups_slug_sheets (category_slug, sheets_per_pack)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- QR coupon codes / batches
+CREATE TABLE IF NOT EXISTS qr_coupon_batches (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    group_no SMALLINT UNSIGNED NOT NULL,
+    category_slug VARCHAR(100) NOT NULL,
+    category_name VARCHAR(150) NOT NULL,
+    sheets_per_pack INT UNSIGNED NOT NULL,
+    coupon_page_url VARCHAR(500) NOT NULL,
+    quantity INT UNSIGNED NOT NULL,
+    created_by INT UNSIGNED NULL,
+    created_at DATETIME NOT NULL,
+    KEY idx_qr_coupon_batches_group (group_no),
+    KEY idx_qr_coupon_batches_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS qr_coupon_codes (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    batch_id BIGINT UNSIGNED NOT NULL,
+    group_no SMALLINT UNSIGNED NOT NULL,
+    category_slug VARCHAR(100) NOT NULL,
+    sheets_per_pack INT UNSIGNED NOT NULL,
+    code VARCHAR(40) NOT NULL,
+    coupon_page_url VARCHAR(500) NOT NULL,
+    status ENUM('unused','used','disabled') NOT NULL DEFAULT 'unused',
+    used_at DATETIME NULL,
+    used_by INT UNSIGNED NULL,
+    created_at DATETIME NOT NULL,
+    UNIQUE KEY uk_qr_coupon_codes_code (code),
+    KEY idx_qr_coupon_codes_group (group_no),
+    KEY idx_qr_coupon_codes_batch (batch_id),
+    KEY idx_qr_coupon_codes_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

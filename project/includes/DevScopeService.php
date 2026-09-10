@@ -33,6 +33,78 @@ class DevScopeService
         );
     }
 
+    public static function getReviewStatuses()
+    {
+        return array(
+            'in_review' => '검수중',
+            'done' => '검수완료',
+            'need_fix' => '보완필요',
+        );
+    }
+
+    public static function normalizeReviewStatus($status)
+    {
+        $statuses = self::getReviewStatuses();
+        $status = is_string($status) ? trim($status) : '';
+        if (isset($statuses[$status])) {
+            return $status;
+        }
+        // 레거시 체크박스 호환
+        if ($status === '1' || $status === 'confirmed' || $status === 'ok') {
+            return 'done';
+        }
+        return 'in_review';
+    }
+
+    public static function normalizePageUrl($url)
+    {
+        $url = trim((string) $url);
+        if ($url === '') {
+            return '';
+        }
+        if (strlen($url) > 1000) {
+            $url = substr($url, 0, 1000);
+        }
+        return $url;
+    }
+
+    /** 링크용 href (스킴 없으면 https:// 보정) */
+    public static function pageUrlHref($url)
+    {
+        $url = self::normalizePageUrl($url);
+        if ($url === '') {
+            return '';
+        }
+        if (preg_match('#^(https?://|mailto:|/|#)#i', $url)) {
+            return $url;
+        }
+        return 'https://' . $url;
+    }
+
+    /**
+     * 페이지 URL만 저장
+     */
+    public static function savePageUrl($id, $pageUrl, $userId = null)
+    {
+        $existing = self::getById($id);
+        if (!$existing) {
+            throw new InvalidArgumentException('항목을 찾을 수 없습니다.');
+        }
+        $url = self::normalizePageUrl($pageUrl);
+        $db = Database::getConnection();
+        try {
+            $stmt = $db->prepare('
+                UPDATE dev_scope_items
+                SET page_url = ?, updated_by = ?, updated_at = NOW()
+                WHERE id = ?
+            ');
+            $stmt->execute(array($url === '' ? null : $url, $userId, $id));
+        } catch (Exception $e) {
+            throw new RuntimeException('페이지 URL 컬럼이 없습니다. 페이지를 새로고침해 마이그레이션을 적용해 주세요.');
+        }
+        return true;
+    }
+
     public static function listByPhase($projectId, $phaseKey)
     {
         try {
@@ -377,6 +449,155 @@ class DevScopeService
             throw new RuntimeException('고객사 확인 컬럼이 없습니다. 페이지를 새로고침해 마이그레이션을 적용해 주세요.');
         }
         return true;
+    }
+
+    /**
+     * 개발 상태만 변경 (검수 페이지용)
+     */
+    public static function updateStatus($id, $status, $userId = null)
+    {
+        $existing = self::getById($id);
+        if (!$existing) {
+            throw new InvalidArgumentException('항목을 찾을 수 없습니다.');
+        }
+        $statuses = self::getStatuses();
+        if (!isset($statuses[$status])) {
+            throw new InvalidArgumentException('올바른 상태가 아닙니다.');
+        }
+        $db = Database::getConnection();
+        $stmt = $db->prepare('UPDATE dev_scope_items SET status = ?, updated_by = ?, updated_at = NOW() WHERE id = ?');
+        $stmt->execute(array($status, $userId, $id));
+        return true;
+    }
+
+    /**
+     * 검수 상태 + 코멘트 저장
+     * @param array $data keys: review_status?, review_comment?
+     */
+    public static function saveReview($id, array $data, $userId = null)
+    {
+        $existing = self::getById($id);
+        if (!$existing) {
+            throw new InvalidArgumentException('항목을 찾을 수 없습니다.');
+        }
+        $hasStatus = array_key_exists('review_status', $data) || array_key_exists('review_confirmed', $data);
+        $hasComment = array_key_exists('review_comment', $data);
+        if (!$hasStatus && !$hasComment) {
+            return true;
+        }
+
+        if (array_key_exists('review_status', $data)) {
+            $status = self::normalizeReviewStatus($data['review_status']);
+        } elseif (array_key_exists('review_confirmed', $data)) {
+            $flag = ((string) $data['review_confirmed'] === '1' || $data['review_confirmed'] === 1 || $data['review_confirmed'] === true);
+            $status = $flag ? 'done' : 'in_review';
+        } else {
+            $status = self::normalizeReviewStatus(isset($existing['review_status']) ? $existing['review_status'] : (empty($existing['review_confirmed']) ? 'in_review' : 'done'));
+        }
+
+        $comment = $hasComment
+            ? trim((string) $data['review_comment'])
+            : (isset($existing['review_comment']) ? (string) $existing['review_comment'] : '');
+
+        $db = Database::getConnection();
+        try {
+            if ($status === 'done') {
+                $stmt = $db->prepare('
+                    UPDATE dev_scope_items
+                    SET review_status = ?,
+                        review_confirmed = 1,
+                        review_confirmed_at = NOW(),
+                        review_confirmed_by = ?,
+                        review_comment = ?,
+                        updated_by = ?,
+                        updated_at = NOW()
+                    WHERE id = ?
+                ');
+                $stmt->execute(array($status, $userId, $comment === '' ? null : $comment, $userId, $id));
+            } else {
+                $stmt = $db->prepare('
+                    UPDATE dev_scope_items
+                    SET review_status = ?,
+                        review_confirmed = 0,
+                        review_confirmed_at = NULL,
+                        review_confirmed_by = NULL,
+                        review_comment = ?,
+                        updated_by = ?,
+                        updated_at = NOW()
+                    WHERE id = ?
+                ');
+                $stmt->execute(array($status, $comment === '' ? null : $comment, $userId, $id));
+            }
+        } catch (Exception $e) {
+            // review_status 미적용 구버전: review_confirmed만
+            try {
+                if ($status === 'done') {
+                    $stmt = $db->prepare('
+                        UPDATE dev_scope_items
+                        SET review_confirmed = 1, review_confirmed_at = NOW(), review_confirmed_by = ?,
+                            review_comment = ?, updated_by = ?, updated_at = NOW()
+                        WHERE id = ?
+                    ');
+                    $stmt->execute(array($userId, $comment === '' ? null : $comment, $userId, $id));
+                } else {
+                    $stmt = $db->prepare('
+                        UPDATE dev_scope_items
+                        SET review_confirmed = 0, review_confirmed_at = NULL, review_confirmed_by = NULL,
+                            review_comment = ?, updated_by = ?, updated_at = NOW()
+                        WHERE id = ?
+                    ');
+                    $stmt->execute(array($comment === '' ? null : $comment, $userId, $id));
+                }
+            } catch (Exception $e2) {
+                throw new RuntimeException('검수 컬럼이 없습니다. 페이지를 새로고침해 마이그레이션을 적용해 주세요.');
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 검수 시트 엑셀 (1차 구축만)
+     */
+    public static function buildReviewExcelExport($projectId)
+    {
+        $phaseKey = 'phase-1';
+        $phases = self::getPhases();
+        $priorities = self::getPriorities();
+        $statuses = self::getStatuses();
+        $reviewStatuses = self::getReviewStatuses();
+        $headers = array('Depth', '구분', '항목', '내용', '페이지URL', '우선순위', '개발자확인', '검수상태', '검수코멘트');
+        $label = isset($phases[$phaseKey]['label']) ? $phases[$phaseKey]['label'] : '1차 구축';
+        $rows = array($headers);
+        foreach (self::buildSheetRows($projectId, $phaseKey) as $r) {
+            $it = $r['item'];
+            $prio = isset($it['priority']) ? $it['priority'] : '';
+            $st = isset($it['status']) ? $it['status'] : '';
+            $rs = self::normalizeReviewStatus(
+                isset($it['review_status']) ? $it['review_status'] : (empty($it['review_confirmed']) ? 'in_review' : 'done')
+            );
+            $rows[] = array(
+                (string) $r['depth'],
+                isset($r['d1']) ? $r['d1'] : '',
+                isset($r['d2']) ? $r['d2'] : '',
+                isset($r['d3']) ? $r['d3'] : '',
+                isset($it['page_url']) ? $it['page_url'] : '',
+                isset($priorities[$prio]) ? $priorities[$prio] : $prio,
+                isset($statuses[$st]) ? $statuses[$st] : $st,
+                isset($reviewStatuses[$rs]) ? $reviewStatuses[$rs] : $rs,
+                isset($it['review_comment']) ? $it['review_comment'] : '',
+            );
+        }
+        $sheetRowsMap = array($phaseKey => array('name' => '검수_' . $label, 'rows' => $rows));
+        if (class_exists('ZipArchive')) {
+            $body = self::buildXlsxBinary($sheetRowsMap);
+            $mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+            $filename = '검수범위_' . date('Ymd') . '.xlsx';
+        } else {
+            $body = self::buildSpreadsheetMl($sheetRowsMap);
+            $mime = 'application/vnd.ms-excel';
+            $filename = '검수범위_' . date('Ymd') . '.xls';
+        }
+        return array('filename' => $filename, 'mime' => $mime, 'body' => $body);
     }
 
     /**

@@ -40,6 +40,41 @@ function url(string $path = ''): string
     return $base . '/' . ltrim($path, '/');
 }
 
+/** 절대 URL (QR 딥링크용). APP_URL 우선, 없으면 요청 호스트 사용. */
+function absolute_url(string $path = ''): string
+{
+    $path = trim($path);
+    if ($path !== '' && preg_match('#^https?://#i', $path)) {
+        return $path;
+    }
+
+    $query = '';
+    if ($path !== '' && str_contains($path, '?')) {
+        [$path, $queryPart] = explode('?', $path, 2);
+        $query = '?' . $queryPart;
+    }
+
+    $path = trim(str_replace('\\', '/', $path), '/');
+
+    $base = rtrim((string) app_config('url', ''), '/');
+    if ($base === '') {
+        $host = (string) ($_SERVER['HTTP_HOST'] ?? '');
+        if ($host !== '') {
+            $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                || ((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+            $base = ($https ? 'https://' : 'http://') . $host;
+        } else {
+            $base = 'http://localhost';
+        }
+    }
+
+    if ($path === '') {
+        return $base . '/' . ($query !== '' ? ltrim($query, '?') : '');
+    }
+
+    return $base . '/' . $path . $query;
+}
+
 function asset(string $path): string
 {
     $rel = 'assets/' . ltrim($path, '/');

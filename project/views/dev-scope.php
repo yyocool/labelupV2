@@ -41,6 +41,7 @@ $saveUrl = url('dev-scope.php?phase=' . urlencode($phaseKey));
             <a href="<?= url('dev-scope.php?print=1&scope=current&phase=' . urlencode($phaseKey)) ?>" class="ds-btn" target="_blank" rel="noopener" title="현재 단계 PDF로 저장">📄 PDF</a>
             <a href="<?= url('dev-scope.php?print=1&scope=all') ?>" class="ds-btn ds-btn-ghost" target="_blank" rel="noopener" title="전체 단계 PDF로 저장">📄 PDF 전체</a>
             <a href="<?= url('feature-spec.php') ?>" class="ds-btn ds-btn-ghost">명세표</a>
+            <a href="<?= url('review-scope.php') ?>" class="ds-btn ds-btn-ghost" title="1차 구축 검수">검수</a>
             <button type="button" class="ds-btn" id="dsFullscreen" title="전체화면 (Alt+F)">⛶ 전체화면</button>
         </div>
     </header>
