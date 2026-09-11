@@ -32,6 +32,20 @@ final class HeroAdminApiController extends BaseController
         }
     }
 
+    public function upload(): never
+    {
+        $this->guard();
+        try {
+            if (empty($_FILES['image'])) {
+                throw new RuntimeException('업로드할 이미지를 선택해주세요.');
+            }
+            $stored = $this->hero->storeUploadedImage($_FILES['image']);
+            $this->jsonSuccess($stored, '이미지가 업로드되었습니다.');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
+        }
+    }
+
     public function delete(): never
     {
         $this->guard();

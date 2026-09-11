@@ -323,6 +323,7 @@ final class Router
         $router->post('/api/admin/credit/cs/save', [$creditAdminApi, 'saveCsLog']);
 
         $router->post('/api/admin/hero/slide/save', [$heroAdminApi, 'save']);
+        $router->post('/api/admin/hero/slide/upload', [$heroAdminApi, 'upload']);
         $router->post('/api/admin/hero/slide/delete', [$heroAdminApi, 'delete']);
 
         $router->post('/api/admin/event-popup/save', [$eventPopupAdminApi, 'save']);

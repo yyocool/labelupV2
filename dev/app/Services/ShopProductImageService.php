@@ -74,6 +74,9 @@ final class ShopProductImageService
         if (str_contains($dir, 'shop-page')) {
             return '/assets/shop-page/';
         }
+        if (str_contains($dir, DIRECTORY_SEPARATOR . 'hero') || str_ends_with($dir, '/hero') || str_ends_with($dir, '\\hero')) {
+            return '/assets/hero/';
+        }
 
         return '/assets/products/';
     }

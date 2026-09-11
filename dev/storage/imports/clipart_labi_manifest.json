@@ -1,0 +1,804 @@
+{
+  "items": [
+    {
+      "title": "라비 · 기본 표정",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_001_normal.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #normal",
+      "description": "라벨업 AI 마스코트 라비 — 기본 표정",
+      "sort_order": 9601
+    },
+    {
+      "title": "라비 · 방긋 미소",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_002_happy.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #happy",
+      "description": "라벨업 AI 마스코트 라비 — 방긋 미소",
+      "sort_order": 9602
+    },
+    {
+      "title": "라비 · 윙크",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_003_wink.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #wink",
+      "description": "라벨업 AI 마스코트 라비 — 윙크",
+      "sort_order": 9603
+    },
+    {
+      "title": "라비 · 깜짝",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_004_surprise.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #surprise",
+      "description": "라벨업 AI 마스코트 라비 — 깜짝",
+      "sort_order": 9604
+    },
+    {
+      "title": "라비 · 생각중",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_005_think.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #think",
+      "description": "라벨업 AI 마스코트 라비 — 생각중",
+      "sort_order": 9605
+    },
+    {
+      "title": "라비 · 졸린",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_006_sleepy.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #sleepy",
+      "description": "라벨업 AI 마스코트 라비 — 졸린",
+      "sort_order": 9606
+    },
+    {
+      "title": "라비 · 하트눈",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_007_love.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #love",
+      "description": "라벨업 AI 마스코트 라비 — 하트눈",
+      "sort_order": 9607
+    },
+    {
+      "title": "라비 · 울먹",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_008_cry.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #cry",
+      "description": "라벨업 AI 마스코트 라비 — 울먹",
+      "sort_order": 9608
+    },
+    {
+      "title": "라비 · 화남",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_009_angry.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #angry",
+      "description": "라벨업 AI 마스코트 라비 — 화남",
+      "sort_order": 9609
+    },
+    {
+      "title": "라비 · 수줍",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_010_shy.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #shy",
+      "description": "라벨업 AI 마스코트 라비 — 수줍",
+      "sort_order": 9610
+    },
+    {
+      "title": "라비 · 어질어질",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_011_dizzy.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #dizzy",
+      "description": "라벨업 AI 마스코트 라비 — 어질어질",
+      "sort_order": 9611
+    },
+    {
+      "title": "라비 · 반짝",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_012_sparkle.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #sparkle",
+      "description": "라벨업 AI 마스코트 라비 — 반짝",
+      "sort_order": 9612
+    },
+    {
+      "title": "라비 · 안녕",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_013_hello.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #hello",
+      "description": "라벨업 AI 마스코트 라비 — 안녕",
+      "sort_order": 9613
+    },
+    {
+      "title": "라비 · 손인사",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_014_wave.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #wave",
+      "description": "라벨업 AI 마스코트 라비 — 손인사",
+      "sort_order": 9614
+    },
+    {
+      "title": "라비 · 만세",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_015_cheer.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #cheer",
+      "description": "라벨업 AI 마스코트 라비 — 만세",
+      "sort_order": 9615
+    },
+    {
+      "title": "라비 · 폴짝",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_016_jump.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #jump",
+      "description": "라벨업 AI 마스코트 라비 — 폴짝",
+      "sort_order": 9616
+    },
+    {
+      "title": "라비 · 댄스",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_017_dance.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #dance",
+      "description": "라벨업 AI 마스코트 라비 — 댄스",
+      "sort_order": 9617
+    },
+    {
+      "title": "라비 · 기울기 왼쪽",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_018_tilt_left.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #tilt_left",
+      "description": "라벨업 AI 마스코트 라비 — 기울기 왼쪽",
+      "sort_order": 9618
+    },
+    {
+      "title": "라비 · 기울기 오른쪽",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_019_tilt_right.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #tilt_right",
+      "description": "라벨업 AI 마스코트 라비 — 기울기 오른쪽",
+      "sort_order": 9619
+    },
+    {
+      "title": "라비 · 뒷모습",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_020_back.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #back",
+      "description": "라벨업 AI 마스코트 라비 — 뒷모습",
+      "sort_order": 9620
+    },
+    {
+      "title": "라비 · 노트북",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_021_laptop.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #laptop",
+      "description": "라벨업 AI 마스코트 라비 — 노트북",
+      "sort_order": 9621
+    },
+    {
+      "title": "라비 · 코딩중",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_022_coding.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #coding",
+      "description": "라벨업 AI 마스코트 라비 — 코딩중",
+      "sort_order": 9622
+    },
+    {
+      "title": "라비 · 헤드셋",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_023_headset.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #headset",
+      "description": "라벨업 AI 마스코트 라비 — 헤드셋",
+      "sort_order": 9623
+    },
+    {
+      "title": "라비 · 상담중",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_024_cs.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #cs",
+      "description": "라벨업 AI 마스코트 라비 — 상담중",
+      "sort_order": 9624
+    },
+    {
+      "title": "라비 · 아이디어",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_025_bulb.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #bulb",
+      "description": "라벨업 AI 마스코트 라비 — 아이디어",
+      "sort_order": 9625
+    },
+    {
+      "title": "라비 · 번쩍 아이디어",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_026_idea_happy.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #idea_happy",
+      "description": "라벨업 AI 마스코트 라비 — 번쩍 아이디어",
+      "sort_order": 9626
+    },
+    {
+      "title": "라비 · 검색",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_027_search.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #search",
+      "description": "라벨업 AI 마스코트 라비 — 검색",
+      "sort_order": 9627
+    },
+    {
+      "title": "라비 · 꼼꼼 확인",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_028_inspect.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #inspect",
+      "description": "라벨업 AI 마스코트 라비 — 꼼꼼 확인",
+      "sort_order": 9628
+    },
+    {
+      "title": "라비 · 라벨 뭉치",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_029_labels.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #labels",
+      "description": "라벨업 AI 마스코트 라비 — 라벨 뭉치",
+      "sort_order": 9629
+    },
+    {
+      "title": "라비 · 출력중",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_030_print.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #print",
+      "description": "라벨업 AI 마스코트 라비 — 출력중",
+      "sort_order": 9630
+    },
+    {
+      "title": "라비 · 출력 완료",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_031_print_happy.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #print_happy",
+      "description": "라벨업 AI 마스코트 라비 — 출력 완료",
+      "sort_order": 9631
+    },
+    {
+      "title": "라비 · 커피타임",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_032_coffee.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #coffee",
+      "description": "라벨업 AI 마스코트 라비 — 커피타임",
+      "sort_order": 9632
+    },
+    {
+      "title": "라비 · 전화중",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_033_phone.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #phone",
+      "description": "라벨업 AI 마스코트 라비 — 전화중",
+      "sort_order": 9633
+    },
+    {
+      "title": "라비 · 전화 윙크",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_034_call_wink.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #call_wink",
+      "description": "라벨업 AI 마스코트 라비 — 전화 윙크",
+      "sort_order": 9634
+    },
+    {
+      "title": "라비 · 쇼핑백",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_035_bag.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #bag",
+      "description": "라벨업 AI 마스코트 라비 — 쇼핑백",
+      "sort_order": 9635
+    },
+    {
+      "title": "라비 · 쇼핑",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_036_shop.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #shop",
+      "description": "라벨업 AI 마스코트 라비 — 쇼핑",
+      "sort_order": 9636
+    },
+    {
+      "title": "라비 · 별점",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_037_star.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #star",
+      "description": "라벨업 AI 마스코트 라비 — 별점",
+      "sort_order": 9637
+    },
+    {
+      "title": "라비 · 별사랑",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_038_star_love.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #star_love",
+      "description": "라벨업 AI 마스코트 라비 — 별사랑",
+      "sort_order": 9638
+    },
+    {
+      "title": "라비 · 페인팅",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_039_paint.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #paint",
+      "description": "라벨업 AI 마스코트 라비 — 페인팅",
+      "sort_order": 9639
+    },
+    {
+      "title": "라비 · 디자인중",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_040_design.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #design",
+      "description": "라벨업 AI 마스코트 라비 — 디자인중",
+      "sort_order": 9640
+    },
+    {
+      "title": "라비 · 가위질",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_041_scissors.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #scissors",
+      "description": "라벨업 AI 마스코트 라비 — 가위질",
+      "sort_order": 9641
+    },
+    {
+      "title": "라비 · 재단",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_042_cut.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #cut",
+      "description": "라벨업 AI 마스코트 라비 — 재단",
+      "sort_order": 9642
+    },
+    {
+      "title": "라비 · 바코드",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_043_barcode.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #barcode",
+      "description": "라벨업 AI 마스코트 라비 — 바코드",
+      "sort_order": 9643
+    },
+    {
+      "title": "라비 · 스캔",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_044_scan.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #scan",
+      "description": "라벨업 AI 마스코트 라비 — 스캔",
+      "sort_order": 9644
+    },
+    {
+      "title": "라비 · 선물",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_045_gift.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #gift",
+      "description": "라벨업 AI 마스코트 라비 — 선물",
+      "sort_order": 9645
+    },
+    {
+      "title": "라비 · 깜짝선물",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_046_gift_surprise.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #gift_surprise",
+      "description": "라벨업 AI 마스코트 라비 — 깜짝선물",
+      "sort_order": 9646
+    },
+    {
+      "title": "라비 · 독서",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_047_book.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #book",
+      "description": "라벨업 AI 마스코트 라비 — 독서",
+      "sort_order": 9647
+    },
+    {
+      "title": "라비 · 공부",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_048_study.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #study",
+      "description": "라벨업 AI 마스코트 라비 — 공부",
+      "sort_order": 9648
+    },
+    {
+      "title": "라비 · 촬영",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_049_camera.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #camera",
+      "description": "라벨업 AI 마스코트 라비 — 촬영",
+      "sort_order": 9649
+    },
+    {
+      "title": "라비 · 셀카",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_050_selfie.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #selfie",
+      "description": "라벨업 AI 마스코트 라비 — 셀카",
+      "sort_order": 9650
+    },
+    {
+      "title": "라비 · OK",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_051_ok.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #ok",
+      "description": "라벨업 AI 마스코트 라비 — OK",
+      "sort_order": 9651
+    },
+    {
+      "title": "라비 · 완료",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_052_done.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #done",
+      "description": "라벨업 AI 마스코트 라비 — 완료",
+      "sort_order": 9652
+    },
+    {
+      "title": "라비 · 말풍선",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_053_speech.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #speech",
+      "description": "라벨업 AI 마스코트 라비 — 말풍선",
+      "sort_order": 9653
+    },
+    {
+      "title": "라비 · 수다",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_054_chat.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #chat",
+      "description": "라벨업 AI 마스코트 라비 — 수다",
+      "sort_order": 9654
+    },
+    {
+      "title": "라비 · 쿨쿨",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_055_sleep.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #sleep",
+      "description": "라벨업 AI 마스코트 라비 — 쿨쿨",
+      "sort_order": 9655
+    },
+    {
+      "title": "라비 · 낮잠",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_056_nap.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #nap",
+      "description": "라벨업 AI 마스코트 라비 — 낮잠",
+      "sort_order": 9656
+    },
+    {
+      "title": "라비 · 하트",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_057_heart.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #heart",
+      "description": "라벨업 AI 마스코트 라비 — 하트",
+      "sort_order": 9657
+    },
+    {
+      "title": "라비 · 두근",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_058_heart_shy.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #heart_shy",
+      "description": "라벨업 AI 마스코트 라비 — 두근",
+      "sort_order": 9658
+    },
+    {
+      "title": "라비 · 발그레",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_059_blush.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #blush",
+      "description": "라벨업 AI 마스코트 라비 — 발그레",
+      "sort_order": 9659
+    },
+    {
+      "title": "라비 · 뿌듯",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_060_proud.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #proud",
+      "description": "라벨업 AI 마스코트 라비 — 뿌듯",
+      "sort_order": 9660
+    },
+    {
+      "title": "라비 · 궁금",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_061_curious.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #curious",
+      "description": "라벨업 AI 마스코트 라비 — 궁금",
+      "sort_order": 9661
+    },
+    {
+      "title": "라비 · 집중",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_062_focus.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #focus",
+      "description": "라벨업 AI 마스코트 라비 — 집중",
+      "sort_order": 9662
+    },
+    {
+      "title": "라비 · AI 작업",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_063_ai_work.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #ai_work",
+      "description": "라벨업 AI 마스코트 라비 — AI 작업",
+      "sort_order": 9663
+    },
+    {
+      "title": "라비 · 고객지원",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_064_support.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #support",
+      "description": "라벨업 AI 마스코트 라비 — 고객지원",
+      "sort_order": 9664
+    },
+    {
+      "title": "라비 · 영감",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_065_inspire.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #inspire",
+      "description": "라벨업 AI 마스코트 라비 — 영감",
+      "sort_order": 9665
+    },
+    {
+      "title": "라비 · 배송라벨",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_066_ship_label.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #ship_label",
+      "description": "라벨업 AI 마스코트 라비 — 배송라벨",
+      "sort_order": 9666
+    },
+    {
+      "title": "라비 · 포장",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_067_pack.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #pack",
+      "description": "라벨업 AI 마스코트 라비 — 포장",
+      "sort_order": 9667
+    },
+    {
+      "title": "라비 · 축하",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_068_celebrate.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #celebrate",
+      "description": "라벨업 AI 마스코트 라비 — 축하",
+      "sort_order": 9668
+    },
+    {
+      "title": "라비 · 파티",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_069_party.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #party",
+      "description": "라벨업 AI 마스코트 라비 — 파티",
+      "sort_order": 9669
+    },
+    {
+      "title": "라비 · 커피 생각",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_070_coffee_think.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #coffee_think",
+      "description": "라벨업 AI 마스코트 라비 — 커피 생각",
+      "sort_order": 9670
+    },
+    {
+      "title": "라비 · 전화 놀람",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_071_phone_surprise.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #phone_surprise",
+      "description": "라벨업 AI 마스코트 라비 — 전화 놀람",
+      "sort_order": 9671
+    },
+    {
+      "title": "라비 · 쇼핑 러브",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_072_bag_love.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #bag_love",
+      "description": "라벨업 AI 마스코트 라비 — 쇼핑 러브",
+      "sort_order": 9672
+    },
+    {
+      "title": "라비 · 그림 수줍",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_073_paint_shy.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #paint_shy",
+      "description": "라벨업 AI 마스코트 라비 — 그림 수줍",
+      "sort_order": 9673
+    },
+    {
+      "title": "라비 · 책보다 졸림",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_074_book_sleep.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #book_sleep",
+      "description": "라벨업 AI 마스코트 라비 — 책보다 졸림",
+      "sort_order": 9674
+    },
+    {
+      "title": "라비 · 찰칵 놀람",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_075_camera_surprise.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #camera_surprise",
+      "description": "라벨업 AI 마스코트 라비 — 찰칵 놀람",
+      "sort_order": 9675
+    },
+    {
+      "title": "라비 · 검수 OK",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_076_check_proud.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #check_proud",
+      "description": "라벨업 AI 마스코트 라비 — 검수 OK",
+      "sort_order": 9676
+    },
+    {
+      "title": "라비 · 음…",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_077_speech_think.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #speech_think",
+      "description": "라벨업 AI 마스코트 라비 — 음…",
+      "sort_order": 9677
+    },
+    {
+      "title": "라비 · 뒤돌아 신남",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_078_back_motion.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #back_motion",
+      "description": "라벨업 AI 마스코트 라비 — 뒤돌아 신남",
+      "sort_order": 9678
+    },
+    {
+      "title": "라비 · 살짝 옆",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_079_side_tilt.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #side_tilt",
+      "description": "라벨업 AI 마스코트 라비 — 살짝 옆",
+      "sort_order": 9679
+    },
+    {
+      "title": "라비 · 둥실",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_080_float.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #float",
+      "description": "라벨업 AI 마스코트 라비 — 둥실",
+      "sort_order": 9680
+    },
+    {
+      "title": "라비 · 위로",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_081_cry_comfort.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #cry_comfort",
+      "description": "라벨업 AI 마스코트 라비 — 위로",
+      "sort_order": 9681
+    },
+    {
+      "title": "라비 · 화난 작업",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_082_angry_work.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #angry_work",
+      "description": "라벨업 AI 마스코트 라비 — 화난 작업",
+      "sort_order": 9682
+    },
+    {
+      "title": "라비 · 러브 선물",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_083_love_gift.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #love_gift",
+      "description": "라벨업 AI 마스코트 라비 — 러브 선물",
+      "sort_order": 9683
+    },
+    {
+      "title": "라비 · 라벨 윙크",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_084_labels_wink.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #labels_wink",
+      "description": "라벨업 AI 마스코트 라비 — 라벨 윙크",
+      "sort_order": 9684
+    },
+    {
+      "title": "라비 · 출력 고민",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_085_print_think.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #print_think",
+      "description": "라벨업 AI 마스코트 라비 — 출력 고민",
+      "sort_order": 9685
+    },
+    {
+      "title": "라비 · 가위 신남",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_086_scissors_happy.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #scissors_happy",
+      "description": "라벨업 AI 마스코트 라비 — 가위 신남",
+      "sort_order": 9686
+    },
+    {
+      "title": "라비 · 바코드 OK",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_087_barcode_ok.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #barcode_ok",
+      "description": "라벨업 AI 마스코트 라비 — 바코드 OK",
+      "sort_order": 9687
+    },
+    {
+      "title": "라비 · 별 윙크",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_088_star_wink.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #star_wink",
+      "description": "라벨업 AI 마스코트 라비 — 별 윙크",
+      "sort_order": 9688
+    },
+    {
+      "title": "라비 · 아이디어 생각",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_089_bulb_think.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #bulb_think",
+      "description": "라벨업 AI 마스코트 라비 — 아이디어 생각",
+      "sort_order": 9689
+    },
+    {
+      "title": "라비 · 상담 졸림",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_090_headset_sleepy.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #headset_sleepy",
+      "description": "라벨업 AI 마스코트 라비 — 상담 졸림",
+      "sort_order": 9690
+    },
+    {
+      "title": "라비 · 노트북 신남",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_091_laptop_happy.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #laptop_happy",
+      "description": "라벨업 AI 마스코트 라비 — 노트북 신남",
+      "sort_order": 9691
+    },
+    {
+      "title": "라비 · 쇼핑 놀람",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_092_bag_surprise.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #bag_surprise",
+      "description": "라벨업 AI 마스코트 라비 — 쇼핑 놀람",
+      "sort_order": 9692
+    },
+    {
+      "title": "라비 · 전화 러브",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_093_phone_love.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #phone_love",
+      "description": "라벨업 AI 마스코트 라비 — 전화 러브",
+      "sort_order": 9693
+    },
+    {
+      "title": "라비 · 돋보기 놀람",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_094_magnifier_surprise.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #magnifier_surprise",
+      "description": "라벨업 AI 마스코트 라비 — 돋보기 놀람",
+      "sort_order": 9694
+    },
+    {
+      "title": "라비 · 커피 윙크",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_095_coffee_wink.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #coffee_wink",
+      "description": "라벨업 AI 마스코트 라비 — 커피 윙크",
+      "sort_order": 9695
+    },
+    {
+      "title": "라비 · 독서 신남",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_096_book_happy.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #book_happy",
+      "description": "라벨업 AI 마스코트 라비 — 독서 신남",
+      "sort_order": 9696
+    },
+    {
+      "title": "라비 · 촬영 러브",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_097_camera_love.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #camera_love",
+      "description": "라벨업 AI 마스코트 라비 — 촬영 러브",
+      "sort_order": 9697
+    },
+    {
+      "title": "라비 · 체크 윙크",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_098_check_wink.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #check_wink",
+      "description": "라벨업 AI 마스코트 라비 — 체크 윙크",
+      "sort_order": 9698
+    },
+    {
+      "title": "라비 · 말풍선 놀람",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_099_speech_surprise.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #speech_surprise",
+      "description": "라벨업 AI 마스코트 라비 — 말풍선 놀람",
+      "sort_order": 9699
+    },
+    {
+      "title": "라비 · 기우뚱 졸림",
+      "category_slug": "labi",
+      "image_path": "/assets/cliparts/hq_labi_100_zzz_tilt.png",
+      "hashtags": "#라비 #LABI #캐릭터 #마스코트 #라벨업 #클립아트 #zzz_tilt",
+      "description": "라벨업 AI 마스코트 라비 — 기우뚱 졸림",
+      "sort_order": 9700
+    }
+  ]
+}

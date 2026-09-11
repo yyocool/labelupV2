@@ -95,6 +95,7 @@ final class ContentAdminApiController extends BaseController
                 storage_path('imports/clipart_workphrase_manifest.json'),
                 storage_path('imports/clipart_logistics_phrase_manifest.json'),
                 storage_path('imports/clipart_traffic_manifest.json'),
+                storage_path('imports/clipart_labi_manifest.json'),
             ];
             $inserted = 0;
             $skipped = 0;

@@ -298,6 +298,7 @@ final class ClipartService
             ['name' => '업무용 문구', 'slug' => 'work-phrase', 'description' => '확인·긴급·결재 등 오피스 문구 스티커'],
             ['name' => '물류용 문구', 'slug' => 'logistics-phrase', 'description' => '취급주의·출고·배송 등 물류 현장 문구'],
             ['name' => '교통', 'slug' => 'traffic', 'description' => '자동차·표지판·대중교통 2D 일러스트'],
+            ['name' => '라비', 'slug' => 'labi', 'description' => '라벨업 AI 마스코트 라비 표정·동작'],
         ];
         $created = 0;
         foreach ($defaults as $i => $row) {

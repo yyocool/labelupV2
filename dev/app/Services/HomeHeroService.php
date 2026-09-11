@@ -35,14 +35,34 @@ final class HomeHeroService
     public function save(array $data): int
     {
         if (trim((string) ($data['image_url'] ?? '')) === '') {
-            throw new RuntimeException('이미지 URL을 입력해주세요.');
+            throw new RuntimeException('이미지를 업로드해주세요.');
         }
+        $data['image_url'] = ShopProductImageService::normalizePublicPath((string) $data['image_url']);
         return $this->repo->save($data);
     }
 
     public function delete(int $id): void
     {
         $this->repo->delete($id);
+    }
+
+    /** @param array<string, mixed> $file $_FILES['image'] shape */
+    public function storeUploadedImage(array $file): array
+    {
+        $paths = ShopProductImageService::storeUploadedFiles(
+            $file,
+            public_path('assets/hero'),
+            'hero_'
+        );
+        $path = $paths[0] ?? '';
+        if ($path === '') {
+            throw new RuntimeException('이미지 업로드에 실패했습니다.');
+        }
+
+        return [
+            'path' => $path,
+            'url' => self::resolveImageUrl($path),
+        ];
     }
 
     /** @param array<string, mixed> $slide */
