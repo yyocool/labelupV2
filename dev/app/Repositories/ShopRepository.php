@@ -726,7 +726,27 @@ final class ShopRepository extends BaseModel
 
     }
 
-    /** @return array<int, array<string, mixed>> */
+    /** @return array<string, mixed>|null */
+    public function findUserOrderByNo(int $userId, string $orderNo, string $email = ''): ?array
+    {
+        $email = trim($email);
+        $sql = 'SELECT * FROM shop_orders WHERE order_no = :order_no AND user_id = :user_id LIMIT 1';
+        $params = ['user_id' => $userId, 'order_no' => $orderNo];
+        $row = $this->fetchOne($sql, $params);
+        if (!$row && $email !== '') {
+            $row = $this->fetchOne(
+                'SELECT * FROM shop_orders WHERE order_no = :order_no AND customer_email = :email LIMIT 1',
+                ['order_no' => $orderNo, 'email' => $email]
+            );
+        }
+        if (!$row) {
+            return null;
+        }
+        $items = [$row];
+        $this->attachOrderItems($items);
+        return $items[0];
+    }
+
     public function ordersByUser(int $userId, int $limit = 5): array
     {
         $limit = max(1, min(20, $limit));

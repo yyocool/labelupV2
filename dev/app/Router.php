@@ -187,6 +187,7 @@ final class Router
         $router->get('/shop/products', [$shopPublic, 'products']);
         $router->get('/shop/products/{id}', [$shopPublic, 'product']);
         $router->get('/shop/cart', [$shopPublic, 'cart']);
+        $router->get('/shop/complete', [$shopPublic, 'complete']);
 
         $router->get('/login', [$auth, 'loginForm']);
         $router->get('/register', [$auth, 'registerForm']);

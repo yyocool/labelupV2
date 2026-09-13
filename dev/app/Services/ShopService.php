@@ -381,6 +381,15 @@ final class ShopService
         return (int) ($product['price'] ?? 0);
     }
 
+    public function userOrderByNo(int $userId, string $orderNo, string $email = ''): ?array
+    {
+        $orderNo = trim($orderNo);
+        if ($userId < 1 || $orderNo === '') {
+            return null;
+        }
+        return $this->repo->findUserOrderByNo($userId, $orderNo, $email);
+    }
+
     public function productThumb(array $product): string
     {
         if (!empty($product['thumbnail'])) {
