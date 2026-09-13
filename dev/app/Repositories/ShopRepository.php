@@ -806,7 +806,7 @@ final class ShopRepository extends BaseModel
         );
     }
 
-    public function findActiveProductByCode(string $code): ?array
+    public function findActiveProductByCode(string $code, ?float $widthMm = null, ?float $heightMm = null, ?int $labels = null): ?array
     {
         $code = trim($code);
         if ($code === '') {
@@ -815,11 +815,81 @@ final class ShopRepository extends BaseModel
 
         if (preg_match('/^P(\d+)$/i', $code, $m) === 1) {
             $byId = $this->findActiveProduct((int) $m[1]);
-            if ($byId) {
+            if ($byId && $this->productSpecFits($byId, $widthMm, $heightMm, $labels)) {
                 return $byId;
             }
         }
 
+        $aliases = $this->paperCodeAliases($code);
+        foreach ($aliases as $i => $alias) {
+            $hit = $this->findActiveProductByExactCode($alias);
+            if (!$hit) {
+                continue;
+            }
+            $strictSize = $i > 0 || $widthMm !== null;
+            if ($strictSize && !$this->productSpecFits($hit, $widthMm, $heightMm, $labels)) {
+                continue;
+            }
+            return $hit;
+        }
+
+        if ($widthMm !== null && $heightMm !== null && $widthMm > 0 && $heightMm > 0) {
+            return $this->findActiveProductBySpec($widthMm, $heightMm, $labels);
+        }
+
+        return null;
+    }
+
+    /** @return list<string> */
+    private function paperCodeAliases(string $code): array
+    {
+        $upper = strtoupper($code);
+        $out = [];
+        foreach ([$code, $upper] as $item) {
+            $item = trim($item);
+            if ($item !== '' && !in_array($item, $out, true)) {
+                $out[] = $item;
+            }
+        }
+        $num = $upper;
+        if (preg_match('/^(?:LU-?|V)(\d{3,5})$/', $upper, $m) === 1) {
+            $num = $m[1];
+        }
+        if (preg_match('/^\d{3,5}$/', $num) === 1) {
+            foreach ([$num, 'V' . $num, 'LU-' . $num, 'LU' . $num] as $item) {
+                if (!in_array($item, $out, true)) {
+                    $out[] = $item;
+                }
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * @param array<string, mixed> $product
+     */
+    private function productSpecFits(array $product, ?float $widthMm, ?float $heightMm, ?int $labels): bool
+    {
+        if ($widthMm === null || $heightMm === null || $widthMm <= 0 || $heightMm <= 0) {
+            return true;
+        }
+        $pw = isset($product['width_mm']) ? (float) $product['width_mm'] : 0.0;
+        $ph = isset($product['height_mm']) ? (float) $product['height_mm'] : 0.0;
+        if ($pw <= 0 || $ph <= 0) {
+            return true;
+        }
+        if (abs($pw - $widthMm) > 1.6 || abs($ph - $heightMm) > 1.6) {
+            return false;
+        }
+        $pl = isset($product['labels_per_sheet']) ? (int) $product['labels_per_sheet'] : 0;
+        if ($labels !== null && $labels > 0 && $pl > 0 && $pl !== $labels) {
+            return false;
+        }
+        return true;
+    }
+
+    private function findActiveProductByExactCode(string $code): ?array
+    {
         $select = 'SELECT p.*, c.name AS category_name, c.slug AS category_slug,
                           s.name AS spec_name, s.width_mm, s.height_mm, s.material, s.shape, s.labels_per_sheet
                    FROM shop_products p
@@ -827,7 +897,7 @@ final class ShopRepository extends BaseModel
                    LEFT JOIN label_specs s ON s.id = p.spec_id
                    WHERE p.status IN (\'active\', \'soldout\')';
 
-        $exact = $this->fetchOne(
+        return $this->fetchOne(
             $select . " AND (
                 p.sku = :sku
                 OR FIND_IN_SET(:cf, IFNULL(p.compat_formtec, '')) > 0
@@ -844,20 +914,40 @@ final class ShopRepository extends BaseModel
                 'sku_rank' => $code,
             ]
         );
-        if ($exact) {
-            return $exact;
+    }
+
+    private function findActiveProductBySpec(float $widthMm, float $heightMm, ?int $labels): ?array
+    {
+        $labelFilter = ($labels !== null && $labels > 0)
+            ? ' AND s.labels_per_sheet = :labels'
+            : '';
+        $params = [
+            'wmin' => $widthMm - 1.6,
+            'wmax' => $widthMm + 1.6,
+            'hmin' => $heightMm - 1.6,
+            'hmax' => $heightMm + 1.6,
+            'w' => $widthMm,
+            'h' => $heightMm,
+        ];
+        if ($labelFilter !== '') {
+            $params['labels'] = $labels;
         }
 
-        $like = '%' . $code . '%';
         return $this->fetchOne(
-            $select . ' AND (p.compat_formtec LIKE :lf OR p.compat_ilabel LIKE :li OR p.compat_anylabel LIKE :la)
-             ORDER BY p.id DESC
-             LIMIT 1',
-            [
-                'lf' => $like,
-                'li' => $like,
-                'la' => $like,
-            ]
+            "SELECT p.*, c.name AS category_name, c.slug AS category_slug,
+                    s.name AS spec_name, s.width_mm, s.height_mm, s.material, s.shape, s.labels_per_sheet
+             FROM shop_products p
+             INNER JOIN shop_categories c ON c.id = p.category_id AND c.is_active = 1
+             INNER JOIN label_specs s ON s.id = p.spec_id
+             WHERE p.status IN ('active', 'soldout')
+               AND s.width_mm BETWEEN :wmin AND :wmax
+               AND s.height_mm BETWEEN :hmin AND :hmax
+               {$labelFilter}
+             ORDER BY ABS(s.width_mm - :w) + ABS(s.height_mm - :h) ASC,
+                      CASE WHEN p.sku LIKE '%-100' THEN 0 ELSE 1 END,
+                      p.id DESC
+             LIMIT 1",
+            $params
         );
     }
 

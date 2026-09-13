@@ -86,6 +86,18 @@ final class LabelTemplateRepository extends BaseModel
         ];
     }
 
+    /** @return list<array<string, mixed>> */
+    public function popularActive(int $limit = 12): array
+    {
+        $limit = max(1, min(48, $limit));
+        return $this->fetchAll(
+            "SELECT * FROM label_templates
+             WHERE is_active = 1
+             ORDER BY sort_order ASC, id DESC
+             LIMIT {$limit}"
+        );
+    }
+
     /** @return array<int, array<string, mixed>> */
     public function listActiveAll(): array
     {

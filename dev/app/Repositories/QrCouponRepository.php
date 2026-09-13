@@ -36,7 +36,13 @@ final class QrCouponRepository
                            SELECT COUNT(*)
                            FROM qr_coupon_codes qc
                            WHERE qc.group_no = g.group_no
-                       ) AS generated_qr_count
+                       ) AS generated_qr_count,
+                       (
+                           SELECT COUNT(*)
+                           FROM qr_coupon_codes qc
+                           WHERE qc.group_no = g.group_no
+                             AND qc.printed_at IS NOT NULL
+                       ) AS printed_qr_count
                 FROM qr_coupon_groups g
                 LEFT JOIN shop_categories c ON c.slug = g.category_slug
                 WHERE g.is_active = 1
@@ -60,7 +66,8 @@ final class QrCouponRepository
                             SELECT COUNT(*)
                             FROM qr_coupon_codes qc
                             WHERE qc.group_no = g.group_no
-                        ) AS generated_qr_count
+                        ) AS generated_qr_count,
+                        0 AS printed_qr_count
                  FROM qr_coupon_groups g
                  LEFT JOIN shop_categories c ON c.slug = g.category_slug
                  WHERE g.is_active = 1
@@ -70,7 +77,7 @@ final class QrCouponRepository
                 return $stmt ? ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
             } catch (\Throwable $e2) {
                 $stmt = $this->db->query(
-                    'SELECT g.*, c.id AS shop_category_id, 0 AS product_count, 0 AS generated_qr_count
+                    'SELECT g.*, c.id AS shop_category_id, 0 AS product_count, 0 AS generated_qr_count, 0 AS printed_qr_count
                      FROM qr_coupon_groups g
                      LEFT JOIN shop_categories c ON c.slug = g.category_slug
                      WHERE g.is_active = 1
@@ -211,13 +218,12 @@ final class QrCouponRepository
             for ($i = 0; $i < $quantity; $i++) {
                 $code = $this->makeUniqueCode($groupNo);
                 // 고유 쿠폰번호(code)를 URL에 포함 — 스캔 시 쿠폰번호·그룹 정보가 함께 전달됨
-                $pageUrl = absolute_url('qr-coupon')
-                    . '?' . http_build_query([
-                        'g' => $groupNo,
-                        'cat' => $slug,
-                        'sheets' => $sheets,
-                        'code' => $code,
-                    ]);
+                $pageUrl = qr_public_url('qr-coupon', [
+                    'g' => $groupNo,
+                    'cat' => $slug,
+                    'sheets' => $sheets,
+                    'code' => $code,
+                ]);
                 $insCode->execute([
                     'batch_id' => $batchId,
                     'group_no' => $groupNo,
@@ -227,8 +233,13 @@ final class QrCouponRepository
                     'coupon_page_url' => $pageUrl,
                 ]);
                 $codes[] = [
+                    'id' => (int) $this->db->lastInsertId(),
                     'code' => $code,
                     'coupon_page_url' => $pageUrl,
+                    'status' => 'unused',
+                    'printed' => false,
+                    'printed_at' => null,
+                    'print_count' => 0,
                 ];
             }
 
@@ -271,6 +282,41 @@ final class QrCouponRepository
     }
 
     /** @return list<array<string, mixed>> */
+    public function codesByGroup(int $groupNo, int $limit = 2000): array
+    {
+        $limit = max(1, min(2000, $limit));
+        $stmt = $this->db->prepare(
+            "SELECT * FROM qr_coupon_codes WHERE group_no = :group_no ORDER BY id DESC LIMIT {$limit}"
+        );
+        $stmt->execute(['group_no' => $groupNo]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * @param list<int> $ids
+     */
+    public function markPrinted(array $ids): int
+    {
+        $ids = array_values(array_unique(array_filter(
+            array_map(static fn ($id) => (int) $id, $ids),
+            static fn (int $id) => $id > 0
+        )));
+        if ($ids === []) {
+            return 0;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $this->db->prepare(
+            "UPDATE qr_coupon_codes
+             SET printed_at = IFNULL(printed_at, NOW()),
+                 print_count = print_count + 1
+             WHERE id IN ({$placeholders})"
+        );
+        $stmt->execute($ids);
+        return $stmt->rowCount();
+    }
+
+    /** @return list<array<string, mixed>> */
     public function usageByGroup(int $groupNo, int $limit = 100): array
     {
         $limit = max(1, min(500, $limit));
@@ -295,6 +341,90 @@ final class QrCouponRepository
             $stmt->execute(['group_no' => $groupNo]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         }
+    }
+
+    /** @return array<string, mixed>|null */
+    public function findPrintTemplate(string $key = 'default'): ?array
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT * FROM qr_print_templates WHERE template_key = :key LIMIT 1'
+            );
+            $stmt->execute(['key' => $key]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $row ?: null;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $paper
+     * @param list<array<string, mixed>> $objects
+     * @param array<string, mixed> $settings
+     * @return array<string, mixed>
+     */
+    public function upsertPrintTemplate(
+        string $key,
+        string $name,
+        array $paper,
+        array $objects,
+        array $settings,
+        ?int $adminId = null
+    ): array {
+        $paperJson = json_encode($paper, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $objectsJson = json_encode(array_values($objects), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $settingsJson = json_encode($settings, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($paperJson === false || $objectsJson === false || $settingsJson === false) {
+            throw new RuntimeException('출력템플릿 JSON을 만들지 못했습니다.');
+        }
+
+        $existing = $this->findPrintTemplate($key);
+        if ($existing) {
+            $stmt = $this->db->prepare(
+                'UPDATE qr_print_templates
+                 SET name = :name, paper_json = :paper_json, objects_json = :objects_json,
+                     settings_json = :settings_json, updated_by = :updated_by, updated_at = NOW()
+                 WHERE template_key = :template_key'
+            );
+            $stmt->execute([
+                'name' => $name,
+                'paper_json' => $paperJson,
+                'objects_json' => $objectsJson,
+                'settings_json' => $settingsJson,
+                'updated_by' => $adminId,
+                'template_key' => $key,
+            ]);
+        } else {
+            $stmt = $this->db->prepare(
+                'INSERT INTO qr_print_templates
+                    (template_key, name, paper_json, objects_json, settings_json, updated_by, created_at, updated_at)
+                 VALUES
+                    (:template_key, :name, :paper_json, :objects_json, :settings_json, :updated_by, NOW(), NOW())'
+            );
+            $stmt->execute([
+                'template_key' => $key,
+                'name' => $name,
+                'paper_json' => $paperJson,
+                'objects_json' => $objectsJson,
+                'settings_json' => $settingsJson,
+                'updated_by' => $adminId,
+            ]);
+        }
+
+        $row = $this->findPrintTemplate($key);
+        if (!$row) {
+            throw new RuntimeException('출력템플릿을 저장하지 못했습니다. 마이그레이션을 실행해 주세요.');
+        }
+
+        return [
+            'key' => (string) ($row['template_key'] ?? $key),
+            'name' => (string) ($row['name'] ?? $name),
+            'paper' => $paper,
+            'objects' => array_values($objects),
+            'settings' => $settings,
+            'updated_at' => $row['updated_at'] ?? date('Y-m-d H:i:s'),
+        ];
     }
 
     private function makeUniqueCode(int $groupNo): string

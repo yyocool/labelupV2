@@ -1189,6 +1189,7 @@ window.labelUpEditor = {
     if (!res.ok || !json || json.success === false) {
       var err = new Error((json && json.message) || '요청에 실패했습니다.');
       err.status = res.status;
+      err.stack = '';
       throw err;
     }
     return JSON.stringify(json.data == null ? {} : json.data);
@@ -1530,7 +1531,7 @@ window.labelUpEditor = {
         header.setAttribute('data-tut', 'labi-fab');
         header.title = '라비와 라벨 만들기';
         header.setAttribute('aria-label', '라비AI');
-        header.innerHTML = '<img src="/assets/labi-icon.png" alt="" width="18" height="18"><span>라비AI</span>';
+        header.innerHTML = '<img src="/assets/labi-face.png?v=20260913k" alt="" width="28" height="28"><span>라비AI</span>';
         header.addEventListener('click', function (e) {
           e.preventDefault();
           var src = document.querySelector('.ed-corner-fab--labi');
@@ -1538,6 +1539,10 @@ window.labelUpEditor = {
         });
       }
       if (cloud.nextElementSibling !== header) cloud.after(header);
+      var faceImg = header.querySelector('img');
+      if (faceImg && (faceImg.getAttribute('src') || '').indexOf('labi-face.png') === -1) {
+        faceImg.src = '/assets/labi-face.png?v=20260913k';
+      }
       if (labi && labi !== header) {
         labi.classList.add('is-parked');
         labi.removeAttribute('data-tut');
@@ -1704,8 +1709,23 @@ window.labelUpEditor = {
         root.appendChild(trapped);
       }
     };
+    var setupLogoWink = function () {
+      var logo = document.querySelector('.ed-topbar__logo');
+      if (!logo || logo.querySelector('.ed-topbar__logo-curious')) return;
+      var hole = document.createElement('span');
+      hole.className = 'ed-topbar__logo-hole';
+      hole.setAttribute('aria-hidden', 'true');
+      hole.innerHTML =
+        '<img class="ed-topbar__logo-smile" src="/assets/labi-face-smile.png?v=20260913t" alt="">' +
+        '<img class="ed-topbar__logo-wink" src="/assets/labi-face-wink.png?v=20260913m" alt="">' +
+        '<img class="ed-topbar__logo-curious" src="/assets/labi-face-curious.png?v=20260913t" alt="">';
+      logo.setAttribute('aria-label', '라벨업 홈');
+      logo.innerHTML = '';
+      logo.appendChild(hole);
+    };
     var dock = function () {
       var bar = document.querySelector('.ed-float-tools__bar');
+      setupLogoWink();
       if (!bar) return;
       var labi = pickLast('.ed-corner-fab--labi');
       var vendor = pickLast('.ed-corner-fab--vendor');

@@ -223,7 +223,12 @@ final class Router
         $router->post('/api/admin/qr-coupons/credit/save', [$qrCouponAdminApi, 'saveCredit']);
         $router->post('/api/admin/qr-coupons/generate', [$qrCouponAdminApi, 'generate']);
         $router->post('/api/admin/qr-coupons/generation-history', [$qrCouponAdminApi, 'generationHistory']);
+        $router->post('/api/admin/qr-coupons/batch-codes', [$qrCouponAdminApi, 'batchCodes']);
+        $router->post('/api/admin/qr-coupons/group-codes', [$qrCouponAdminApi, 'groupCodes']);
+        $router->post('/api/admin/qr-coupons/mark-printed', [$qrCouponAdminApi, 'markPrinted']);
         $router->post('/api/admin/qr-coupons/usage-history', [$qrCouponAdminApi, 'usageHistory']);
+        $router->get('/api/admin/qr-coupons/print-template', [$qrCouponAdminApi, 'printTemplate']);
+        $router->post('/api/admin/qr-coupons/print-template/save', [$qrCouponAdminApi, 'savePrintTemplate']);
         $router->get('/admin/ai/example-prompts', [$aiAdmin, 'examplePrompts']);
         $router->get('/admin/ai/credit-settings', [$aiAdmin, 'creditSettings']);
         $router->get('/admin/ai/token-logs', [$aiAdmin, 'tokenLogs']);

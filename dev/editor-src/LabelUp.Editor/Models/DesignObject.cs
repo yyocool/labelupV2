@@ -142,6 +142,33 @@ public sealed class DesignObject
     public static bool IsShape(ObjectType type)
         => type is ObjectType.Rect or ObjectType.Ellipse or ObjectType.Line or ObjectType.Shape;
 
+    /// <summary>PNG/JPG 클립아트·아이콘. 채우기·테두리가 그림에 반영되지 않는다.</summary>
+    [JsonIgnore]
+    public bool IsRasterGraphic =>
+        Type is ObjectType.Clipart or ObjectType.Icon
+        && (SvgParts is not { Count: > 0 })
+        && IsRasterImageData(ImageData);
+
+    public static bool IsRasterImageData(string? data)
+    {
+        if (string.IsNullOrWhiteSpace(data)) return false;
+        if (data.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase)) return true;
+        if (data.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+            || data.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+            || data.StartsWith("//"))
+            return true;
+        if (data.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase)
+            || data.StartsWith("assets/", StringComparison.OrdinalIgnoreCase))
+            return true;
+        var q = data.IndexOf('?');
+        var path = q >= 0 ? data[..q] : data;
+        return path.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
+               || path.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
+               || path.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)
+               || path.EndsWith(".webp", StringComparison.OrdinalIgnoreCase)
+               || path.EndsWith(".gif", StringComparison.OrdinalIgnoreCase);
+    }
+
     [JsonIgnore]
     public string DisplayText => Text;
 

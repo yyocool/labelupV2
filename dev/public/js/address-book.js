@@ -245,8 +245,9 @@
 
   function fieldInput(form, re) {
     for (const label of form.querySelectorAll('label')) {
-      const text = (label.childNodes[0]?.textContent || label.textContent || '').trim();
-      if (re.test(text)) return label.querySelector('input, textarea');
+      const lab = label.querySelector('.ed-co-lab');
+      const text = (lab?.textContent || label.childNodes[0]?.textContent || label.textContent || '').trim();
+      if (re.test(text)) return label.querySelector('input:not([data-ship-name]):not([data-ship-phone]), textarea');
     }
     return null;
   }
@@ -292,14 +293,61 @@
     editorState.sameAsBuyer = !!form.querySelector('[data-same-as-buyer]')?.checked;
   }
 
+  function bindEditorShipEvents(form) {
+    if (!form || form.dataset.editorShipBound === '1') return;
+    const ship = form.querySelector('[data-editor-ship]');
+    if (!ship) return;
+    form.dataset.editorShipBound = '1';
+    const buyerName = fieldInput(form, /^이름$/);
+    const buyerPhone = fieldInput(form, /^연락처$/);
+    const same = ship.querySelector('[data-same-as-buyer]');
+    const shipName = ship.querySelector('[data-ship-name]');
+    const shipPhone = ship.querySelector('[data-ship-phone]');
+    const copyBuyer = () => {
+      if (!same || !same.checked) return;
+      if (buyerName && shipName) shipName.value = buyerName.value;
+      if (buyerPhone && shipPhone) shipPhone.value = buyerPhone.value;
+      [shipName, shipPhone].forEach((el) => {
+        if (!el) return;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      rememberEditor(form);
+    };
+    same?.addEventListener('change', () => {
+      if (shipName) shipName.readOnly = !!same.checked;
+      if (shipPhone) shipPhone.readOnly = !!same.checked;
+      copyBuyer();
+    });
+    buyerName?.addEventListener('input', copyBuyer);
+    buyerPhone?.addEventListener('input', copyBuyer);
+    [shipName, shipPhone, form.querySelector('[data-save-address]'), form.querySelector('[data-addr-label]')]
+      .forEach((el) => el?.addEventListener('input', () => rememberEditor(form)));
+    form.querySelector('[data-save-address]')?.addEventListener('change', () => rememberEditor(form));
+    form.querySelector('[data-addr-book-open]')?.addEventListener('click', () => {
+      openPicker((addr) => {
+        if (same) same.checked = false;
+        if (shipName) shipName.readOnly = false;
+        if (shipPhone) shipPhone.readOnly = false;
+        fillGroup(form, addr);
+        rememberEditor(form);
+      });
+    });
+  }
+
   function enhanceEditorCheckout(scope) {
     const form = (scope instanceof HTMLElement && scope.matches?.('.ed-shop-checkout'))
       ? scope
       : (scope?.querySelector?.('.ed-shop-checkout') || document.querySelector('.ed-shop-checkout'));
     if (!form) return;
     const fields = form.querySelector('.ed-shop-fields');
-    if (!fields || fields.querySelector('[data-editor-ship]')) {
-      if (fields?.querySelector('[data-editor-ship]')) restoreEditor(form);
+    if (!fields) return;
+
+    if (fields.querySelector('[data-editor-ship]')) {
+      bindEditorShipEvents(form);
+      restoreEditor(form);
+      prefillDefault(form);
+      patchEditorApi();
       return;
     }
 
@@ -332,36 +380,7 @@
     if (addrLabel) addrLabel.after(saveWrap);
     else ship.after(saveWrap);
 
-    const buyerName = fieldInput(form, /^이름/);
-    const buyerPhone = fieldInput(form, /^연락처/);
-    const same = ship.querySelector('[data-same-as-buyer]');
-    const shipName = ship.querySelector('[data-ship-name]');
-    const shipPhone = ship.querySelector('[data-ship-phone]');
-    const copyBuyer = () => {
-      if (!same.checked) return;
-      if (buyerName) shipName.value = buyerName.value;
-      if (buyerPhone) shipPhone.value = buyerPhone.value;
-      rememberEditor(form);
-    };
-    same.addEventListener('change', () => {
-      shipName.readOnly = !!same.checked;
-      shipPhone.readOnly = !!same.checked;
-      copyBuyer();
-    });
-    buyerName?.addEventListener('input', copyBuyer);
-    buyerPhone?.addEventListener('input', copyBuyer);
-    [shipName, shipPhone, saveWrap.querySelector('[data-save-address]'), saveWrap.querySelector('[data-addr-label]')]
-      .forEach((el) => el?.addEventListener('input', () => rememberEditor(form)));
-    saveWrap.querySelector('[data-save-address]')?.addEventListener('change', () => rememberEditor(form));
-    ship.querySelector('[data-addr-book-open]')?.addEventListener('click', () => {
-      openPicker((addr) => {
-        same.checked = false;
-        shipName.readOnly = false;
-        shipPhone.readOnly = false;
-        fillGroup(form, addr);
-        rememberEditor(form);
-      });
-    });
+    bindEditorShipEvents(form);
     restoreEditor(form);
     prefillDefault(form);
     patchEditorApi();

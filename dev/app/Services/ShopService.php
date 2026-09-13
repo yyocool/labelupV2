@@ -60,9 +60,9 @@ final class ShopService
         return $product;
     }
 
-    public function lookupByCode(string $code): ?array
+    public function lookupByCode(string $code, ?float $widthMm = null, ?float $heightMm = null, ?int $labels = null): ?array
     {
-        $product = $this->repo->findActiveProductByCode($code);
+        $product = $this->repo->findActiveProductByCode($code, $widthMm, $heightMm, $labels);
         return $product ? $this->presentPublicProduct($product) : null;
     }
 

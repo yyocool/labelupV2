@@ -40,7 +40,21 @@ function url(string $path = ''): string
     return $base . '/' . ltrim($path, '/');
 }
 
-/** 절대 URL (QR 딥링크용). APP_URL 우선, 없으면 요청 호스트 사용. */
+/** 인쇄용 QR 쿠폰 링크 기본 도메인. */
+function qr_public_url(string $path = '', array $query = []): string
+{
+    $base = rtrim((string) app_config('qr_public_url', 'https://www.labelup.co.kr'), '/');
+    if ($base === '') {
+        $base = 'https://www.labelup.co.kr';
+    }
+    $url = $base . '/' . ltrim($path, '/');
+    if ($query !== []) {
+        $url .= (str_contains($url, '?') ? '&' : '?') . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+    }
+    return $url;
+}
+
+/** 절대 URL (현재 요청 호스트 / APP_URL). 관리자 미리보기용. */
 function absolute_url(string $path = ''): string
 {
     $path = trim($path);

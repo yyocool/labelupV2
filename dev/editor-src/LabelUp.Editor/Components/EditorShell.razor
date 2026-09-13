@@ -105,6 +105,7 @@
                 EditorLog.Error("폰트어썸 카탈로그 로드 실패", iconEx);
             }
             await Papers.EnsureLoadedAsync();
+            await Papers.EnsureShopPapersAsync();
 
             var savedMap = await Drafts.LoadMapAsync();
             if (savedMap is { Entries.Count: > 0 })
@@ -140,12 +141,14 @@
             var wantVendor = pageQuery.ContainsKey("vendor") || pageQuery.ContainsKey("vendorImport");
             var bootFromQuery = !projectLoaded && !themeApplied && !pendingDocApplied && !wantVendor && TryApplyPaperFromQuery(pageQuery);
             var clipartApplied = !projectLoaded && !pendingDocApplied && !wantVendor && await TryApplyClipartFromQueryAsync(pageQuery);
+            var restored = false;
+            LabelDocument? draft = null;
             if (!projectLoaded && !themeApplied && !pendingDocApplied && !wantVendor && !bootFromQuery && !clipartApplied)
             {
-                var restored = await TryRestoreCloudWorkspaceAsync();
+                restored = await TryRestoreCloudWorkspaceAsync();
                 if (!restored)
                 {
-                    var draft = await Drafts.LoadAsync();
+                    draft = await Drafts.LoadAsync();
                     if (draft is not null)
                     {
                         Session.ReplaceDocument(draft);
@@ -155,6 +158,9 @@
                     }
                 }
             }
+
+            var usedExisting = projectLoaded || pendingDocApplied || themeApplied || bootFromQuery || clipartApplied || restored || draft is not null;
+            BindCurrentPaperToShop(!usedExisting);
 
             await WarmDocumentFontsAsync();
             Session.Changed += OnSessionChanged;
@@ -443,11 +449,18 @@
         string? Get(string key) =>
             q.TryGetValue(key, out var v) && !string.IsNullOrWhiteSpace(v) ? v : null;
 
-        var paperNo = Get("paper") ?? Get("paperNo");
+        var paperNo = Get("paper") ?? Get("paperNo") ?? Get("sku");
         PaperSpec? paper = null;
+        ShopPaperItem? shop = null;
 
         if (!string.IsNullOrWhiteSpace(paperNo))
-            paper = Papers.Find(paperNo);
+        {
+            shop = Papers.ShopPapers.FirstOrDefault(p =>
+                string.Equals(p.Sku, paperNo, StringComparison.OrdinalIgnoreCase));
+            if (shop is not null)
+                paper = Papers.FromShopProduct(shop);
+            paper ??= Papers.Find(paperNo);
+        }
 
         if (paper is null
             && float.TryParse(Get("w") ?? Get("width"), System.Globalization.NumberStyles.Float,
@@ -473,6 +486,10 @@
             doc.Name = $"{paper.PaperNo} {paper.LabelWidthMm:0.#}×{paper.LabelHeightMm:0.#} mm";
 
         Session.ReplaceDocument(doc);
+        if (shop is null)
+            shop = Papers.FindMatchingShopProduct(paper);
+        if (shop is { Id: > 0 })
+            Session.CurrentShopProductId = shop.Id;
         Session.Dirty = false;
         Session.Status = $"「{doc.Name}」 규격으로 편집을 시작합니다";
         Session.DataPanelVisible = false;
@@ -532,12 +549,16 @@
             return false;
         }
 
-        if (!q.ContainsKey("paper") && !q.ContainsKey("paperNo") && !q.ContainsKey("w") && !q.ContainsKey("width"))
+        if (!q.ContainsKey("paper") && !q.ContainsKey("paperNo") && !q.ContainsKey("sku") && !q.ContainsKey("w") && !q.ContainsKey("width"))
         {
-            var doc = LabelDocument.CreateBlank();
+            var shop = Papers.PreferredDefaultShopPaper();
+            var paper = shop is not null ? Papers.FromShopProduct(shop) : PaperSpec.CreateDefault();
+            var doc = LabelDocument.CreateBlank(paper);
             if (!string.IsNullOrWhiteSpace(title))
                 doc.Name = title!;
             Session.ReplaceDocument(doc);
+            if (shop is { Id: > 0 })
+                Session.CurrentShopProductId = shop.Id;
         }
 
         Session.Document.EnsureStructure();
@@ -824,6 +845,7 @@
             var productId = ReadInt(root, "id", "productId", "product_id");
 
             await Papers.EnsureLoadedAsync();
+            await Papers.EnsureShopPapersAsync();
             ShopPaperItem? shop = null;
             if (productId is > 0)
                 shop = Papers.ShopPapers.FirstOrDefault(p => p.Id == productId.Value);
@@ -850,7 +872,7 @@
             if (h is > 0) paper.LabelHeightMm = h.Value;
 
             History.Push(Session.Document);
-            Session.ApplyPaper(paper);
+            Session.ApplyPaper(paper, shop?.Id);
             if (!string.IsNullOrWhiteSpace(name)
                 && (string.IsNullOrWhiteSpace(Session.Document.Name)
                     || Session.Document.Name == "새 라벨 디자인"))
@@ -956,6 +978,7 @@
                 var paper = Papers.FindBestMatch(w.Value, h.Value, 1)
                             ?? Papers.CreateFromSize(w.Value, h.Value, 1, ReadString(root, "shape"), title);
                 Session.ApplyPaper(paper);
+                BindCurrentPaperToShop(false);
             }
 
             Session.Document.EnsureStructure();
@@ -986,6 +1009,7 @@
             doc.EnsurePagesForData();
             History.Push(Session.Document);
             Session.ReplaceDocument(doc);
+            BindCurrentPaperToShop(false);
             Session.Dirty = true;
             Session.Status = string.IsNullOrWhiteSpace(doc.Name)
                 ? "라비 데이터 템플릿을 편집기에 넣었습니다"
@@ -1073,6 +1097,32 @@
             if (_fontEpoch != Session.DocumentEpoch)
                 _ = WarmDocumentFontsAsync();
         }
+    }
+
+    private void BindCurrentPaperToShop(bool replaceWithShopDefault)
+    {
+        if (Session.CurrentShopProductId is > 0)
+            return;
+        if (Papers.ShopPapers.Count == 0)
+            return;
+
+        var current = Session.Document.Paper;
+        var shop = replaceWithShopDefault
+            ? Papers.PreferredDefaultShopPaper(current)
+            : Papers.FindMatchingShopProduct(current);
+        if (shop is null || shop.Id <= 0)
+            return;
+
+        if (replaceWithShopDefault)
+        {
+            var paper = Papers.FromShopProduct(shop);
+            Session.ApplyPaper(paper, shop.Id);
+            Session.Dirty = false;
+            Session.Status = $"「{paper.Name}」 규격으로 편집을 시작합니다";
+            return;
+        }
+
+        Session.CurrentShopProductId = shop.Id;
     }
 
     public void Dispose()

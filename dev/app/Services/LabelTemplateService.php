@@ -133,6 +133,16 @@ final class LabelTemplateService
         return ['items' => $items, 'categories' => $categories];
     }
 
+    /** @return list<array<string, mixed>> */
+    public function popularForHome(int $limit = 12): array
+    {
+        $items = [];
+        foreach ($this->repo->popularActive($limit) as $row) {
+            $items[] = $this->present($row, false);
+        }
+        return $items;
+    }
+
     /** @param array<string, mixed> $data */
     public function save(array $data): int
     {

@@ -36,6 +36,7 @@ return [
     'debug' => filter_var(env('APP_DEBUG', 'false'), FILTER_VALIDATE_BOOLEAN)
         || (isset($_GET['debug']) && $_GET['debug'] === '1'),
     'url' => rtrim((string) env('APP_URL', ''), '/'),
+    'qr_public_url' => rtrim((string) env('QR_PUBLIC_URL', 'https://www.labelup.co.kr'), '/'),
     'timezone' => $env['TIMEZONE'] ?? 'Asia/Seoul',
     'session_key' => $env['SESSION_KEY'] ?? 'labelupdev_session',
     'session_lifetime' => (int) ($env['SESSION_LIFETIME'] ?? 7200),

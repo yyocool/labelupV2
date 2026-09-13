@@ -371,4 +371,15 @@ final class ClipartService
             'hasMore' => $page < $pages,
         ];
     }
+
+    /** @return list<array<string, mixed>> */
+    public function popularForHome(int $limit = 12): array
+    {
+        $result = $this->list([
+            'is_active' => 1,
+            'page' => 1,
+            'per_page' => max(1, min(24, $limit)),
+        ]);
+        return $result['items'] ?? [];
+    }
 }

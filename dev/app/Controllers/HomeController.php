@@ -6,9 +6,11 @@ namespace App\Controllers;
 
 use App\Services\AiExamplePromptService;
 use App\Services\AuthService;
+use App\Services\ClipartService;
 use App\Services\EditorWorkspaceService;
 use App\Services\EventPopupService;
 use App\Services\HomeHeroService;
+use App\Services\LabelTemplateService;
 
 final class HomeController extends BaseController
 {
@@ -26,6 +28,18 @@ final class HomeController extends BaseController
         } catch (\Throwable) {
             $examplePrompts = [];
         }
+        $popularTemplates = [];
+        try {
+            $popularTemplates = (new LabelTemplateService())->popularForHome(12);
+        } catch (\Throwable) {
+            $popularTemplates = [];
+        }
+        $popularCliparts = [];
+        try {
+            $popularCliparts = (new ClipartService())->popularForHome(12);
+        } catch (\Throwable) {
+            $popularCliparts = [];
+        }
         $this->render('home/index', [
             'pageTitle' => '라벨업 LABEL UP',
             'year' => (int) date('Y'),
@@ -35,6 +49,8 @@ final class HomeController extends BaseController
             'eventPopups' => (new EventPopupService())->activeForSite(),
             'recentWorks' => $recentWorks,
             'examplePrompts' => $examplePrompts,
+            'popularTemplates' => $popularTemplates,
+            'popularCliparts' => $popularCliparts,
         ]);
     }
 }

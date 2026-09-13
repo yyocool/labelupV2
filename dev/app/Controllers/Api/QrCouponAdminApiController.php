@@ -66,6 +66,45 @@ final class QrCouponAdminApiController extends BaseController
         }
     }
 
+    public function batchCodes(): never
+    {
+        $this->guard();
+        try {
+            $payload = request_json();
+            $batchId = (int) ($payload['batch_id'] ?? $_GET['batch_id'] ?? 0);
+            $this->jsonSuccess($this->service->batchCodes($batchId));
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage());
+        }
+    }
+
+    public function groupCodes(): never
+    {
+        $this->guard();
+        try {
+            $payload = request_json();
+            $groupNo = (int) ($payload['group_no'] ?? $_GET['group_no'] ?? 0);
+            $this->jsonSuccess($this->service->groupCodes($groupNo));
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage());
+        }
+    }
+
+    public function markPrinted(): never
+    {
+        $this->guard();
+        try {
+            $payload = request_json();
+            $ids = $payload['ids'] ?? [];
+            if (!is_array($ids)) {
+                $ids = [];
+            }
+            $this->jsonSuccess($this->service->markPrinted($ids), '인쇄 완료로 표시했습니다.');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage());
+        }
+    }
+
     public function usageHistory(): never
     {
         $this->guard();
@@ -76,6 +115,33 @@ final class QrCouponAdminApiController extends BaseController
             $this->jsonSuccess(['items' => $items, 'group_no' => $groupNo]);
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage());
+        }
+    }
+
+    public function printTemplate(): never
+    {
+        $this->guard();
+        try {
+            $this->jsonSuccess($this->service->getPrintTemplate());
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage());
+        } catch (Throwable $e) {
+            $this->jsonError(APP_DEBUG ? $e->getMessage() : '출력템플릿을 불러오지 못했습니다.');
+        }
+    }
+
+    public function savePrintTemplate(): never
+    {
+        $this->guard();
+        try {
+            $payload = request_json();
+            $adminId = (int) ($this->auth->adminId() ?? 0) ?: null;
+            $saved = $this->service->savePrintTemplate($payload, $adminId);
+            $this->jsonSuccess($saved, '출력템플릿이 저장되었습니다.');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage());
+        } catch (Throwable $e) {
+            $this->jsonError(APP_DEBUG ? $e->getMessage() : '출력템플릿 저장에 실패했습니다.');
         }
     }
 
