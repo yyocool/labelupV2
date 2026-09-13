@@ -298,6 +298,46 @@ final class ShopService
         ];
     }
 
+    /** @return array<string, mixed>|null */
+    public function completeOrderForUser(int $userId, string $orderNo, string $email = ''): ?array
+    {
+        $orderNo = trim($orderNo);
+        if ($userId < 1 || $orderNo === '') {
+            return null;
+        }
+        $row = $this->repo->findUserOrderByNo($userId, $orderNo, $email);
+        if (!$row) {
+            return null;
+        }
+        return $this->presentCompleteOrder($row);
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function recentOrdersForUser(int $userId, string $exceptOrderNo = '', int $limit = 3): array
+    {
+        if ($userId < 1) {
+            return [];
+        }
+        $rows = $this->repo->ordersByUser($userId, max(3, $limit + 2));
+        $out = [];
+        foreach ($rows as $row) {
+            if ($exceptOrderNo !== '' && (string) ($row['order_no'] ?? '') === $exceptOrderNo) {
+                continue;
+            }
+            $out[] = [
+                'order_no' => (string) ($row['order_no'] ?? ''),
+                'status' => (string) ($row['status'] ?? 'pending'),
+                'status_label' => ShopAdminService::orderStatusLabel((string) ($row['status'] ?? 'pending')),
+                'total_label' => $this->formatPrice((int) ($row['total_amount'] ?? 0)),
+                'date_label' => $this->formatOrderDate((string) ($row['created_at'] ?? '')),
+            ];
+            if (count($out) >= $limit) {
+                break;
+            }
+        }
+        return $out;
+    }
+
     public function addToCart(int $productId, int $qty = 1): void
     {
         $product = $this->repo->findActiveProduct($productId);
@@ -450,5 +490,125 @@ final class ShopService
             'has_header' => $headerHtml !== '' || $headerImage !== '',
             'has_footer' => $footerHtml !== '' || $footerImage !== '',
         ];
+    }
+
+    /** @param array<string, mixed> $order */
+    /** @return array<string, mixed> */
+    private function presentCompleteOrder(array $order): array
+    {
+        $status = (string) ($order['status'] ?? 'pending');
+        $payStatus = (string) ($order['payment_status'] ?? 'pending');
+        $items = [];
+        foreach (($order['items'] ?? []) as $item) {
+            $pid = (int) ($item['product_id'] ?? 0);
+            $product = $pid > 0 ? $this->repo->findProductForPreview($pid) : null;
+            $presented = $product ? $this->presentPublicProduct($product) : [
+                'thumbnail' => asset('hero-tall-1.webp'),
+                'spec' => '',
+                'sku' => (string) ($item['sku'] ?? ''),
+            ];
+            $qty = (int) ($item['qty'] ?? 1);
+            $unit = (int) ($item['unit_price'] ?? 0);
+            $line = (int) ($item['line_total'] ?? ($unit * $qty));
+            $meta = trim(implode(' / ', array_filter([
+                (string) ($presented['spec'] ?? ''),
+                (string) ($presented['sku'] ?? $item['sku'] ?? ''),
+            ])));
+            $items[] = [
+                'name' => (string) ($item['product_name'] ?? $presented['name'] ?? '상품'),
+                'sku' => (string) ($presented['sku'] ?? $item['sku'] ?? ''),
+                'spec' => (string) ($presented['spec'] ?? ''),
+                'meta' => $meta,
+                'thumbnail' => (string) ($presented['thumbnail'] ?? asset('hero-tall-1.webp')),
+                'qty' => $qty,
+                'unit_price' => $unit,
+                'unit_label' => $this->formatPrice($unit),
+                'line_total' => $line,
+                'line_label' => $this->formatPrice($line),
+                'product_id' => $pid,
+            ];
+        }
+
+        $createdAt = (string) ($order['created_at'] ?? '');
+        $stepKeys = ['pending', 'paid', 'preparing', 'shipping', 'delivered'];
+        $current = array_search($status, $stepKeys, true);
+        if ($current === false) {
+            $current = 0;
+        }
+        $steps = [
+            ['key' => 'pending', 'label' => '주문완료', 'at' => $this->formatOrderClock($createdAt)],
+            ['key' => 'paid', 'label' => '결제완료', 'at' => ''],
+            ['key' => 'preparing', 'label' => '상품준비중', 'at' => ''],
+            ['key' => 'shipping', 'label' => '배송중', 'at' => ''],
+            ['key' => 'delivered', 'label' => '배송완료', 'at' => ''],
+        ];
+        foreach ($steps as $i => &$step) {
+            $step['done'] = $i <= $current;
+            $step['current'] = $i === $current;
+        }
+        unset($step);
+
+        $subtotal = (int) ($order['subtotal'] ?? 0);
+        $shipping = (int) ($order['shipping_fee'] ?? 0);
+        $discount = (int) ($order['discount_amount'] ?? 0);
+        $total = (int) ($order['total_amount'] ?? ($subtotal + $shipping - $discount));
+        $payLabel = ShopAdminService::paymentStatusLabel($payStatus);
+        if ($payStatus === 'pending') {
+            $payLabel = '결제대기';
+            $payHint = '담당자 확인 후 안내';
+        } elseif ($payStatus === 'paid') {
+            $payHint = '결제 확인 완료';
+        } else {
+            $payHint = $payLabel;
+        }
+
+        return [
+            'id' => (int) ($order['id'] ?? 0),
+            'order_no' => (string) ($order['order_no'] ?? ''),
+            'status' => $status,
+            'status_label' => ShopAdminService::orderStatusLabel($status),
+            'payment_status' => $payStatus,
+            'payment_label' => $payLabel,
+            'payment_hint' => $payHint,
+            'created_at' => $createdAt,
+            'date_label' => $this->formatOrderDate($createdAt),
+            'clock_label' => $this->formatOrderClock($createdAt),
+            'items' => $items,
+            'item_qty' => (int) ($order['item_qty'] ?? array_sum(array_column($items, 'qty'))),
+            'subtotal' => $subtotal,
+            'subtotal_label' => $this->formatPrice($subtotal),
+            'shipping_fee' => $shipping,
+            'shipping_label' => $shipping === 0 ? '무료' : $this->formatPrice($shipping),
+            'discount_amount' => $discount,
+            'discount_label' => $this->formatPrice($discount),
+            'total' => $total,
+            'total_label' => $this->formatPrice($total),
+            'shipping_name' => (string) ($order['shipping_name'] ?? ''),
+            'shipping_phone' => (string) ($order['shipping_phone'] ?? ''),
+            'shipping_address' => (string) ($order['shipping_address'] ?? ''),
+            'shipping_memo' => (string) ($order['shipping_memo'] ?? ''),
+            'carrier' => trim((string) ($order['carrier'] ?? '')) !== '' ? (string) $order['carrier'] : '라벨업배송 (기본배송)',
+            'tracking_no' => (string) ($order['tracking_no'] ?? ''),
+            'steps' => $steps,
+        ];
+    }
+
+    public function formatOrderDate(string $datetime): string
+    {
+        $ts = strtotime($datetime);
+        if ($ts === false) {
+            return '';
+        }
+        $week = ['일', '월', '화', '수', '목', '금', '토'][(int) date('w', $ts)];
+        return date('Y년 n월 j일', $ts) . ' (' . $week . ') ' . date('H:i', $ts);
+    }
+
+    public function formatOrderClock(string $datetime): string
+    {
+        $ts = strtotime($datetime);
+        if ($ts === false) {
+            return '';
+        }
+        return date('m.d H:i', $ts);
     }
 }

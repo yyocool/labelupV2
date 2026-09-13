@@ -193,8 +193,7 @@ function bindCartPage() {
         address_label: String(fd.get('address_label') || ''),
       });
       const orderNo = res.data?.order_no || '';
-      showShopToast(res.message || '주문이 접수되었습니다.');
-      window.location.href = orderNo ? `/account?ordered=${encodeURIComponent(orderNo)}` : '/account';
+      window.location.href = orderNo ? `/shop/complete?order=${encodeURIComponent(orderNo)}` : '/shop/complete';
     } catch (err) {
       showShopToast(err.message);
       if (String(err.message || '').includes('로그인')) {
@@ -209,4 +208,5 @@ document.addEventListener('DOMContentLoaded', () => {
   bindQtyControls();
   bindAddCartButtons();
   bindCartPage();
+  document.getElementById('shopOrderPrint')?.addEventListener('click', () => window.print());
 });

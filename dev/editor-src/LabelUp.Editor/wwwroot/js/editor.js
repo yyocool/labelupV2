@@ -1208,6 +1208,10 @@ window.labelUpEditor = {
       err.status = res.status;
       throw err;
     }
+    var orderNo = json.data && json.data.order_no;
+    if (String(path || '').indexOf('/api/shop/checkout') !== -1 && orderNo) {
+      window.location.href = '/shop/complete?order=' + encodeURIComponent(String(orderNo));
+    }
     return JSON.stringify({
       data: json.data == null ? {} : json.data,
       message: json.message || ''
