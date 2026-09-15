@@ -38,6 +38,7 @@ use App\Controllers\Api\AuthApiController;
 use App\Controllers\Api\EditorTemplateApiController;
 use App\Controllers\Api\EditorRemoteImageApiController;
 use App\Controllers\Api\EditorIlabelExcelApiController;
+use App\Controllers\Api\EditorSystemFontApiController;
 use App\Controllers\Api\EditorClipartApiController;
 use App\Controllers\Api\EditorWorkspaceApiController;
 use App\Controllers\Api\HealthController;
@@ -154,6 +155,7 @@ final class Router
         $editorTemplateApi = new EditorTemplateApiController();
         $editorRemoteImageApi = new EditorRemoteImageApiController();
         $editorIlabelExcelApi = new EditorIlabelExcelApiController();
+        $editorSystemFontApi = new EditorSystemFontApiController();
         $editorClipartApi = new EditorClipartApiController();
         $shopPublic = new ShopController();
         $shopPublicApi = new ShopApiController();
@@ -261,6 +263,7 @@ final class Router
         $router->get('/api/editor/templates/{id}', [$editorTemplateApi, 'show']);
         $router->get('/api/editor/remote-image', [$editorRemoteImageApi, 'show']);
         $router->get('/api/editor/ilabel-excel', [$editorIlabelExcelApi, 'show']);
+        $router->get('/api/editor/system-font', [$editorSystemFontApi, 'show']);
         $router->get('/api/editor/cliparts', [$editorClipartApi, 'index']);
         $router->get('/api/editor/my-cliparts', [$editorClipartApi, 'mine']);
 

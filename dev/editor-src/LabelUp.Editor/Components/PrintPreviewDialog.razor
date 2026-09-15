@@ -12,7 +12,7 @@
       <header class="ed-modal__head">
         <div>
           <h3>편집기에서 출력</h3>
-          <p>인쇄 위치를 맞춘 뒤 프린터 또는 PDF로 출력하세요.</p>
+          <p>인쇄 위치를 맞춘 뒤 프린터 또는 PDF로 출력하세요. 빨간 칼선(라벨 외곽선)은 미리보기용이며 인쇄되지 않습니다.</p>
         </div>
         <button type="button" class="ed-modal__close" @onclick="Session.CloseDialog">×</button>
       </header>
@@ -146,7 +146,8 @@
                 110f,
                 _ox,
                 _oy,
-                (global, obj) => Session.ResolveObjectText(obj, global, clock));
+                (global, obj) => Session.ResolveObjectText(obj, global, clock),
+                drawCutLines: true);
             _url = "data:image/png;base64," + Convert.ToBase64String(bytes);
         }
         catch (Exception ex)

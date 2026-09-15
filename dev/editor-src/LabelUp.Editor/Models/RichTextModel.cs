@@ -200,6 +200,30 @@ public static class RichTextModel
             yield return obj.FontFamily;
     }
 
+    /// <summary>화면에 실제로 쓰는 글꼴. 바코드/QR 캡션이 꺼져 있으면 FontName은 무시한다.</summary>
+    public static IEnumerable<string> FamiliesUsed(DesignObject obj)
+    {
+        if (obj.Type is ObjectType.Barcode or ObjectType.Qr)
+        {
+            if (obj.BarcodeShowText
+                && !string.IsNullOrWhiteSpace(obj.FontFamily)
+                && !obj.FontFamily.Equals("Pretendard", StringComparison.OrdinalIgnoreCase))
+                yield return obj.FontFamily;
+            yield break;
+        }
+
+        foreach (var fam in Families(obj))
+            yield return fam;
+    }
+
+    public static IEnumerable<string> TextFamilies(DesignObject obj)
+    {
+        if (obj.Type != ObjectType.Text)
+            yield break;
+        foreach (var fam in Families(obj))
+            yield return fam;
+    }
+
     private static string NormalizeAlign(string? align)
         => align switch
         {

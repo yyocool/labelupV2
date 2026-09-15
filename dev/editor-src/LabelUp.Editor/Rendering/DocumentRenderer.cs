@@ -91,6 +91,35 @@ public static class DocumentRenderer
         return SKTypeface.Default;
     }
 
+    /// <summary>
+    /// 라벨 글자는 mm 좌표로 그린 뒤 화면 배율로 확대한다.
+    /// 힌팅을 켜면 3px짜리 비트맵처럼 뭉개져 cc가 붙는다.
+    /// </summary>
+    internal static SKFont MakeTextFont(SKTypeface face, float size)
+    {
+        var font = new SKFont(face, size)
+        {
+            Hinting = SKFontHinting.None,
+            Edging = SKFontEdging.Antialias,
+            Subpixel = true,
+            LinearMetrics = true
+        };
+        return font;
+    }
+
+    private static void PrepareTextFont(SKFont font)
+    {
+        font.Hinting = SKFontHinting.None;
+        font.Edging = SKFontEdging.Antialias;
+        font.Subpixel = true;
+        font.LinearMetrics = true;
+    }
+
+    private static bool SameFace(SKTypeface? a, SKTypeface? b)
+        => a is not null && b is not null
+           && (ReferenceEquals(a, b)
+               || (a.FamilyName == b.FamilyName && a.FontWeight == b.FontWeight && a.FontSlant == b.FontSlant));
+
     public static float HriWidthScale(string? family)
         => Fonts?.WidthScaleFor(family) ?? FontCatalog.WidthScale(family);
 
@@ -140,7 +169,8 @@ public static class DocumentRenderer
         bool forExport = false,
         Action? afterBackground = null,
         float? widthMm = null,
-        float? heightMm = null)
+        float? heightMm = null,
+        bool drawCutLines = true)
     {
         var w = widthMm ?? doc.WidthMm;
         var h = heightMm ?? doc.HeightMm;
@@ -166,12 +196,13 @@ public static class DocumentRenderer
             canvas.DrawPath(clip, border);
         }
 
-        DrawGuides(canvas, shape, w, h);
+        if (drawCutLines)
+            DrawGuides(canvas, shape, w, h);
 
         foreach (var obj in cell.OrderedObjects())
             DrawObject(canvas, obj, resolve);
 
-        if (forExport && cell.Objects.Count == 0 && shape.Kind is "svg" or "ellipse" or "circle")
+        if (drawCutLines && forExport && cell.Objects.Count == 0 && shape.Kind is "svg" or "ellipse" or "circle")
         {
             using var outline = new SKPaint
             {
@@ -828,7 +859,7 @@ public static class DocumentRenderer
             if (vertical && style == WordArtStyle.None)
             {
                 using var vPaint = new SKPaint { Color = ColorUtil.Parse(obj.Fill, alpha), IsAntialias = true };
-                using var vFont = new SKFont(ResolveTypeface(obj.FontFamily, obj.Bold, obj.Italic), obj.FontSize);
+                using var vFont = MakeTextFont(ResolveTypeface(obj.FontFamily, obj.Bold, obj.Italic), obj.FontSize);
                 DrawVerticalText(canvas, obj, text, vFont, vPaint, alpha);
             }
             else
@@ -838,7 +869,7 @@ public static class DocumentRenderer
         }
 
         using var paint = new SKPaint { Color = ColorUtil.Parse(obj.Fill, alpha), IsAntialias = true };
-        using var font = new SKFont(ResolveTypeface(obj.FontFamily, obj.Bold, obj.Italic), obj.FontSize);
+        using var font = MakeTextFont(ResolveTypeface(obj.FontFamily, obj.Bold, obj.Italic), obj.FontSize);
 
         if (obj.TextDirection == "vertical")
         {
@@ -946,7 +977,7 @@ public static class DocumentRenderer
             foreach (var frag in line.Frags)
             {
                 using var paint = new SKPaint { Color = ColorUtil.Parse(frag.Span.Fill, alpha), IsAntialias = true };
-                using var font = new SKFont(ResolveTypeface(frag.Span.FontFamily, frag.Span.Bold, frag.Span.Italic), frag.Span.FontSize);
+                using var font = MakeTextFont(ResolveTypeface(frag.Span.FontFamily, frag.Span.Bold, frag.Span.Italic), frag.Span.FontSize);
                 if (justify && frag.Text.Length > 1)
                 {
                     foreach (var rune in frag.Text.EnumerateRunes())
@@ -1027,7 +1058,7 @@ public static class DocumentRenderer
             {
                 var text = span.Text ?? "";
                 if (text.Length == 0) continue;
-                using var font = new SKFont(ResolveTypeface(span.FontFamily, span.Bold, span.Italic), span.FontSize);
+                using var font = MakeTextFont(ResolveTypeface(span.FontFamily, span.Bold, span.Italic), span.FontSize);
                 var i = 0;
                 while (i < text.Length)
                 {
@@ -1096,7 +1127,7 @@ public static class DocumentRenderer
             {
                 var text = span.Text ?? "";
                 if (text.Length == 0) continue;
-                using var font = new SKFont(ResolveTypeface(span.FontFamily, span.Bold, span.Italic), span.FontSize);
+                using var font = MakeTextFont(ResolveTypeface(span.FontFamily, span.Bold, span.Italic), span.FontSize);
                 var w = MeasureLine(font, span.FontFamily, span.Bold, text);
                 line.Frags.Add(new RichFrag(span, text, w));
                 line.Width += w;
@@ -1119,7 +1150,7 @@ public static class DocumentRenderer
         var max = 0f;
         foreach (var frag in line.Frags)
         {
-            using var font = new SKFont(ResolveTypeface(frag.Span.FontFamily, frag.Span.Bold, frag.Span.Italic), frag.Span.FontSize);
+            using var font = MakeTextFont(ResolveTypeface(frag.Span.FontFamily, frag.Span.Bold, frag.Span.Italic), frag.Span.FontSize);
             max = Math.Max(max, VisualAscent(font, frag.Text, frag.Span.FontSize));
         }
         return max > 0.2f ? max : line.Height * 0.72f;
@@ -1230,6 +1261,7 @@ public static class DocumentRenderer
 
     private static void DrawGlyph(SKCanvas canvas, DesignObject obj, string text, float x, float y, SKTextAlign align, SKFont font, SKPaint paint, byte alpha)
     {
+        PrepareTextFont(font);
         if (NeedsMixedGlyphs(font, text))
         {
             DrawMixedGlyphs(canvas, obj, text, x, y, align, font, paint, alpha);
@@ -1327,9 +1359,16 @@ public static class DocumentRenderer
         try
         {
             var glyphs = font.GetGlyphs(text);
-            foreach (var g in glyphs)
+            var i = 0;
+            foreach (var rune in text.EnumerateRunes())
             {
-                if (g == 0) return true;
+                if (i >= glyphs.Length) break;
+                var g = glyphs[i++];
+                if (g != 0) continue;
+                if (IsInvisibleFormat(rune.Value)) continue;
+                if (rune.Value is 0x09 or 0x0A or 0x0D or 0x20 or 0xA0)
+                    continue;
+                return true;
             }
         }
         catch
@@ -1340,20 +1379,37 @@ public static class DocumentRenderer
     }
 
     private static float MeasureLine(SKFont font, string? family, bool bold, string text)
-        => NeedsMixedGlyphs(font, text)
+    {
+        PrepareTextFont(font);
+        return NeedsMixedGlyphs(font, text)
             ? MeasureMixed(font, family, bold, text)
             : font.MeasureText(text);
+    }
 
     private static float MeasureMixed(SKFont font, string? family, bool bold, string text)
     {
         var width = 0f;
+        SKTypeface? runFace = null;
+        var buf = new System.Text.StringBuilder();
+
+        void Flush()
+        {
+            if (buf.Length == 0) return;
+            using var face = MakeTextFont(runFace ?? font.Typeface, font.Size);
+            width += Math.Max(0.05f, face.MeasureText(buf.ToString()));
+            buf.Clear();
+        }
+
         foreach (var rune in text.EnumerateRunes())
         {
             if (IsInvisibleFormat(rune.Value)) continue;
-            var ch = rune.ToString();
-            using (var face = new SKFont(ResolveTypeface(family, bold, rune.Value), font.Size))
-                width += Math.Max(0.2f, face.MeasureText(ch));
+            var tf = ResolveTypeface(family, bold, rune.Value);
+            if (runFace is not null && !SameFace(runFace, tf))
+                Flush();
+            runFace = tf;
+            buf.Append(rune);
         }
+        Flush();
         return width;
     }
 
@@ -1383,22 +1439,40 @@ public static class DocumentRenderer
 
     private static void DrawMixedRun(SKCanvas canvas, string? family, bool bold, string text, float x, float y, SKFont font, SKPaint paint)
     {
+        SKTypeface? runFace = null;
+        var buf = new System.Text.StringBuilder();
+
+        void Flush()
+        {
+            if (buf.Length == 0) return;
+            var piece = buf.ToString();
+            buf.Clear();
+            using var face = MakeTextFont(runFace ?? font.Typeface, font.Size);
+            canvas.DrawText(piece, x, y, SKTextAlign.Left, face, paint);
+            x += Math.Max(0.05f, face.MeasureText(piece));
+        }
+
         foreach (var rune in text.EnumerateRunes())
         {
             if (IsInvisibleFormat(rune.Value)) continue;
-            var ch = rune.ToString();
-            using (var face = new SKFont(ResolveTypeface(family, bold, rune.Value), font.Size))
+            var tf = ResolveTypeface(family, bold, rune.Value);
+            using (var probe = MakeTextFont(tf, font.Size))
             {
-                if (HasMissingGlyph(face, ch))
+                if (HasMissingGlyph(probe, rune.ToString()))
                 {
+                    Flush();
                     DrawFallbackGlyph(canvas, rune.Value, x, y, font.Size, paint);
                     x += font.Size * 0.92f;
+                    runFace = null;
                     continue;
                 }
-                canvas.DrawText(ch, x, y, SKTextAlign.Left, face, paint);
-                x += Math.Max(0.2f, face.MeasureText(ch));
             }
+            if (runFace is not null && !SameFace(runFace, tf))
+                Flush();
+            runFace = tf;
+            buf.Append(rune);
         }
+        Flush();
     }
 
     /// <summary>상자 그리기·도형 특수문자는 Pretendard에 없어 선으로 그린다.</summary>
@@ -1536,7 +1610,7 @@ public static class DocumentRenderer
     private static void DrawWordArt(SKCanvas canvas, DesignObject obj, string text, byte alpha, WordArtStyle style)
     {
         using var paint = new SKPaint { Color = ColorUtil.Parse(obj.Fill, alpha), IsAntialias = true };
-        using var font = new SKFont(ResolveTypeface(obj.FontFamily, obj.Bold, obj.Italic), obj.FontSize);
+        using var font = MakeTextFont(ResolveTypeface(obj.FontFamily, obj.Bold, obj.Italic), obj.FontSize);
         var chars = text.Replace("\n", "").ToCharArray();
         if (chars.Length == 0) return;
 
@@ -2070,7 +2144,7 @@ public static class DocumentRenderer
         for (var c = 0; c <= cols; c++)
             canvas.DrawLine(c * cw, 0, c * cw, obj.Height, stroke);
         using var tp = new SKPaint { Color = ColorUtil.Parse(obj.Fill, alpha), IsAntialias = true };
-        using var font = new SKFont(ResolveTypeface(obj.FontFamily, obj.Bold, obj.Italic), Math.Min(obj.FontSize, rh * 0.55f));
+        using var font = MakeTextFont(ResolveTypeface(obj.FontFamily, obj.Bold, obj.Italic), Math.Min(obj.FontSize, rh * 0.55f));
         for (var r = 0; r < rows; r++)
         {
             for (var c = 0; c < cols; c++)
@@ -2302,7 +2376,8 @@ public static class DocumentRenderer
         float dpi,
         float offsetXMm,
         float offsetYMm,
-        Func<int, DesignObject, string>? resolve = null)
+        Func<int, DesignObject, string>? resolve = null,
+        bool drawCutLines = false)
     {
         doc.EnsureStructure();
         pageIndex = Math.Clamp(pageIndex, 0, doc.Pages.Count - 1);
@@ -2327,16 +2402,23 @@ public static class DocumentRenderer
             var global = pageIndex * per + slot.Index;
             canvas.Save();
             canvas.Translate(slot.X, slot.Y);
-            DrawCell(canvas, doc, cell, obj => resolve?.Invoke(global, obj) ?? obj.Text, forExport: true, widthMm: slot.W, heightMm: slot.H);
-            using (var outline = new SKPaint
+            DrawCell(
+                canvas, doc, cell,
+                obj => resolve?.Invoke(global, obj) ?? obj.Text,
+                forExport: true,
+                widthMm: slot.W,
+                heightMm: slot.H,
+                drawCutLines: drawCutLines);
+            if (drawCutLines)
             {
-                Color = new SKColor(0xC4, 0x28, 0x3A),
-                IsAntialias = true,
-                Style = SKPaintStyle.Stroke,
-                StrokeWidth = 0.18f
-            })
-            using (var path = CreateLabelPath(paper.ShapeFor(slot), slot.W, slot.H))
-            {
+                using var outline = new SKPaint
+                {
+                    Color = new SKColor(0xC4, 0x28, 0x3A),
+                    IsAntialias = true,
+                    Style = SKPaintStyle.Stroke,
+                    StrokeWidth = 0.18f
+                };
+                using var path = CreateLabelPath(paper.ShapeFor(slot), slot.W, slot.H);
                 canvas.DrawPath(path, outline);
             }
             canvas.Restore();

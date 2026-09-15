@@ -41,6 +41,8 @@ public sealed class EditorSession
     public string ClipartTab { get; set; } = "clipart";
     public List<UserAsset> UserAssets { get; } = [];
     public VendorImportResult? PendingVendorImport { get; set; }
+    /// <summary>변환 문서에 있으나 아직 이 PC에서 불러오지 못한 윈도우 글꼴.</summary>
+    public List<string> PendingLocalFonts { get; set; } = [];
     public int WorkspaceId { get; set; }
     public int? CurrentShopProductId { get; set; }
     public bool PendingShopBuyNow { get; set; }
@@ -485,6 +487,41 @@ public sealed class EditorSession
         Notify();
     }
 
+    /// <summary>
+    /// 속성창 목록 기준으로 레이어를 옮긴다. 0이 맨 앞(가장 위).
+    /// <paramref name="toIndex"/>는 항목을 뺀 뒤의 삽입 위치이다.
+    /// </summary>
+    public bool ReorderLayerVisual(int fromIndex, int toIndex)
+    {
+        var objects = CurrentCell.Objects;
+        if (objects.Count < 2) return false;
+
+        var stack = objects
+            .Select((o, i) => (o, i))
+            .OrderByDescending(t => t.o.ZIndex)
+            .ThenByDescending(t => t.i)
+            .Select(t => t.o)
+            .ToList();
+        if (fromIndex < 0 || fromIndex >= stack.Count) return false;
+
+        var moved = stack[fromIndex];
+        stack.RemoveAt(fromIndex);
+        toIndex = Math.Clamp(toIndex, 0, stack.Count);
+        if (toIndex == fromIndex) return false;
+        stack.Insert(toIndex, moved);
+
+        stack.Reverse();
+        for (var i = 0; i < stack.Count; i++)
+            stack[i].ZIndex = i + 1;
+        objects.Clear();
+        objects.AddRange(stack);
+        Dirty = true;
+        Status = "레이어 순서 변경";
+        EditorLog.Info($"레이어 순서 {moved.Id} {fromIndex}→{toIndex}");
+        Notify();
+        return true;
+    }
+
     public void SetZoom(float zoom)
     {
         Zoom = Math.Clamp(zoom, MinZoom, MaxZoom);
@@ -509,6 +546,13 @@ public sealed class EditorSession
         PanX = 0;
         PanY = 0;
         PendingFit = false;
+        Notify();
+    }
+
+    /// <summary>글꼴만 바뀌어도 미리보기 캐시를 버린다.</summary>
+    public void InvalidateRender()
+    {
+        DocumentEpoch++;
         Notify();
     }
 
@@ -606,7 +650,8 @@ public sealed class EditorSession
                     ? (type == ObjectType.Qr ? "QR_CODE" : "CODE_128")
                     : barcodeFormat;
                 obj.BarcodeValue = string.IsNullOrWhiteSpace(sample) ? $"[{column}]" : sample;
-                obj.BarcodeShowText = type == ObjectType.Barcode;
+                obj.BarcodeShowText = type == ObjectType.Barcode
+                    && !string.Equals(obj.BarcodeFormat, "KOREAN_POST", StringComparison.OrdinalIgnoreCase);
                 break;
             default:
                 obj.Text = string.IsNullOrWhiteSpace(sample) ? $"[{column}]" : sample;

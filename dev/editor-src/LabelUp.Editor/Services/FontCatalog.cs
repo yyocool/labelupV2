@@ -135,7 +135,6 @@ public sealed class FontCatalog : IAsyncDisposable
         F("Pretendard", "기본", PretendardReg, PretendardBold),
 
         Win("맑은 고딕", "한글 고딕", NotoSansReg, NotoSansBold),
-        Win("Malgun Gothic", "한글 고딕", NotoSansReg, NotoSansBold),
         F("Noto Sans KR", "한글 고딕", NotoSansReg, NotoSansBold),
         F("나눔고딕", "한글 고딕", NanumGothicReg, NanumGothicBold),
         F("Nanum Gothic", "한글 고딕", NanumGothicReg, NanumGothicBold),
@@ -208,6 +207,7 @@ public sealed class FontCatalog : IAsyncDisposable
     private static readonly Dictionary<string, string> Aliases = new(StringComparer.OrdinalIgnoreCase)
     {
         ["맑은 고딕 Semilight"] = "맑은 고딕",
+        ["Malgun Gothic"] = "맑은 고딕",
         ["Malgun Gothic Semilight"] = "맑은 고딕",
         ["Gulim"] = "굴림",
         ["굴림체"] = "굴림",
@@ -400,6 +400,234 @@ public sealed class FontCatalog : IAsyncDisposable
         return _faces.TryGetValue(id, out var face) && face is not null;
     }
 
+    /// <summary>에디터 웹 글꼴이 아니라 시스템에서 읽어야 하는 이름인가.</summary>
+    public static bool NeedsLocalLookup(string? family)
+    {
+        var id = CanonicalId(family);
+        if (id.Equals("Pretendard", StringComparison.OrdinalIgnoreCase))
+            return false;
+        var spec = Specs.FirstOrDefault(s => s.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+        return spec is null || !spec.Picker;
+    }
+
+    public IReadOnlyList<string> MissingLocalFamilies(IEnumerable<string?> families)
+        => families
+            .Where(f => !string.IsNullOrWhiteSpace(f))
+            .Select(CanonicalId)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(id => NeedsLocalLookup(id) && !IsVerifiedLocal(id))
+            .OrderBy(id => id, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    /// <summary>윈도우 전용으로 표시할 이름. 이미 읽었는지는 보지 않는다.</summary>
+    public static IReadOnlyList<string> WindowsFamilies(IEnumerable<string?> families)
+        => families
+            .Where(f => !string.IsNullOrWhiteSpace(f))
+            .Select(CanonicalId)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(NeedsLocalLookup)
+            .OrderBy(id => id, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    /// <summary>Noto/나눔 등 웹 대체 얼굴을 윈도우 글꼴로 취급하지 않는다.</summary>
+    public void DemoteWebFallbacks(IEnumerable<string?> families)
+    {
+        foreach (var family in families)
+        {
+            var id = CanonicalId(family);
+            if (id.Length == 0 || !_localFaces.Contains(id))
+                continue;
+            if (!_faces.TryGetValue(id, out var face) || face is null || IsWebFallbackFace(face.FamilyName)
+                || !FaceNameMatches(id, face.FamilyName))
+            {
+                _localFaces.Remove(id);
+                EditorLog.Warn($"웹 대체 글꼴을 로컬로 보지 않음: {id} face={face?.FamilyName}");
+            }
+        }
+    }
+
+    public bool IsVerifiedLocal(string? family)
+    {
+        var id = CanonicalId(family);
+        if (!_localFaces.Contains(id))
+            return false;
+        if (!_faces.TryGetValue(id, out var face) || face is null)
+            return false;
+        if (IsWebFallbackFace(face.FamilyName))
+        {
+            _localFaces.Remove(id);
+            EditorLog.Warn($"웹 대체 글꼴을 로컬로 보지 않음: {id} face={face.FamilyName}");
+            return false;
+        }
+        if (NeedsHangul(id) && !HasGlyph(face, 0xAC00))
+            return false;
+        if (!FaceNameMatches(id, face.FamilyName))
+        {
+            _localFaces.Remove(id);
+            EditorLog.Warn($"로컬 글꼴 이름 불일치, 다시 읽음: {id} face={face.FamilyName}");
+            return false;
+        }
+        return true;
+    }
+
+    private static bool FaceNameMatches(string id, string? faceName)
+    {
+        var fn = StripStyleSuffixes((faceName ?? "").Trim());
+        if (fn.Length == 0 || IsWebFallbackFace(fn))
+            return false;
+        if (LocalQueryNames.TryGetValue(id, out var names)
+            && names.Any(n => fn.Equals(n, StringComparison.OrdinalIgnoreCase)))
+            return true;
+        return fn.Equals(id, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsWebFallbackFace(string? faceName)
+    {
+        var fn = (faceName ?? "").Trim();
+        if (fn.Length == 0) return true;
+        string[] marks =
+        [
+            "Pretendard", "Noto Sans", "Noto Serif", "NotoSans", "NotoSerif",
+            "Nanum", "Liberation", "Gothic A1", "IBM Plex"
+        ];
+        return marks.Any(m => fn.Contains(m, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public void ResetLocalAccess() => _localDisabled = false;
+
+    public bool AttachRawBytes(string fileName, byte[] bytes, IEnumerable<string>? preferred = null)
+    {
+        if (bytes is not { Length: >= 100 }) return false;
+        var prefer = preferred?
+            .Select(CanonicalId)
+            .FirstOrDefault(id => id.Length > 0 && !id.Equals("Pretendard", StringComparison.OrdinalIgnoreCase));
+        SKTypeface? regular = null, bold = null, italic = null;
+        CollectFaces(bytes, ref regular, ref bold, ref italic, prefer);
+        var face = regular ?? bold ?? italic;
+        if (face is null) return false;
+
+        var id = string.IsNullOrWhiteSpace(prefer)
+            ? GuessFamilyId(fileName, face.FamilyName, preferred)
+            : prefer;
+        if (NeedsHangul(id) && !HasGlyph(face, 0xAC00))
+        {
+            EditorLog.Warn($"한글 글리프 없음, 글꼴 거부: {id} ← {fileName} face={face.FamilyName}");
+            return false;
+        }
+        if (NeedsLocalLookup(id) && !FileImpliesFamily(fileName, id) && !FaceNameMatches(id, face.FamilyName))
+        {
+            EditorLog.Warn($"글꼴 파일 이름 불일치, 거부: {id} ← {fileName} face={face.FamilyName}");
+            return false;
+        }
+
+        _faces[id] = regular ?? face;
+        if (bold is not null) _boldFaces[id] = bold;
+        if (italic is not null) _italicFaces[id] = italic;
+        _localFaces.Add(id);
+        EditorLog.Info($"글꼴 파일 적용: {id} ← {fileName} face={face.FamilyName}");
+        return true;
+    }
+
+    public async Task<bool> TryLoadLocalOnlyAsync(IEnumerable<string?> families)
+    {
+        var any = false;
+        foreach (var family in families.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            var id = CanonicalId(family);
+            if (id.Length == 0 || IsVerifiedLocal(id))
+                continue;
+            _localFaces.Remove(id);
+            ResetLocalAccess();
+            if (await TryAttachLocalAsync(id) || await TryAttachSystemApiAsync(id))
+                any = true;
+        }
+        return any;
+    }
+
+    /// <summary>Chrome 로컬 글꼴 허용 뒤에만 호출. 이 PC에 있는 얼굴을 읽는다.</summary>
+    public async Task<bool> TryChromeLocalFontsAsync(IEnumerable<string?> families)
+    {
+        var any = false;
+        ResetLocalAccess();
+        foreach (var family in families.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            var id = CanonicalId(family);
+            if (id.Length == 0 || IsVerifiedLocal(id))
+                continue;
+            _localFaces.Remove(id);
+            if (await TryAttachLocalAsync(id))
+                any = true;
+        }
+        return any;
+    }
+
+    private static bool NeedsHangul(string id)
+        => id is "맑은 고딕" or "굴림" or "돋움" or "바탕" or "궁서" or "휴먼편지체"
+           || id.Contains("고딕", StringComparison.Ordinal)
+           || id.Contains("Gothic", StringComparison.OrdinalIgnoreCase);
+
+    private static bool FileImpliesFamily(string fileName, string id)
+    {
+        var file = Path.GetFileNameWithoutExtension(fileName ?? "").ToLowerInvariant();
+        return file switch
+        {
+            var n when n.StartsWith("malgun") => id.Equals("맑은 고딕", StringComparison.OrdinalIgnoreCase),
+            var n when n.StartsWith("gulim") => id is "굴림" or "돋움",
+            var n when n.StartsWith("dotum") => id.Equals("돋움", StringComparison.OrdinalIgnoreCase),
+            var n when n.StartsWith("batang") => id is "바탕" or "궁서",
+            var n when n.StartsWith("gungsuh") || n.StartsWith("gungseh")
+                => id.Equals("궁서", StringComparison.OrdinalIgnoreCase),
+            var n when n.StartsWith("arialn") => id.Equals("Arial Narrow", StringComparison.OrdinalIgnoreCase),
+            var n when n.StartsWith("arial") => id.Equals("Arial", StringComparison.OrdinalIgnoreCase),
+            var n when n.StartsWith("times") => id.Equals("Times New Roman", StringComparison.OrdinalIgnoreCase),
+            var n when n.StartsWith("georgia") => id.Equals("Georgia", StringComparison.OrdinalIgnoreCase),
+            var n when n.StartsWith("calibri") => id.Equals("Calibri", StringComparison.OrdinalIgnoreCase),
+            var n when n.StartsWith("candara") => id.Equals("Candara", StringComparison.OrdinalIgnoreCase),
+            var n when n.StartsWith("tahoma") => id.Equals("Tahoma", StringComparison.OrdinalIgnoreCase),
+            var n when n.StartsWith("verdana") => id.Equals("Verdana", StringComparison.OrdinalIgnoreCase),
+            var n when n.StartsWith("cour") => id.Equals("Courier New", StringComparison.OrdinalIgnoreCase),
+            _ => false
+        };
+    }
+
+    private string GuessFamilyId(string fileName, string? faceFamily, IEnumerable<string>? preferred)
+    {
+        var file = Path.GetFileNameWithoutExtension(fileName ?? "").ToLowerInvariant();
+        var guessed = file switch
+        {
+            var n when n.StartsWith("malgun") => "맑은 고딕",
+            var n when n.StartsWith("gulim") => "굴림",
+            var n when n.StartsWith("dotum") => "돋움",
+            var n when n.StartsWith("batang") => "바탕",
+            var n when n.StartsWith("gungsuh") || n.StartsWith("gungseh") => "궁서",
+            var n when n.StartsWith("arialn") => "Arial Narrow",
+            var n when n.StartsWith("arial") => "Arial",
+            var n when n.StartsWith("times") => "Times New Roman",
+            var n when n.StartsWith("georgia") => "Georgia",
+            var n when n.StartsWith("calibri") => "Calibri",
+            var n when n.StartsWith("candara") => "Candara",
+            var n when n.StartsWith("tahoma") => "Tahoma",
+            var n when n.StartsWith("verdana") => "Verdana",
+            var n when n.StartsWith("cour") => "Courier New",
+            _ => ""
+        };
+        if (guessed.Length > 0) return CanonicalId(guessed);
+
+        var fromFace = CanonicalId(faceFamily);
+        if (preferred is not null)
+        {
+            foreach (var raw in preferred)
+            {
+                var id = CanonicalId(raw);
+                if (id.Equals(fromFace, StringComparison.OrdinalIgnoreCase))
+                    return id;
+                if (QueryNamesFor(id).Any(n => n.Equals(faceFamily, StringComparison.OrdinalIgnoreCase)))
+                    return id;
+            }
+        }
+        return fromFace;
+    }
+
     public async Task<bool> EnsureFamilyAsync(string? family)
     {
         try
@@ -413,6 +641,8 @@ public sealed class FontCatalog : IAsyncDisposable
 
             try
             {
+                if (ShouldTryLocal(spec) && await TryAttachSystemApiAsync(id))
+                    return true;
                 if (ShouldTryLocal(spec) && await TryAttachLocalAsync(id))
                     return true;
                 if (have)
@@ -424,14 +654,16 @@ public sealed class FontCatalog : IAsyncDisposable
                     return false;
                 }
 
-                var face = await LoadFirstAsync(spec.RegularUrls);
+                var face = await LoadFirstAsync(spec.RegularUrls, id);
                 _faces[id] = face ?? _regular;
+                if (face is not null && FaceNameMatches(id, face.FamilyName) && !IsWebFallbackFace(face.FamilyName))
+                    _localFaces.Add(id);
                 if (spec.BoldUrls is { Length: > 0 })
-                    _boldFaces[id] = await LoadFirstAsync(spec.BoldUrls) ?? face ?? _bold;
+                    _boldFaces[id] = await LoadFirstAsync(spec.BoldUrls, id) ?? face ?? _bold;
                 if (spec.ItalicUrls is { Length: > 0 })
-                    _italicFaces[id] = await LoadFirstAsync(spec.ItalicUrls);
+                    _italicFaces[id] = await LoadFirstAsync(spec.ItalicUrls, id);
                 var ok = face is not null;
-                EditorLog.Info(ok ? $"글꼴 로드: {id}" : $"글꼴 로드 실패, 기본 글꼴 사용: {id}");
+                EditorLog.Info(ok ? $"글꼴 로드: {id} face={face?.FamilyName}" : $"글꼴 로드 실패, 기본 글꼴 사용: {id}");
                 return ok;
             }
             finally
@@ -478,11 +710,13 @@ public sealed class FontCatalog : IAsyncDisposable
         else if (_faces.TryGetValue(id, out var rf) && rf is not null)
             primary = rf;
         primary ??= bold && _bold is not null ? _bold : _regular;
+        var local = _localFaces.Contains(id);
 
         if (codepoint > 0 && HasGlyph(_symbols, codepoint)
             && (PrefersSymbolRange(codepoint) || !HasGlyph(primary, codepoint)))
             return _symbols!;
-        if (codepoint > 0 && !HasGlyph(primary, codepoint) && HasGlyph(_regular, codepoint))
+        // 로컬에서 읽은 얼굴은 글리프 검사가 틀려도 Pretendard로 바꾸지 않는다.
+        if (!local && codepoint > 0 && !HasGlyph(primary, codepoint) && HasGlyph(_regular, codepoint))
             return bold && _bold is not null && HasGlyph(_bold, codepoint) ? _bold : _regular!;
         if (primary is not null) return primary;
         return SKTypeface.Default;
@@ -511,6 +745,79 @@ public sealed class FontCatalog : IAsyncDisposable
         return aliases.Prepend(id).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
     }
 
+    private async Task<bool> TryAttachSystemApiAsync(string id)
+    {
+        try
+        {
+            foreach (var name in QueryNamesFor(id))
+            {
+                var (regular, regularName) = await FetchSystemFontAsync(name, "regular");
+                if (regular is not { Length: >= 100 })
+                    continue;
+                if (AttachRawBytes(string.IsNullOrWhiteSpace(regularName) ? WinFileName(id) : regularName, regular, [id]))
+                {
+                    var (bold, boldName) = await FetchSystemFontAsync(name, "bold");
+                    if (bold is { Length: >= 100 })
+                        AttachRawBytes(boldName, bold, [id]);
+                    return true;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn($"시스템 글꼴 API 실패: {id} · {ex.Message}");
+        }
+        return false;
+    }
+
+    private static string WinFileName(string id) => id switch
+    {
+        "맑은 고딕" => "malgun.ttf",
+        "굴림" or "돋움" => "gulim.ttc",
+        "바탕" or "궁서" => "batang.ttc",
+        "Arial" => "arial.ttf",
+        _ => id + ".ttf"
+    };
+
+    private async Task<(byte[]? Bytes, string FileName)> FetchSystemFontAsync(string family, string style)
+    {
+        try
+        {
+            try
+            {
+                var viaJs = await _js.InvokeAsync<byte[]?>("labelUpEditor.fetchSystemFont", family, style);
+                if (viaJs is { Length: >= 100 })
+                    return (viaJs, WinFileName(CanonicalId(family)));
+            }
+            catch (JSException)
+            {
+                /* 아래 HTTP로 재시도 */
+            }
+
+            var origin = _http.BaseAddress?.GetLeftPart(UriPartial.Authority) ?? "";
+            var url = origin + "/api/editor/system-font?family=" + Uri.EscapeDataString(family)
+                      + "&style=" + Uri.EscapeDataString(style);
+            using var resp = await _http.GetAsync(url);
+            if (!resp.IsSuccessStatusCode)
+            {
+                EditorLog.Warn($"시스템 글꼴 API {((int)resp.StatusCode)}: {family}");
+                return (null, "");
+            }
+            var bytes = await resp.Content.ReadAsByteArrayAsync();
+            if (bytes.Length < 100)
+                return (null, "");
+            var fileName = resp.Content.Headers.ContentDisposition?.FileNameStar
+                           ?? resp.Content.Headers.ContentDisposition?.FileName?.Trim('"')
+                           ?? family + ".ttf";
+            return (bytes, fileName);
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn($"시스템 글꼴 API 실패: {family} · {ex.Message}");
+            return (null, "");
+        }
+    }
+
     private async Task<bool> TryAttachLocalAsync(string id)
     {
         if (_localDisabled) return false;
@@ -522,33 +829,43 @@ public sealed class FontCatalog : IAsyncDisposable
                 return false;
 
             SKTypeface? regular = null, bold = null, italic = null;
-            CollectFaces(regularBytes, ref regular, ref bold, ref italic);
+            CollectFaces(regularBytes, ref regular, ref bold, ref italic, id);
             if (bold is null)
             {
                 var boldBytes = await _js.InvokeAsync<byte[]?>("labelUpEditor.loadLocalFont", names, "bold");
                 if (boldBytes is { Length: >= 100 })
-                    CollectFaces(boldBytes, ref regular, ref bold, ref italic);
+                    CollectFaces(boldBytes, ref regular, ref bold, ref italic, id);
             }
             if (italic is null)
             {
                 var italicBytes = await _js.InvokeAsync<byte[]?>("labelUpEditor.loadLocalFont", names, "italic");
                 if (italicBytes is { Length: >= 100 })
-                    CollectFaces(italicBytes, ref regular, ref bold, ref italic);
+                    CollectFaces(italicBytes, ref regular, ref bold, ref italic, id);
             }
 
             var face = regular ?? bold ?? italic;
             if (face is null) return false;
+            if (NeedsHangul(id) && !HasGlyph(face, 0xAC00))
+            {
+                EditorLog.Warn($"로컬 글꼴에 한글 없음: {id} face={face.FamilyName}");
+                return false;
+            }
+            if (!FaceNameMatches(id, face.FamilyName)
+                && !(NeedsHangul(id) && HasGlyph(face, 0xAC00)))
+            {
+                EditorLog.Warn($"로컬 글꼴 이름 불일치: {id} face={face.FamilyName}");
+                return false;
+            }
 
             _faces[id] = face;
             if (bold is not null) _boldFaces[id] = bold;
             if (italic is not null) _italicFaces[id] = italic;
             _localFaces.Add(id);
-            EditorLog.Info($"로컬 글꼴 로드: {id}");
+            EditorLog.Info($"로컬 글꼴 로드: {id} face={face.FamilyName}");
             return true;
         }
         catch (JSException ex)
         {
-            _localDisabled = true;
             EditorLog.Warn("로컬 글꼴 API 사용 불가: " + ex.Message);
             return false;
         }
@@ -559,9 +876,11 @@ public sealed class FontCatalog : IAsyncDisposable
         }
     }
 
-    private static void CollectFaces(byte[] bytes, ref SKTypeface? regular, ref SKTypeface? bold, ref SKTypeface? italic)
+    private static void CollectFaces(
+        byte[] bytes, ref SKTypeface? regular, ref SKTypeface? bold, ref SKTypeface? italic, string? preferId = null)
     {
         using var data = SKData.CreateCopy(bytes);
+        var faces = new List<SKTypeface>();
         SKTypeface? prev = null;
         for (var i = 0; i < 24; i++)
         {
@@ -578,6 +897,21 @@ public sealed class FontCatalog : IAsyncDisposable
                 break;
             }
             prev = face;
+            faces.Add(face);
+        }
+
+        var prefer = (preferId ?? "").Trim();
+        var wanted = prefer.Length == 0
+            ? faces
+            : faces.Where(f => FaceNameMatches(prefer, f.FamilyName)).ToList();
+        var pool = wanted.Count > 0 ? wanted : faces;
+        foreach (var face in faces)
+        {
+            if (!pool.Contains(face))
+            {
+                face.Dispose();
+                continue;
+            }
             var isBold = face.IsBold || (int)face.FontWeight >= 600;
             var isItalic = face.IsItalic;
             if (!isBold && !isItalic && regular is null) { regular = face; continue; }
@@ -587,22 +921,27 @@ public sealed class FontCatalog : IAsyncDisposable
         }
     }
 
-    private async Task<SKTypeface?> LoadFirstAsync(IReadOnlyList<string> urls)
+    private async Task<SKTypeface?> LoadFirstAsync(IReadOnlyList<string> urls, string? preferId = null)
     {
         foreach (var url in urls)
         {
-            var face = await LoadAsync(url);
+            var face = await LoadAsync(url, preferId);
             if (face is not null) return face;
         }
         return null;
     }
 
-    private async Task<SKTypeface?> LoadAsync(string relativePath)
+    private async Task<SKTypeface?> LoadAsync(string relativePath, string? preferId = null)
     {
         try
         {
             var bytes = await _http.GetByteArrayAsync(relativePath);
             if (bytes.Length < 100) return null;
+            SKTypeface? regular = null, bold = null, italic = null;
+            CollectFaces(bytes, ref regular, ref bold, ref italic, preferId);
+            bold?.Dispose();
+            italic?.Dispose();
+            if (regular is not null) return regular;
             using var data = SKData.CreateCopy(bytes);
             return SKTypeface.FromData(data);
         }

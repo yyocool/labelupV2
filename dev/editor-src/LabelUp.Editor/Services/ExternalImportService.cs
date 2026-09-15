@@ -587,17 +587,29 @@ public sealed class ExternalImportService(PaperCatalog papers)
         if (key.Contains("MICRO") && key.Contains("PDF")) return "MICRO_PDF417";
         if (key.Contains("PDF")) return "PDF_417";
         if (key.Contains("AZTEC")) return "AZTEC";
+        if (key.Contains("NUMLY") || key.Contains("ESBN") || key == "ESN")
+            return "NUMLY";
         if (BarcodeCatalog.LooksLikeIsbn(raw) || key.Contains("ISBN") || key.Contains("BOOKLAND"))
             return "ISBN";
         if (key.Contains("EAN_13") || key.Contains("EAN13") || key.Contains("JAN_13") || key.Contains("JAN13")) return "EAN_13";
         if (key.Contains("EAN_8") || key.Contains("EAN8") || key.Contains("JAN_8")) return "EAN_8";
         if (key.Contains("UPC_A") || key.Contains("UPCA")) return "UPC_A";
         if (key.Contains("UPC_E")) return "UPC_E";
-        if (key.Contains("CODE_39") || key.Contains("CODE39")) return "CODE_39";
-        if (key.Contains("CODE_93") || key.Contains("CODE93")) return "CODE_93";
+        if (key.Contains("CODE_39") || key.Contains("CODE39"))
+            return key.Contains("EXT") ? "CODE_39_EXT" : "CODE_39";
+        if (key.Contains("CODE_93") || key.Contains("CODE93"))
+            return key.Contains("EXT") ? "CODE_93_EXT" : "CODE_93";
         if (key.Contains("CODE_128") || key.Contains("CODE128") || key.Contains("EAN_128") || key.Contains("GS1")) return "CODE_128";
         if (key.Contains("ITF_14") || key.Contains("EAN_14")) return "ITF_14";
-        if (key.Contains("ITF") || key.Contains("I25") || key.Contains("2_5") || key.Contains("2/5")) return "ITF";
+        if (key.Contains("DATALOGIC")) return "I25_DATALOGIC";
+        if (key.Contains("IATA")) return "I25_IATA";
+        if (key.Contains("INDUSTRIAL")) return "I25_INDUSTRIAL";
+        if (key.Contains("INVERT")) return "I25_INVERT";
+        if (key.Contains("COOP")) return "COOP25";
+        if (key.Contains("MATRIX") && (key.Contains("2_5") || key.Contains("I25") || key.Contains("CODE25") || key.Contains("CODE_25")))
+            return "I25_MATRIX";
+        if (key.Contains("ITF") || key.Contains("INTERLEAVED") || key.Contains("I25") || key.Contains("2_5") || key.Contains("2/5")) return "ITF";
+        if (key.Contains("ABC") && key.Contains("CODABAR")) return "ABC_CODABAR";
         if (key.Contains("CODABAR")) return "CODABAR";
         if (key.Contains("POST")) return "KOREAN_POST";
         return BarcodeCatalog.Find(key) is not null ? key : "CODE_128";
@@ -1142,8 +1154,21 @@ internal static class FormtecImporter
                 if (string.IsNullOrEmpty(img.ImageData))
                     img.ImageData = ExternalImportService.FindImageDataUrl(data, geom, end);
                 return img;
-            case 0x07:
             case 0x08:
+                var postal = DesignObject.CreateDefault(ObjectType.Barcode, x, y);
+                postal.Width = w;
+                postal.Height = h;
+                postal.BarcodeFormat = "KOREAN_POST";
+                postal.BarcodeValue = "";
+                FormtecRecords.Apply(postal, data, geom, end, type);
+                if (string.IsNullOrWhiteSpace(postal.BarcodeValue))
+                    postal.BarcodeValue = ReadAsciiPrefixed(data, geom, Math.Min(data.Length, geom + 320))
+                        ?? strings.LastOrDefault(s => s.All(char.IsAsciiDigit) && s.Length is >= 4 and <= 16)
+                        ?? postal.BarcodeValue;
+                if (!string.IsNullOrWhiteSpace(postal.BarcodeValue))
+                    postal.BarcodeValue = FormtecRecords.ToPostalDisplayValue(postal.BarcodeValue);
+                return postal;
+            case 0x07:
             case 0x10:
                 var format = ExternalImportService.MapBarcode(strings.FirstOrDefault());
                 if (type == 0x10 && !ExternalImportService.Is2dBarcode(format)) format = "QR_CODE";
@@ -1156,7 +1181,7 @@ internal static class FormtecImporter
                     bar.BarcodeValue = ReadAsciiPrefixed(data, start, end)
                         ?? strings.LastOrDefault(s => s.Length is >= 4 and <= 2000 && !s.StartsWith("bc", StringComparison.Ordinal))
                         ?? bar.BarcodeValue;
-                if (type is 0x07 or 0x08 && BarcodeCatalog.LooksLikeIsbn(bar.BarcodeValue))
+                if (type is 0x07 && BarcodeCatalog.LooksLikeIsbn(bar.BarcodeValue))
                     bar.BarcodeFormat = "ISBN";
                 return bar;
             case 0x0F:

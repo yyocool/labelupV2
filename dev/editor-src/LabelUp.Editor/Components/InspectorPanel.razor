@@ -1,6 +1,9 @@
 @using LabelUp.Editor.Models
 @using LabelUp.Editor.Services
+@using Microsoft.JSInterop
 @inject EditorSession Session
+@inject HistoryService History
+@inject IJSRuntime Js
 @implements IDisposable
 
 <aside class="ed-props @(Session.PropsMinimized ? "is-minimized" : null)" data-ed-props-panel data-ed-snap-id="tr" data-tut="props" aria-label="레이어">
@@ -37,15 +40,39 @@
 </aside>
 
 @code {
+    private DotNetObjectReference<InspectorPanel>? _self;
+
     protected override void OnInitialized()
     {
         Session.PropsTab = "layers";
         Session.Changed += OnChanged;
     }
 
-    public void Dispose() => Session.Changed -= OnChanged;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _self = DotNetObjectReference.Create(this);
+        try { await Js.InvokeVoidAsync("labelUpEditor.bindLayerDragHost", _self); }
+        catch (Exception ex) { EditorLog.Warn("레이어 드래그 연결 실패: " + ex.Message); }
+    }
+
+    public void Dispose()
+    {
+        Session.Changed -= OnChanged;
+        _self?.Dispose();
+    }
+
     private void OnChanged() => InvokeAsync(StateHasChanged);
     private void TogglePropsMin() { Session.PropsMinimized = !Session.PropsMinimized; Session.Notify(); }
+
+    [JSInvokable]
+    public void ReorderLayers(int fromIndex, int toIndex)
+    {
+        if (fromIndex == toIndex) return;
+        History.Push(Session.Document);
+        if (!Session.ReorderLayerVisual(fromIndex, toIndex))
+            EditorLog.Warn($"레이어 순서 변경 실패 {fromIndex}→{toIndex}");
+    }
 
     private static string LayerLabel(DesignObject o) => o.Type switch
     {

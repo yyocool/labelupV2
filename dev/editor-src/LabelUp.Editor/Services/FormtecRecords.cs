@@ -31,8 +31,9 @@ internal static class FormtecRecords
                 length = Math.Min(98, available);
                 return true;
             case 0x07:
-            case 0x08:
                 return TryBarcode1DLength(data, start, pageEnd, out length);
+            case 0x08:
+                return TryPostalBarcodeLength(data, start, pageEnd, out length);
             case 0x04:
                 length = 95;
                 return length <= available;
@@ -89,8 +90,10 @@ internal static class FormtecRecords
                 ApplyImage(obj, data, start, end, type == 0x18);
                 break;
             case 0x07:
-            case 0x08:
                 ApplyBarcode1D(obj, data, start, end);
+                break;
+            case 0x08:
+                ApplyPostalBarcode(obj, data, start, end);
                 break;
             case 0x10:
                 ApplyBarcode2D(obj, data, start, end);
@@ -193,6 +196,25 @@ internal static class FormtecRecords
         if (n is < 0 or > 10_000) return false;
         length = 134 + f + n * 2;
         return length > 0 && length <= pageEnd - start;
+    }
+
+    /// <summary>
+    /// 폼텍 우편번호 바코드(0x08). +0x47의 0x2711(n=0) 뒤 ASCII 값과 색 9바이트만 본문이다.
+    /// 설명 글자는 바로 이어지는 0x00 텍스트 객체다.
+    /// </summary>
+    private static bool TryPostalBarcodeLength(byte[] data, int start, int pageEnd, out int length)
+    {
+        length = 0;
+        var limit = Math.Min(data.Length, pageEnd);
+        var marker = start + 0x47;
+        if (marker + 16 > limit || !Is2711(data, marker)) return false;
+        if (BitConverter.ToUInt32(data, marker + 4) != 0) return false;
+        var asciiLen = (int)BitConverter.ToUInt32(data, marker + 9);
+        if (asciiLen is < 1 or > 16) return false;
+        var end = marker + 13 + asciiLen + 9;
+        if (end > limit) return false;
+        length = end - start;
+        return length > 41;
     }
 
     /// <summary>
@@ -398,7 +420,12 @@ internal static class FormtecRecords
         }
 
         length = outerHeader + shortFromR;
-        return length > 41 && start + length <= pageEnd;
+        if (start + length > pageEnd)
+        {
+            if (pageEnd - start <= 41) return false;
+            length = pageEnd - start;
+        }
+        return length > 41;
     }
 
     private static bool IsValidTextRecord(byte[] data, int recordStart, int pageEnd)
@@ -719,7 +746,7 @@ internal static class FormtecRecords
         "CODE_93", "CODE_93_EXT", "CODE_128", "ABC_CODABAR",
         "I25_DATALOGIC", "ITF", "I25_MATRIX", "I25_INDUSTRIAL",
         "I25_IATA", "I25_INVERT", "ITF", "ISBN", "ISSN", "ISMN",
-        "UPC_A", "UPC_E0", "UPC_E1", "UPC_A", "JAN_8", "JAN_13",
+        "UPC_A", "UPC_E0", "UPC_E1", "ITF_14", "JAN_8", "JAN_13",
         "MSI", "POSTNET", "OPC", "EAN_128", "COOP25",
         "CODE_11", "PZN"
     ];
@@ -752,6 +779,9 @@ internal static class FormtecRecords
             obj.BarcodeFormat = "ISBN";
         else if (subtype is not 0x11 and not 0x12 && BarcodeCatalog.LooksLikeIsbn(obj.BarcodeValue))
             obj.BarcodeFormat = "ISBN";
+        // 폼텍 ITF(0x0F)는 2/5 Interleaved(0x0A)와 인코딩은 같고, 위·옆 베어러(테두리)가 있다.
+        if (subtype == 0x0F)
+            obj.BarcodeShowStartEnd = true;
 
         var p = start + 0x55 + shift + textLen;
         if (p + 14 > end) return;
@@ -759,7 +789,8 @@ internal static class FormtecRecords
         obj.BackgroundTransparent = data[p + 1] != 0;
         obj.BackgroundFill = ColorRefCss(BitConverter.ToUInt32(data, p + 2));
         obj.Fill = ColorRefCss(BitConverter.ToUInt32(data, p + 6));
-        obj.Stroke = obj.Fill;
+        // 폼텍 1D는 막대색만 저장한다. 내용(HRI)은 검정.
+        obj.Stroke = "#000000";
 
         var q = p + 14 + fontNameLen;
         if (q + 4 <= end)
@@ -788,10 +819,77 @@ internal static class FormtecRecords
             var rot = BitConverter.ToInt32(data, i);
             if (rot is 90 or 180 or 270)
             {
-                obj.Rotation = rot;
+                // 폼텍 90/270은 반시계. Skia는 양수가 시계라 부호를 뒤집는다.
+                obj.Rotation = rot is 90 or 270 ? -rot : rot;
+                // 폼텍은 좌표를 회전 전 상자(AABB)로 둔다. 90/270도만 가로·세로를 바꿔
+                // 돌리면 화면 상자가 원래와 같다. 안 바꾸면 세로로 길어진다.
+                if (rot is 90 or 270)
+                    SwapSizeKeepCenter(obj);
+                EditorLog.Info($"폼텍 1D 회전 {rot}° → {obj.Rotation:0}° {obj.Width:0.##}×{obj.Height:0.##} mm @ {obj.X:0.##},{obj.Y:0.##}");
                 break;
             }
         }
+    }
+
+    /// <summary>
+    /// 한국 우체국 우편번호 바코드. 값은 ASCII 6자리(5자리면 폼텍이 앞에 9를 붙임).
+    /// 설명 글자는 다음 0x00 텍스트 객체에서 읽는다.
+    /// </summary>
+    private static void ApplyPostalBarcode(DesignObject obj, byte[] data, int start, int end)
+    {
+        obj.Type = ObjectType.Barcode;
+        obj.BarcodeFormat = "KOREAN_POST";
+        obj.BarcodeVendor = "formtec";
+        obj.Fill = "#000000";
+        obj.Stroke = "#000000";
+        obj.Text = "";
+        obj.BarcodeShowText = false;
+        if (obj.BarcodeValue is "LABELUP" or "https://labelup.kr" or "12345678")
+            obj.BarcodeValue = "";
+
+        TryReadPostalValue(data, start, Math.Min(end, data.Length), obj);
+        EditorLog.Info($"폼텍 우편번호: value={obj.BarcodeValue} bar={obj.Fill} bg={obj.BackgroundFill} transparent={obj.BackgroundTransparent}");
+    }
+
+    private static void TryReadPostalValue(byte[] data, int start, int limit, DesignObject obj)
+    {
+        var marker = start + 0x47;
+        if (marker + 16 > limit || !Is2711(data, marker)) return;
+        if (BitConverter.ToUInt32(data, marker + 4) != 0) return;
+        var asciiLen = (int)BitConverter.ToUInt32(data, marker + 9);
+        if (asciiLen is < 1 or > 16 || marker + 13 + asciiLen > limit) return;
+        var raw = Encoding.ASCII.GetString(data, marker + 13, asciiLen).Trim('\0', ' ');
+        if (raw.Length == 0 || !raw.All(char.IsAsciiDigit)) return;
+        obj.BarcodeValue = ToPostalDisplayValue(raw);
+        var colorAt = marker + 13 + asciiLen;
+        if (colorAt + 9 > limit) return;
+        obj.BackgroundTransparent = data[colorAt] != 0;
+        obj.BackgroundFill = ColorRefCss(BitConverter.ToUInt32(data, colorAt + 1));
+        obj.Fill = ColorRefCss(BitConverter.ToUInt32(data, colorAt + 5));
+    }
+
+    /// <summary>폼텍은 5자리를 9xxxxx로 저장한다. 속성바에는 우편번호 5자리만 둔다.</summary>
+    internal static string ToPostalDisplayValue(string raw)
+    {
+        var sb = new StringBuilder(6);
+        foreach (var ch in raw)
+        {
+            if (char.IsAsciiDigit(ch))
+                sb.Append(ch);
+        }
+        var digits = sb.ToString();
+        if (digits.Length == 6 && digits[0] == '9')
+            return digits[1..];
+        return digits.Length > 0 ? digits : raw;
+    }
+
+    private static void SwapSizeKeepCenter(DesignObject obj)
+    {
+        var cx = obj.X + obj.Width / 2f;
+        var cy = obj.Y + obj.Height / 2f;
+        (obj.Width, obj.Height) = (obj.Height, obj.Width);
+        obj.X = cx - obj.Width / 2f;
+        obj.Y = cy - obj.Height / 2f;
     }
 
     private static void ApplyBarcode2D(DesignObject obj, byte[] data, int start, int end)

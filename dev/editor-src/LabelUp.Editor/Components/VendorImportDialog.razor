@@ -52,6 +52,30 @@
         {
           <p class="ed-vendor-report__warn">참고: @r.Warning</p>
         }
+        @if (TextWindowsFonts(r).Count > 0)
+        {
+          <div class="ed-vendor-report__warn">
+            <p>텍스트 항목 글꼴입니다. QR·바코드 안내 문구의 폰트 이름과 다릅니다.</p>
+            <p class="ed-vendor-report__counts">
+              @foreach (var font in TextWindowsFonts(r))
+              {
+                <span>@font</span>
+              }
+            </p>
+          </div>
+        }
+        @if (MissingWindowsFonts(r).Count > 0)
+        {
+          <div class="ed-vendor-report__warn">
+            <p>에디터에 없는 윈도우 글꼴이 있습니다. 변환 후 Chrome에서 허용하면 이 PC 글꼴로 그립니다.</p>
+            <p class="ed-vendor-report__counts">
+              @foreach (var font in MissingWindowsFonts(r))
+              {
+                <span>@font</span>
+              }
+            </p>
+          </div>
+        }
         @if (!r.HasData && !string.IsNullOrWhiteSpace(r.MissingExcelName))
         {
           <p>IDF가 <b>@r.MissingExcelName</b> 을 가리키지만, 브라우저에서는 디스크 경로를 열 수 없습니다.</p>
@@ -214,7 +238,28 @@
         Session.CloseDialog();
     }
 
-    private async Task Apply()
+    private static IEnumerable<DesignObject> AllObjects(LabelDocument? doc)
+        => doc is null
+            ? []
+            : doc.Pages.SelectMany(p => p.Cells).SelectMany(c => c.Objects);
+
+    private static List<string> CollectUsedFamilies(LabelDocument? doc)
+        => AllObjects(doc).SelectMany(RichTextModel.FamiliesUsed).ToList();
+
+    private static List<string> CollectTextFamilies(LabelDocument? doc)
+        => AllObjects(doc).SelectMany(RichTextModel.TextFamilies).ToList();
+
+    private List<string> TextWindowsFonts(VendorImportResult r)
+        => FontCatalog.WindowsFamilies(CollectTextFamilies(r.Document)).ToList();
+
+    private List<string> MissingWindowsFonts(VendorImportResult r)
+    {
+        var used = CollectUsedFamilies(r.Document);
+        Fonts.DemoteWebFallbacks(used);
+        return Fonts.MissingLocalFamilies(used).ToList();
+    }
+
+    private void Apply()
     {
         var r = Session.PendingVendorImport;
         if (r?.Document is null || !r.Ok)
@@ -223,24 +268,26 @@
             return;
         }
 
+        var families = CollectUsedFamilies(r.Document);
+        Fonts.DemoteWebFallbacks(families);
+
         try
         {
             History.Push(Session.Document);
-            try
-            {
-                await Fonts.EnsureFamiliesAsync(
-                    r.Document.Pages.SelectMany(p => p.Cells).SelectMany(c => c.Objects).SelectMany(RichTextModel.Families));
-            }
-            catch (Exception fontEx)
-            {
-                EditorLog.Error("변환 글꼴 미리 로드 실패", fontEx);
-            }
             Session.ReplaceDocument(r.Document);
             Session.PendingVendorImport = null;
             Session.Status = string.IsNullOrWhiteSpace(r.Warning)
                 ? $"{r.VendorName} 변환 완료 · {r.PaperNo} · 항목 {r.ObjectCount}개"
                 : r.Warning;
             Session.CloseDialog();
+
+            var win = FontCatalog.WindowsFamilies(families);
+            if (win.Count > 0)
+            {
+                var missing = Fonts.MissingLocalFamilies(families);
+                Session.PendingLocalFonts = (missing.Count > 0 ? missing : win).ToList();
+                Session.OpenDialog(EditorDialog.LocalFont);
+            }
         }
         catch (Exception ex)
         {

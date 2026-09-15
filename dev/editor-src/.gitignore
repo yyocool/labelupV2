@@ -3,3 +3,5 @@
 **/obj/
 *.user
 .vs/
+LabelUp.Editor/wwwroot/fonts/win/*.ttf
+LabelUp.Editor/wwwroot/fonts/win/*.ttc

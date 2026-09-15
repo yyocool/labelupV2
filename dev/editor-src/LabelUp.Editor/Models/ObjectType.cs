@@ -79,6 +79,7 @@ public enum EditorDialog
     Table,
     VendorImport,
     VendorPicker,
+    LocalFont,
     LabiAi,
     LabelShop,
     ProjectPicker,

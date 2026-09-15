@@ -14,6 +14,10 @@ namespace LabelUp.Editor.Services;
 /// </summary>
 internal static class ILabelImporter
 {
+    /// <summary>아이라벨 PDF417·Micro PDF417 그리기 높이(0.5in). 저장된 상자 높이와 무관하다.</summary>
+    private const float ILabelPdf417HeightMm = 12.7f;
+
+
     private const int CommonLabelId = int.MaxValue;
 
     private static readonly Regex RunRegex = new(
@@ -22,6 +26,11 @@ internal static class ILabelImporter
 
     private static readonly Regex FieldRegex = new(
         @"\{@([^}]+)\}",
+        RegexOptions.Compiled);
+
+    /// <summary>줄마다 앞에 붙는 문단 표시. 바코드 1.idf의 165개가 모두 {#0,0}이라 값은 쓰지 않는다.</summary>
+    private static readonly Regex ParaRegex = new(
+        @"\{#[^}]*\}",
         RegexOptions.Compiled);
 
     public static Func<string, Task<byte[]?>>? FetchSidecarExcel { get; set; }
@@ -57,6 +66,7 @@ internal static class ILabelImporter
         PlaceFactors(doc, paper, factors.Rows);
         if (doc.Data is { RowCount: > 0 })
             doc.EnsurePagesForData();
+        LogImportFonts(doc);
         EditorLog.Info(
             $"아이라벨 변환: paper={paper.Columns}x{paper.Rows} label={paper.LabelWidthMm:0.#}x{paper.LabelHeightMm:0.#} " +
             $"factors={factors.Rows.Count} pages={doc.Pages.Count}");
@@ -129,7 +139,7 @@ internal static class ILabelImporter
     }
 
     private static string ObjectKey(DesignObject obj, int labelId)
-        => $"{labelId}|{(int)obj.Type}|{(int)obj.ShapeKind}|{(int)obj.TextMode}|{obj.X:0.###}|{obj.Y:0.###}|{obj.Width:0.###}|{obj.Height:0.###}|{obj.Fill}|{obj.Stroke}|{obj.StrokeWidth:0.###}|{obj.DashStyle}|{obj.Text}|{obj.BarcodeValue}|{obj.IconName}";
+        => $"{labelId}|{(int)obj.Type}|{(int)obj.ShapeKind}|{(int)obj.TextMode}|{obj.X:0.###}|{obj.Y:0.###}|{obj.Width:0.###}|{obj.Height:0.###}|{obj.Fill}|{obj.Stroke}|{obj.StrokeWidth:0.###}|{obj.DashStyle}|{obj.Text}|{obj.BarcodeFormat}|{obj.BarcodeValue}|{obj.BarcodeSupplement}|{obj.BarcodeIsbnCaption}|{obj.IconName}";
 
     private static void LoadData(Jet4Database db, LabelDocument doc, string name, string dataSrc, byte[]? excelSidecar)
     {
@@ -392,7 +402,7 @@ internal static class ILabelImporter
         {
             1 => MakeText(x, y, w, h, cont),
             2 => MakeImage(x, y, w, h, row.GetBytes("Image")),
-            3 => MakeBarcode(x, y, w, h, cont, fore, back, fillOn),
+            3 => MakeBarcode(x, y, w, h, cont, fore, back, fillOn, row.GetBytes("Image")),
             4 => MakeWordArt(x, y, w, h, cont, row.GetInt("Attribute"), fore, back, fillOn),
             5 or 6 or 7 or 8 or 9 or 13 => MakeShape(type, shape, x, y),
             14 => MakeTable(x, y, w, h, cont),
@@ -401,7 +411,13 @@ internal static class ILabelImporter
         };
 
         obj.Width = type == 8 ? Math.Max(0.3f, w) : Math.Max(0.4f, w);
-        obj.Height = type == 8 ? Math.Max(0.3f, h) : Math.Max(0.4f, h);
+        // 바코드(Type=3)는 MakeBarcode가 정한 높이를 지운다. 아이라벨 PDF417은 상자보다 높게 그려진다.
+        obj.Height = type switch
+        {
+            8 => Math.Max(0.3f, h),
+            3 => Math.Max(0.4f, obj.Height),
+            _ => Math.Max(0.4f, h)
+        };
         obj.ZIndex = z;
         obj.Locked = row.GetBool("Lock");
         obj.Rotation = (float)row.GetDouble("Rotate");
@@ -589,6 +605,7 @@ internal static class ILabelImporter
         var lineMm = FontCatalog.FromPt(pt);
         // 한 줄 높이 박스는 줄바꿈하지 않는다. 대체 글꼴이 넓으면 "BM P" / "지" 잘림이 생긴다.
         o.TextWrap = h >= lineMm * 1.45f ? "char" : "none";
+        EditorLog.Info($"아이라벨 텍스트: family={o.FontFamily} pt={pt} wrap={o.TextWrap} box={w:0.#}x{h:0.#}");
         return o;
     }
 
@@ -618,7 +635,7 @@ internal static class ILabelImporter
         var parts = head.Split(',');
         if (parts.Length >= 2)
         {
-            o.FontFamily = parts[0].Trim();
+            FontCatalog.ApplyImportedFamily(o, parts[0].Trim());
             if (float.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var fs) && fs > 0)
                 o.FontSize = FontCatalog.FromPt(fs);
         }
@@ -667,10 +684,13 @@ internal static class ILabelImporter
     }
 
     /// <summary>Type=3. Cont = Type|Option:Value;...|Data</summary>
-    private static DesignObject MakeBarcode(float x, float y, float w, float h, string cont, int fore, int back, bool fillOn)
+    private static DesignObject MakeBarcode(
+        float x, float y, float w, float h, string cont, int fore, int back, bool fillOn, byte[]? logo)
     {
         SplitBarcodeCont(cont, out var typeName, out var options, out var data);
         var format = MapBarcodeFormat(typeName);
+        if (LooksLikeILabelItf14(typeName))
+            format = "ITF_14";
         var o = DesignObject.CreateDefault(
             ExternalImportService.Is2dBarcode(format) ? ObjectType.Qr : ObjectType.Barcode, x, y);
         o.Width = w;
@@ -682,25 +702,377 @@ internal static class ILabelImporter
         o.BackgroundTransparent = !fillOn || back == -1;
         o.BackgroundFill = o.BackgroundTransparent ? "transparent" : ArgbToCss(back);
         o.StrokeWidth = 0;
+        // 1D는 DrawCaption이 없어도 아래에 값을 쓴다(아이라벨 Numly·Optical 실측).
+        // QR/DataMatrix/PDF417은 캡션을 쓰지 않는다.
+        o.BarcodeShowText = !ExternalImportService.Is2dBarcode(format);
 
-        foreach (var (key, val) in ParseOptions(options))
+        string? captionFont = null;
+        float? captionPt = null;
+        var opt = ParseOptions(options);
+        foreach (var (key, val) in opt)
         {
-            if (key.Equals("DrawCaption", StringComparison.OrdinalIgnoreCase)
-                || key.Equals("ISBNAutoCaption", StringComparison.OrdinalIgnoreCase))
+            if (key.Equals("DrawCaption", StringComparison.OrdinalIgnoreCase))
                 o.BarcodeShowText = IsTrue(val);
+            else if (key.Equals("ISBNAutoCaption", StringComparison.OrdinalIgnoreCase) && IsTrue(val))
+            {
+                o.BarcodeIsbnCaption = true;
+                o.BarcodeShowText = true;
+            }
             else if (key.Equals("ShowStartStop", StringComparison.OrdinalIgnoreCase))
                 o.BarcodeShowStartEnd = IsTrue(val);
             else if (key.Equals("FontName", StringComparison.OrdinalIgnoreCase) && val.Length > 0)
-                o.FontFamily = val;
+                captionFont = val;
             else if (key.Equals("FontSize", StringComparison.OrdinalIgnoreCase)
                      && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var fs) && fs > 0)
-                o.FontSize = FontCatalog.FromPt(fs);
+                captionPt = fs;
             else if (key.Equals("QRErrorCorrectionLevel", StringComparison.OrdinalIgnoreCase))
                 o.QrEcc = MapQrEcc(val);
+            // QRVersion 0은 자동이다. 1~40이면 자료가 남더라도 그 크기로 그린다(실측: 4→33칸, 10→57칸).
+            else if (key.Equals("QRVersion", StringComparison.OrdinalIgnoreCase)
+                     && int.TryParse(val, NumberStyles.Integer, CultureInfo.InvariantCulture, out var qv)
+                     && qv is > 0 and <= 40)
+                o.QrVersion = qv;
+            else if (key.Equals("QRCodeLogo", StringComparison.OrdinalIgnoreCase) && val.Trim().Length > 0)
+            {
+                // 옵션 값은 아이라벨 PC의 파일 경로라 못 쓴다. 그림은 Factors 행 Image 열에 들어 있다.
+                if (logo is { Length: > 8 })
+                    o.QrLogoData = ExternalImportService.ToDataUrl(logo, DetectImageMime(logo));
+                else
+                    EditorLog.Warn($"아이라벨 QR 로고 없음: {val}");
+            }
+            else if (key.Equals("SupplementValue", StringComparison.OrdinalIgnoreCase)
+                     && val.Trim().Length > 0)
+                o.BarcodeSupplement = new string(val.Where(char.IsAsciiDigit).ToArray());
         }
 
-        EditorLog.Info($"아이라벨 바코드: {format} value={data} show={o.BarcodeShowText}");
+        // FontName은 바코드/QR 캡션 글꼴이다. 텍스트 항목 글꼴이 아니다.
+        if (o.BarcodeShowText || o.BarcodeIsbnCaption)
+        {
+            if (!string.IsNullOrWhiteSpace(captionFont))
+                FontCatalog.ApplyImportedFamily(o, captionFont);
+            if (captionPt is > 0)
+                o.FontSize = FontCatalog.FromPt(captionPt.Value);
+        }
+
+        if (format == "CODABAR")
+            NormalizeILabelCodabar(o, opt, data);
+        if (format == "CODE_128")
+            NormalizeILabelCode128(o, opt);
+        if (format == "CODE_39")
+            NormalizeILabelCode39(o, opt, data);
+        if (format == "PZN")
+            NormalizeILabelPzn(o, opt, data);
+        if (format == "DATA_MATRIX")
+            NormalizeILabelDataMatrix(o, opt);
+        if (format is "ITF_14" or "ITF" or "ITF_6" or "ITF_16")
+            NormalizeILabelItf(o, opt, data);
+        if (format == "JAN_13")
+            NormalizeILabelJan13(o, data);
+        if (format == "KOREAN_POST")
+            o.BarcodeShowText = false;
+        // PLANET은 1D 중 유일하게 IDF 옵션에 DrawCaption 키가 없다(같은 우편 계열인 POSTNET은 있다).
+        // 아이라벨에 캡션 기능 자체가 없는 타입이므로 항상 막대만 그린다.
+        if (format == "PLANET")
+            o.BarcodeShowText = false;
+        if (format is "PDF_417" or "PDF_417_TRUNC" or "MICRO_PDF417")
+            NormalizeILabelPdf417(o, opt, format);
+        // 아이라벨 PDF417·Micro는 가로만 상자를 따르고 높이는 0.5in(12.7mm)로 그려 상자를 넘는다.
+        // L57(PDF417 12345) 12.53mm, L58(Micro 12345) 12.72mm 실측. 잘리지 않게 상자를 늘린다.
+        if (format is "PDF_417" or "PDF_417_TRUNC" or "MICRO_PDF417"
+            && o.Height < ILabelPdf417HeightMm)
+            o.Height = ILabelPdf417HeightMm;
+
+        EditorLog.Info($"아이라벨 바코드: type={typeName} → {format} value={o.BarcodeValue} show={o.BarcodeShowText} supplement={o.BarcodeSupplement} captionFont={captionFont}");
         return o;
+    }
+
+    /// <summary>
+    /// 아이라벨 Codabar를 우리 인코더가 그대로 그릴 문자열로 맞춘다.
+    /// 폼텍 인코더(A+값+Mod16+A, 굵기 1:2)는 바꾸지 않는다.
+    /// 알고리즘 0은 문서의 Modulo9가 아니라 시작/종료 포함 Mod10(실측 123456789→7)이다.
+    /// </summary>
+    private static void NormalizeILabelCodabar(DesignObject o, Dictionary<string, string> opt, string data)
+    {
+        var payload = StripCodabarGuards(data);
+        if (payload.Length == 0) payload = "0";
+        var start = CodabarGuard(opt, "CodabarStartSymbol", 'A');
+        var stop = CodabarGuard(opt, "CodabarStopSymbol", 'A');
+        var addCheck = IsTrue(opt.GetValueOrDefault("AddChecksum"));
+        var checkOnCaption = IsTrue(opt.GetValueOrDefault("AddChecksumToCaption"));
+        _ = int.TryParse(opt.GetValueOrDefault("CodabarChecksumAlgorithm"), NumberStyles.Integer,
+            CultureInfo.InvariantCulture, out var algo);
+
+        var body = payload;
+        var check = '\0';
+        if (addCheck)
+        {
+            check = ILabelCodabarCheck(start, payload, stop, algo);
+            body += check;
+        }
+
+        o.BarcodeVendor = "ilabel";
+        o.BarcodeValue = $"{start}{body}{stop}";
+        o.Text = checkOnCaption && check != '\0' ? payload + check : payload;
+        EditorLog.Info(
+            $"아이라벨 Codabar 변환: data={data} → encode={o.BarcodeValue} caption={o.Text} algo={algo}");
+    }
+
+    private static char CodabarGuard(Dictionary<string, string> opt, string key, char fallback)
+    {
+        if (!opt.TryGetValue(key, out var raw)
+            || !int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n))
+            return fallback;
+        return n switch
+        {
+            1 => 'B',
+            2 => 'C',
+            3 => 'D',
+            _ => 'A'
+        };
+    }
+
+    /// <summary>
+    /// 아이라벨 Code 39 체크를 우리 인코더가 그대로 그릴 문자로 붙인다.
+    /// 폼텍 Code 39(N:W=1:2, 값 그대로, 시작/종료 *)는 바꾸지 않는다.
+    /// 체크는 ISO/IEC 16388 Mod 43(실측 123456789→2, 막대 60개).
+    /// </summary>
+    private static void NormalizeILabelCode39(DesignObject o, Dictionary<string, string> opt, string data)
+    {
+        var payload = (data ?? "").Trim().ToUpperInvariant();
+        if (payload.Length == 0) payload = "0";
+        var addCheck = IsTrue(opt.GetValueOrDefault("AddChecksum"));
+        var checkOnCaption = IsTrue(opt.GetValueOrDefault("AddChecksumToCaption"));
+        var check = '\0';
+        if (addCheck)
+        {
+            check = ILabelCode39Check(payload);
+            if (check != '\0')
+                payload += check;
+        }
+
+        o.BarcodeVendor = "ilabel";
+        o.BarcodeValue = payload;
+        o.Text = checkOnCaption || check == '\0'
+            ? payload
+            : payload[..^1];
+        EditorLog.Info($"아이라벨 Code39 변환: data={data} → encode={o.BarcodeValue} caption={o.Text}");
+    }
+
+    /// <summary>
+    /// 아이라벨 PZN. 실측(1234567): 막대는 Code 39 `-12345678`(11글자·109요소·N:W=1:3),
+    /// 캡션은 `PZN - 12345678`. 막대의 `-`는 IFA 식별자라 캡션에는 그대로 쓰지 않는다.
+    /// </summary>
+    private static void NormalizeILabelPzn(DesignObject o, Dictionary<string, string> opt, string data)
+    {
+        var digits = new string((data ?? "").Where(char.IsAsciiDigit).ToArray());
+        if (digits.Length == 0) return;
+
+        var check = IsTrue(opt.GetValueOrDefault("AddChecksum")) ? IfaPznCheckDigit(digits) : -1;
+        var body = check >= 0 ? digits + (char)('0' + check) : digits;
+        var caption = check >= 0 && !IsTrue(opt.GetValueOrDefault("AddChecksumToCaption"))
+            ? digits
+            : body;
+
+        o.BarcodeVendor = "ilabel";
+        o.BarcodeValue = "-" + body;
+        o.Text = $"PZN - {caption}";
+        EditorLog.Info($"아이라벨 PZN 변환: data={data} → encode={o.BarcodeValue} caption={o.Text}");
+    }
+
+    /// <summary>IFA mod-11 체크. 7자리는 가중 1..7, 6자리는 2..7. 나머지가 10이면 무효.</summary>
+    private static int IfaPznCheckDigit(string digits)
+    {
+        if (digits.Length is not (6 or 7)) return -1;
+        var firstWeight = digits.Length == 7 ? 1 : 2;
+        var sum = 0;
+        for (var i = 0; i < digits.Length; i++)
+            sum += (digits[i] - '0') * (firstWeight + i);
+        var check = sum % 11;
+        return check == 10 ? -1 : check;
+    }
+
+    private const string Code39Alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-. $/+%";
+
+    private static char ILabelCode39Check(string payload)
+    {
+        var sum = 0;
+        foreach (var ch in payload)
+        {
+            var i = Code39Alphabet.IndexOf(ch);
+            if (i < 0) return '\0';
+            sum += i;
+        }
+        return Code39Alphabet[sum % 43];
+    }
+
+    /// <summary>
+    /// 아이라벨 ITF 체크를 값에 붙인다. 폼텍 ITF(N:W=1:2)는 바꾸지 않는다.
+    /// 9자리 123456789, 체크 없음 → 인코더가 짝수로 0123456789 (막대 29개).
+    /// </summary>
+    private static void NormalizeILabelItf(DesignObject o, Dictionary<string, string> opt, string data)
+    {
+        var payload = new string((data ?? "").Where(char.IsAsciiDigit).ToArray());
+        if (payload.Length == 0) payload = "0";
+        var addCheck = OptTrue(opt, "AddChecksum");
+        var checkOnCaption = OptTrue(opt, "AddChecksumToCaption");
+        var check = '\0';
+        if (addCheck)
+        {
+            check = ItfMod10Check(payload);
+            payload += check;
+        }
+
+        o.BarcodeVendor = "ilabel";
+        o.BarcodeValue = payload;
+        o.Text = checkOnCaption || check == '\0' ? payload : payload[..^1];
+        if (checkOnCaption)
+            o.QrKind = "CHECK_CAPTION";
+        EditorLog.Info($"아이라벨 ITF 변환: data={data} → encode={o.BarcodeValue} caption={o.Text} checkCaption={checkOnCaption}");
+    }
+
+    /// <summary>
+    /// 아이라벨 JAN-13. 10자리 1234567890 → 49 + 값 + EAN 체크 = 4912345678904.
+    /// 폼텍 JAN은 바꾸지 않는다.
+    /// </summary>
+    private static void NormalizeILabelJan13(DesignObject o, string data)
+    {
+        var d = new string((data ?? "").Where(char.IsAsciiDigit).ToArray());
+        o.BarcodeVendor = "ilabel";
+        o.BarcodeValue = ToILabelJan13Digits(d);
+        EditorLog.Info($"아이라벨 JAN-13 변환: data={data} → {o.BarcodeValue}");
+    }
+
+    internal static string ToILabelJan13Digits(string digits)
+    {
+        if (digits.Length >= 13)
+            return digits[..13];
+        if (digits.Length == 12)
+            return digits;
+        if (digits.Length == 10)
+            return "49" + digits;
+        if (digits.Length is > 0 and < 10)
+            return "49" + digits.PadLeft(10, '0');
+        return digits;
+    }
+
+    private static char ItfMod10Check(string digits)
+    {
+        var sum = 0;
+        for (var i = 0; i < digits.Length; i++)
+        {
+            var n = digits[digits.Length - 1 - i] - '0';
+            sum += i % 2 == 0 ? n * 3 : n;
+        }
+        return (char)('0' + (10 - sum % 10) % 10);
+    }
+
+    /// <summary>
+    /// 아이라벨 PDF417 ECC·최소 열. Micro는 타입만 유지하고 전용 인코더가 그린다.
+    /// Macro(FileID/Segment)는 PDF417 옵션이지 별도 타입이 아니다.
+    /// </summary>
+    private static void NormalizeILabelPdf417(DesignObject o, Dictionary<string, string> opt, string format)
+    {
+        o.BarcodeVendor = "ilabel";
+        var ecc = opt.GetValueOrDefault("PDF417ErrorCorrectionLevel", "").Trim();
+        o.QrEcc = ecc.Length == 0 || ecc == "-1" ? "AUTO" : ecc;
+        if (int.TryParse(opt.GetValueOrDefault("PDF417MinimumColumnCount"), NumberStyles.Integer,
+                CultureInfo.InvariantCulture, out var cols) && cols > 0)
+            o.QrKind = "COL:" + cols;
+        EditorLog.Info($"아이라벨 PDF417: type={format} ecc={o.QrEcc} cols={o.QrKind} value={o.BarcodeValue}");
+    }
+
+    /// <summary>
+    /// 아이라벨 DataMatrix 크기·압축을 QrKind/QrEcc에 담아 우리 ZXing 옵션으로 그린다.
+    /// 폼텍 DataMatrix(정사각 최소 크기)는 바꾸지 않는다.
+    /// Size 1=Auto는 압축 용량으로 최소 ECC200(Binary 16×16, EDIFACT 8×32). 0=AutoSquare.
+    /// </summary>
+    private static void NormalizeILabelDataMatrix(DesignObject o, Dictionary<string, string> opt)
+    {
+        o.BarcodeVendor = "ilabel";
+        var size = 0;
+        if (opt.TryGetValue("DataMatrixSize", out var sizeRaw))
+            _ = int.TryParse(sizeRaw, NumberStyles.Integer, CultureInfo.InvariantCulture, out size);
+        var compact = -1;
+        if (opt.TryGetValue("DataMatrixCompactionMode", out var compactRaw))
+            _ = int.TryParse(compactRaw, NumberStyles.Integer, CultureInfo.InvariantCulture, out compact);
+        o.QrKind = ILabelDataMatrixSizeToken(size);
+        o.QrEcc = compact switch
+        {
+            0 => "ASCII",
+            1 => "C40",
+            2 => "TEXT",
+            3 => "X12",
+            4 => "EDIFACT",
+            5 => "BINARY",
+            _ => "AUTO"
+        };
+        EditorLog.Info($"아이라벨 DataMatrix: size={size}→{o.QrKind} compact={compact}→{o.QrEcc} value={o.BarcodeValue}");
+    }
+
+    /// <summary>아이라벨 DataMatrixSize ItemIndex. 0=AutoSquare, 1=Auto, 2부터 고정 크기.</summary>
+    private static readonly (int W, int H)[] ILabelDataMatrixSizes =
+    [
+        (0, 0), (0, 0),
+        (8, 18), (8, 32), (10, 10), (12, 12), (12, 26), (12, 36),
+        (14, 14), (16, 16), (16, 36), (16, 48), (18, 18), (20, 20),
+        (22, 22), (24, 24), (26, 26), (32, 32), (36, 36), (40, 40),
+        (44, 44), (48, 48), (52, 52), (64, 64), (72, 72), (80, 80),
+        (88, 88), (96, 96), (104, 104), (120, 120)
+    ];
+
+    private static string ILabelDataMatrixSizeToken(int index)
+    {
+        if (index <= 0) return "AUTOSQ";
+        if (index == 1) return "AUTO";
+        if (index >= ILabelDataMatrixSizes.Length) return "AUTO";
+        var (w, h) = ILabelDataMatrixSizes[index];
+        return w <= 0 ? "AUTO" : $"{w}x{h}";
+    }
+
+    /// <summary>
+    /// 아이라벨 Code128Alphabet을 QrKind에 담아 우리 Code 128 표로 그린다.
+    /// Auto(-1)는 숫자면 Set C(실측 28막대). A/B는 고정 세트. 폼텍 CODE_128은 ZXing 유지.
+    /// </summary>
+    private static void NormalizeILabelCode128(DesignObject o, Dictionary<string, string> opt)
+    {
+        o.BarcodeVendor = "ilabel";
+        if (!opt.TryGetValue("Code128Alphabet", out var raw)
+            || !int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n))
+        {
+            o.QrKind = "AUTO";
+            return;
+        }
+        o.QrKind = n switch
+        {
+            0 => "A",
+            1 => "B",
+            2 => "C",
+            _ => "AUTO"
+        };
+        EditorLog.Info($"아이라벨 Code128 세트: alphabet={n} → {o.QrKind} value={o.BarcodeValue}");
+    }
+
+    private static char ILabelCodabarCheck(char start, string payload, char stop, int algo)
+    {
+        const string alph = "0123456789-$:/.+ABCD";
+        var sum = 0;
+        foreach (var ch in $"{start}{payload}{stop}")
+        {
+            var i = alph.IndexOf(ch);
+            if (i >= 0) sum += i;
+        }
+        if (algo == 1)
+            return alph[(16 - (sum % 16)) % 16];
+        return alph[sum % 10];
+    }
+
+    private static string StripCodabarGuards(string? data)
+    {
+        var s = (data ?? "").Trim();
+        static bool Guard(char c) => c is >= 'A' and <= 'D' or >= 'a' and <= 'd';
+        if (s.Length >= 2 && Guard(s[0]) && Guard(s[^1]))
+            return s[1..^1];
+        return s;
     }
 
     /// <summary>Type=14. Cont = 모드:열너비,...:행높이,...</summary>
@@ -761,13 +1133,8 @@ internal static class ILabelImporter
             result.DataColumn = field.Groups[1].Value.Trim();
         }
 
-        var body = cont;
-        if (body.StartsWith("{#", StringComparison.Ordinal))
-        {
-            var end = body.IndexOf('}');
-            if (end >= 0)
-                body = body[(end + 1)..];
-        }
+        // {#a,b}는 첫 줄만이 아니라 줄마다 앞에 붙는 문단 표시다. 전부 지운다.
+        var body = ParaRegex.Replace(cont, "");
 
         var last = 0;
         foreach (Match m in RunRegex.Matches(body))
@@ -821,7 +1188,7 @@ internal static class ILabelImporter
     private static void ApplyRun(DesignObject obj, ContRun run)
     {
         if (!string.IsNullOrWhiteSpace(run.FontFamily))
-            obj.FontFamily = run.FontFamily;
+            FontCatalog.ApplyImportedFamily(obj, run.FontFamily);
         if (run.FontSizePt > 0)
             obj.FontSize = FontCatalog.FromPt(run.FontSizePt);
         obj.Bold = run.Bold;
@@ -831,8 +1198,32 @@ internal static class ILabelImporter
         obj.Fill = run.Fill;
     }
 
+    private static void LogImportFonts(LabelDocument doc)
+    {
+        var texts = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+        var captions = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var obj in doc.Pages.SelectMany(p => p.Cells).SelectMany(c => c.Objects))
+        {
+            if (obj.Type == ObjectType.Text)
+            {
+                foreach (var fam in RichTextModel.TextFamilies(obj))
+                    texts.Add(fam);
+            }
+            else if (obj.Type is ObjectType.Barcode or ObjectType.Qr && obj.BarcodeShowText
+                     && !string.IsNullOrWhiteSpace(obj.FontFamily))
+            {
+                captions.Add(obj.FontFamily);
+            }
+        }
+        EditorLog.Info(
+            $"아이라벨 글꼴: 텍스트=[{string.Join(", ", texts)}] 바코드캡션=[{string.Join(", ", captions)}]");
+    }
+
     private static List<TextParagraph> ToParagraphs(ContParse parsed)
     {
+        var fallback = parsed.Runs
+            .FirstOrDefault(r => r.FromCont && !string.IsNullOrWhiteSpace(r.FontFamily))
+            ?.FontFamily ?? "Pretendard";
         var paragraphs = new List<TextParagraph> { new() { Align = "left" } };
         foreach (var run in parsed.Runs)
         {
@@ -846,7 +1237,8 @@ internal static class ILabelImporter
                 paragraphs[^1].Spans.Add(new TextSpan
                 {
                     Text = lines[i],
-                    FontFamily = string.IsNullOrWhiteSpace(run.FontFamily) ? "굴림" : run.FontFamily,
+                    FontFamily = FontCatalog.CanonicalId(
+                        string.IsNullOrWhiteSpace(run.FontFamily) ? fallback : run.FontFamily),
                     FontSize = FontCatalog.FromPt(run.FontSizePt > 0 ? run.FontSizePt : 9f),
                     Fill = run.Fill,
                     Bold = run.Bold,
@@ -893,7 +1285,7 @@ internal static class ILabelImporter
                 map[part.Trim()] = "";
                 continue;
             }
-            map[part[..colon].Trim()] = part[(colon + 1)..];
+            map[part[..colon].Trim()] = part[(colon + 1)..].Trim();
         }
         return map;
     }
@@ -904,7 +1296,18 @@ internal static class ILabelImporter
         var key = (raw ?? "").Trim();
         if (key.Equals("GS1-128", StringComparison.OrdinalIgnoreCase))
             key = "EAN-128";
+        foreach (var open in new[] { '(', '（' })
+        {
+            var paren = key.IndexOf(open);
+            if (paren > 0)
+            {
+                key = key[..paren].Trim();
+                break;
+            }
+        }
         var n = key.Replace("-", "_").Replace(" ", "_").Replace("/", "_").ToUpperInvariant();
+        if (n.Contains("ITF_14") || n.Contains("EAN_14") || n is "ITF14" or "EAN14")
+            return "ITF_14";
         return n switch
         {
             "QR" or "QR_CODE" or "QRCODE" => "QR_CODE",
@@ -913,7 +1316,7 @@ internal static class ILabelImporter
             "PDF417_TRUNCATED" or "PDF_417_TRUNCATED" or "PDF_417_TRUNC" => "PDF_417_TRUNC",
             "PDF417" or "PDF_417" or "MACRO_PDF417" => "PDF_417",
             "AZTEC" => "AZTEC",
-            "ISBN" or "BOOKLAND" => "ISBN",
+            "ISBN" or "BOOKLAND" or "BOOKLAND_EAN" or "BOOK_LAND" => "ISBN",
             "EAN_13" or "EAN13" => "EAN_13",
             "JAN_13" or "JAN13" => "JAN_13",
             "EAN_8" or "EAN8" => "EAN_8",
@@ -932,6 +1335,7 @@ internal static class ILabelImporter
             "PLANET" => "PLANET",
             "KOREAN_POSTCODE" or "KOREAN_POST" => "KOREAN_POST",
             "OPTICAL_PRODUCT" or "OPC" => "OPC",
+            "NUMLY" or "ESBN" or "ESN" or "NUMLY_NUMBER" => "NUMLY",
             _ => BarcodeCatalog.Find(n) is not null ? n : "CODE_128"
         };
     }
@@ -995,7 +1399,16 @@ internal static class ILabelImporter
     private static string? NullIfEmpty(string s) => string.IsNullOrWhiteSpace(s) ? null : s;
 
     private static bool IsTrue(string? raw)
-        => raw is not null && (raw.Equals("True", StringComparison.OrdinalIgnoreCase) || raw == "1");
+        => raw is not null && (raw.Trim().Equals("True", StringComparison.OrdinalIgnoreCase) || raw.Trim() == "1");
+
+    private static bool OptTrue(Dictionary<string, string> opt, string key)
+        => opt.TryGetValue(key, out var val) && IsTrue(val);
+
+    private static bool LooksLikeILabelItf14(string? raw)
+    {
+        var k = (raw ?? "").ToUpperInvariant();
+        return k.Contains("ITF-14") || k.Contains("ITF_14") || k.Contains("EAN-14") || k.Contains("EAN_14");
+    }
 
     private static string ArgbToCss(int argb)
     {

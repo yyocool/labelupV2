@@ -6,43 +6,173 @@ window.labelUpEditor = {
   },
   _localFonts: null,
   _localFontDenied: false,
+  _localFontQuery: null,
+  _localFontLastError: '',
   canQueryLocalFonts: function () {
     return typeof window.queryLocalFonts === 'function';
   },
-  ensureLocalFontList: async function () {
-    if (this._localFontDenied) return [];
-    if (this._localFonts) return this._localFonts;
-    if (!this.canQueryLocalFonts()) {
-      this._localFontDenied = true;
-      return [];
+  isLocalFontGrantTarget: function (el) {
+    if (!el || !el.closest) return false;
+    if (el.closest('[data-local-font-grant]')) return false;
+    var dlg = el.closest('[aria-label="윈도우 글꼴 가져오기"]');
+    return !!(dlg && el.closest('.ed-btn--primary'));
+  },
+  beginLocalFontQuery: function () {
+    var self = this;
+    self._localFontDenied = false;
+    self._localFontLastError = '';
+    if (self._localFonts && self._localFonts.length)
+      return Promise.resolve(self._localFonts.length);
+    if (self._localFontQuery) return self._localFontQuery;
+    if (!self.canQueryLocalFonts()) {
+      self._localFontDenied = true;
+      self._localFontLastError = window.isSecureContext
+        ? '이 브라우저는 로컬 글꼴 API가 없습니다.'
+        : 'HTTPS 또는 localhost에서만 허용 창이 뜹니다.';
+      return Promise.resolve(0);
     }
+    var started;
     try {
-      this._localFonts = await window.queryLocalFonts();
-      return this._localFonts || [];
+      started = window.queryLocalFonts();
     } catch (e) {
-      return [];
+      self._localFontLastError = (e && e.message) ? e.message : String(e);
+      return Promise.resolve(0);
     }
+    self._localFontQuery = Promise.resolve(started).then(function (list) {
+      self._localFonts = list || [];
+      self._localFontQuery = null;
+      return self._localFonts.length;
+    }).catch(function (e) {
+      self._localFontQuery = null;
+      self._localFontLastError = (e && e.message) ? e.message : String(e);
+      return 0;
+    });
+    return self._localFontQuery;
+  },
+  ensureLocalFontList: async function () {
+    if (this._localFonts && this._localFonts.length) return this._localFonts;
+    await this.beginLocalFontQuery();
+    return this._localFonts || [];
+  },
+  requestLocalFonts: async function () {
+    return this.beginLocalFontQuery();
+  },
+  grantLocalFonts: function () {
+    var self = this;
+    self._localFontDenied = false;
+    self._localFontLastError = '';
+    self._localFonts = null;
+    if (!window.isSecureContext) {
+      self._localFontLastError = 'HTTPS 또는 localhost에서만 Chrome 허용 창이 뜹니다.';
+      self.notifyLocalFontResult(0);
+      return false;
+    }
+    if (typeof window.queryLocalFonts !== 'function') {
+      self._localFontLastError = 'Chrome 또는 Edge에서만 허용 창이 뜹니다.';
+      self.notifyLocalFontResult(0);
+      return false;
+    }
+    var started;
+    try {
+      started = window.queryLocalFonts();
+    } catch (e) {
+      self._localFontLastError = (e && e.message) ? e.message : String(e);
+      self.notifyLocalFontResult(0);
+      return false;
+    }
+    Promise.resolve(started).then(function (list) {
+      self._localFonts = list || [];
+      self.notifyLocalFontResult(self._localFonts.length);
+    }).catch(function (e) {
+      self._localFontLastError = (e && e.message) ? e.message : String(e);
+      self.notifyLocalFontResult(0);
+    });
+    return true;
+  },
+  notifyLocalFontResult: function (n) {
+    this._grantedCount = n || 0;
+    var send = function (cb) {
+      if (cb) cb.invokeMethodAsync('OnLocalFontsGranted', n || 0);
+    };
+    send(this._localFontDialogDotNet);
+    if (!this._localFontDialogDotNet)
+      setTimeout(function () {
+        send(window.labelUpEditor._localFontDialogDotNet);
+      }, 80);
+  },
+  localFontLastError: function () {
+    return this._localFontLastError || '';
+  },
+  registerLocalFontDialog: function (dotnet) {
+    this._localFontDialogDotNet = dotnet;
   },
   watchLocalFonts: function (dotnet) {
-    if (!dotnet || this._localFontWatch || !this.canQueryLocalFonts()) return;
+    if (dotnet) this._localFontDotNet = dotnet;
+    if (this._localFontWatch) return;
+    this._localFontWatch = true;
     var self = this;
-    var tries = 0;
-    var onDown = function () {
-      self.ensureLocalFontList().then(function (list) {
-        tries += 1;
-        if (list && list.length) {
-          document.removeEventListener('pointerdown', onDown, true);
-          self._localFontWatch = true;
-          dotnet.invokeMethodAsync('RetryLocalFonts');
-        } else if (self._localFontDenied || tries >= 4) {
-          document.removeEventListener('pointerdown', onDown, true);
-        }
+    document.addEventListener('click', function (e) {
+      if (!self.isLocalFontGrantTarget(e.target)) return;
+      self.beginLocalFontQuery().then(function (n) {
+        var cb = self._localFontDotNet;
+        if (cb) cb.invokeMethodAsync('RetryLocalFonts', n || 0);
       });
-    };
-    document.addEventListener('pointerdown', onDown, true);
+    }, true);
+    if (!self.canQueryLocalFonts() || !navigator.permissions || !navigator.permissions.query)
+      return;
+    navigator.permissions.query({ name: 'local-fonts' }).then(function (status) {
+      if (status.state !== 'granted') return;
+      self.beginLocalFontQuery().then(function (n) {
+        var cb = self._localFontDotNet;
+        if (cb && n > 0) cb.invokeMethodAsync('RetryLocalFonts', n);
+      });
+    }).catch(function () {});
+  },
+  bindLocalFontGrant: function (el, dotnet) {
+    if (!el || el._luFontBound) return;
+    el._luFontBound = true;
+    var self = this;
+    el.addEventListener('click', function () {
+      self._localFonts = null;
+      self.beginLocalFontQuery().then(function (n) {
+        if (dotnet) dotnet.invokeMethodAsync('OnLocalFontsGranted', n || 0);
+        else if (self._localFontDotNet) self._localFontDotNet.invokeMethodAsync('RetryLocalFonts', n || 0);
+      });
+    });
+  },
+  localFontSupported: function () {
+    return !!(window.isSecureContext && typeof window.queryLocalFonts === 'function');
   },
   normalizeFontKey: function (s) {
     return String(s || '').replace(/[\s\-_]+/g, '').toLowerCase();
+  },
+  expandFontKeys: function (names) {
+    var extra = {
+      '맑은고딕': ['malgungothic'],
+      'malgungothic': ['맑은고딕'],
+      '돋움': ['dotum', '돋움체', 'dotumche'],
+      '돋움체': ['돋움', 'dotum', 'dotumche'],
+      'dotum': ['돋움', '돋움체', 'dotumche'],
+      'dotumche': ['돋움', '돋움체', 'dotum'],
+      '바탕': ['batang', '바탕체', 'batangche'],
+      'batang': ['바탕', '바탕체', 'batangche'],
+      '굴림': ['gulim', '굴림체', 'gulimche'],
+      'gulim': ['굴림', '굴림체', 'gulimche'],
+      '궁서': ['gungsuh', 'gungseh', 'gungsuhche'],
+      'gungsuh': ['궁서', 'gungseh'],
+      'arial': ['arial']
+    };
+    var self = this;
+    var out = [];
+    (names || []).forEach(function (n) {
+      var k = self.normalizeFontKey(n);
+      if (!k || out.indexOf(k) >= 0) return;
+      out.push(k);
+      (extra[k] || []).forEach(function (a) {
+        if (out.indexOf(a) < 0) out.push(a);
+      });
+    });
+    return out;
   },
   localFontKeyMatches: function (key, wanted) {
     if (key === wanted) return true;
@@ -74,7 +204,7 @@ window.labelUpEditor = {
     var self = window.labelUpEditor;
     var list = await self.ensureLocalFontList();
     if (!list.length) return null;
-    var wanted = (names || []).map(self.normalizeFontKey).filter(Boolean);
+    var wanted = self.expandFontKeys(names);
     if (!wanted.length) return null;
     var hits = [];
     for (var i = 0; i < list.length; i++) {
@@ -1221,6 +1351,15 @@ window.labelUpEditor = {
       return location.origin + (path.charAt(0) === '/' ? path : '/' + path);
     }
   },
+  fetchSystemFont: async function (family, style) {
+    var url = this.apiUrl('/api/editor/system-font?family=' + encodeURIComponent(family || '')
+      + '&style=' + encodeURIComponent(style || 'regular'));
+    var res = await fetch(url, { credentials: 'same-origin' });
+    if (!res.ok) return null;
+    var buf = await res.arrayBuffer();
+    if (!buf || buf.byteLength < 100) return null;
+    return new Uint8Array(buf);
+  },
 
   getAuthUser: async function () {
     try {
@@ -1899,75 +2038,17 @@ window.labelUpEditor = {
     return this._layerOps;
   },
   bindLayerNudge: function () {
-    if (this._layerNudgeBound) return;
+    // 앞으로/뒤로는 Blazor ContextBar가 직접 처리한다.
     this._layerNudgeBound = true;
-    var self = this;
-    var ops = this.ensureLayerOps();
-    var clickLayerByZ = async function (z, preferInactive) {
-      var hit = await ops.selectRow(function (row) {
-        if (row.z !== z) return false;
-        if (preferInactive && row.active) return false;
-        return true;
-      });
-      if (hit) return true;
-      hit = await ops.selectRow(function (row) { return row.z === z; });
-      return !!hit;
-    };
-    var nudge = async function (forward) {
-      if (self._layerBusy) return;
-      var bar = document.querySelector('.ed-float-bar');
-      if (bar && bar.querySelector('button[disabled][title="' + (forward ? '앞으로' : '뒤로') + '"]')) return;
-      self._layerBusy = true;
-      try {
-        await ops.expandProps();
-        var prevTab = document.querySelector('.ed-props__tab.is-active');
-        var prevName = prevTab ? (prevTab.textContent || '').replace(/\s+/g, '') : '속성';
-        await ops.showTab('레이어');
-        var rows = ops.layerRows();
-        if (rows.length < 2) return;
-        var actives = [];
-        for (var i = 0; i < rows.length; i++) if (rows[i].active) actives.push(i);
-        if (!actives.length) return;
-        var edge = forward ? actives[0] : actives[actives.length - 1];
-        var neighbor = forward ? edge - 1 : edge + 1;
-        if (neighbor < 0 || neighbor >= rows.length) return;
-        var selZ = rows[edge].z;
-        var neiZ = rows[neighbor].z;
-        var preview = rows.map(function (r) { return { name: r.name, z: r.z }; });
-        var tmp = preview[edge];
-        preview[edge] = preview[neighbor];
-        preview[neighbor] = tmp;
-        ops.startFreeze(preview);
-        rows[edge].el.click();
-        await ops.wait(430);
-        var temp = 100000 + Math.abs(selZ) + Math.abs(neiZ);
-        if (!await ops.setSelectedZ(temp)) return;
-        if (!await clickLayerByZ(neiZ, true)) return;
-        if (!await ops.setSelectedZ(selZ)) return;
-        if (!await clickLayerByZ(temp, false)) return;
-        if (!await ops.setSelectedZ(neiZ === selZ ? (selZ + (forward ? 1 : -1)) : neiZ)) return;
-        await ops.showTab(prevName === '레이어' ? '레이어' : '속성');
-      } finally {
-        ops.stopFreeze();
-        self._layerBusy = false;
-      }
-    };
-    document.addEventListener('click', function (e) {
-      var btn = e.target && e.target.closest && e.target.closest('.ed-float-bar button');
-      if (!btn) return;
-      var title = btn.getAttribute('title') || '';
-      if (title !== '앞으로' && title !== '뒤로') return;
-      if (btn.disabled) return;
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      nudge(title === '앞으로');
-    }, true);
+  },
+  bindLayerDragHost: function (dotnet) {
+    this._layerDragHost = dotnet;
+    this.bindLayerDrag();
   },
   bindLayerDrag: function () {
     if (this._layerDragBound) return;
     this._layerDragBound = true;
     var self = this;
-    var ops = this.ensureLayerOps();
     var drag = null;
     var line = null;
     var ghost = null;
@@ -2043,45 +2124,14 @@ window.labelUpEditor = {
       marker.style.width = Math.max(40, box.width - 20) + 'px';
       marker.hidden = false;
     };
-    var applyMove = async function (from, to, snapshot) {
+    var applyMove = async function (from, to) {
       if (from === to) return;
-      var order = snapshot.slice();
-      var moved = order.splice(from, 1)[0];
-      order.splice(to, 0, moved);
-      var above = to > 0 ? order[to - 1] : null;
-      var below = to < order.length - 1 ? order[to + 1] : null;
-      var others = order.filter(function (r) { return r !== moved; });
-      var target = null;
-      var useShift = false;
-      if (!above) target = Math.max.apply(null, others.map(function (r) { return r.z; })) + 1;
-      else if (!below) target = Math.min.apply(null, others.map(function (r) { return r.z; })) - 1;
-      else if (above.z - below.z >= 2) target = below.z + 1;
-      else useShift = true;
-      ops.startFreeze(order);
-      try {
-        if (useShift) {
-          var oldAbove = above.z;
-          var prefix = order.slice(0, to);
-          if (!await ops.selectRow(function (row) { return row.name === moved.name && row.z === moved.z; })) return;
-          if (!await ops.setSelectedZ(100000)) return;
-          for (var i = 0; i < prefix.length; i++) {
-            var p = prefix[i];
-            if (!await ops.selectRow(function (row) { return row.name === p.name && row.z === p.z; })) return;
-            if (!await ops.setSelectedZ(p.z + 1)) return;
-            p.z += 1;
-          }
-          if (!await ops.selectRow(function (row) { return row.z === 100000; })) return;
-          await ops.setSelectedZ(oldAbove);
-        } else if (target !== moved.z) {
-          if (!await ops.selectRow(function (row) { return row.name === moved.name && row.z === moved.z; })) {
-            if (!await ops.selectRow(function (row) { return row.active; })) return;
-          }
-          await ops.setSelectedZ(target);
-        }
-        await ops.showTab('레이어');
-      } finally {
-        ops.stopFreeze();
+      var dn = self._layerDragHost;
+      if (!dn) {
+        console.warn('[labelup] layer drag host missing');
+        return;
       }
+      await dn.invokeMethodAsync('ReorderLayers', from, to);
     };
 
     document.addEventListener('pointerdown', function (e) {
@@ -2098,8 +2148,7 @@ window.labelUpEditor = {
         to: from,
         startX: e.clientX,
         startY: e.clientY,
-        dragging: false,
-        snapshot: ops.layerRows().map(function (r) { return { name: r.name, z: r.z }; })
+        dragging: false
       };
     }, true);
 
@@ -2136,7 +2185,7 @@ window.labelUpEditor = {
       s.item.setAttribute('data-lu-dragged', '1');
       if (s.to === s.from || self._layerBusy) return;
       self._layerBusy = true;
-      applyMove(s.from, s.to, s.snapshot).finally(function () {
+      applyMove(s.from, s.to).finally(function () {
         self._layerBusy = false;
       });
     }, true);
@@ -2189,13 +2238,8 @@ window.labelUpEditor = {
     var lastKey = '';
 
     var hasSelection = function () {
-      var bar = document.querySelector('.ed-float-bar');
-      if (bar) {
-        var btns = bar.querySelectorAll('button');
-        for (var i = 0; i < btns.length; i++) {
-          if (!btns[i].disabled) return true;
-        }
-      }
+      var bar = document.querySelector('.ed-ctx-bar');
+      if (bar) return true;
       return !!document.querySelector('.ed-layer-item.is-active');
     };
     var activeTab = function () {
@@ -2275,7 +2319,7 @@ window.labelUpEditor = {
       el.dispatchEvent(new Event('change', { bubbles: true }));
     };
     var clickFloat = function (name) {
-      var btns = document.querySelectorAll('.ed-float-bar button');
+      var btns = document.querySelectorAll('.ed-ctx-bar button');
       for (var i = 0; i < btns.length; i++) {
         var t = (btns[i].getAttribute('title') || '') + (btns[i].textContent || '');
         if (t.indexOf(name) !== -1 && !btns[i].disabled) {
@@ -2787,10 +2831,10 @@ window.labelUpEditor = {
       var root = document.querySelector('[data-ed-root]') || document.body;
       mo.observe(root, { subtree: true, childList: true, attributes: true, attributeFilter: ['disabled', 'class'] });
     };
-    if (document.querySelector('[data-ed-root], .ed-float-bar, [data-ed-workspace]')) start();
+    if (document.querySelector('[data-ed-root], [data-ed-workspace]')) start();
     else {
       var wait = new MutationObserver(function () {
-        if (document.querySelector('[data-ed-root], .ed-float-bar, [data-ed-workspace]')) {
+        if (document.querySelector('[data-ed-root], [data-ed-workspace]')) {
           wait.disconnect();
           start();
         }

@@ -296,7 +296,7 @@
           <em class="ed-ctx-bar__lab">@(o.Type == ObjectType.Qr ? "QR" : "바코드")</em>
           @if (o.Type == ObjectType.Barcode)
           {
-            <select @key="@(o.Id + "-bc-fmt")" value="@o.BarcodeFormat" @onchange="e => SetString(v => o.BarcodeFormat = v, e)">
+            <select @key="@(o.Id + "-bc-fmt")" value="@o.BarcodeFormat" @onchange="e => SetBarcodeFormat(o, e)">
               @foreach (var spec in BarcodeCatalog.OneD)
               {
                 <option value="@spec.Id">@spec.Label</option>
@@ -320,7 +320,7 @@
               <option value="H">H</option>
             </select>
           }
-          <input class="ed-ctx-bar__text" title="@BarcodeCatalog.ValueFieldLabel(o.BarcodeFormat)" value="@o.BarcodeValue" @onchange="e => SetString(v => o.BarcodeValue = v, e)" />
+          <input class="ed-ctx-bar__text" title="@BarcodeCatalog.ValueFieldLabel(o.BarcodeFormat)" value="@BarcodeFieldValue(o)" @onchange="e => SetString(v => o.BarcodeValue = BarcodeFieldStore(o, v), e)" />
           <input type="color" title="색" value="@ColorUtil.ToHtmlColor(o.Fill, "#000000")" @onchange="e => SetString(v => o.Fill = v, e)" />
           <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.BackgroundTransparent" @onchange="e => SetBool(v => o.BackgroundTransparent = v, e)" /> <span>배경투명</span></label>
           @if (!o.BackgroundTransparent)
@@ -667,6 +667,25 @@
 
     private void ToggleVertical(DesignObject o)
         => Toggle(v => o.TextDirection = v ? "vertical" : "horizontal", IsVertical(o));
+
+    private static bool IsKoreanPost(DesignObject o)
+        => string.Equals(o.BarcodeFormat, "KOREAN_POST", StringComparison.OrdinalIgnoreCase);
+
+    private static string BarcodeFieldValue(DesignObject o)
+        => IsKoreanPost(o) ? FormtecRecords.ToPostalDisplayValue(o.BarcodeValue ?? "") : (o.BarcodeValue ?? "");
+
+    private static string BarcodeFieldStore(DesignObject o, string value)
+        => IsKoreanPost(o) ? FormtecRecords.ToPostalDisplayValue(value) : value;
+
+    private void SetBarcodeFormat(DesignObject o, ChangeEventArgs e)
+    {
+        if (BindGuarded) return;
+        History.Push(Session.Document);
+        o.BarcodeFormat = e.Value?.ToString() ?? "";
+        if (IsKoreanPost(o))
+            o.BarcodeShowText = false;
+        Touch();
+    }
 
     private void SetString(Action<string> apply, ChangeEventArgs e)
     {

@@ -39,6 +39,10 @@ set_exception_handler([App\Helpers\ErrorHandler::class, 'handleException']);
 set_error_handler([App\Helpers\ErrorHandler::class, 'handleError']);
 register_shutdown_function([App\Helpers\ErrorHandler::class, 'handleShutdown']);
 
+if (!headers_sent()) {
+    header('Permissions-Policy: local-fonts=*', false);
+}
+
 if (session_status() === PHP_SESSION_NONE) {
     session_name($appConfig['session_key'] ?? 'labelupdev_session');
     session_start();

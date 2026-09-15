@@ -84,18 +84,27 @@ public sealed class DesignObject
     public bool BarcodeShowText { get; set; } = true;
     public bool BarcodeShowStartEnd { get; set; }
     /// <summary>
-    /// 바코드 변환 출처. formtec만 폼텍 인코딩(PZN 하이픈+체크 등)을 쓴다.
-    /// 다른 회사 변환은 이후 회사별 기본값으로 따로 둔다.
+    /// 바코드 변환 출처. formtec / anylabel / ilabel.
+    /// 비어 있으면 에디터에서 직접 넣은 객체(표준 인코딩).
     /// </summary>
     public string? BarcodeVendor { get; set; }
+    /// <summary>EAN-13/ISBN 부가코드(EAN-2/EAN-5). 아이라벨 SupplementValue.</summary>
+    public string? BarcodeSupplement { get; set; }
+    /// <summary>아이라벨 ISBNAutoCaption. 막대 위에 ISBN 1-2345678-9-X 형태.</summary>
+    public bool BarcodeIsbnCaption { get; set; }
 
     [JsonIgnore]
     public bool UsesFormtecBarcodeRules
-        => string.Equals(BarcodeVendor, "formtec", StringComparison.OrdinalIgnoreCase)
-           || string.IsNullOrWhiteSpace(BarcodeVendor);
+        => string.Equals(BarcodeVendor, "formtec", StringComparison.OrdinalIgnoreCase);
 
     public string QrEcc { get; set; } = "M";
     public string QrKind { get; set; } = "text";
+
+    /// <summary>QR 가운데에 얹는 로고. 아이라벨 IDF는 Factors 행의 Image 열에 담아 보낸다.</summary>
+    public string? QrLogoData { get; set; }
+
+    /// <summary>QR 버전(1~40). 0은 자동이며, 자료가 들어갈 가장 작은 버전을 쓴다.</summary>
+    public int QrVersion { get; set; }
 
     public string? ImageData { get; set; }
     public string ImageFit { get; set; } = "contain";
@@ -208,8 +217,12 @@ public sealed class DesignObject
             BarcodeShowText = BarcodeShowText,
             BarcodeShowStartEnd = BarcodeShowStartEnd,
             BarcodeVendor = BarcodeVendor,
+            BarcodeSupplement = BarcodeSupplement,
+            BarcodeIsbnCaption = BarcodeIsbnCaption,
             QrEcc = QrEcc,
             QrKind = QrKind,
+            QrLogoData = QrLogoData,
+            QrVersion = QrVersion,
             ImageData = ImageData,
             ImageFit = ImageFit,
             Svg = Svg,
@@ -275,6 +288,7 @@ public sealed class DesignObject
                 o.BackgroundTransparent = true;
                 o.BarcodeFormat = "CODE_128";
                 o.BarcodeValue = "LABELUP";
+                o.Text = "";
                 o.FontSize = 2.4f;
                 break;
             case ObjectType.Qr:

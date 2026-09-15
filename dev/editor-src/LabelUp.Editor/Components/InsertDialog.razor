@@ -21,7 +21,7 @@
           <div class="ed-form-grid">
             <label class="ed-form-grid__full">
               바코드 종류
-              <select @bind="_barcodeFormat">
+              <select value="@_barcodeFormat" @onchange="OnBarcodeFormat">
                 @foreach (var spec in BarcodeCatalog.OneD)
                 {
                   <option value="@spec.Id">@spec.Label</option>
@@ -126,6 +126,13 @@
             }
         }
         _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void OnBarcodeFormat(ChangeEventArgs e)
+    {
+        _barcodeFormat = e.Value?.ToString() ?? "CODE_128";
+        if (string.Equals(_barcodeFormat, "KOREAN_POST", StringComparison.OrdinalIgnoreCase))
+            _showText = false;
     }
 
     private void Cancel()

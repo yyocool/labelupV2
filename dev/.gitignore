@@ -1,3 +1,5 @@
+/public/editor/fonts/win/*.ttf
+/public/editor/fonts/win/*.ttc
 .env
 /storage/logs/*.log
 /storage/uploads/*

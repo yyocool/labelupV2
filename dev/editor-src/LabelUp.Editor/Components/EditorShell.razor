@@ -37,7 +37,6 @@
         <em>.lbl · .idf · .dgz · .dgf · .zip</em>
       </div>
       <DataPanel />
-      <FloatBar />
     </div>
     <InspectorPanel />
     <PreviewPanel />
@@ -53,6 +52,7 @@
   <PrintPreviewDialog />
   <InsertDialog />
   <VendorImportDialog />
+  <LocalFontDialog />
   <VendorPickerDialog />
   <ConversionProgressDialog />
   <ShapePickerDialog />
@@ -85,6 +85,7 @@
     private DotNetObjectReference<EditorShell>? _self;
     private object? _pendingUiLayout;
     private int _fontEpoch = -1;
+    private int _localFontOfferEpoch = -1;
     private bool _warmingFonts;
 
     protected override async Task OnInitializedAsync()
@@ -734,10 +735,12 @@
     }
 
     [JSInvokable]
-    public void RetryLocalFonts()
+    public void RetryLocalFonts(int count = 0)
     {
         _fontEpoch = -1;
-        _ = WarmDocumentFontsAsync();
+        if (count > 0)
+            _ = WarmDocumentFontsAsync();
+        Session.Notify();
     }
 
     [JSInvokable]
@@ -1057,11 +1060,12 @@
             var families = Session.Document.Pages
                 .SelectMany(p => p.Cells)
                 .SelectMany(c => c.Objects)
-                .SelectMany(RichTextModel.Families);
+                .SelectMany(RichTextModel.FamiliesUsed);
             var loaded = await Fonts.EnsureFamiliesAsync(families);
             _fontEpoch = epoch;
             if (loaded)
                 Session.Notify();
+            OfferLocalFonts(families, epoch);
         }
         catch (Exception ex)
         {
@@ -1073,6 +1077,21 @@
             if (_fontEpoch != Session.DocumentEpoch)
                 _ = WarmDocumentFontsAsync();
         }
+    }
+
+    private void OfferLocalFonts(IEnumerable<string> families, int epoch)
+    {
+        if (epoch == _localFontOfferEpoch)
+            return;
+        if (Session.Dialog is not (EditorDialog.None or EditorDialog.LocalFont))
+            return;
+        var missing = Fonts.MissingLocalFamilies(families);
+        if (missing.Count == 0)
+            return;
+        _localFontOfferEpoch = epoch;
+        Session.PendingLocalFonts = missing.ToList();
+        if (Session.Dialog != EditorDialog.LocalFont)
+            Session.OpenDialog(EditorDialog.LocalFont);
     }
 
     public void Dispose()

@@ -4,6 +4,7 @@ DirectoryIndex index.html
   AddType application/octet-stream .dll
 </IfModule>
 <IfModule mod_headers.c>
+  Header set Permissions-Policy "local-fonts=*"
   <FilesMatch "\.(wasm|dll|json)$">
     Header set Cache-Control "no-cache, must-revalidate"
   </FilesMatch>
