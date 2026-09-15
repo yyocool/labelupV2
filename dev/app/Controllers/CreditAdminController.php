@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Middleware\AuthMiddleware;
+use App\Services\AiCreditService;
 use App\Services\AuthService;
 use App\Services\CreditAdminService;
+use App\Services\QrCouponAdminService;
+use Throwable;
 
 final class CreditAdminController extends BaseController
 {
@@ -30,11 +33,34 @@ final class CreditAdminController extends BaseController
     {
         $search = trim((string) ($_GET['q'] ?? ''));
         $page = max(1, (int) ($_GET['page'] ?? 1));
+        $matrix = ['rows' => [], 'category_count' => 0, 'group_count' => 0, 'product_count' => 0, 'generated_qr_count' => 0, 'printed_qr_count' => 0];
+        $loadError = null;
+        try {
+            $matrix = (new QrCouponAdminService())->getGroupMatrix();
+        } catch (Throwable $e) {
+            $loadError = $e->getMessage();
+        }
+
+        $history = ['items' => [], 'total' => 0, 'page' => $page, 'pages' => 1, 'per_page' => 20];
+        try {
+            $history = (new QrCouponAdminService())->grantHistoryAll($search, $page, 20);
+        } catch (Throwable) {
+            // QR 테이블 미생성 시 빈 이력
+        }
+
         $this->renderAdmin('admin/purchase-credits', 'ops-purchase-credits', '운영관리 › 구매크레딧', [
-            'products' => $this->credits->purchaseProducts(),
-            'codes' => $this->credits->purchaseCodes(),
-            'history' => $this->credits->redemptionHistory($search, $page),
+            'matrix' => $matrix,
+            'loadError' => $loadError,
+            'history' => $history,
             'search' => $search,
+        ]);
+    }
+
+    public function creditUsage(): void
+    {
+        $this->renderAdmin('admin/credit-usage', 'ops-credit-usage', '운영관리 › 크레딧 사용 설정', [
+            'settings' => (new AiCreditService())->adminSettings(),
+            'saveUrl' => url('api/admin/ops/credit-usage/save'),
         ]);
     }
 

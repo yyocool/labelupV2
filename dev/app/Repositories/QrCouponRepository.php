@@ -321,8 +321,10 @@ final class QrCouponRepository
     {
         $limit = max(1, min(500, $limit));
         $stmt = $this->db->prepare(
-            "SELECT qc.*, u.name AS used_by_name, u.email AS used_by_email
+            "SELECT qc.*, g.category_name, g.sheets_per_pack, g.credit_amount,
+                    u.name AS used_by_name, u.email AS used_by_email
              FROM qr_coupon_codes qc
+             LEFT JOIN qr_coupon_groups g ON g.group_no = qc.group_no
              LEFT JOIN users u ON u.id = qc.used_by
              WHERE qc.group_no = :group_no AND qc.status = 'used'
              ORDER BY qc.used_at DESC, qc.id DESC
@@ -341,6 +343,72 @@ final class QrCouponRepository
             $stmt->execute(['group_no' => $groupNo]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         }
+    }
+
+    /**
+     * 전체 QR 쿠폰 지급(사용) 이력
+     * @return array{items: list<array<string,mixed>>, total: int, page: int, pages: int, per_page: int}
+     */
+    public function usageHistoryAll(string $search = '', int $page = 1, int $perPage = 20): array
+    {
+        $page = max(1, $page);
+        $perPage = max(1, min(100, $perPage));
+        $offset = ($page - 1) * $perPage;
+        $search = trim($search);
+
+        $where = "qc.status = 'used'";
+        $params = [];
+        if ($search !== '') {
+            $where .= ' AND (
+                qc.code LIKE :q
+                OR g.category_name LIKE :q
+                OR g.category_slug LIKE :q
+                OR u.name LIKE :q
+                OR u.email LIKE :q
+                OR CAST(qc.group_no AS CHAR) = :q_exact
+            )';
+            $params['q'] = '%' . $search . '%';
+            $params['q_exact'] = $search;
+        }
+
+        try {
+            $countSql = "SELECT COUNT(*) AS cnt
+                         FROM qr_coupon_codes qc
+                         LEFT JOIN qr_coupon_groups g ON g.group_no = qc.group_no
+                         LEFT JOIN users u ON u.id = qc.used_by
+                         WHERE {$where}";
+            $countStmt = $this->db->prepare($countSql);
+            $countStmt->execute($params);
+            $total = (int) ($countStmt->fetch(PDO::FETCH_ASSOC)['cnt'] ?? 0);
+
+            $sql = "SELECT qc.*, g.category_name, g.category_slug, g.sheets_per_pack, g.credit_amount, g.list_price,
+                           u.id AS user_id, u.name AS used_by_name, u.email AS used_by_email
+                    FROM qr_coupon_codes qc
+                    LEFT JOIN qr_coupon_groups g ON g.group_no = qc.group_no
+                    LEFT JOIN users u ON u.id = qc.used_by
+                    WHERE {$where}
+                    ORDER BY qc.used_at DESC, qc.id DESC
+                    LIMIT {$perPage} OFFSET {$offset}";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            $items = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (\Throwable) {
+            return [
+                'items' => [],
+                'total' => 0,
+                'page' => $page,
+                'pages' => 1,
+                'per_page' => $perPage,
+            ];
+        }
+
+        return [
+            'items' => $items,
+            'total' => $total,
+            'page' => $page,
+            'pages' => max(1, (int) ceil($total / $perPage)),
+            'per_page' => $perPage,
+        ];
     }
 
     /** @return array<string, mixed>|null */

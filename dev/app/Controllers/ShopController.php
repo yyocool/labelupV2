@@ -123,6 +123,7 @@ final class ShopController extends BaseController
         $this->renderShop('shop/cart', '장바구니 — 라벨업 쇼핑몰', [
             'seoPage' => 'shop-cart',
             'cart' => $this->shop->cartSummary(),
+            'tossEnabled' => (new \App\Services\TossPaymentsService())->isEnabled(),
         ]);
     }
 

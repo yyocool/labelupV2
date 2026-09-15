@@ -92,6 +92,7 @@
               'content-templates' => '컨텐츠관리 › 템플릿관리',
               'content-product-detail-pages' => '컨텐츠관리 › 상세페이지관리',
               'ops-credit-rewards' => '운영관리 › 크레딧보상 관리',
+              'ops-credit-usage' => '운영관리 › 크레딧 사용 설정',
               'ops-purchase-credits' => '운영관리 › 구매크레딧',
               'ops-hero-slides' => '운영관리 › 히어로 이미지 관리',
               'ops-event-popups' => '운영관리 › 이벤트 팝업관리',
@@ -142,7 +143,10 @@
               <span><?= e($user['email'] ?? '') ?></span>
             </div>
             <button type="button" class="admin-profile-menu__item" id="adminPasswordBtn">비밀번호 변경</button>
-            <a class="admin-profile-menu__item admin-profile-menu__item--logout" href="<?= url('admin/logout') ?>">로그아웃</a>
+            <div class="admin-profile-menu__logout-row">
+              <a class="admin-profile-menu__item admin-profile-menu__item--logout" href="<?= url('admin/logout') ?>">로그아웃</a>
+              <a class="admin-profile-menu__qa-dot" href="<?= url('admin/qa-review') ?>" target="_blank" rel="noopener" title="기능 검수 시트">.</a>
+            </div>
           </div>
         </div>
       </div>

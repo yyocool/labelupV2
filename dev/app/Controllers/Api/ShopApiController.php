@@ -108,4 +108,33 @@ final class ShopApiController extends BaseController
         $this->shop->removeFromCart((int) ($data['product_id'] ?? 0));
         $this->jsonSuccess($this->shop->cartSummary(), '상품을 삭제했습니다.');
     }
+
+    public function paymentMethods(): never
+    {
+        $toss = new \App\Services\TossPaymentsService();
+        $this->jsonSuccess([
+            'enabled' => $toss->isEnabled(),
+            'configured' => $toss->isConfigured(),
+            'provider' => 'toss',
+            'methods' => $toss->availableMethods(),
+        ]);
+    }
+
+    public function preparePayment(): never
+    {
+        $auth = new AuthService();
+        $user = $auth->user();
+        if (!$user) {
+            $this->jsonError('로그인이 필요합니다.', null, 401);
+        }
+        $data = request_json();
+        $orderNo = trim((string) ($data['order_no'] ?? $_GET['order_no'] ?? ''));
+        $source = trim((string) ($data['source'] ?? 'shop'));
+        try {
+            $payment = $this->shop->paymentPayloadForOrder($orderNo, (int) ($user['id'] ?? 0), $source !== '' ? $source : 'shop');
+            $this->jsonSuccess(['payment' => $payment, 'order_no' => $orderNo]);
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
+        }
+    }
 }

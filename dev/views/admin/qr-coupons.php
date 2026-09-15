@@ -151,7 +151,7 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
     <li>QR 그룹은 <b>제품 분류</b>별로 나누며, 같은 분류 안에서는 <b>정상 소비자가가 동일한 상품</b>을 하나의 그룹으로 묶습니다.</li>
     <li>그룹No. 아래 QR은 그룹 안내용(카테고리·매수) 주소입니다. <b>패키지 인쇄용 QR은 반드시 [QR코드생성]으로 만든 고유 쿠폰번호 URL</b>을 사용하세요.</li>
     <li>생성 URL 형식: <code>https://www.labelup.co.kr/qr-coupon?g=&amp;cat=&amp;sheets=&amp;code=LU01-XXXX</code> — <b>code</b>가 고객 고유 쿠폰번호입니다.</li>
-    <li><b>지급크레딧</b>은 목록에서 바로 수정·저장할 수 있습니다.</li>
+    <li><b>지급크레딧</b>은 목록에서 바로 수정·저장할 수 있으며, <b>구매크레딧</b> 메뉴에서도 동일 값이 적용됩니다.</li>
     <li><b>출력템플릿</b>은 패키지 인쇄용 라벨 레이아웃입니다. 용지를 고르고 QR·쿠폰번호 위치를 맞춘 뒤 저장하세요.</li>
   </ul>
 </div>
@@ -341,12 +341,13 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
           <thead>
             <tr>
               <th>코드</th>
+              <th>지급 크레딧</th>
               <th>사용자</th>
               <th>사용일시</th>
             </tr>
           </thead>
           <tbody id="qrUsageBody">
-            <tr><td colspan="3" class="empty">불러오는 중…</td></tr>
+            <tr><td colspan="4" class="empty">불러오는 중…</td></tr>
           </tbody>
         </table>
       </div>
@@ -575,20 +576,23 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
       if (action === 'usage-history') {
         openModal('qrUsageModal');
         var ubody = document.getElementById('qrUsageBody');
-        ubody.innerHTML = '<tr><td colspan="3" class="empty">불러오는 중…</td></tr>';
+        ubody.innerHTML = '<tr><td colspan="4" class="empty">불러오는 중…</td></tr>';
         try {
           var ures = await AdminAPI.post(usageUrl, { group_no: Number(groupNo) });
           var uitems = (ures.data && ures.data.items) || [];
           if (!uitems.length) {
-            ubody.innerHTML = '<tr><td colspan="3" class="empty">사용이력이 없습니다.</td></tr>';
+            ubody.innerHTML = '<tr><td colspan="4" class="empty">사용이력이 없습니다.</td></tr>';
             return;
           }
           ubody.innerHTML = uitems.map(function (it) {
             var who = it.used_by_name || it.used_by_email || ('#' + (it.used_by || '-'));
-            return '<tr><td><code>' + (it.code || '-') + '</code></td><td>' + who + '</td><td>' + (it.used_at || '-') + '</td></tr>';
+            var credit = (it.credit_amount == null || it.credit_amount === '')
+              ? '<span class="admin-muted">미설정</span>'
+              : ('<strong>' + Number(it.credit_amount).toLocaleString() + ' C</strong>');
+            return '<tr><td><code>' + (it.code || '-') + '</code></td><td>' + credit + '</td><td>' + who + '</td><td>' + (it.used_at || '-') + '</td></tr>';
           }).join('');
         } catch (err) {
-          ubody.innerHTML = '<tr><td colspan="3" class="empty">' + (err.message || '조회 실패') + '</td></tr>';
+          ubody.innerHTML = '<tr><td colspan="4" class="empty">' + (err.message || '조회 실패') + '</td></tr>';
         }
       }
     });

@@ -180,7 +180,18 @@
   font-size:13px;font-weight:700;color:var(--charcoal);cursor:pointer;font-family:inherit;
 }
 .admin-profile-menu__item:hover{background:var(--ivory)}
-.admin-profile-menu__item--logout{color:#9b1c1c;border-top:1px solid var(--line)}
+.admin-profile-menu__item--logout{color:#9b1c1c;border-top:0}
+.admin-profile-menu__logout-row{
+  display:flex;align-items:stretch;border-top:1px solid var(--line);
+}
+.admin-profile-menu__logout-row .admin-profile-menu__item--logout{flex:1}
+.admin-profile-menu__qa-dot{
+  display:inline-flex;align-items:center;justify-content:center;min-width:34px;
+  padding:0 10px;border:0;border-left:1px solid var(--line);background:none;
+  color:#b0a8a2;text-decoration:none;font-size:18px;font-weight:900;line-height:1;
+  cursor:pointer;font-family:inherit;
+}
+.admin-profile-menu__qa-dot:hover{background:var(--ivory);color:var(--charcoal)}
 .admin-content{flex:1;padding:22px 24px 32px;overflow:auto}
 .admin-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
 .admin-head h1{margin:0;font-size:22px;font-weight:800}

@@ -145,7 +145,10 @@
       <div class="shop-cart-total"><dt>결제 예정</dt><dd id="cartTotal"><?= e($shopService->formatPrice($cart['total'])) ?></dd></div>
     </dl>
     <p class="shop-cart-note">5만원 이상 구매 시 배송비 무료</p>
-    <button type="submit" class="shop-btn shop-btn--primary shop-btn--block" form="shopCheckoutForm">주문 접수</button>
+    <?php $tossEnabled = !empty($tossEnabled); ?>
+    <button type="submit" class="shop-btn shop-btn--primary shop-btn--block" form="shopCheckoutForm">
+      <?= $tossEnabled ? '주문하고 결제하기' : '주문 접수' ?>
+    </button>
     <a class="shop-btn shop-btn--outline shop-btn--block" href="<?= url('shop/products') ?>">쇼핑 계속하기</a>
   </aside>
 </div>

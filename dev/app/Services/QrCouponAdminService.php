@@ -303,7 +303,45 @@ final class QrCouponAdminService
         if (!$this->repo->findByGroupNo($groupNo)) {
             throw new RuntimeException('QR 그룹을 찾을 수 없습니다.');
         }
-        return $this->repo->usageByGroup($groupNo);
+        return $this->normalizeUsageRows($this->repo->usageByGroup($groupNo));
+    }
+
+    /**
+     * @return array{items: list<array<string,mixed>>, total: int, page: int, pages: int, per_page: int}
+     */
+    public function grantHistoryAll(string $search = '', int $page = 1, int $perPage = 20): array
+    {
+        $result = $this->repo->usageHistoryAll($search, $page, $perPage);
+        $result['items'] = $this->normalizeUsageRows($result['items'] ?? []);
+        return $result;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return list<array<string, mixed>>
+     */
+    private function normalizeUsageRows(array $rows): array
+    {
+        $out = [];
+        foreach ($rows as $row) {
+            $credit = $row['credit_amount'] ?? null;
+            $out[] = [
+                'id' => (int) ($row['id'] ?? 0),
+                'code' => (string) ($row['code'] ?? ''),
+                'group_no' => (int) ($row['group_no'] ?? 0),
+                'category_name' => (string) ($row['category_name'] ?? ''),
+                'category_slug' => (string) ($row['category_slug'] ?? ''),
+                'sheets_per_pack' => (int) ($row['sheets_per_pack'] ?? 0),
+                'credit_amount' => ($credit === null || $credit === '') ? null : (int) $credit,
+                'list_price' => isset($row['list_price']) ? (int) $row['list_price'] : null,
+                'used_by' => (int) ($row['used_by'] ?? $row['user_id'] ?? 0),
+                'used_by_name' => (string) ($row['used_by_name'] ?? ''),
+                'used_by_email' => (string) ($row['used_by_email'] ?? ''),
+                'used_at' => $row['used_at'] ?? null,
+                'status' => (string) ($row['status'] ?? ''),
+            ];
+        }
+        return $out;
     }
 
     /**

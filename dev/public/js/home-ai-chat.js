@@ -1261,6 +1261,24 @@ window.LabelUpLabiChat = {
     return 'chat';
   }
 
+  function formatCredit(n) {
+    const num = Number(n || 0);
+    return Number.isFinite(num) ? num.toLocaleString() + ' C' : '0 C';
+  }
+
+  function updateCreditDisplays(creditInfo) {
+    if (!creditInfo || creditInfo.balance == null) return;
+    const label = formatCredit(creditInfo.balance);
+    document.querySelectorAll('.credit-pill-amount').forEach((el) => {
+      el.textContent = label;
+    });
+    const chipStrong = document.querySelector('#lu-credit-chip strong');
+    if (chipStrong) chipStrong.textContent = label;
+    if (typeof cfg.onCreditChange === 'function') {
+      try { cfg.onCreditChange(creditInfo); } catch (_) {}
+    }
+  }
+
   async function requestLabi(forceIntent) {
     if (sending) return;
     sending = true;
@@ -1285,7 +1303,10 @@ window.LabelUpLabiChat = {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data.success === false) {
-        throw new Error(data.message || 'AI 응답을 받지 못했습니다.');
+        const err = new Error(data.message || 'AI 응답을 받지 못했습니다.');
+        err.code = (data.data && data.data.code) || '';
+        err.status = res.status;
+        throw err;
       }
 
       const payload = data.data || {};
@@ -1299,13 +1320,17 @@ window.LabelUpLabiChat = {
         usage: payload.usage || null,
       });
       history.push({ role: 'assistant', content: reply });
+      updateCreditDisplays(payload.credit || null);
       if (payload.template && payload.template.dataset) {
         compactOfficeHistory();
         void stashPendingDocument(payload.template);
       }
     } catch (err) {
       removeTyping(typing);
-      appendMessage('assistant', err.message || '오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+      const msg = err && err.status === 402
+        ? (err.message || 'AI 크레딧이 부족합니다.')
+        : (err.message || '오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+      appendMessage('assistant', msg);
     } finally {
       sending = false;
       syncComposer();

@@ -1546,6 +1546,115 @@ final class ShopRepository extends BaseModel
         }
     }
 
+    /** @return array<string, mixed>|null */
+    public function findOrderByNo(string $orderNo): ?array
+    {
+        $orderNo = trim($orderNo);
+        if ($orderNo === '') {
+            return null;
+        }
+        $row = $this->fetchOne(
+            'SELECT * FROM shop_orders WHERE order_no = :no LIMIT 1',
+            ['no' => $orderNo]
+        );
+        return $row ?: null;
+    }
+
+    /**
+     * @param array{
+     *   payment_key:string,
+     *   payment_method:string,
+     *   payment_payload?:string|null,
+     *   raw?:array<string,mixed>
+     * } $payment
+     */
+    public function markOrderPaid(int $orderId, array $payment): void
+    {
+        $now = date('Y-m-d H:i:s');
+        $payload = $payment['payment_payload'] ?? null;
+        if ($payload === null && isset($payment['raw']) && is_array($payment['raw'])) {
+            $raw = $payment['raw'];
+            $payload = json_encode([
+                'paymentKey' => $raw['paymentKey'] ?? null,
+                'method' => $raw['method'] ?? null,
+                'easyPay' => $raw['easyPay'] ?? null,
+                'card' => isset($raw['card']) ? [
+                    'company' => $raw['card']['company'] ?? null,
+                    'number' => $raw['card']['number'] ?? null,
+                ] : null,
+                'approvedAt' => $raw['approvedAt'] ?? null,
+                'totalAmount' => $raw['totalAmount'] ?? null,
+                'status' => $raw['status'] ?? null,
+            ], JSON_UNESCAPED_UNICODE);
+        }
+
+        try {
+            $this->execute(
+                'UPDATE shop_orders SET
+                    status = CASE WHEN status IN (\'pending\',\'cancelled\') THEN \'paid\' ELSE status END,
+                    payment_status = \'paid\',
+                    payment_provider = :provider,
+                    payment_method = :method,
+                    payment_key = :payment_key,
+                    payment_payload = :payload,
+                    paid_at = :paid_at,
+                    updated_at = :now
+                 WHERE id = :id AND payment_status <> \'paid\'',
+                [
+                    'provider' => 'toss',
+                    'method' => (string) ($payment['payment_method'] ?? '토스페이먼츠'),
+                    'payment_key' => (string) ($payment['payment_key'] ?? ''),
+                    'payload' => $payload,
+                    'paid_at' => $now,
+                    'now' => $now,
+                    'id' => $orderId,
+                ]
+            );
+        } catch (\Throwable $e) {
+            $this->execute(
+                'UPDATE shop_orders SET
+                    status = CASE WHEN status IN (\'pending\',\'cancelled\') THEN \'paid\' ELSE status END,
+                    payment_status = \'paid\',
+                    updated_at = :now
+                 WHERE id = :id',
+                ['now' => $now, 'id' => $orderId]
+            );
+        }
+    }
+
+    public function markOrderPaymentFailed(int $orderId, ?string $reason = null): void
+    {
+        $now = date('Y-m-d H:i:s');
+        $memo = $reason !== null && $reason !== ''
+            ? mb_substr('결제실패: ' . $reason, 0, 500)
+            : null;
+        try {
+            $this->execute(
+                'UPDATE shop_orders SET
+                    payment_status = \'failed\',
+                    admin_memo = CASE
+                        WHEN :memo IS NULL THEN admin_memo
+                        WHEN admin_memo IS NULL OR admin_memo = \'\' THEN :memo2
+                        ELSE CONCAT(admin_memo, \'\\n\', :memo3)
+                    END,
+                    updated_at = :now
+                 WHERE id = :id AND payment_status = \'pending\'',
+                [
+                    'memo' => $memo,
+                    'memo2' => $memo,
+                    'memo3' => $memo,
+                    'now' => $now,
+                    'id' => $orderId,
+                ]
+            );
+        } catch (\Throwable) {
+            $this->execute(
+                'UPDATE shop_orders SET payment_status = \'failed\', updated_at = :now WHERE id = :id AND payment_status = \'pending\'',
+                ['now' => $now, 'id' => $orderId]
+            );
+        }
+    }
+
     private function nextOrderNo(): string
     {
         $prefix = 'LU' . date('Ymd');
