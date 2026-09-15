@@ -237,6 +237,112 @@ public sealed class PaperCatalog
         return paper;
     }
 
+    public ShopPaperItem? FindMatchingShopProduct(PaperSpec paper)
+    {
+        if (_shopPapers.Count == 0) return null;
+        var no = (paper.PaperNo ?? "").Trim();
+        if (no.Length > 0)
+        {
+            var bySku = _shopPapers.FirstOrDefault(p => string.Equals(p.Sku, no, StringComparison.OrdinalIgnoreCase));
+            if (bySku is not null) return bySku;
+        }
+
+        foreach (var alias in PaperCodeAliases(no))
+        {
+            foreach (var item in _shopPapers)
+            {
+                if (string.Equals(item.Sku, alias, StringComparison.OrdinalIgnoreCase))
+                    return item;
+                var codes = item.CompatFormtecCodes.Concat(item.CompatIlabelCodes).Concat(item.CompatAnylabelCodes);
+                if (!codes.Any(c => string.Equals(c, alias, StringComparison.OrdinalIgnoreCase)))
+                    continue;
+                if (ShopSizeFits(item, paper))
+                    return item;
+            }
+        }
+
+        ShopPaperItem? best = null;
+        var bestScore = double.MaxValue;
+        foreach (var item in _shopPapers)
+        {
+            if (item.WidthMm <= 0 || item.HeightMm <= 0) continue;
+            var dw = Math.Abs(item.WidthMm - paper.LabelWidthMm);
+            var dh = Math.Abs(item.HeightMm - paper.LabelHeightMm);
+            if (dw > 1.6f || dh > 1.6f) continue;
+            double score = dw + dh;
+            if (paper.LabelsPerPage > 0 && item.LabelsPerSheet > 0)
+                score += Math.Abs(item.LabelsPerSheet - paper.LabelsPerPage) * 0.2;
+            if (score < bestScore)
+            {
+                bestScore = score;
+                best = item;
+            }
+        }
+        return best;
+    }
+
+    public ShopPaperItem? PreferredDefaultShopPaper(PaperSpec? prefer = null)
+    {
+        if (prefer is not null)
+        {
+            var match = FindMatchingShopProduct(prefer);
+            if (match is not null) return match;
+        }
+
+        static bool Usable(ShopPaperItem p) =>
+            p.WidthMm > 0 && p.HeightMm > 0 && !string.Equals(p.Kind, "tag", StringComparison.OrdinalIgnoreCase);
+
+        var usable = _shopPapers.Where(Usable).ToList();
+        if (usable.Count == 0) return _shopPapers.FirstOrDefault();
+
+        if (prefer is not null && prefer.LabelsPerPage > 0)
+        {
+            var sameLabels = usable
+                .Where(p => p.LabelsPerSheet == prefer.LabelsPerPage)
+                .OrderBy(p => Math.Abs(p.WidthMm - prefer.LabelWidthMm) + Math.Abs(p.HeightMm - prefer.LabelHeightMm))
+                .ThenBy(p => p.Sku.EndsWith("-100", StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+                .FirstOrDefault();
+            if (sameLabels is not null) return sameLabels;
+        }
+
+        return usable
+            .OrderBy(p => p.Sku.EndsWith("-100", StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .ThenBy(p => p.Id)
+            .FirstOrDefault();
+    }
+
+    private static bool ShopSizeFits(ShopPaperItem item, PaperSpec paper)
+    {
+        if (item.WidthMm <= 0 || item.HeightMm <= 0) return true;
+        return Math.Abs(item.WidthMm - paper.LabelWidthMm) <= 1.6f
+               && Math.Abs(item.HeightMm - paper.LabelHeightMm) <= 1.6f;
+    }
+
+    private static IEnumerable<string> PaperCodeAliases(string code)
+    {
+        var trimmed = (code ?? "").Trim();
+        var upper = trimmed.ToUpperInvariant();
+        if (upper.Length == 0) yield break;
+        yield return trimmed;
+        if (!string.Equals(trimmed, upper, StringComparison.Ordinal))
+            yield return upper;
+
+        var num = upper;
+        if (upper.StartsWith("LU-", StringComparison.Ordinal)) num = upper[3..];
+        else if (upper.StartsWith("LU", StringComparison.Ordinal) && upper.Length > 2 && char.IsDigit(upper[2]))
+            num = upper[2..];
+        else if (upper.StartsWith('V') && upper.Length > 1 && char.IsDigit(upper[1]))
+            num = upper[1..];
+
+        if (num.Length is >= 3 and <= 5 && num.All(char.IsDigit))
+        {
+            yield return num;
+            yield return "V" + num;
+            yield return "LU-" + num;
+            yield return "LU" + num;
+        }
+    }
+
     private static string MapShapeKind(string? shape)
     {
         var s = (shape ?? "").Trim().ToLowerInvariant();

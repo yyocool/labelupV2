@@ -19,6 +19,7 @@ final class LabelTemplateService
         'cafe' => '카페',
         'warning' => '주의표시',
         'warehouse' => '재고·물류',
+        'office' => '사무',
         'event' => '행사',
     ];
 
@@ -59,7 +60,10 @@ final class LabelTemplateService
             (new LabelTemplateSeedService())->all(),
             (new LabelTemplatePack60SeedService())->all(),
             (new LabelTemplatePack60SeedService('imports/template_pack61_manifest.json'))->all(),
-            (new LabelTemplatePack60SeedService('imports/template_pack62_manifest.json'))->all()
+            (new LabelTemplatePack60SeedService('imports/template_pack62_manifest.json'))->all(),
+            (new LabelTemplateOfficePackSeedService())->all(),
+            (new LabelTemplateMarkPackSeedService())->all(),
+            (new LabelTemplateLogiPackSeedService())->all()
         );
         foreach ($catalog as $item) {
             $existing = $this->repo->findBySlug((string) $item['slug']);
@@ -127,6 +131,16 @@ final class LabelTemplateService
             $categories[] = ['key' => $key, 'name' => $name];
         }
         return ['items' => $items, 'categories' => $categories];
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function popularForHome(int $limit = 12): array
+    {
+        $items = [];
+        foreach ($this->repo->popularActive($limit) as $row) {
+            $items[] = $this->present($row, false);
+        }
+        return $items;
     }
 
     /** @param array<string, mixed> $data */

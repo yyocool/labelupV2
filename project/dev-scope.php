@@ -15,6 +15,8 @@ extract(init_project_context());
 $user = current_user();
 $userId = $user ? $user['id'] : null;
 $canEdit = true;
+// 로그인 사용자(고객사 포함)는 고객사 확인 토글 가능
+$canConfirmClient = true;
 
 $phases = DevScopeService::getPhases();
 $priorities = DevScopeService::getPriorities();
@@ -92,8 +94,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'code' => 'csrf',
         ), 403);
     }
-    if ($isAjax && !$canEdit) {
+    if ($isAjax && !$canEdit && !($action === 'client_confirm' && $canConfirmClient)) {
         ds_json(false, array('error' => '편집 권한이 없습니다.', 'code' => 'forbidden'), 403);
+    }
+
+    // 고객사 확인: 편집 권한 없이도 로그인 사용자 저장 가능
+    if ($csrfOk && $action === 'client_confirm' && $canConfirmClient) {
+        try {
+            $id = (int) (isset($_POST['item_id']) ? $_POST['item_id'] : 0);
+            $existing = DevScopeService::getById($id);
+            if (!$existing || (int) $existing['project_id'] !== (int) $project['id']) {
+                if ($isAjax) {
+                    ds_json(false, array('error' => '항목을 찾을 수 없습니다.'), 404);
+                }
+                flash('error', '항목을 찾을 수 없습니다.');
+                redirect('dev-scope.php?phase=' . urlencode($phaseKey));
+            }
+            $confirmed = isset($_POST['client_confirmed']) ? $_POST['client_confirmed'] : '0';
+            DevScopeService::setClientConfirmed($id, $confirmed, $userId);
+            if ($isAjax) {
+                $fresh = DevScopeService::getById($id);
+                ds_json(true, array(
+                    'item' => array(
+                        'id' => $fresh ? (int) $fresh['id'] : $id,
+                        'client_confirmed' => $fresh ? (int) !empty($fresh['client_confirmed']) : 0,
+                        'client_confirmed_at' => ($fresh && !empty($fresh['client_confirmed_at'])) ? $fresh['client_confirmed_at'] : null,
+                    ),
+                ));
+            }
+            flash('success', '고객사 확인이 저장되었습니다.');
+            redirect('dev-scope.php?phase=' . urlencode(isset($existing['phase_key']) ? $existing['phase_key'] : $phaseKey));
+        } catch (Exception $e) {
+            if ($isAjax) {
+                ds_json(false, array('error' => $e->getMessage()), 400);
+            }
+            flash('error', $e->getMessage());
+            redirect('dev-scope.php?phase=' . urlencode($phaseKey));
+        }
     }
 
     if ($csrfOk && $canEdit) {
@@ -337,7 +374,7 @@ $sheetRows = DevScopeService::buildSheetRows($project['id'], $phaseKey);
 $d1Parents = DevScopeService::parentsForSelect($project['id'], $phaseKey, 2);
 $d2Parents = DevScopeService::parentsForSelect($project['id'], $phaseKey, 3);
 
-$stats = array('total' => 0, 'd1' => 0, 'd2' => 0, 'd3' => 0, 'done' => 0);
+$stats = array('total' => 0, 'd1' => 0, 'd2' => 0, 'd3' => 0, 'done' => 0, 'client_ok' => 0);
 foreach ($sheetRows as $r) {
     $stats['total']++;
     if ($r['depth'] === 1) {
@@ -349,6 +386,9 @@ foreach ($sheetRows as $r) {
     }
     if (isset($r['item']['status']) && $r['item']['status'] === 'done') {
         $stats['done']++;
+    }
+    if (!empty($r['item']['client_confirmed'])) {
+        $stats['client_ok']++;
     }
 }
 
@@ -385,5 +425,5 @@ $currentPage = 'dev-scope';
 render_page(__DIR__ . '/views/dev-scope.php', compact(
     'pageTitle', 'currentPage', 'project', 'menuTree', 'phaseTracker',
     'phases', 'phaseKey', 'priorities', 'statuses', 'sheetRows', 'stats',
-    'd1Parents', 'd2Parents', 'canEdit', 'csrfToken', 'focusId'
+    'd1Parents', 'd2Parents', 'canEdit', 'canConfirmClient', 'csrfToken', 'focusId'
 ), 'layout_sheet.php');

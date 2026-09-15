@@ -324,6 +324,9 @@
   width: 88px;
   height: 88px;
   object-fit: contain;
+  object-position: 50% 50%;
+  border-radius: 50%;
+  background: #f4eee8;
   margin: 0 auto 8px;
   display: block;
   filter: drop-shadow(0 8px 14px rgba(123, 40, 64, 0.2));

@@ -295,6 +295,10 @@ final class ClipartService
             ['name' => '간판·매장', 'slug' => 'signboard', 'description' => '매장 간판·입간판·오픈 표지'],
             ['name' => '캐릭터', 'slug' => 'character', 'description' => '귀여운 마스코트·프렌즈 표정·행동'],
             ['name' => '뱃지·실', 'slug' => 'badge', 'description' => '원형 실·리본·메달·어워드 뱃지'],
+            ['name' => '업무용 문구', 'slug' => 'work-phrase', 'description' => '확인·긴급·결재 등 오피스 문구 스티커'],
+            ['name' => '물류용 문구', 'slug' => 'logistics-phrase', 'description' => '취급주의·출고·배송 등 물류 현장 문구'],
+            ['name' => '교통', 'slug' => 'traffic', 'description' => '자동차·표지판·대중교통 2D 일러스트'],
+            ['name' => '라비', 'slug' => 'labi', 'description' => '라벨업 AI 마스코트 라비 표정·동작'],
         ];
         $created = 0;
         foreach ($defaults as $i => $row) {
@@ -366,5 +370,16 @@ final class ClipartService
             'perPage' => (int) ($paged['per_page'] ?? 48),
             'hasMore' => $page < $pages,
         ];
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function popularForHome(int $limit = 12): array
+    {
+        $result = $this->list([
+            'is_active' => 1,
+            'page' => 1,
+            'per_page' => max(1, min(24, $limit)),
+        ]);
+        return $result['items'] ?? [];
     }
 }

@@ -62,7 +62,10 @@
       </button>
       <button type="button" class="ed-float-tools__paper" data-tut="themes" title="@ThemeTitleFull" @onclick="() => Session.OpenDialog(EditorDialog.ThemePicker)">
         <span class="ed-float-tools__paper-kicker">템플릿선택</span>
-        <strong>@ThemeTitle</strong>
+        @if (!string.IsNullOrEmpty(ThemeTitle))
+        {
+          <strong>@ThemeTitle</strong>
+        }
         <em>@ThemeMeta</em>
       </button>
       <label class="ed-float-tools__file" data-tut="data-import" title="데이터 가져오기">
@@ -139,24 +142,18 @@
         (ShapeKind.Parallelogram, "▱", "평행사변형")
     ];
 
-    private string ThemeTitleFull
+    private bool HasSelectedTheme
     {
         get
         {
             var name = Session.Document.Name?.Trim();
-            return string.IsNullOrWhiteSpace(name) || name is "새 라벨 디자인" ? "템플릿을 선택하세요" : name;
+            return !string.IsNullOrWhiteSpace(name) && name is not "새 라벨 디자인";
         }
     }
 
-    private string ThemeTitle
-    {
-        get
-        {
-            var name = ThemeTitleFull;
-            if (name is "템플릿을 선택하세요") return name;
-            return TruncateDisplay(name, 8);
-        }
-    }
+    private string ThemeTitleFull => HasSelectedTheme ? Session.Document.Name.Trim() : "템플릿선택";
+
+    private string ThemeTitle => HasSelectedTheme ? TruncateDisplay(ThemeTitleFull, 8) : "";
 
     private static string TruncateDisplay(string text, int maxChars)
     {

@@ -108,7 +108,7 @@
   })();
 
   function asset(name) {
-    return SCRIPT_BASE + name;
+    return SCRIPT_BASE + name + "?v=20260913b";
   }
 
   function closeTheme() {

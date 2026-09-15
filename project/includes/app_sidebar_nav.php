@@ -13,6 +13,8 @@ $planningPages = array(
     'format-analysis',
     'menus',
     'storyboard',
+    'dev-scope',
+    'review-scope',
 );
 $planningOpen = in_array($cp, $planningPages, true);
 
@@ -54,6 +56,12 @@ $navIcon = function ($paths) use ($compact) {
                         </a>
                         <a href="<?= url('storyboard.php') ?>" class="nav-item nav-item--sub<?= $cp === 'storyboard' ? ' active' : '' ?>">
                             스토리보드
+                        </a>
+                        <a href="<?= url('dev-scope.php?phase=phase-1') ?>" class="nav-item nav-item--sub<?= $cp === 'dev-scope' ? ' active' : '' ?>">
+                            개발범위
+                        </a>
+                        <a href="<?= url('review-scope.php') ?>" class="nav-item nav-item--sub<?= $cp === 'review-scope' ? ' active' : '' ?>">
+                            검수
                         </a>
                     </div>
                 </details>

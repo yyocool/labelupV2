@@ -172,13 +172,28 @@ public sealed class EditorSession
     {
         while (ex.InnerException is { } inner && string.IsNullOrWhiteSpace(ex.Message))
             ex = inner;
-        return ex switch
+        var raw = ex switch
         {
             InvalidDataException or NotSupportedException or InvalidOperationException => ex.Message,
             TimeoutException => string.IsNullOrWhiteSpace(ex.Message) ? "변환이 너무 오래 걸립니다. 파일이 너무 큽니다." : ex.Message,
             OutOfMemoryException => "메모리가 부족합니다. 파일이 너무 큽니다.",
             _ => string.IsNullOrWhiteSpace(ex.Message) ? "내부 오류가 발생했습니다." : ex.Message
         };
+        return StripJsStack(raw);
+    }
+
+    public static string StripJsStack(string? message)
+    {
+        var msg = (message ?? "").Trim();
+        if (msg.Length == 0) return "내부 오류가 발생했습니다.";
+        var cut = msg.IndexOf(" at Object.", StringComparison.Ordinal);
+        if (cut < 0) cut = msg.IndexOf("\n   at ", StringComparison.Ordinal);
+        if (cut > 0) msg = msg[..cut].Trim();
+        var dup = msg.IndexOf(" Error:", StringComparison.Ordinal);
+        if (dup > 0) msg = msg[..dup].Trim();
+        if (msg.StartsWith("Error:", StringComparison.OrdinalIgnoreCase))
+            msg = msg[6..].Trim();
+        return string.IsNullOrWhiteSpace(msg) ? "내부 오류가 발생했습니다." : msg.TrimEnd('.');
     }
 
     public void OpenDialog(EditorDialog dialog)
@@ -195,6 +210,7 @@ public sealed class EditorSession
 
     public void ReplaceDocument(LabelDocument doc, bool keepSelection = false)
     {
+        CurrentShopProductId = null;
         doc.EnsureStructure();
         Document = doc;
         DocumentEpoch++;

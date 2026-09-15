@@ -1,0 +1,804 @@
+{
+  "items": [
+    {
+      "title": "확인바랍니다 · 캡슐 배너",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_001_capsuleconfirmburgundy.png",
+      "hashtags": "#업무용문구 #오피스 #capsule #burgundy #확인바랍니다",
+      "description": "업무용 문구 클립아트 — 확인바랍니다 (캡슐 배너)",
+      "sort_order": 9001
+    },
+    {
+      "title": "긴급 · 라운드 배너",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_002_bannerurgentnavy.png",
+      "hashtags": "#업무용문구 #오피스 #banner #navy #긴급",
+      "description": "업무용 문구 클립아트 — 긴급 (라운드 배너)",
+      "sort_order": 9002
+    },
+    {
+      "title": "중요 · 언더라인 문구",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_003_underlineimportantforest.png",
+      "hashtags": "#업무용문구 #오피스 #underline #forest #중요",
+      "description": "업무용 문구 클립아트 — 중요 (언더라인 문구)",
+      "sort_order": 9003
+    },
+    {
+      "title": "필수 · 말풍선",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_004_speechrequiredcharcoal.png",
+      "hashtags": "#업무용문구 #오피스 #speech #charcoal #필수",
+      "description": "업무용 문구 클립아트 — 필수 (말풍선)",
+      "sort_order": 9004
+    },
+    {
+      "title": "참고 · 스탬프",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_005_stampreferenceamber.png",
+      "hashtags": "#업무용문구 #오피스 #stamp #amber #참고",
+      "description": "업무용 문구 클립아트 — 참고 (스탬프)",
+      "sort_order": 9005
+    },
+    {
+      "title": "회람 · 리본 문구",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_006_ribboncirculateteal.png",
+      "hashtags": "#업무용문구 #오피스 #ribbon #teal #회람",
+      "description": "업무용 문구 클립아트 — 회람 (리본 문구)",
+      "sort_order": 9006
+    },
+    {
+      "title": "결재 · 태그",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_007_tagapproveviolet.png",
+      "hashtags": "#업무용문구 #오피스 #tag #violet #결재",
+      "description": "업무용 문구 클립아트 — 결재 (태그)",
+      "sort_order": 9007
+    },
+    {
+      "title": "검토요청 · 티켓",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_008_ticketreviewcrimson.png",
+      "hashtags": "#업무용문구 #오피스 #ticket #crimson #검토요청",
+      "description": "업무용 문구 클립아트 — 검토요청 (티켓)",
+      "sort_order": 9008
+    },
+    {
+      "title": "전달 · 아웃라인",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_009_outlineforwardburgundy.png",
+      "hashtags": "#업무용문구 #오피스 #outline #burgundy #전달",
+      "description": "업무용 문구 클립아트 — 전달 (아웃라인)",
+      "sort_order": 9009
+    },
+    {
+      "title": "공지 · 사이드바",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_010_barleftnoticenavy.png",
+      "hashtags": "#업무용문구 #오피스 #barleft #navy #공지",
+      "description": "업무용 문구 클립아트 — 공지 (사이드바)",
+      "sort_order": 9010
+    },
+    {
+      "title": "완료 · 헥사",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_011_hexdoneforest.png",
+      "hashtags": "#업무용문구 #오피스 #hex #forest #완료",
+      "description": "업무용 문구 클립아트 — 완료 (헥사)",
+      "sort_order": 9011
+    },
+    {
+      "title": "대기 · 실드",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_012_shieldpendingcharcoal.png",
+      "hashtags": "#업무용문구 #오피스 #shield #charcoal #대기",
+      "description": "업무용 문구 클립아트 — 대기 (실드)",
+      "sort_order": 9012
+    },
+    {
+      "title": "승인 · 더블라인",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_013_doubleokamber.png",
+      "hashtags": "#업무용문구 #오피스 #double #amber #승인",
+      "description": "업무용 문구 클립아트 — 승인 (더블라인)",
+      "sort_order": 9013
+    },
+    {
+      "title": "반려 · 소프트필",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_014_softpillrejectteal.png",
+      "hashtags": "#업무용문구 #오피스 #softpill #teal #반려",
+      "description": "업무용 문구 클립아트 — 반려 (소프트필)",
+      "sort_order": 9014
+    },
+    {
+      "title": "마감 · 폴드카드",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_015_folddeadlineviolet.png",
+      "hashtags": "#업무용문구 #오피스 #fold #violet #마감",
+      "description": "업무용 문구 클립아트 — 마감 (폴드카드)",
+      "sort_order": 9015
+    },
+    {
+      "title": "우선 · 원형뱃지",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_016_roundprioritycrimson.png",
+      "hashtags": "#업무용문구 #오피스 #round #crimson #우선",
+      "description": "업무용 문구 클립아트 — 우선 (원형뱃지)",
+      "sort_order": 9016
+    },
+    {
+      "title": "내부용 · 화살배너",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_017_arrowinternalburgundy.png",
+      "hashtags": "#업무용문구 #오피스 #arrow #burgundy #내부용",
+      "description": "업무용 문구 클립아트 — 내부용 (화살배너)",
+      "sort_order": 9017
+    },
+    {
+      "title": "대외비 · 노트헤더",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_018_notepadconfidentialnavy.png",
+      "hashtags": "#업무용문구 #오피스 #notepad #navy #대외비",
+      "description": "업무용 문구 클립아트 — 대외비 (노트헤더)",
+      "sort_order": 9018
+    },
+    {
+      "title": "초안 · 캡슐 배너",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_019_capsuledraftforest.png",
+      "hashtags": "#업무용문구 #오피스 #capsule #forest #초안",
+      "description": "업무용 문구 클립아트 — 초안 (캡슐 배너)",
+      "sort_order": 9019
+    },
+    {
+      "title": "최종본 · 라운드 배너",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_020_bannerfinalcharcoal.png",
+      "hashtags": "#업무용문구 #오피스 #banner #charcoal #최종본",
+      "description": "업무용 문구 클립아트 — 최종본 (라운드 배너)",
+      "sort_order": 9020
+    },
+    {
+      "title": "첨부 · 언더라인 문구",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_021_underlineattachamber.png",
+      "hashtags": "#업무용문구 #오피스 #underline #amber #첨부",
+      "description": "업무용 문구 클립아트 — 첨부 (언더라인 문구)",
+      "sort_order": 9021
+    },
+    {
+      "title": "회신요망 · 말풍선",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_022_speechreplyteal.png",
+      "hashtags": "#업무용문구 #오피스 #speech #teal #회신요망",
+      "description": "업무용 문구 클립아트 — 회신요망 (말풍선)",
+      "sort_order": 9022
+    },
+    {
+      "title": "즉시처리 · 스탬프",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_023_stampasapviolet.png",
+      "hashtags": "#업무용문구 #오피스 #stamp #violet #즉시처리",
+      "description": "업무용 문구 클립아트 — 즉시처리 (스탬프)",
+      "sort_order": 9023
+    },
+    {
+      "title": "보류 · 리본 문구",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_024_ribbonholdcrimson.png",
+      "hashtags": "#업무용문구 #오피스 #ribbon #crimson #보류",
+      "description": "업무용 문구 클립아트 — 보류 (리본 문구)",
+      "sort_order": 9024
+    },
+    {
+      "title": "취소 · 태그",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_025_tagcancelburgundy.png",
+      "hashtags": "#업무용문구 #오피스 #tag #burgundy #취소",
+      "description": "업무용 문구 클립아트 — 취소 (태그)",
+      "sort_order": 9025
+    },
+    {
+      "title": "변경 · 티켓",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_026_ticketchangenavy.png",
+      "hashtags": "#업무용문구 #오피스 #ticket #navy #변경",
+      "description": "업무용 문구 클립아트 — 변경 (티켓)",
+      "sort_order": 9026
+    },
+    {
+      "title": "신규 · 아웃라인",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_027_outlinenewforest.png",
+      "hashtags": "#업무용문구 #오피스 #outline #forest #신규",
+      "description": "업무용 문구 클립아트 — 신규 (아웃라인)",
+      "sort_order": 9027
+    },
+    {
+      "title": "수정 · 사이드바",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_028_barleftrevisecharcoal.png",
+      "hashtags": "#업무용문구 #오피스 #barleft #charcoal #수정",
+      "description": "업무용 문구 클립아트 — 수정 (사이드바)",
+      "sort_order": 9028
+    },
+    {
+      "title": "요청 · 헥사",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_029_hexrequestamber.png",
+      "hashtags": "#업무용문구 #오피스 #hex #amber #요청",
+      "description": "업무용 문구 클립아트 — 요청 (헥사)",
+      "sort_order": 9029
+    },
+    {
+      "title": "안내 · 실드",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_030_shieldinfoteal.png",
+      "hashtags": "#업무용문구 #오피스 #shield #teal #안내",
+      "description": "업무용 문구 클립아트 — 안내 (실드)",
+      "sort_order": 9030
+    },
+    {
+      "title": "주의 · 더블라인",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_031_doublecautionviolet.png",
+      "hashtags": "#업무용문구 #오피스 #double #violet #주의",
+      "description": "업무용 문구 클립아트 — 주의 (더블라인)",
+      "sort_order": 9031
+    },
+    {
+      "title": "필수확인 · 소프트필",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_032_softpillmustcheckcrimson.png",
+      "hashtags": "#업무용문구 #오피스 #softpill #crimson #필수확인",
+      "description": "업무용 문구 클립아트 — 필수확인 (소프트필)",
+      "sort_order": 9032
+    },
+    {
+      "title": "금일마감 · 폴드카드",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_033_foldtodayburgundy.png",
+      "hashtags": "#업무용문구 #오피스 #fold #burgundy #금일마감",
+      "description": "업무용 문구 클립아트 — 금일마감 (폴드카드)",
+      "sort_order": 9033
+    },
+    {
+      "title": "내일까지 · 원형뱃지",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_034_roundtomorrownavy.png",
+      "hashtags": "#업무용문구 #오피스 #round #navy #내일까지",
+      "description": "업무용 문구 클립아트 — 내일까지 (원형뱃지)",
+      "sort_order": 9034
+    },
+    {
+      "title": "금주마감 · 화살배너",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_035_arrowthisweekforest.png",
+      "hashtags": "#업무용문구 #오피스 #arrow #forest #금주마감",
+      "description": "업무용 문구 클립아트 — 금주마감 (화살배너)",
+      "sort_order": 9035
+    },
+    {
+      "title": "월간보고 · 노트헤더",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_036_notepadmonthlycharcoal.png",
+      "hashtags": "#업무용문구 #오피스 #notepad #charcoal #월간보고",
+      "description": "업무용 문구 클립아트 — 월간보고 (노트헤더)",
+      "sort_order": 9036
+    },
+    {
+      "title": "주간보고 · 캡슐 배너",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_037_capsuleweeklyamber.png",
+      "hashtags": "#업무용문구 #오피스 #capsule #amber #주간보고",
+      "description": "업무용 문구 클립아트 — 주간보고 (캡슐 배너)",
+      "sort_order": 9037
+    },
+    {
+      "title": "회의자료 · 라운드 배너",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_038_bannermeetingteal.png",
+      "hashtags": "#업무용문구 #오피스 #banner #teal #회의자료",
+      "description": "업무용 문구 클립아트 — 회의자료 (라운드 배너)",
+      "sort_order": 9038
+    },
+    {
+      "title": "회의록 · 언더라인 문구",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_039_underlineminutesviolet.png",
+      "hashtags": "#업무용문구 #오피스 #underline #violet #회의록",
+      "description": "업무용 문구 클립아트 — 회의록 (언더라인 문구)",
+      "sort_order": 9039
+    },
+    {
+      "title": "업무연락 · 말풍선",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_040_speechmemocrimson.png",
+      "hashtags": "#업무용문구 #오피스 #speech #crimson #업무연락",
+      "description": "업무용 문구 클립아트 — 업무연락 (말풍선)",
+      "sort_order": 9040
+    },
+    {
+      "title": "지시사항 · 스탬프",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_041_stampdirectiveburgundy.png",
+      "hashtags": "#업무용문구 #오피스 #stamp #burgundy #지시사항",
+      "description": "업무용 문구 클립아트 — 지시사항 (스탬프)",
+      "sort_order": 9041
+    },
+    {
+      "title": "협조요청 · 리본 문구",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_042_ribboncooperatenavy.png",
+      "hashtags": "#업무용문구 #오피스 #ribbon #navy #협조요청",
+      "description": "업무용 문구 클립아트 — 협조요청 (리본 문구)",
+      "sort_order": 9042
+    },
+    {
+      "title": "검토완료 · 태그",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_043_tagreviewedforest.png",
+      "hashtags": "#업무용문구 #오피스 #tag #forest #검토완료",
+      "description": "업무용 문구 클립아트 — 검토완료 (태그)",
+      "sort_order": 9043
+    },
+    {
+      "title": "결재완료 · 티켓",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_044_ticketapprovedcharcoal.png",
+      "hashtags": "#업무용문구 #오피스 #ticket #charcoal #결재완료",
+      "description": "업무용 문구 클립아트 — 결재완료 (티켓)",
+      "sort_order": 9044
+    },
+    {
+      "title": "수신 · 아웃라인",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_045_outlineinboxamber.png",
+      "hashtags": "#업무용문구 #오피스 #outline #amber #수신",
+      "description": "업무용 문구 클립아트 — 수신 (아웃라인)",
+      "sort_order": 9045
+    },
+    {
+      "title": "발신 · 사이드바",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_046_barleftoutboxteal.png",
+      "hashtags": "#업무용문구 #오피스 #barleft #teal #발신",
+      "description": "업무용 문구 클립아트 — 발신 (사이드바)",
+      "sort_order": 9046
+    },
+    {
+      "title": "사본 · 헥사",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_047_hexcopyviolet.png",
+      "hashtags": "#업무용문구 #오피스 #hex #violet #사본",
+      "description": "업무용 문구 클립아트 — 사본 (헥사)",
+      "sort_order": 9047
+    },
+    {
+      "title": "원본 · 실드",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_048_shieldoriginalcrimson.png",
+      "hashtags": "#업무용문구 #오피스 #shield #crimson #원본",
+      "description": "업무용 문구 클립아트 — 원본 (실드)",
+      "sort_order": 9048
+    },
+    {
+      "title": "보관 · 더블라인",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_049_doublearchiveburgundy.png",
+      "hashtags": "#업무용문구 #오피스 #double #burgundy #보관",
+      "description": "업무용 문구 클립아트 — 보관 (더블라인)",
+      "sort_order": 9049
+    },
+    {
+      "title": "폐기 · 소프트필",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_050_softpilldisposenavy.png",
+      "hashtags": "#업무용문구 #오피스 #softpill #navy #폐기",
+      "description": "업무용 문구 클립아트 — 폐기 (소프트필)",
+      "sort_order": 9050
+    },
+    {
+      "title": "보안 · 폴드카드",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_051_foldsecurityforest.png",
+      "hashtags": "#업무용문구 #오피스 #fold #forest #보안",
+      "description": "업무용 문구 클립아트 — 보안 (폴드카드)",
+      "sort_order": 9051
+    },
+    {
+      "title": "비밀번호 · 원형뱃지",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_052_roundpasswordcharcoal.png",
+      "hashtags": "#업무용문구 #오피스 #round #charcoal #비밀번호",
+      "description": "업무용 문구 클립아트 — 비밀번호 (원형뱃지)",
+      "sort_order": 9052
+    },
+    {
+      "title": "로그인 · 화살배너",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_053_arrowloginamber.png",
+      "hashtags": "#업무용문구 #오피스 #arrow #amber #로그인",
+      "description": "업무용 문구 클립아트 — 로그인 (화살배너)",
+      "sort_order": 9053
+    },
+    {
+      "title": "로그아웃 · 노트헤더",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_054_notepadlogoutteal.png",
+      "hashtags": "#업무용문구 #오피스 #notepad #teal #로그아웃",
+      "description": "업무용 문구 클립아트 — 로그아웃 (노트헤더)",
+      "sort_order": 9054
+    },
+    {
+      "title": "열람전용 · 캡슐 배너",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_055_capsulereadonlyviolet.png",
+      "hashtags": "#업무용문구 #오피스 #capsule #violet #열람전용",
+      "description": "업무용 문구 클립아트 — 열람전용 (캡슐 배너)",
+      "sort_order": 9055
+    },
+    {
+      "title": "편집가능 · 라운드 배너",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_056_bannereditablecrimson.png",
+      "hashtags": "#업무용문구 #오피스 #banner #crimson #편집가능",
+      "description": "업무용 문구 클립아트 — 편집가능 (라운드 배너)",
+      "sort_order": 9056
+    },
+    {
+      "title": "공유 · 언더라인 문구",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_057_underlineshareburgundy.png",
+      "hashtags": "#업무용문구 #오피스 #underline #burgundy #공유",
+      "description": "업무용 문구 클립아트 — 공유 (언더라인 문구)",
+      "sort_order": 9057
+    },
+    {
+      "title": "비공개 · 말풍선",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_058_speechprivatenavy.png",
+      "hashtags": "#업무용문구 #오피스 #speech #navy #비공개",
+      "description": "업무용 문구 클립아트 — 비공개 (말풍선)",
+      "sort_order": 9058
+    },
+    {
+      "title": "공개 · 스탬프",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_059_stamppublicforest.png",
+      "hashtags": "#업무용문구 #오피스 #stamp #forest #공개",
+      "description": "업무용 문구 클립아트 — 공개 (스탬프)",
+      "sort_order": 9059
+    },
+    {
+      "title": "임시저장 · 리본 문구",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_060_ribbontempsavecharcoal.png",
+      "hashtags": "#업무용문구 #오피스 #ribbon #charcoal #임시저장",
+      "description": "업무용 문구 클립아트 — 임시저장 (리본 문구)",
+      "sort_order": 9060
+    },
+    {
+      "title": "제출 · 태그",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_061_tagsubmitamber.png",
+      "hashtags": "#업무용문구 #오피스 #tag #amber #제출",
+      "description": "업무용 문구 클립아트 — 제출 (태그)",
+      "sort_order": 9061
+    },
+    {
+      "title": "접수 · 티켓",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_062_ticketreceiveteal.png",
+      "hashtags": "#업무용문구 #오피스 #ticket #teal #접수",
+      "description": "업무용 문구 클립아트 — 접수 (티켓)",
+      "sort_order": 9062
+    },
+    {
+      "title": "처리중 · 아웃라인",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_063_outlineprocessingviolet.png",
+      "hashtags": "#업무용문구 #오피스 #outline #violet #처리중",
+      "description": "업무용 문구 클립아트 — 처리중 (아웃라인)",
+      "sort_order": 9063
+    },
+    {
+      "title": "완료보고 · 사이드바",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_064_barleftdonereportcrimson.png",
+      "hashtags": "#업무용문구 #오피스 #barleft #crimson #완료보고",
+      "description": "업무용 문구 클립아트 — 완료보고 (사이드바)",
+      "sort_order": 9064
+    },
+    {
+      "title": "이슈 · 헥사",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_065_hexissueburgundy.png",
+      "hashtags": "#업무용문구 #오피스 #hex #burgundy #이슈",
+      "description": "업무용 문구 클립아트 — 이슈 (헥사)",
+      "sort_order": 9065
+    },
+    {
+      "title": "리스크 · 실드",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_066_shieldrisknavy.png",
+      "hashtags": "#업무용문구 #오피스 #shield #navy #리스크",
+      "description": "업무용 문구 클립아트 — 리스크 (실드)",
+      "sort_order": 9066
+    },
+    {
+      "title": "체크 · 더블라인",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_067_doublecheckforest.png",
+      "hashtags": "#업무용문구 #오피스 #double #forest #체크",
+      "description": "업무용 문구 클립아트 — 체크 (더블라인)",
+      "sort_order": 9067
+    },
+    {
+      "title": "OK · 소프트필",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_068_softpillokengcharcoal.png",
+      "hashtags": "#업무용문구 #오피스 #softpill #charcoal #OK",
+      "description": "업무용 문구 클립아트 — OK (소프트필)",
+      "sort_order": 9068
+    },
+    {
+      "title": "NG · 폴드카드",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_069_foldngamber.png",
+      "hashtags": "#업무용문구 #오피스 #fold #amber #NG",
+      "description": "업무용 문구 클립아트 — NG (폴드카드)",
+      "sort_order": 9069
+    },
+    {
+      "title": "PASS · 원형뱃지",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_070_roundpassteal.png",
+      "hashtags": "#업무용문구 #오피스 #round #teal #PASS",
+      "description": "업무용 문구 클립아트 — PASS (원형뱃지)",
+      "sort_order": 9070
+    },
+    {
+      "title": "FAIL · 화살배너",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_071_arrowfailviolet.png",
+      "hashtags": "#업무용문구 #오피스 #arrow #violet #FAIL",
+      "description": "업무용 문구 클립아트 — FAIL (화살배너)",
+      "sort_order": 9071
+    },
+    {
+      "title": "TODO · 노트헤더",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_072_notepadtodocrimson.png",
+      "hashtags": "#업무용문구 #오피스 #notepad #crimson #TODO",
+      "description": "업무용 문구 클립아트 — TODO (노트헤더)",
+      "sort_order": 9072
+    },
+    {
+      "title": "DONE · 캡슐 배너",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_073_capsuledoneengburgundy.png",
+      "hashtags": "#업무용문구 #오피스 #capsule #burgundy #DONE",
+      "description": "업무용 문구 클립아트 — DONE (캡슐 배너)",
+      "sort_order": 9073
+    },
+    {
+      "title": "ASAP · 라운드 배너",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_074_bannerasapengnavy.png",
+      "hashtags": "#업무용문구 #오피스 #banner #navy #ASAP",
+      "description": "업무용 문구 클립아트 — ASAP (라운드 배너)",
+      "sort_order": 9074
+    },
+    {
+      "title": "FYI · 언더라인 문구",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_075_underlinefyiforest.png",
+      "hashtags": "#업무용문구 #오피스 #underline #forest #FYI",
+      "description": "업무용 문구 클립아트 — FYI (언더라인 문구)",
+      "sort_order": 9075
+    },
+    {
+      "title": "NOTE · 말풍선",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_076_speechnotecharcoal.png",
+      "hashtags": "#업무용문구 #오피스 #speech #charcoal #NOTE",
+      "description": "업무용 문구 클립아트 — NOTE (말풍선)",
+      "sort_order": 9076
+    },
+    {
+      "title": "CONFIDENTIAL · 스탬프",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_077_stampconfengamber.png",
+      "hashtags": "#업무용문구 #오피스 #stamp #amber #CONFIDENTIAL",
+      "description": "업무용 문구 클립아트 — CONFIDENTIAL (스탬프)",
+      "sort_order": 9077
+    },
+    {
+      "title": "INTERNAL · 리본 문구",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_078_ribbonintengteal.png",
+      "hashtags": "#업무용문구 #오피스 #ribbon #teal #INTERNAL",
+      "description": "업무용 문구 클립아트 — INTERNAL (리본 문구)",
+      "sort_order": 9078
+    },
+    {
+      "title": "DRAFT · 태그",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_079_tagdraftengviolet.png",
+      "hashtags": "#업무용문구 #오피스 #tag #violet #DRAFT",
+      "description": "업무용 문구 클립아트 — DRAFT (태그)",
+      "sort_order": 9079
+    },
+    {
+      "title": "FINAL · 티켓",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_080_ticketfinalengcrimson.png",
+      "hashtags": "#업무용문구 #오피스 #ticket #crimson #FINAL",
+      "description": "업무용 문구 클립아트 — FINAL (티켓)",
+      "sort_order": 9080
+    },
+    {
+      "title": "URGENT · 아웃라인",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_081_outlineurgentengburgundy.png",
+      "hashtags": "#업무용문구 #오피스 #outline #burgundy #URGENT",
+      "description": "업무용 문구 클립아트 — URGENT (아웃라인)",
+      "sort_order": 9081
+    },
+    {
+      "title": "IMPORTANT · 사이드바",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_082_barleftimportengnavy.png",
+      "hashtags": "#업무용문구 #오피스 #barleft #navy #IMPORTANT",
+      "description": "업무용 문구 클립아트 — IMPORTANT (사이드바)",
+      "sort_order": 9082
+    },
+    {
+      "title": "REQUIRED · 헥사",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_083_hexreqengforest.png",
+      "hashtags": "#업무용문구 #오피스 #hex #forest #REQUIRED",
+      "description": "업무용 문구 클립아트 — REQUIRED (헥사)",
+      "sort_order": 9083
+    },
+    {
+      "title": "APPROVED · 실드",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_084_shieldapprovengcharcoal.png",
+      "hashtags": "#업무용문구 #오피스 #shield #charcoal #APPROVED",
+      "description": "업무용 문구 클립아트 — APPROVED (실드)",
+      "sort_order": 9084
+    },
+    {
+      "title": "REJECTED · 더블라인",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_085_doublerejectengamber.png",
+      "hashtags": "#업무용문구 #오피스 #double #amber #REJECTED",
+      "description": "업무용 문구 클립아트 — REJECTED (더블라인)",
+      "sort_order": 9085
+    },
+    {
+      "title": "PENDING · 소프트필",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_086_softpillpendengteal.png",
+      "hashtags": "#업무용문구 #오피스 #softpill #teal #PENDING",
+      "description": "업무용 문구 클립아트 — PENDING (소프트필)",
+      "sort_order": 9086
+    },
+    {
+      "title": "CLOSED · 폴드카드",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_087_foldclosedviolet.png",
+      "hashtags": "#업무용문구 #오피스 #fold #violet #CLOSED",
+      "description": "업무용 문구 클립아트 — CLOSED (폴드카드)",
+      "sort_order": 9087
+    },
+    {
+      "title": "OPEN · 원형뱃지",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_088_roundopencrimson.png",
+      "hashtags": "#업무용문구 #오피스 #round #crimson #OPEN",
+      "description": "업무용 문구 클립아트 — OPEN (원형뱃지)",
+      "sort_order": 9088
+    },
+    {
+      "title": "UPDATE · 화살배너",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_089_arrowupdateengburgundy.png",
+      "hashtags": "#업무용문구 #오피스 #arrow #burgundy #UPDATE",
+      "description": "업무용 문구 클립아트 — UPDATE (화살배너)",
+      "sort_order": 9089
+    },
+    {
+      "title": "NEW · 노트헤더",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_090_notepadnewengnavy.png",
+      "hashtags": "#업무용문구 #오피스 #notepad #navy #NEW",
+      "description": "업무용 문구 클립아트 — NEW (노트헤더)",
+      "sort_order": 9090
+    },
+    {
+      "title": "COPY · 캡슐 배너",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_091_capsulecopyengforest.png",
+      "hashtags": "#업무용문구 #오피스 #capsule #forest #COPY",
+      "description": "업무용 문구 클립아트 — COPY (캡슐 배너)",
+      "sort_order": 9091
+    },
+    {
+      "title": "SAMPLE · 라운드 배너",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_092_bannersamplecharcoal.png",
+      "hashtags": "#업무용문구 #오피스 #banner #charcoal #SAMPLE",
+      "description": "업무용 문구 클립아트 — SAMPLE (라운드 배너)",
+      "sort_order": 9092
+    },
+    {
+      "title": "TEMPLATE · 언더라인 문구",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_093_underlinetemplateamber.png",
+      "hashtags": "#업무용문구 #오피스 #underline #amber #TEMPLATE",
+      "description": "업무용 문구 클립아트 — TEMPLATE (언더라인 문구)",
+      "sort_order": 9093
+    },
+    {
+      "title": "VERSION · 말풍선",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_094_speechversionteal.png",
+      "hashtags": "#업무용문구 #오피스 #speech #teal #VERSION",
+      "description": "업무용 문구 클립아트 — VERSION (말풍선)",
+      "sort_order": 9094
+    },
+    {
+      "title": "PAGE · 스탬프",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_095_stamppageviolet.png",
+      "hashtags": "#업무용문구 #오피스 #stamp #violet #PAGE",
+      "description": "업무용 문구 클립아트 — PAGE (스탬프)",
+      "sort_order": 9095
+    },
+    {
+      "title": "FILE · 리본 문구",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_096_ribbonfilecrimson.png",
+      "hashtags": "#업무용문구 #오피스 #ribbon #crimson #FILE",
+      "description": "업무용 문구 클립아트 — FILE (리본 문구)",
+      "sort_order": 9096
+    },
+    {
+      "title": "REPORT · 태그",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_097_tagreportburgundy.png",
+      "hashtags": "#업무용문구 #오피스 #tag #burgundy #REPORT",
+      "description": "업무용 문구 클립아트 — REPORT (태그)",
+      "sort_order": 9097
+    },
+    {
+      "title": "PLAN · 티켓",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_098_ticketplannavy.png",
+      "hashtags": "#업무용문구 #오피스 #ticket #navy #PLAN",
+      "description": "업무용 문구 클립아트 — PLAN (티켓)",
+      "sort_order": 9098
+    },
+    {
+      "title": "GOAL · 아웃라인",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_099_outlinegoalforest.png",
+      "hashtags": "#업무용문구 #오피스 #outline #forest #GOAL",
+      "description": "업무용 문구 클립아트 — GOAL (아웃라인)",
+      "sort_order": 9099
+    },
+    {
+      "title": "FOCUS · 사이드바",
+      "category_slug": "work-phrase",
+      "image_path": "/assets/cliparts/hq_workphrase_100_barleftfocuscharcoal.png",
+      "hashtags": "#업무용문구 #오피스 #barleft #charcoal #FOCUS",
+      "description": "업무용 문구 클립아트 — FOCUS (사이드바)",
+      "sort_order": 9100
+    }
+  ]
+}

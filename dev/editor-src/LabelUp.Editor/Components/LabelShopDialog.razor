@@ -3,6 +3,7 @@
 @using LabelUp.Editor.Models
 @using LabelUp.Editor.Services
 @inject EditorSession Session
+@inject PaperCatalog Papers
 @inject IJSRuntime Js
 @implements IDisposable
 
@@ -199,22 +200,115 @@
         }
         else if (_view == ShopView.Checkout)
         {
-          <form class="ed-shop-checkout" @onsubmit="PlaceOrderAsync" @onsubmit:preventDefault="true">
-            <button type="button" class="ed-shop-back" @onclick="OpenCart">← 장바구니</button>
+          <form class="ed-shop-checkout" data-checkout-address @onsubmit="PlaceOrderAsync" @onsubmit:preventDefault="true">
+            <header class="ed-co-pagehead">
+              <button type="button" class="ed-shop-back" @onclick="OpenCart">← 장바구니</button>
+              <div>
+                <h4>주문서</h4>
+                <p>구매자 · 수취인 · 배송 정보를 나눠 확인한 뒤 주문을 접수해 주세요.</p>
+              </div>
+            </header>
             <div class="ed-shop-checkout__grid">
               <div class="ed-shop-fields">
-                <label>이름<input @bind="_form.Name" required maxlength="80" /></label>
-                <label>이메일<input type="email" @bind="_form.Email" required maxlength="190" /></label>
-                <label>연락처<input @bind="_form.Phone" required maxlength="30" placeholder="010-0000-0000" /></label>
-                <label>배송지<textarea @bind="_form.Address" required rows="3" maxlength="500" placeholder="주소와 상세주소를 입력하세요"></textarea></label>
-                <label>배송 메모<textarea @bind="_form.Memo" rows="2" maxlength="255" placeholder="문 앞, 경비실 등"></textarea></label>
+                <section class="ed-co-block" aria-labelledby="ed-co-buyer">
+                  <header class="ed-co-block__head">
+                    <span class="ed-co-ico" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    </span>
+                    <div>
+                      <h5 id="ed-co-buyer">구매자</h5>
+                      <p>주문 확인과 결제 안내를 받을 정보입니다.</p>
+                    </div>
+                  </header>
+                  <div class="ed-co-block__body">
+                    <div class="ed-co-grid">
+                      <label class="ed-co-field"><span class="ed-co-lab">이름</span><input @bind="_form.Name" required maxlength="80" placeholder="이름" autocomplete="name" /></label>
+                      <label class="ed-co-field"><span class="ed-co-lab">연락처</span><input @bind="_form.Phone" required maxlength="30" placeholder="010-0000-0000" autocomplete="tel" /></label>
+                    </div>
+                    <label class="ed-co-field"><span class="ed-co-lab">이메일</span><input type="email" @bind="_form.Email" required maxlength="190" placeholder="you@email.com" autocomplete="email" /></label>
+                  </div>
+                </section>
+
+                <section class="ed-co-block ed-co-block--ship" data-editor-ship aria-labelledby="ed-co-ship">
+                  <header class="ed-co-block__head">
+                    <span class="ed-co-ico ed-co-ico--rose" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    </span>
+                    <div>
+                      <h5 id="ed-co-ship">수취인</h5>
+                      <p>라벨이 도착할 받는 분과 배송지입니다.</p>
+                    </div>
+                    <div class="ed-co-block__tools">
+                      <label class="lu-check"><input type="checkbox" data-same-as-buyer /> 구매자와 동일</label>
+                      <button type="button" class="lu-addr-book-btn" data-addr-book-open>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M8 7h8M8 11h5"/></svg>
+                        주소 불러오기
+                      </button>
+                    </div>
+                  </header>
+                  <div class="ed-co-block__body">
+                    <div class="ed-co-grid">
+                      <label class="ed-co-field"><span class="ed-co-lab">수취인 이름</span><input data-ship-name name="shipping_name" @bind="_form.ShipName" @bind:event="oninput" required maxlength="80" placeholder="받는 분 이름" /></label>
+                      <label class="ed-co-field"><span class="ed-co-lab">수취인 연락처</span><input data-ship-phone name="shipping_phone" @bind="_form.ShipPhone" @bind:event="oninput" required maxlength="30" placeholder="010-0000-0000" /></label>
+                    </div>
+                    <div class="lu-addr" data-daum-address>
+                      <span class="lu-addr__legend">배송지</span>
+                      <div class="lu-addr__row">
+                        <input type="text" name="shipping_zip" data-addr-zip @bind="_form.Zip" @bind:event="oninput" readonly required maxlength="10" placeholder="우편번호" autocomplete="postal-code" />
+                        <button type="button" class="lu-addr__search" data-addr-search>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/></svg>
+                          주소 검색
+                        </button>
+                      </div>
+                      <input type="text" name="shipping_base" data-addr-base @bind="_form.Base" @bind:event="oninput" readonly required maxlength="300" placeholder="주소 검색으로 선택하세요" />
+                      <input type="text" name="shipping_detail" data-addr-detail @bind="_form.Detail" @bind:event="oninput" maxlength="200" placeholder="상세주소 (동·호수 등)" />
+                      <textarea name="shipping_address" class="lu-addr__combined" data-addr-combined @bind="_form.Address" @bind:event="oninput" required maxlength="500"></textarea>
+                    </div>
+                    <div class="lu-checkout-save ed-co-save">
+                      <label class="lu-check"><input type="checkbox" data-save-address @bind="_form.SaveAddress" /> 이 주소를 배송지에 저장</label>
+                      <input class="lu-addr-label" type="text" data-addr-label @bind="_form.AddressLabel" @bind:event="oninput" maxlength="40" placeholder="배송지 이름 (집, 회사 등)" />
+                    </div>
+                  </div>
+                </section>
+
+                <section class="ed-co-block" aria-labelledby="ed-co-memo">
+                  <header class="ed-co-block__head">
+                    <span class="ed-co-ico ed-co-ico--gold" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>
+                    </span>
+                    <div>
+                      <h5 id="ed-co-memo">배송 요청</h5>
+                      <p>선택 사항입니다. 비워도 주문이 접수됩니다.</p>
+                    </div>
+                  </header>
+                  <div class="ed-co-block__body">
+                    <label class="ed-co-field"><span class="ed-co-lab">배송 메모</span><textarea @bind="_form.Memo" rows="2" maxlength="255" placeholder="문 앞, 경비실, 연락 후 배송 등"></textarea></label>
+                  </div>
+                </section>
               </div>
-              <aside class="ed-shop-summary">
-                <h4>주문 요약</h4>
-                <ul>
+              <aside class="ed-shop-summary ed-co-summary">
+                <header class="ed-co-summary__head">
+                  <span class="ed-co-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg>
+                  </span>
+                  <div>
+                    <h4>주문 요약</h4>
+                    <p>결제 전 수량과 금액을 확인하세요.</p>
+                  </div>
+                </header>
+                <ul class="ed-co-items">
                   @foreach (var item in _cart.Items)
                   {
-                    <li>@item.Name × @item.Qty</li>
+                    <li>
+                      @if (!string.IsNullOrWhiteSpace(item.Thumbnail))
+                      {
+                        <img src="@item.Thumbnail" alt="" />
+                      }
+                      <div>
+                        <strong>@item.Name</strong>
+                        <span>@item.Qty 개 · @item.PriceLabel</span>
+                      </div>
+                    </li>
                   }
                 </ul>
                 <dl>
@@ -337,43 +431,57 @@
     private async Task StartBuyNowAsync(int? knownId, string? paperNo)
     {
         await LoadCartAsync();
+        await Papers.EnsureShopPapersAsync();
+        var paper = Session.Document.Paper;
         var productId = knownId is > 0 ? knownId : null;
-        if (productId is null && !string.IsNullOrWhiteSpace(paperNo))
+        if (productId is null)
         {
-            try
+            var shop = Papers.FindMatchingShopProduct(paper);
+            if (shop is { Id: > 0 })
             {
-                var json = await Js.InvokeAsync<string>("labelUpEditor.apiGetJson", "/api/shop/lookup?code=" + Uri.EscapeDataString(paperNo.Trim()));
-                var found = JsonSerializer.Deserialize<ShopProductDto>(json, JsonOpts);
-                if (found is { Id: > 0 })
-                {
-                    productId = found.Id;
-                    Session.CurrentShopProductId = found.Id;
-                }
+                productId = shop.Id;
+                Session.CurrentShopProductId = shop.Id;
             }
-            catch (Exception ex)
+        }
+        if (productId is null)
+        {
+            var code = !string.IsNullOrWhiteSpace(paperNo) ? paperNo.Trim() : (paper.PaperNo ?? "").Trim();
+            if (!string.IsNullOrWhiteSpace(code))
             {
-                _error = "";
-                _flash = string.IsNullOrWhiteSpace(ex.Message)
-                    ? "현재 용지에 맞는 상품을 찾지 못했습니다. 목록에서 선택해 주세요."
-                    : ex.Message;
+                try
+                {
+                    var qs = "/api/shop/lookup?code=" + Uri.EscapeDataString(code)
+                        + "&w=" + paper.LabelWidthMm.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+                        + "&h=" + paper.LabelHeightMm.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+                        + "&labels=" + paper.LabelsPerPage.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    var json = await Js.InvokeAsync<string>("labelUpEditor.apiGetJson", qs);
+                    var found = JsonSerializer.Deserialize<ShopProductDto>(json, JsonOpts);
+                    if (found is { Id: > 0 })
+                    {
+                        productId = found.Id;
+                        Session.CurrentShopProductId = found.Id;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _error = "";
+                    var msg = EditorSession.FriendlyError(ex);
+                    _flash = msg.Contains("맞는 상품", StringComparison.Ordinal)
+                        ? "현재 용지에 연결된 판매 상품이 없습니다. 상품관리에 등록된 용지를 목록에서 선택해 주세요."
+                        : msg;
+                }
             }
         }
 
         if (productId is > 0)
         {
             await BuyNowAsync(productId.Value, 1);
-            if (_view is ShopView.Checkout or ShopView.Done)
-                return;
-            if (_cart.Items.Count > 0 && string.IsNullOrWhiteSpace(_error))
-            {
-                _view = ShopView.Cart;
-                return;
-            }
+            return;
         }
 
-        _query = paperNo ?? "";
+        _query = paperNo ?? paper.PaperNo ?? "";
         if (string.IsNullOrWhiteSpace(_flash) && string.IsNullOrWhiteSpace(_error))
-            _flash = "현재 용지에 맞는 상품을 찾지 못했습니다. 목록에서 선택해 주세요.";
+            _flash = "현재 용지에 연결된 판매 상품이 없습니다. 상품관리에 등록된 용지를 목록에서 선택해 주세요.";
         await LoadCatalogAsync(1);
     }
 
@@ -473,8 +581,21 @@
     private async Task BuyNowAsync(int id, int qty)
     {
         await AddCartAsync(id, qty);
-        if (string.IsNullOrWhiteSpace(_error))
-            await OpenCheckout();
+        if (!string.IsNullOrWhiteSpace(_error))
+        {
+            try { await OpenDetailAsync(id); }
+            catch { _view = ShopView.Catalog; }
+            return;
+        }
+        await LoadCartAsync();
+        _view = ShopView.Cart;
+        if (_cart.Items.Count == 0)
+        {
+            try { await OpenDetailAsync(id); }
+            catch { }
+            return;
+        }
+        await OpenCheckout();
     }
 
     private async Task UpdateQtyAsync(int id, int qty)
@@ -514,9 +635,16 @@
             _view = ShopView.Cart;
             return;
         }
+        _view = ShopView.Cart;
+        await InvokeAsync(StateHasChanged);
         if (!await EnsureLoginAsync())
+        {
+            _flash = "주문하려면 로그인해 주세요.";
+            _view = ShopView.Cart;
             return;
+        }
         await PrefillUserAsync();
+        _flash = "";
         _view = ShopView.Checkout;
     }
 
@@ -534,8 +662,15 @@
                 customer_name = _form.Name,
                 customer_email = _form.Email,
                 customer_phone = _form.Phone,
+                shipping_name = _form.ShipName,
+                shipping_phone = _form.ShipPhone,
+                shipping_zip = _form.Zip,
+                shipping_base = _form.Base,
+                shipping_detail = _form.Detail,
                 shipping_address = _form.Address,
-                shipping_memo = _form.Memo
+                shipping_memo = _form.Memo,
+                save_address = _form.SaveAddress,
+                address_label = _form.AddressLabel
             });
             using var doc = JsonDocument.Parse(raw);
             var data = doc.RootElement.TryGetProperty("data", out var d) ? d.GetRawText() : raw;
@@ -661,7 +796,14 @@
         public string Name { get; set; } = "";
         public string Email { get; set; } = "";
         public string Phone { get; set; } = "";
+        public string ShipName { get; set; } = "";
+        public string ShipPhone { get; set; } = "";
+        public string Zip { get; set; } = "";
+        public string Base { get; set; } = "";
+        public string Detail { get; set; } = "";
         public string Address { get; set; } = "";
         public string Memo { get; set; } = "";
+        public bool SaveAddress { get; set; }
+        public string AddressLabel { get; set; } = "";
     }
 }

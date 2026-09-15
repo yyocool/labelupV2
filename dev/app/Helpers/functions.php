@@ -40,6 +40,55 @@ function url(string $path = ''): string
     return $base . '/' . ltrim($path, '/');
 }
 
+/** 인쇄용 QR 쿠폰 링크 기본 도메인. */
+function qr_public_url(string $path = '', array $query = []): string
+{
+    $base = rtrim((string) app_config('qr_public_url', 'https://www.labelup.co.kr'), '/');
+    if ($base === '') {
+        $base = 'https://www.labelup.co.kr';
+    }
+    $url = $base . '/' . ltrim($path, '/');
+    if ($query !== []) {
+        $url .= (str_contains($url, '?') ? '&' : '?') . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+    }
+    return $url;
+}
+
+/** 절대 URL (현재 요청 호스트 / APP_URL). 관리자 미리보기용. */
+function absolute_url(string $path = ''): string
+{
+    $path = trim($path);
+    if ($path !== '' && preg_match('#^https?://#i', $path)) {
+        return $path;
+    }
+
+    $query = '';
+    if ($path !== '' && str_contains($path, '?')) {
+        [$path, $queryPart] = explode('?', $path, 2);
+        $query = '?' . $queryPart;
+    }
+
+    $path = trim(str_replace('\\', '/', $path), '/');
+
+    $base = rtrim((string) app_config('url', ''), '/');
+    if ($base === '') {
+        $host = (string) ($_SERVER['HTTP_HOST'] ?? '');
+        if ($host !== '') {
+            $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                || ((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+            $base = ($https ? 'https://' : 'http://') . $host;
+        } else {
+            $base = 'http://localhost';
+        }
+    }
+
+    if ($path === '') {
+        return $base . '/' . ($query !== '' ? ltrim($query, '?') : '');
+    }
+
+    return $base . '/' . $path . $query;
+}
+
 function asset(string $path): string
 {
     $rel = 'assets/' . ltrim($path, '/');

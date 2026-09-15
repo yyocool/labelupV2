@@ -60,9 +60,9 @@ $statuses = ['active', 'soldout', 'hidden', 'draft'];
       <td>
         <strong><?= e($row['name']) ?></strong>
         <form class="admin-compat-row js-compat-form" data-id="<?= (int) $row['id'] ?>">
-          <label><?= "\u{D3FC}\u{D14D}" ?><textarea name="compat_formtec" rows="2" placeholder="한 줄에 하나"><?= e(\App\Helpers\ShopCompatHelper::toMultiline($row['compat_formtec'] ?? null)) ?></textarea></label>
-          <label><?= "\u{C544}\u{C774}\u{B77C}\u{BCA8}" ?><textarea name="compat_ilabel" rows="2" placeholder="한 줄에 하나"><?= e(\App\Helpers\ShopCompatHelper::toMultiline($row['compat_ilabel'] ?? null)) ?></textarea></label>
-          <label><?= "\u{C560}\u{B2C8}\u{B77C}\u{BCA8}" ?><textarea name="compat_anylabel" rows="2" placeholder="한 줄에 하나"><?= e(\App\Helpers\ShopCompatHelper::toMultiline($row['compat_anylabel'] ?? null)) ?></textarea></label>
+          <label><?= "\u{D3FC}\u{D14D}" ?><textarea name="compat_formtec" rows="2"><?= e(\App\Helpers\ShopCompatHelper::toMultiline($row['compat_formtec'] ?? null)) ?></textarea></label>
+          <label><?= "\u{C544}\u{C774}\u{B77C}\u{BCA8}" ?><textarea name="compat_ilabel" rows="2"><?= e(\App\Helpers\ShopCompatHelper::toMultiline($row['compat_ilabel'] ?? null)) ?></textarea></label>
+          <label><?= "\u{C560}\u{B2C8}\u{B77C}\u{BCA8}" ?><textarea name="compat_anylabel" rows="2"><?= e(\App\Helpers\ShopCompatHelper::toMultiline($row['compat_anylabel'] ?? null)) ?></textarea></label>
           <button type="submit" class="admin-btn admin-btn--sm"><?= "\u{C800}\u{C7A5}" ?></button>
         </form>
       </td>

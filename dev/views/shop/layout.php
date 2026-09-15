@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="<?= css('home.css') ?>">
   <link rel="stylesheet" href="<?= css('shop.css') ?>">
 </head>
-<body class="shop-page">
+<body class="shop-page<?= !empty($hideShopAside) ? ' shop-page--complete' : '' ?>">
 <?php marketing_render_body_start(); ?>
 <div class="app shop-app" id="userApp">
 <script>try{if(localStorage.getItem('labelup_sidebar_collapsed')==='1')document.getElementById('userApp').classList.add('is-sidebar-collapsed')}catch(e){}</script>
@@ -19,11 +19,13 @@
 <?php require view_path('home/partials/sidebar-toggle.php'); ?>
 <main class="main shop-main">
   <?php require view_path('shop/partials/topbar.php'); ?>
-  <div class="shop-wrap">
+  <div class="shop-wrap<?= !empty($hideShopAside) ? ' shop-wrap--complete' : '' ?>">
     <div class="shop-content">
       <?php require view_path(str_replace('.', '/', $contentTemplate) . '.php'); ?>
     </div>
+    <?php if (empty($hideShopAside)): ?>
     <?php require view_path('shop/partials/aside-panel.php'); ?>
+    <?php endif; ?>
   </div>
 </main>
 </div>

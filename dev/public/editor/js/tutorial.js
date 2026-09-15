@@ -510,7 +510,16 @@
     setMobilePropsOpen(false);
     setMobilePreviewOpen(false);
   }
+  function patchInviteLabi() {
+    var imgs = document.querySelectorAll('.lu-tut-invite__labi');
+    for (var i = 0; i < imgs.length; i++) {
+      var src = imgs[i].getAttribute('src') || '';
+      if (src.indexOf('labi-wink.png') === -1) imgs[i].src = 'img/labi-wink.png?v=20260913k';
+    }
+  }
+
   function patchMobileInvite() {
+    patchInviteLabi();
     var card = document.querySelector('.lu-tut-invite__card');
     if (card) {
       var h = card.querySelector('h3');
@@ -563,6 +572,10 @@
     setTimeout(patchMobileInvite, 80);
     setTimeout(patchMobileInvite, 400);
     setTimeout(patchMobileInvite, 1200);
+    if (!window._luTutInviteObs) {
+      window._luTutInviteObs = new MutationObserver(function () { patchInviteLabi(); });
+      window._luTutInviteObs.observe(document.body, { childList: true, subtree: true });
+    }
   };
 
   Tutorial.prototype._applyTrack = function () {

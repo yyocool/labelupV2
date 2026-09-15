@@ -35,6 +35,8 @@
                 <?php endif; ?>
                 <a href="<?= url('menus.php') ?>" class="nav-item">메뉴 구성도</a>
                 <a href="<?= url('storyboard.php') ?>" class="nav-item">스토리보드</a>
+                <a href="<?= url('dev-scope.php?phase=phase-1') ?>" class="nav-item<?= (isset($currentPage) && $currentPage === 'dev-scope') ? ' active' : '' ?>">개발범위</a>
+                <a href="<?= url('review-scope.php') ?>" class="nav-item<?= (isset($currentPage) && $currentPage === 'review-scope') ? ' active' : '' ?>">검수</a>
                 <a href="<?= url('issues.php') ?>" class="nav-item">이슈 관리</a>
                 <a href="<?= url('milestones.php') ?>" class="nav-item">마일스톤</a>
                 <a href="<?= url('schedule.php') ?>" class="nav-item">일정관리</a>

@@ -46,6 +46,36 @@ function is_super_admin()
 
 }
 
+/** 개발범위/검수: 상태 변경 (개발자) */
+function can_review_scope_status($user = null)
+{
+    $user = $user ? $user : current_user();
+    if (!$user || empty($user['role'])) {
+        return false;
+    }
+    return in_array($user['role'], array('admin', 'pm', 'developer', 'designer'), true);
+}
+
+/** 검수 확인·코멘트 (검수자) */
+function can_review_scope_review($user = null)
+{
+    $user = $user ? $user : current_user();
+    if (!$user || empty($user['role'])) {
+        return false;
+    }
+    return in_array($user['role'], array('admin', 'pm', 'qa', 'viewer'), true);
+}
+
+/** 검수 시트 구조 편집 (항목 추가·수정·삭제) */
+function can_review_scope_edit($user = null)
+{
+    $user = $user ? $user : current_user();
+    if (!$user || empty($user['role'])) {
+        return false;
+    }
+    return in_array($user['role'], array('admin', 'pm', 'developer'), true);
+}
+
 
 
 function require_login()

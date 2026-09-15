@@ -126,6 +126,31 @@ final class ShopController extends BaseController
         ]);
     }
 
+    public function complete(): void
+    {
+        $orderNo = trim((string) ($_GET['order'] ?? ''));
+        $user = $this->auth->user();
+        if (!$user) {
+            $next = '/shop/complete' . ($orderNo !== '' ? ('?order=' . $orderNo) : '');
+            redirect('login?redirect=' . rawurlencode($next));
+        }
+        $order = $this->shop->completeOrderForUser(
+            (int) ($user['id'] ?? 0),
+            $orderNo,
+            (string) ($user['email'] ?? '')
+        );
+        $recent = $this->shop->recentOrdersForUser((int) ($user['id'] ?? 0), $orderNo, 3);
+        $featured = array_slice($this->shop->homeData()['featuredProducts'] ?? [], 0, 3);
+        $this->renderShop('shop/complete', '주문 완료 — 라벨업 쇼핑몰', [
+            'seoPage' => 'shop-complete',
+            'hideShopAside' => true,
+            'order' => $order,
+            'orderNo' => $orderNo,
+            'recentOrders' => $recent,
+            'featuredProducts' => $featured,
+        ]);
+    }
+
     private function renderShop(string $template, string $title, array $data = []): void
     {
         $categories = $data['categories'] ?? $this->shop->homeData()['categories'];

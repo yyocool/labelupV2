@@ -54,6 +54,9 @@ use App\Controllers\Api\SiteIntroAdminApiController;
 use App\Controllers\MemberGradeAdminController;
 use App\Controllers\Api\MemberGradeAdminApiController;
 use App\Controllers\QrCouponAdminController;
+use App\Controllers\Api\QrCouponAdminApiController;
+use App\Controllers\QrCouponPublicController;
+use App\Controllers\CompatCodePublicController;
 
 final class Router
 {
@@ -169,14 +172,24 @@ final class Router
         $memberGradeAdmin = new MemberGradeAdminController();
         $memberGradeAdminApi = new MemberGradeAdminApiController();
         $qrCouponAdmin = new QrCouponAdminController();
+        $qrCouponAdminApi = new QrCouponAdminApiController();
+        $qrCouponPublic = new QrCouponPublicController();
+        $compatPublic = new CompatCodePublicController();
 
         $router->get('/', [$home, 'index']);
         $router->get('/faq', [$faqPublic, 'index']);
+        $router->get('/compat', [$compatPublic, 'index']);
+        $router->get('/compat-codes', [$compatPublic, 'index']);
+        $router->get('/compat/qr', [$compatPublic, 'qrSample']);
+        $router->get('/compat-codes/qr', [$compatPublic, 'qrSample']);
+        $router->get('/qr-coupon', [$qrCouponPublic, 'index']);
+        $router->get('/qr-coupon/{code}', [$qrCouponPublic, 'show']);
 
         $router->get('/shop', [$shopPublic, 'index']);
         $router->get('/shop/products', [$shopPublic, 'products']);
         $router->get('/shop/products/{id}', [$shopPublic, 'product']);
         $router->get('/shop/cart', [$shopPublic, 'cart']);
+        $router->get('/shop/complete', [$shopPublic, 'complete']);
 
         $router->get('/login', [$auth, 'loginForm']);
         $router->get('/register', [$auth, 'registerForm']);
@@ -210,6 +223,15 @@ final class Router
         $router->get('/admin/ops/faq', [$faqAdmin, 'index']);
         $router->get('/admin/ops/inquiries', [$inquiryAdmin, 'index']);
         $router->get('/admin/qr-coupons', [$qrCouponAdmin, 'index']);
+        $router->post('/api/admin/qr-coupons/credit/save', [$qrCouponAdminApi, 'saveCredit']);
+        $router->post('/api/admin/qr-coupons/generate', [$qrCouponAdminApi, 'generate']);
+        $router->post('/api/admin/qr-coupons/generation-history', [$qrCouponAdminApi, 'generationHistory']);
+        $router->post('/api/admin/qr-coupons/batch-codes', [$qrCouponAdminApi, 'batchCodes']);
+        $router->post('/api/admin/qr-coupons/group-codes', [$qrCouponAdminApi, 'groupCodes']);
+        $router->post('/api/admin/qr-coupons/mark-printed', [$qrCouponAdminApi, 'markPrinted']);
+        $router->post('/api/admin/qr-coupons/usage-history', [$qrCouponAdminApi, 'usageHistory']);
+        $router->get('/api/admin/qr-coupons/print-template', [$qrCouponAdminApi, 'printTemplate']);
+        $router->post('/api/admin/qr-coupons/print-template/save', [$qrCouponAdminApi, 'savePrintTemplate']);
         $router->get('/admin/ai/example-prompts', [$aiAdmin, 'examplePrompts']);
         $router->get('/admin/ai/credit-settings', [$aiAdmin, 'creditSettings']);
         $router->get('/admin/ai/token-logs', [$aiAdmin, 'tokenLogs']);
@@ -310,6 +332,7 @@ final class Router
         $router->post('/api/admin/credit/cs/save', [$creditAdminApi, 'saveCsLog']);
 
         $router->post('/api/admin/hero/slide/save', [$heroAdminApi, 'save']);
+        $router->post('/api/admin/hero/slide/upload', [$heroAdminApi, 'upload']);
         $router->post('/api/admin/hero/slide/delete', [$heroAdminApi, 'delete']);
 
         $router->post('/api/admin/event-popup/save', [$eventPopupAdminApi, 'save']);

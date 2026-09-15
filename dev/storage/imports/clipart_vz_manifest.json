@@ -1,0 +1,485 @@
+{
+  "count": 60,
+  "items": [
+    {
+      "title": "커피 컵 · VECTOR",
+      "category_slug": "vectors",
+      "image_path": "/assets/cliparts/vz_vector_01_coffee.svg",
+      "hashtags": "#커피 #카페 #음료 #라벨 #vector #vecteezy스타일 #클립아트 #커피",
+      "description": "Vecteezy 인기 테마를 참고한 원본 커피 컵 클립아트 (VECTOR)",
+      "sort_order": 1
+    },
+    {
+      "title": "플라워 · VECTOR",
+      "category_slug": "vectors",
+      "image_path": "/assets/cliparts/vz_vector_02_flower.svg",
+      "hashtags": "#꽃 #플라워 #자연 #장식 #vector #vecteezy스타일 #클립아트 #꽃",
+      "description": "Vecteezy 인기 테마를 참고한 원본 플라워 클립아트 (VECTOR)",
+      "sort_order": 2
+    },
+    {
+      "title": "하트 · VECTOR",
+      "category_slug": "vectors",
+      "image_path": "/assets/cliparts/vz_vector_03_heart.svg",
+      "hashtags": "#하트 #사랑 #선물 #vector #vecteezy스타일 #클립아트 #하트",
+      "description": "Vecteezy 인기 테마를 참고한 원본 하트 클립아트 (VECTOR)",
+      "sort_order": 3
+    },
+    {
+      "title": "오너먼트 프레임 · VECTOR",
+      "category_slug": "vectors",
+      "image_path": "/assets/cliparts/vz_vector_04_frame.svg",
+      "hashtags": "#프레임 #테두리 #배지 #vector #vecteezy스타일 #클립아트 #프레임",
+      "description": "Vecteezy 인기 테마를 참고한 원본 오너먼트 프레임 클립아트 (VECTOR)",
+      "sort_order": 4
+    },
+    {
+      "title": "화살표 · VECTOR",
+      "category_slug": "vectors",
+      "image_path": "/assets/cliparts/vz_vector_05_arrow.svg",
+      "hashtags": "#화살표 #아이콘 #방향 #vector #vecteezy스타일 #클립아트 #화살표",
+      "description": "Vecteezy 인기 테마를 참고한 원본 화살표 클립아트 (VECTOR)",
+      "sort_order": 5
+    },
+    {
+      "title": "스타 · VECTOR",
+      "category_slug": "vectors",
+      "image_path": "/assets/cliparts/vz_vector_06_star.svg",
+      "hashtags": "#별 #스타 #포인트 #vector #vecteezy스타일 #클립아트 #별",
+      "description": "Vecteezy 인기 테마를 참고한 원본 스타 클립아트 (VECTOR)",
+      "sort_order": 6
+    },
+    {
+      "title": "리프 · VECTOR",
+      "category_slug": "vectors",
+      "image_path": "/assets/cliparts/vz_vector_07_leaf.svg",
+      "hashtags": "#잎 #친환경 #자연 #vector #vecteezy스타일 #클립아트 #잎사귀",
+      "description": "Vecteezy 인기 테마를 참고한 원본 리프 클립아트 (VECTOR)",
+      "sort_order": 7
+    },
+    {
+      "title": "트리 · VECTOR",
+      "category_slug": "vectors",
+      "image_path": "/assets/cliparts/vz_vector_08_tree.svg",
+      "hashtags": "#나무 #식물 #자연 #vector #vecteezy스타일 #클립아트 #나무",
+      "description": "Vecteezy 인기 테마를 참고한 원본 트리 클립아트 (VECTOR)",
+      "sort_order": 8
+    },
+    {
+      "title": "선샤인 · VECTOR",
+      "category_slug": "vectors",
+      "image_path": "/assets/cliparts/vz_vector_09_sun.svg",
+      "hashtags": "#태양 #날씨 #해 #vector #vecteezy스타일 #클립아트 #태양",
+      "description": "Vecteezy 인기 테마를 참고한 원본 선샤인 클립아트 (VECTOR)",
+      "sort_order": 9
+    },
+    {
+      "title": "클라우드 · VECTOR",
+      "category_slug": "vectors",
+      "image_path": "/assets/cliparts/vz_vector_10_cloud.svg",
+      "hashtags": "#구름 #날씨 #하늘 #vector #vecteezy스타일 #클립아트 #구름",
+      "description": "Vecteezy 인기 테마를 참고한 원본 클라우드 클립아트 (VECTOR)",
+      "sort_order": 10
+    },
+    {
+      "title": "기프트 박스 · VECTOR",
+      "category_slug": "vectors",
+      "image_path": "/assets/cliparts/vz_vector_11_gift.svg",
+      "hashtags": "#선물 #박스 #리본 #vector #vecteezy스타일 #클립아트 #선물상자",
+      "description": "Vecteezy 인기 테마를 참고한 원본 기프트 박스 클립아트 (VECTOR)",
+      "sort_order": 11
+    },
+    {
+      "title": "고양이 · VECTOR",
+      "category_slug": "vectors",
+      "image_path": "/assets/cliparts/vz_vector_12_cat.svg",
+      "hashtags": "#고양이 #동물 #펫 #vector #vecteezy스타일 #클립아트 #고양이",
+      "description": "Vecteezy 인기 테마를 참고한 원본 고양이 클립아트 (VECTOR)",
+      "sort_order": 12
+    },
+    {
+      "title": "강아지 · VECTOR",
+      "category_slug": "vectors",
+      "image_path": "/assets/cliparts/vz_vector_13_dog.svg",
+      "hashtags": "#강아지 #동물 #펫 #vector #vecteezy스타일 #클립아트 #강아지",
+      "description": "Vecteezy 인기 테마를 참고한 원본 강아지 클립아트 (VECTOR)",
+      "sort_order": 13
+    },
+    {
+      "title": "애플 · VECTOR",
+      "category_slug": "vectors",
+      "image_path": "/assets/cliparts/vz_vector_14_apple.svg",
+      "hashtags": "#사과 #푸드 #과일 #vector #vecteezy스타일 #클립아트 #사과",
+      "description": "Vecteezy 인기 테마를 참고한 원본 애플 클립아트 (VECTOR)",
+      "sort_order": 14
+    },
+    {
+      "title": "리본 배너 · VECTOR",
+      "category_slug": "vectors",
+      "image_path": "/assets/cliparts/vz_vector_15_banner.svg",
+      "hashtags": "#배너 #리본 #라벨 #vector #vecteezy스타일 #클립아트 #배너",
+      "description": "Vecteezy 인기 테마를 참고한 원본 리본 배너 클립아트 (VECTOR)",
+      "sort_order": 15
+    },
+    {
+      "title": "체크 아이콘 · VECTOR",
+      "category_slug": "vectors",
+      "image_path": "/assets/cliparts/vz_vector_16_check.svg",
+      "hashtags": "#체크 #아이콘 #확인 #vector #vecteezy스타일 #클립아트 #체크",
+      "description": "Vecteezy 인기 테마를 참고한 원본 체크 아이콘 클립아트 (VECTOR)",
+      "sort_order": 16
+    },
+    {
+      "title": "로케이션 핀 · VECTOR",
+      "category_slug": "vectors",
+      "image_path": "/assets/cliparts/vz_vector_17_pin.svg",
+      "hashtags": "#핀 #위치 #맵 #vector #vecteezy스타일 #클립아트 #위치핀",
+      "description": "Vecteezy 인기 테마를 참고한 원본 로케이션 핀 클립아트 (VECTOR)",
+      "sort_order": 17
+    },
+    {
+      "title": "보우 리본 · VECTOR",
+      "category_slug": "vectors",
+      "image_path": "/assets/cliparts/vz_vector_18_ribbon.svg",
+      "hashtags": "#리본 #선물 #장식 #vector #vecteezy스타일 #클립아트 #리본",
+      "description": "Vecteezy 인기 테마를 참고한 원본 보우 리본 클립아트 (VECTOR)",
+      "sort_order": 18
+    },
+    {
+      "title": "스노우플레이크 · VECTOR",
+      "category_slug": "vectors",
+      "image_path": "/assets/cliparts/vz_vector_19_snow.svg",
+      "hashtags": "#눈꽃 #겨울 #시즌 #vector #vecteezy스타일 #클립아트 #눈꽃",
+      "description": "Vecteezy 인기 테마를 참고한 원본 스노우플레이크 클립아트 (VECTOR)",
+      "sort_order": 19
+    },
+    {
+      "title": "버터플라이 · VECTOR",
+      "category_slug": "vectors",
+      "image_path": "/assets/cliparts/vz_vector_20_butterfly.svg",
+      "hashtags": "#나비 #봄 #자연 #vector #vecteezy스타일 #클립아트 #나비",
+      "description": "Vecteezy 인기 테마를 참고한 원본 버터플라이 클립아트 (VECTOR)",
+      "sort_order": 20
+    },
+    {
+      "title": "커피 컵 · PNG",
+      "category_slug": "pngs",
+      "image_path": "/assets/cliparts/vz_png_01_coffee.png",
+      "hashtags": "#커피 #카페 #음료 #라벨 #png #vecteezy스타일 #클립아트 #커피",
+      "description": "Vecteezy 인기 테마를 참고한 원본 커피 컵 클립아트 (PNG)",
+      "sort_order": 21
+    },
+    {
+      "title": "플라워 · PNG",
+      "category_slug": "pngs",
+      "image_path": "/assets/cliparts/vz_png_02_flower.png",
+      "hashtags": "#꽃 #플라워 #자연 #장식 #png #vecteezy스타일 #클립아트 #꽃",
+      "description": "Vecteezy 인기 테마를 참고한 원본 플라워 클립아트 (PNG)",
+      "sort_order": 22
+    },
+    {
+      "title": "하트 · PNG",
+      "category_slug": "pngs",
+      "image_path": "/assets/cliparts/vz_png_03_heart.png",
+      "hashtags": "#하트 #사랑 #선물 #png #vecteezy스타일 #클립아트 #하트",
+      "description": "Vecteezy 인기 테마를 참고한 원본 하트 클립아트 (PNG)",
+      "sort_order": 23
+    },
+    {
+      "title": "오너먼트 프레임 · PNG",
+      "category_slug": "pngs",
+      "image_path": "/assets/cliparts/vz_png_04_frame.png",
+      "hashtags": "#프레임 #테두리 #배지 #png #vecteezy스타일 #클립아트 #프레임",
+      "description": "Vecteezy 인기 테마를 참고한 원본 오너먼트 프레임 클립아트 (PNG)",
+      "sort_order": 24
+    },
+    {
+      "title": "화살표 · PNG",
+      "category_slug": "pngs",
+      "image_path": "/assets/cliparts/vz_png_05_arrow.png",
+      "hashtags": "#화살표 #아이콘 #방향 #png #vecteezy스타일 #클립아트 #화살표",
+      "description": "Vecteezy 인기 테마를 참고한 원본 화살표 클립아트 (PNG)",
+      "sort_order": 25
+    },
+    {
+      "title": "스타 · PNG",
+      "category_slug": "pngs",
+      "image_path": "/assets/cliparts/vz_png_06_star.png",
+      "hashtags": "#별 #스타 #포인트 #png #vecteezy스타일 #클립아트 #별",
+      "description": "Vecteezy 인기 테마를 참고한 원본 스타 클립아트 (PNG)",
+      "sort_order": 26
+    },
+    {
+      "title": "리프 · PNG",
+      "category_slug": "pngs",
+      "image_path": "/assets/cliparts/vz_png_07_leaf.png",
+      "hashtags": "#잎 #친환경 #자연 #png #vecteezy스타일 #클립아트 #잎사귀",
+      "description": "Vecteezy 인기 테마를 참고한 원본 리프 클립아트 (PNG)",
+      "sort_order": 27
+    },
+    {
+      "title": "트리 · PNG",
+      "category_slug": "pngs",
+      "image_path": "/assets/cliparts/vz_png_08_tree.png",
+      "hashtags": "#나무 #식물 #자연 #png #vecteezy스타일 #클립아트 #나무",
+      "description": "Vecteezy 인기 테마를 참고한 원본 트리 클립아트 (PNG)",
+      "sort_order": 28
+    },
+    {
+      "title": "선샤인 · PNG",
+      "category_slug": "pngs",
+      "image_path": "/assets/cliparts/vz_png_09_sun.png",
+      "hashtags": "#태양 #날씨 #해 #png #vecteezy스타일 #클립아트 #태양",
+      "description": "Vecteezy 인기 테마를 참고한 원본 선샤인 클립아트 (PNG)",
+      "sort_order": 29
+    },
+    {
+      "title": "클라우드 · PNG",
+      "category_slug": "pngs",
+      "image_path": "/assets/cliparts/vz_png_10_cloud.png",
+      "hashtags": "#구름 #날씨 #하늘 #png #vecteezy스타일 #클립아트 #구름",
+      "description": "Vecteezy 인기 테마를 참고한 원본 클라우드 클립아트 (PNG)",
+      "sort_order": 30
+    },
+    {
+      "title": "기프트 박스 · PNG",
+      "category_slug": "pngs",
+      "image_path": "/assets/cliparts/vz_png_11_gift.png",
+      "hashtags": "#선물 #박스 #리본 #png #vecteezy스타일 #클립아트 #선물상자",
+      "description": "Vecteezy 인기 테마를 참고한 원본 기프트 박스 클립아트 (PNG)",
+      "sort_order": 31
+    },
+    {
+      "title": "고양이 · PNG",
+      "category_slug": "pngs",
+      "image_path": "/assets/cliparts/vz_png_12_cat.png",
+      "hashtags": "#고양이 #동물 #펫 #png #vecteezy스타일 #클립아트 #고양이",
+      "description": "Vecteezy 인기 테마를 참고한 원본 고양이 클립아트 (PNG)",
+      "sort_order": 32
+    },
+    {
+      "title": "강아지 · PNG",
+      "category_slug": "pngs",
+      "image_path": "/assets/cliparts/vz_png_13_dog.png",
+      "hashtags": "#강아지 #동물 #펫 #png #vecteezy스타일 #클립아트 #강아지",
+      "description": "Vecteezy 인기 테마를 참고한 원본 강아지 클립아트 (PNG)",
+      "sort_order": 33
+    },
+    {
+      "title": "애플 · PNG",
+      "category_slug": "pngs",
+      "image_path": "/assets/cliparts/vz_png_14_apple.png",
+      "hashtags": "#사과 #푸드 #과일 #png #vecteezy스타일 #클립아트 #사과",
+      "description": "Vecteezy 인기 테마를 참고한 원본 애플 클립아트 (PNG)",
+      "sort_order": 34
+    },
+    {
+      "title": "리본 배너 · PNG",
+      "category_slug": "pngs",
+      "image_path": "/assets/cliparts/vz_png_15_banner.png",
+      "hashtags": "#배너 #리본 #라벨 #png #vecteezy스타일 #클립아트 #배너",
+      "description": "Vecteezy 인기 테마를 참고한 원본 리본 배너 클립아트 (PNG)",
+      "sort_order": 35
+    },
+    {
+      "title": "체크 아이콘 · PNG",
+      "category_slug": "pngs",
+      "image_path": "/assets/cliparts/vz_png_16_check.png",
+      "hashtags": "#체크 #아이콘 #확인 #png #vecteezy스타일 #클립아트 #체크",
+      "description": "Vecteezy 인기 테마를 참고한 원본 체크 아이콘 클립아트 (PNG)",
+      "sort_order": 36
+    },
+    {
+      "title": "로케이션 핀 · PNG",
+      "category_slug": "pngs",
+      "image_path": "/assets/cliparts/vz_png_17_pin.png",
+      "hashtags": "#핀 #위치 #맵 #png #vecteezy스타일 #클립아트 #위치핀",
+      "description": "Vecteezy 인기 테마를 참고한 원본 로케이션 핀 클립아트 (PNG)",
+      "sort_order": 37
+    },
+    {
+      "title": "보우 리본 · PNG",
+      "category_slug": "pngs",
+      "image_path": "/assets/cliparts/vz_png_18_ribbon.png",
+      "hashtags": "#리본 #선물 #장식 #png #vecteezy스타일 #클립아트 #리본",
+      "description": "Vecteezy 인기 테마를 참고한 원본 보우 리본 클립아트 (PNG)",
+      "sort_order": 38
+    },
+    {
+      "title": "스노우플레이크 · PNG",
+      "category_slug": "pngs",
+      "image_path": "/assets/cliparts/vz_png_19_snow.png",
+      "hashtags": "#눈꽃 #겨울 #시즌 #png #vecteezy스타일 #클립아트 #눈꽃",
+      "description": "Vecteezy 인기 테마를 참고한 원본 스노우플레이크 클립아트 (PNG)",
+      "sort_order": 39
+    },
+    {
+      "title": "버터플라이 · PNG",
+      "category_slug": "pngs",
+      "image_path": "/assets/cliparts/vz_png_20_butterfly.png",
+      "hashtags": "#나비 #봄 #자연 #png #vecteezy스타일 #클립아트 #나비",
+      "description": "Vecteezy 인기 테마를 참고한 원본 버터플라이 클립아트 (PNG)",
+      "sort_order": 40
+    },
+    {
+      "title": "커피 컵 · SVG",
+      "category_slug": "svgs",
+      "image_path": "/assets/cliparts/vz_svg_01_coffee.svg",
+      "hashtags": "#커피 #카페 #음료 #라벨 #svg #vecteezy스타일 #클립아트 #커피",
+      "description": "Vecteezy 인기 테마를 참고한 원본 커피 컵 클립아트 (SVG)",
+      "sort_order": 41
+    },
+    {
+      "title": "플라워 · SVG",
+      "category_slug": "svgs",
+      "image_path": "/assets/cliparts/vz_svg_02_flower.svg",
+      "hashtags": "#꽃 #플라워 #자연 #장식 #svg #vecteezy스타일 #클립아트 #꽃",
+      "description": "Vecteezy 인기 테마를 참고한 원본 플라워 클립아트 (SVG)",
+      "sort_order": 42
+    },
+    {
+      "title": "하트 · SVG",
+      "category_slug": "svgs",
+      "image_path": "/assets/cliparts/vz_svg_03_heart.svg",
+      "hashtags": "#하트 #사랑 #선물 #svg #vecteezy스타일 #클립아트 #하트",
+      "description": "Vecteezy 인기 테마를 참고한 원본 하트 클립아트 (SVG)",
+      "sort_order": 43
+    },
+    {
+      "title": "오너먼트 프레임 · SVG",
+      "category_slug": "svgs",
+      "image_path": "/assets/cliparts/vz_svg_04_frame.svg",
+      "hashtags": "#프레임 #테두리 #배지 #svg #vecteezy스타일 #클립아트 #프레임",
+      "description": "Vecteezy 인기 테마를 참고한 원본 오너먼트 프레임 클립아트 (SVG)",
+      "sort_order": 44
+    },
+    {
+      "title": "화살표 · SVG",
+      "category_slug": "svgs",
+      "image_path": "/assets/cliparts/vz_svg_05_arrow.svg",
+      "hashtags": "#화살표 #아이콘 #방향 #svg #vecteezy스타일 #클립아트 #화살표",
+      "description": "Vecteezy 인기 테마를 참고한 원본 화살표 클립아트 (SVG)",
+      "sort_order": 45
+    },
+    {
+      "title": "스타 · SVG",
+      "category_slug": "svgs",
+      "image_path": "/assets/cliparts/vz_svg_06_star.svg",
+      "hashtags": "#별 #스타 #포인트 #svg #vecteezy스타일 #클립아트 #별",
+      "description": "Vecteezy 인기 테마를 참고한 원본 스타 클립아트 (SVG)",
+      "sort_order": 46
+    },
+    {
+      "title": "리프 · SVG",
+      "category_slug": "svgs",
+      "image_path": "/assets/cliparts/vz_svg_07_leaf.svg",
+      "hashtags": "#잎 #친환경 #자연 #svg #vecteezy스타일 #클립아트 #잎사귀",
+      "description": "Vecteezy 인기 테마를 참고한 원본 리프 클립아트 (SVG)",
+      "sort_order": 47
+    },
+    {
+      "title": "트리 · SVG",
+      "category_slug": "svgs",
+      "image_path": "/assets/cliparts/vz_svg_08_tree.svg",
+      "hashtags": "#나무 #식물 #자연 #svg #vecteezy스타일 #클립아트 #나무",
+      "description": "Vecteezy 인기 테마를 참고한 원본 트리 클립아트 (SVG)",
+      "sort_order": 48
+    },
+    {
+      "title": "선샤인 · SVG",
+      "category_slug": "svgs",
+      "image_path": "/assets/cliparts/vz_svg_09_sun.svg",
+      "hashtags": "#태양 #날씨 #해 #svg #vecteezy스타일 #클립아트 #태양",
+      "description": "Vecteezy 인기 테마를 참고한 원본 선샤인 클립아트 (SVG)",
+      "sort_order": 49
+    },
+    {
+      "title": "클라우드 · SVG",
+      "category_slug": "svgs",
+      "image_path": "/assets/cliparts/vz_svg_10_cloud.svg",
+      "hashtags": "#구름 #날씨 #하늘 #svg #vecteezy스타일 #클립아트 #구름",
+      "description": "Vecteezy 인기 테마를 참고한 원본 클라우드 클립아트 (SVG)",
+      "sort_order": 50
+    },
+    {
+      "title": "기프트 박스 · SVG",
+      "category_slug": "svgs",
+      "image_path": "/assets/cliparts/vz_svg_11_gift.svg",
+      "hashtags": "#선물 #박스 #리본 #svg #vecteezy스타일 #클립아트 #선물상자",
+      "description": "Vecteezy 인기 테마를 참고한 원본 기프트 박스 클립아트 (SVG)",
+      "sort_order": 51
+    },
+    {
+      "title": "고양이 · SVG",
+      "category_slug": "svgs",
+      "image_path": "/assets/cliparts/vz_svg_12_cat.svg",
+      "hashtags": "#고양이 #동물 #펫 #svg #vecteezy스타일 #클립아트 #고양이",
+      "description": "Vecteezy 인기 테마를 참고한 원본 고양이 클립아트 (SVG)",
+      "sort_order": 52
+    },
+    {
+      "title": "강아지 · SVG",
+      "category_slug": "svgs",
+      "image_path": "/assets/cliparts/vz_svg_13_dog.svg",
+      "hashtags": "#강아지 #동물 #펫 #svg #vecteezy스타일 #클립아트 #강아지",
+      "description": "Vecteezy 인기 테마를 참고한 원본 강아지 클립아트 (SVG)",
+      "sort_order": 53
+    },
+    {
+      "title": "애플 · SVG",
+      "category_slug": "svgs",
+      "image_path": "/assets/cliparts/vz_svg_14_apple.svg",
+      "hashtags": "#사과 #푸드 #과일 #svg #vecteezy스타일 #클립아트 #사과",
+      "description": "Vecteezy 인기 테마를 참고한 원본 애플 클립아트 (SVG)",
+      "sort_order": 54
+    },
+    {
+      "title": "리본 배너 · SVG",
+      "category_slug": "svgs",
+      "image_path": "/assets/cliparts/vz_svg_15_banner.svg",
+      "hashtags": "#배너 #리본 #라벨 #svg #vecteezy스타일 #클립아트 #배너",
+      "description": "Vecteezy 인기 테마를 참고한 원본 리본 배너 클립아트 (SVG)",
+      "sort_order": 55
+    },
+    {
+      "title": "체크 아이콘 · SVG",
+      "category_slug": "svgs",
+      "image_path": "/assets/cliparts/vz_svg_16_check.svg",
+      "hashtags": "#체크 #아이콘 #확인 #svg #vecteezy스타일 #클립아트 #체크",
+      "description": "Vecteezy 인기 테마를 참고한 원본 체크 아이콘 클립아트 (SVG)",
+      "sort_order": 56
+    },
+    {
+      "title": "로케이션 핀 · SVG",
+      "category_slug": "svgs",
+      "image_path": "/assets/cliparts/vz_svg_17_pin.svg",
+      "hashtags": "#핀 #위치 #맵 #svg #vecteezy스타일 #클립아트 #위치핀",
+      "description": "Vecteezy 인기 테마를 참고한 원본 로케이션 핀 클립아트 (SVG)",
+      "sort_order": 57
+    },
+    {
+      "title": "보우 리본 · SVG",
+      "category_slug": "svgs",
+      "image_path": "/assets/cliparts/vz_svg_18_ribbon.svg",
+      "hashtags": "#리본 #선물 #장식 #svg #vecteezy스타일 #클립아트 #리본",
+      "description": "Vecteezy 인기 테마를 참고한 원본 보우 리본 클립아트 (SVG)",
+      "sort_order": 58
+    },
+    {
+      "title": "스노우플레이크 · SVG",
+      "category_slug": "svgs",
+      "image_path": "/assets/cliparts/vz_svg_19_snow.svg",
+      "hashtags": "#눈꽃 #겨울 #시즌 #svg #vecteezy스타일 #클립아트 #눈꽃",
+      "description": "Vecteezy 인기 테마를 참고한 원본 스노우플레이크 클립아트 (SVG)",
+      "sort_order": 59
+    },
+    {
+      "title": "버터플라이 · SVG",
+      "category_slug": "svgs",
+      "image_path": "/assets/cliparts/vz_svg_20_butterfly.svg",
+      "hashtags": "#나비 #봄 #자연 #svg #vecteezy스타일 #클립아트 #나비",
+      "description": "Vecteezy 인기 테마를 참고한 원본 버터플라이 클립아트 (SVG)",
+      "sort_order": 60
+    }
+  ]
+}

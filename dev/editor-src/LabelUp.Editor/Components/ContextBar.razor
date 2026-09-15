@@ -26,7 +26,7 @@
           <input type="color" title="테두리 색" value="@ColorUtil.ToHtmlColor(o.Stroke)" @oninput="e => LiveStroke(e)" @onchange="e => CommitStroke(e)" />
           <em class="ed-ctx-bar__lab">테두리</em>
           <input type="number" min="0" step="0.05" title="테두리 굵기" value="@o.StrokeWidth.ToString("0.##")" @onchange="e => SetFloat(v => ApplySelected(obj => obj.StrokeWidth = Math.Max(0, v)), e)" />
-          @if (o.Type is ObjectType.Icon or ObjectType.Clipart)
+          @if ((o.Type is ObjectType.Icon or ObjectType.Clipart) && !o.IsRasterGraphic)
           {
             <select title="선 종류" value="@o.DashStyle" @onchange="OnDashStyle">
               <option value="0">실선</option>
@@ -349,6 +349,8 @@
       {
         <span class="ed-ctx-bar__div"></span>
         <span class="ed-ctx-bar__slot">
+          <button type="button" class="@(o.FlipHorizontal ? "is-on" : null)" title="좌우 반전" @onclick="() => Toggle(v => o.FlipHorizontal = v, o.FlipHorizontal)">뒤집기</button>
+          <button type="button" class="@(o.FlipVertical ? "is-on" : null)" title="상하 반전" @onclick="() => Toggle(v => o.FlipVertical = v, o.FlipVertical)">상하</button>
           <button type="button" @onclick="OpenClipartReplace">모양 바꾸기</button>
         </span>
       }
@@ -400,11 +402,13 @@
 
     private static bool ShowFill(DesignObject o)
         => o.Type is not (ObjectType.Gradient or ObjectType.Table
-            or ObjectType.Barcode or ObjectType.Qr or ObjectType.Image);
+            or ObjectType.Barcode or ObjectType.Qr or ObjectType.Image)
+            && !o.IsRasterGraphic;
 
     private static bool ShowStroke(DesignObject o)
         => o.Type is not (ObjectType.Table or ObjectType.Barcode
-            or ObjectType.Qr or ObjectType.Image);
+            or ObjectType.Qr or ObjectType.Image)
+            && !o.IsRasterGraphic;
 
     private static bool ShowFont(DesignObject o)
         => o.Type == ObjectType.Text

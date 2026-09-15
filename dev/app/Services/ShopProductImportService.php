@@ -18,21 +18,30 @@ final class ShopProductImportService
     private array $specCache = [];
 
     /** @var array<string, string> */
+    /** 제품분류(무료배포 QR 체계) slug 매핑 — 동일 분류는 하나의 slug로 통합 */
     private const GROUP_SLUGS = [
+        '물류관리용/주소용/바코드용/인덱스용' => 'logistics-label',
         '물류관리용 라벨' => 'logistics-label',
-        '인덱스용라벨' => 'index-label',
-        '주소용라벨' => 'address-label',
-        '바코드용라벨' => 'barcode-label',
-        '방수라벨' => 'waterproof-label',
-        '광택라벨' => 'gloss-label',
-        '반투명라벨' => 'translucent-label',
-        '잉크젯 투명라벨' => 'inkjet-clear-label',
-        '레이저 투명라벨' => 'laser-clear-label',
-        '크라프트 라벨' => 'kraft-label',
+        '인덱스용라벨' => 'logistics-label',
+        '주소용라벨' => 'logistics-label',
+        '바코드용라벨' => 'logistics-label',
+        '정부문서화일 라벨' => 'government-doc',
         '정부문서' => 'government-doc',
+        '광택 라벨' => 'gloss-label',
+        '광택라벨' => 'gloss-label',
+        '방수 라벨' => 'waterproof-label',
+        '방수라벨' => 'waterproof-label',
+        '반투명 라벨' => 'translucent-label',
+        '반투명라벨' => 'translucent-label',
+        '잉크젯 투명 라벨' => 'inkjet-clear-label',
+        '잉크젯 투명라벨' => 'inkjet-clear-label',
+        '레이저 투명 라벨' => 'laser-clear-label',
+        '레이저 투명라벨' => 'laser-clear-label',
         '보호용 필름' => 'protective-film',
-        '파스텔 컬러 라벨' => 'pastel-color-label',
+        '컬러 라벨(형광)' => 'color-label',
         '컬러라벨' => 'color-label',
+        '파스텔 컬러 라벨' => 'pastel-color-label',
+        '크라프트 라벨' => 'kraft-label',
     ];
 
     public function __construct()
@@ -86,7 +95,25 @@ final class ShopProductImportService
                 'status' => (string) ($row['status'] ?? 'active'),
                 'description' => $this->buildDescription($row),
                 'sort_order' => ++$sort,
+                'compat_formtec' => $row['compat_formtec'] ?? ($row['product_no'] ?? null),
+                'compat_anylabel' => $row['compat_anylabel'] ?? ($row['art_no'] ?? null),
+                'compat_ilabel' => $row['compat_ilabel'] ?? ($row['barcode_no'] ?? null),
+                'meta_json' => [
+                    'product_group' => $group,
+                    'source_group' => $group,
+                    'sheets_per_pack' => isset($row['sheets_per_pack']) && $row['sheets_per_pack'] !== '' && $row['sheets_per_pack'] !== null
+                        ? (int) $row['sheets_per_pack']
+                        : null,
+                    'product_no' => $row['product_no'] ?? null,
+                    'art_no' => $row['art_no'] ?? null,
+                    'barcode_no' => $row['barcode_no'] ?? null,
+                ],
             ];
+
+            // 재임포트 시 기존 썸네일 유지 (호환코드는 엑셀 값으로 갱신)
+            if ($existing) {
+                $payload['thumbnail'] = $existing['thumbnail'] ?? null;
+            }
 
             $this->repo->saveProduct($payload);
             if ($existing) {

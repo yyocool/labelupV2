@@ -139,24 +139,136 @@
     </section>
     <?php endif; ?>
 
-    <section class="section">
+    <section class="section" data-filter-cards="templates">
       <div class="section-head">
         <h2>인기 템플릿</h2>
-        <div class="tabs"><button class="active" type="button">전체</button><button type="button">식품</button><button type="button">화장품</button><button type="button">물류</button><button type="button">네임스티커</button><button type="button">가격표</button><button type="button">바코드</button><button type="button">QR</button></div>
-        <a class="more" href="#">더보기 →</a>
-      </div>
-      <div class="cards-wrap">
-        <div class="cards">
-          <article class="card"><div class="card-img"><img src="<?= asset('tpl-handmade.webp') ?>" alt="핸드메이드 라벨"></div><div class="meta"><span>핸드메이드 라벨</span><small>♡ 1.2k</small></div></article>
-          <article class="card"><div class="card-img"><img src="<?= asset('tpl-thanks.webp') ?>" alt="감사 스티커"></div><div class="meta"><span>감사 스티커</span><small>♡ 936</small></div></article>
-          <article class="card"><div class="card-img"><img src="<?= asset('tpl-shipping.webp') ?>" alt="배송 라벨"></div><div class="meta"><span>배송 라벨(택배)</span><small>♡ 2.1k</small></div></article>
-          <article class="card"><div class="card-img"><img src="<?= asset('tpl-olive.webp') ?>" alt="올리브 오일 라벨"></div><div class="meta"><span>올리브 오일 라벨</span><small>♡ 1.4k</small></div></article>
-          <article class="card"><div class="card-img"><img src="<?= asset('tpl-price.webp') ?>" alt="가격표 라벨"></div><div class="meta"><span>가격표 라벨</span><small>♡ 812</small></div></article>
-          <article class="card"><div class="card-img"><img src="<?= asset('tpl-coffee.webp') ?>" alt="커피 원두 라벨"></div><div class="meta"><span>커피 원두 라벨</span><small>♡ 1.1k</small></div></article>
+        <?php
+          $tplCats = [];
+          foreach ($popularTemplates ?? [] as $tpl) {
+              $ck = (string) ($tpl['category'] ?? '');
+              $cn = (string) ($tpl['categoryName'] ?? $ck);
+              if ($ck !== '' && !isset($tplCats[$ck])) {
+                  $tplCats[$ck] = $cn;
+              }
+          }
+        ?>
+        <?php if ($tplCats !== []): ?>
+        <div class="tabs" role="tablist" aria-label="템플릿 분류">
+          <button type="button" class="active" data-cat="">전체</button>
+          <?php foreach ($tplCats as $ck => $cn): ?>
+          <button type="button" data-cat="<?= e($ck) ?>"><?= e($cn) ?></button>
+          <?php endforeach; ?>
         </div>
-        <button class="card-arrow" type="button">›</button>
+        <?php endif; ?>
+        <a class="more" href="<?= url('editor/') ?>">더보기 →</a>
+      </div>
+      <div class="cards-wrap cards-slide">
+        <?php if (count($popularTemplates ?? []) > 1): ?>
+        <button class="card-arrow card-arrow-prev" type="button" aria-label="이전">‹</button>
+        <?php endif; ?>
+        <div class="cards">
+          <?php if (empty($popularTemplates)): ?>
+          <p class="cards-empty">등록된 인기 템플릿이 없습니다.</p>
+          <?php else: ?>
+            <?php foreach ($popularTemplates as $tpl): ?>
+            <?php
+              $tplUrl = url('editor/') . '?template=' . (int) ($tpl['id'] ?? 0);
+              $paperLabel = trim(
+                  (string) ($tpl['paperNo'] ?? '') . ' · ' .
+                  rtrim(rtrim(number_format((float) ($tpl['widthMm'] ?? 0), 1), '0'), '.') .
+                  '×' .
+                  rtrim(rtrim(number_format((float) ($tpl['heightMm'] ?? 0), 1), '0'), '.') .
+                  'mm',
+                  ' ·'
+              );
+            ?>
+            <article class="card" data-category="<?= e((string) ($tpl['category'] ?? '')) ?>">
+              <a class="card-link" href="<?= e($tplUrl) ?>">
+                <div class="card-img tpl-img">
+                  <?php if (!empty($tpl['previewSvg'])): ?>
+                  <span class="tpl-preview"><?= $tpl['previewSvg'] ?></span>
+                  <?php elseif (!empty($tpl['thumbUrl'])): ?>
+                  <img src="<?= e((string) $tpl['thumbUrl']) ?>" alt="<?= e((string) ($tpl['name'] ?? '')) ?>" loading="lazy">
+                  <?php else: ?>
+                  <span class="tpl-fallback"><?= e(mb_substr((string) ($tpl['name'] ?? '템플릿'), 0, 8)) ?></span>
+                  <?php endif; ?>
+                </div>
+                <div class="meta">
+                  <span><?= e((string) ($tpl['name'] ?? '')) ?></span>
+                  <small><?= e((string) ($tpl['categoryName'] ?? $paperLabel)) ?></small>
+                </div>
+              </a>
+            </article>
+            <?php endforeach; ?>
+          <?php endif; ?>
+        </div>
+        <?php if (count($popularTemplates ?? []) > 1): ?>
+        <button class="card-arrow card-arrow-next" type="button" aria-label="다음">›</button>
+        <?php endif; ?>
       </div>
     </section>
+
+    <section class="section" data-filter-cards="cliparts">
+      <div class="section-head">
+        <h2>인기 클립아트</h2>
+        <?php
+          $clipCats = [];
+          foreach ($popularCliparts ?? [] as $clip) {
+              $cid = (string) ((int) ($clip['category_id'] ?? 0));
+              $cn = (string) ($clip['category_name'] ?? '');
+              if ($cid !== '0' && $cn !== '' && !isset($clipCats[$cid])) {
+                  $clipCats[$cid] = $cn;
+              }
+          }
+        ?>
+        <?php if ($clipCats !== []): ?>
+        <div class="tabs" role="tablist" aria-label="클립아트 분류">
+          <button type="button" class="active" data-cat="">전체</button>
+          <?php foreach ($clipCats as $cid => $cn): ?>
+          <button type="button" data-cat="<?= e($cid) ?>"><?= e($cn) ?></button>
+          <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+        <a class="more" href="<?= url('editor/') ?>">더보기 →</a>
+      </div>
+      <div class="cards-wrap cards-slide">
+        <?php if (count($popularCliparts ?? []) > 1): ?>
+        <button class="card-arrow card-arrow-prev" type="button" aria-label="이전">‹</button>
+        <?php endif; ?>
+        <div class="cards">
+          <?php if (empty($popularCliparts)): ?>
+          <p class="cards-empty">등록된 인기 클립아트가 없습니다.</p>
+          <?php else: ?>
+            <?php foreach ($popularCliparts as $clip): ?>
+            <?php
+              $img = (string) ($clip['image_url'] ?? '');
+              $title = (string) ($clip['title'] ?? '클립아트');
+              $clipUrl = url('editor/') . '?clipart=' . rawurlencode($img) . '&name=' . rawurlencode($title);
+            ?>
+            <article class="card card-clip" data-category="<?= e((string) ((int) ($clip['category_id'] ?? 0))) ?>">
+              <a class="card-link js-home-clipart" href="<?= e($clipUrl) ?>" data-clipart-url="<?= e($img) ?>" data-clipart-name="<?= e($title) ?>">
+                <div class="card-img clip-img">
+                  <?php if ($img !== ''): ?>
+                  <img src="<?= e($img) ?>" alt="<?= e($title) ?>" loading="lazy">
+                  <?php else: ?>
+                  <span class="tpl-fallback"><?= e(mb_substr($title, 0, 8)) ?></span>
+                  <?php endif; ?>
+                </div>
+                <div class="meta">
+                  <span><?= e($title) ?></span>
+                  <small><?= e((string) ($clip['category_name'] ?? '')) ?></small>
+                </div>
+              </a>
+            </article>
+            <?php endforeach; ?>
+          <?php endif; ?>
+        </div>
+        <?php if (count($popularCliparts ?? []) > 1): ?>
+        <button class="card-arrow card-arrow-next" type="button" aria-label="다음">›</button>
+        <?php endif; ?>
+      </div>
+    </section>
+
 
     <footer class="page-footer">
       <div class="faq-foot-links">

@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>라벨업 LABEL UP — 프로젝트 진행률 요약 (2026.09.11)</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1c2230;
+      --muted: #5a6478;
+      --line: #e4e0d8;
+      --bg: #f7f4ef;
+      --card: #fffefb;
+      --accent: #7b2840;
+      --ok: #157a45;
+      --wait: #9a5b00;
+      --next: #1d4ed8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--bg);
+      font-family: Pretendard, "Apple SD Gothic Neo", Malgun Gothic, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.55;
+    }
+    .sheet {
+      width: min(900px, 100%);
+      margin: 18px auto 28px;
+      padding: 22px 26px 24px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 10px 28px rgba(40, 30, 20, .05);
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 14px;
+    }
+    .eyebrow {
+      margin: 0 0 4px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      color: var(--accent);
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: -.03em;
+      line-height: 1.25;
+    }
+    .lead {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 12.5px;
+      max-width: 52ch;
+    }
+    .meta {
+      text-align: right;
+      font-size: 11.5px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .meta strong { color: var(--ink); font-size: 18px; display: block; margin-top: 2px; }
+    h2 {
+      margin: 14px 0 8px;
+      font-size: 14px;
+      letter-spacing: -.02em;
+      color: var(--accent);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 7px 9px;
+      vertical-align: top;
+      text-align: left;
+    }
+    th {
+      background: #f3efe8;
+      font-size: 11.5px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    td.area { width: 88px; font-weight: 800; background: #fbfaf7; }
+    td.pct { width: 72px; font-weight: 800; white-space: nowrap; }
+    .ok { color: var(--ok); }
+    .wait { color: var(--wait); }
+    .next { color: var(--next); }
+    ul {
+      margin: 0;
+      padding-left: 16px;
+    }
+    li { margin: 1px 0; }
+    .cols {
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 12px;
+      margin-top: 4px;
+    }
+    .box {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: #fff;
+    }
+    .box h3 {
+      margin: 0 0 6px;
+      font-size: 12.5px;
+      letter-spacing: -.01em;
+    }
+    .box p, .box li { font-size: 12px; color: var(--ink); }
+    .box p { margin: 0 0 6px; color: var(--muted); }
+    footer {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+      font-size: 11.5px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    @media print {
+      body { background: #fff; }
+      .sheet {
+        width: 100%;
+        margin: 0;
+        padding: 8mm 10mm;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+      @page { margin: 10mm; size: A4; }
+    }
+  </style>
+</head>
+<body>
+  <main class="sheet">
+    <header>
+      <div>
+        <p class="eyebrow">LabelUp · Project Status</p>
+        <h1>프로젝트 진행률 요약</h1>
+        <p class="lead">검수표(1차 구축) 기준으로 현재 구현·준비 상태를 한눈에 정리한 요약본입니다. 세부 항목 검수는 검수표에서 별도 진행합니다.</p>
+      </div>
+      <div class="meta">
+        기준일
+        <strong>2026.09.11</strong>
+        전체 체감 진행률 약 <b>88~92%</b>
+      </div>
+    </header>
+
+    <h2>1. 영역별 진행 현황</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>영역</th>
+          <th>진행률</th>
+          <th>현재 상태 · 잔여 작업</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="area">쇼핑몰</td>
+          <td class="pct ok">기능 완료</td>
+          <td>
+            <ul>
+              <li>기능적으로 완료. PG는 토스페이먼츠 기본 연동 준비.</li>
+              <li class="wait">상품 상세페이지 제작: <b>차주 착수</b>. 초기 2건 내용·디자인 컨펌 후 전체 작업 <b>3~4일</b> 소요 예정(대기).</li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td class="area">편집기</td>
+          <td class="pct ok">≈ 90%+</td>
+          <td>
+            <ul>
+              <li>기능적으로 90% 이상 완료.</li>
+              <li class="next">샘플 용지 출력 테스트 진행 예정.</li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td class="area">데이터</td>
+          <td class="pct ok">지속 확장</td>
+          <td>
+            <ul>
+              <li>클립아트 <b>1,190개</b> 준비(9/11 현재) · 계속 업데이트.</li>
+              <li>템플릿 <b>410셋</b> 준비(9/11 현재) · 계속 업데이트.</li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td class="area">AI</td>
+          <td class="pct ok">기능 완료</td>
+          <td>
+            <ul>
+              <li>기능적으로 완료.</li>
+              <li>오픈 후에도 프롬프트·모델·비용 정책 등 지속 업데이트 필요.</li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td class="area">기타 연동</td>
+          <td class="pct next">차주 초</td>
+          <td>
+            <ul>
+              <li>구독 요금 설정, 소셜 로그인 셋팅, PG 연동, 구매고객 크레딧 지급(QR 출력 포함).</li>
+              <li class="next"><b>차주 초 완료 예정.</b></li>
+            </ul>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="cols">
+      <section class="box">
+        <h3>2. 기존 계획 대비 — 추가 반영된 항목</h3>
+        <p>초기 개발범위에 없었거나, 운영 편의·오픈 준비로 보강된 기능입니다.</p>
+        <ul>
+          <li><b>QR 쿠폰 랜딩</b> — 패키지 QR → 고유 쿠폰코드 발급·크레딧 지급 흐름</li>
+          <li><b>호환코드 공개 조회</b> — `/compat`, `/compat-codes` 및 QR 샘플 페이지</li>
+          <li><b>히어로 이미지</b> — 테마 교체 + 관리자 직접 업로드</li>
+          <li><b>클립아트 확장</b> — 업무/물류 문구, 교통(고품질 재작업), 라비 마스코트 팩</li>
+          <li><b>클립아트 배경 투명화</b> — HQ 자산 일괄 정리</li>
+          <li><b>검수표 고도화</b> — 고객사 확인·검수 코멘트·상태 관리</li>
+          <li><b>상세페이지 관리</b> — 상품별 미리보기·페이지 설정 이전</li>
+          <li><b>AI 크레딧/템플릿 팩</b> — 운영·시드 체계 보강</li>
+        </ul>
+      </section>
+      <section class="box">
+        <h3>3. 한눈에 보는 잔여 일정</h3>
+        <ul>
+          <li><b>이번 주~차주</b> — 편집기 샘플 출력 테스트</li>
+          <li><b>차주 초</b> — 구독요금 / 소셜로그인 / PG / 크레딧·QR</li>
+          <li><b>차주</b> — 상품 상세 초기 2건 컨펌 → 전체 상세 3~4일</li>
+          <li><b>상시</b> — 클립아트·템플릿·AI 품질 업데이트</li>
+        </ul>
+        <h3 style="margin-top:12px">4. 오픈 관점 요약</h3>
+        <ul>
+          <li>핵심 서비스(쇼핑몰·편집기·AI·콘텐츠)는 <b>실사용 가능 수준</b>.</li>
+          <li>오픈 직전 병목은 <b>상품 상세 콘텐츠</b>와 <b>결제·계정·크레딧 연동 마무리</b>.</li>
+          <li>데이터·AI는 오픈 후에도 지속 확장하는 운영형 자산.</li>
+        </ul>
+      </section>
+    </div>
+
+    <footer>
+      <span>라벨업 LABEL UP · 내부 공유용 (검수표 기반 요약)</span>
+      <span>세부 검수·URL 확인은 검수표 시트를 기준으로 합니다.</span>
+    </footer>
+  </main>
+</body>
+</html>

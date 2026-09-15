@@ -50,7 +50,10 @@ final class ShopApiController extends BaseController
         if ($code === '') {
             $this->jsonError('용지 번호를 입력해 주세요.', null, 422);
         }
-        $product = $this->shop->lookupByCode($code);
+        $width = isset($_GET['w']) && $_GET['w'] !== '' ? (float) $_GET['w'] : null;
+        $height = isset($_GET['h']) && $_GET['h'] !== '' ? (float) $_GET['h'] : null;
+        $labels = isset($_GET['labels']) && $_GET['labels'] !== '' ? (int) $_GET['labels'] : null;
+        $product = $this->shop->lookupByCode($code, $width, $height, $labels);
         if (!$product) {
             $this->jsonError('현재 용지에 맞는 상품이 없습니다.', null, 404);
         }
