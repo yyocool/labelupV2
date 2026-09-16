@@ -241,9 +241,37 @@ final class ShopAdminApiController extends BaseController
         $this->guard();
         try {
             $saved = $this->shop->saveProductPageSettings(request_json());
-            $this->jsonSuccess($saved, '상품 상세 페이지 설정이 저장되었습니다.');
+            $this->jsonSuccess($saved, '공통 헤더/푸터 설정이 저장되었습니다.');
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage());
+        }
+    }
+
+    public function productPageCategorySettingsList(): never
+    {
+        $this->guard();
+        $this->jsonSuccess($this->shop->productPageCategorySettingsList());
+    }
+
+    public function productPageCategorySettings(): never
+    {
+        $this->guard();
+        try {
+            $categoryId = (int) ($_GET['category_id'] ?? request_json()['category_id'] ?? 0);
+            $this->jsonSuccess($this->shop->productPageCategorySettings($categoryId));
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
+        }
+    }
+
+    public function saveProductPageCategorySettings(): never
+    {
+        $this->guard();
+        try {
+            $saved = $this->shop->saveProductPageCategorySettings(request_json());
+            $this->jsonSuccess($saved, '카테고리 헤더/푸터 설정이 저장되었습니다.');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
         }
     }
 

@@ -2,7 +2,7 @@
   <div class="admin-modal-backdrop js-page-settings-close"></div>
   <div class="admin-modal-dialog admin-modal-dialog--product" role="dialog" aria-modal="true" aria-labelledby="productPageSettingsTitle">
     <div class="admin-modal-head">
-      <h3 id="productPageSettingsTitle">상품 상세 페이지설정</h3>
+      <h3 id="productPageSettingsTitle">공통 헤더/푸터 설정</h3>
       <button type="button" class="admin-modal-close js-page-settings-close" aria-label="닫기">×</button>
     </div>
     <form id="productPageSettingsForm" class="admin-modal-body admin-product-form">

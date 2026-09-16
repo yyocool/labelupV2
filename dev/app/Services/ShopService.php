@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Repositories\ShopRepository;
 use App\Repositories\ShopProductPageSettingsRepository;
+use App\Repositories\ShopProductPageCategorySettingsRepository;
 use App\Repositories\ProductDetailPageRepository;
 use RuntimeException;
 
@@ -578,14 +579,50 @@ final class ShopService
             && (float) $w > 0 && (float) $h > 0;
     }
 
-    /** @return array{header_html:string,footer_html:string,header_image:string,footer_image:string,header_image_url:string,footer_image_url:string,has_header:bool,has_footer:bool} */
-    public function productPageLayout(): array
+    /**
+     * @return array{
+     *   header_html:string,footer_html:string,header_image:string,footer_image:string,
+     *   header_image_url:string,footer_image_url:string,has_header:bool,has_footer:bool,
+     *   source:string,category_id:int
+     * }
+     */
+    public function productPageLayout(?int $categoryId = null): array
     {
-        $row = (new ShopProductPageSettingsRepository())->get();
-        $headerHtml = trim($row['header_html']);
-        $footerHtml = trim($row['footer_html']);
-        $headerImage = trim($row['header_image']);
-        $footerImage = trim($row['footer_image']);
+        $global = (new ShopProductPageSettingsRepository())->get();
+        $headerHtml = trim($global['header_html']);
+        $footerHtml = trim($global['footer_html']);
+        $headerImage = trim($global['header_image']);
+        $footerImage = trim($global['footer_image']);
+        $source = 'global';
+        $cid = $categoryId !== null && $categoryId > 0 ? $categoryId : 0;
+
+        if ($cid > 0) {
+            try {
+                $custom = (new ShopProductPageCategorySettingsRepository())->findByCategoryId($cid);
+            } catch (\Throwable) {
+                $custom = null;
+            }
+            if (is_array($custom)) {
+                $cHeaderHtml = trim($custom['header_html']);
+                $cFooterHtml = trim($custom['footer_html']);
+                $cHeaderImage = trim($custom['header_image']);
+                $cFooterImage = trim($custom['footer_image']);
+                $hasAny = $cHeaderHtml !== '' || $cFooterHtml !== '' || $cHeaderImage !== '' || $cFooterImage !== '';
+                if ($hasAny) {
+                    // 카테고리 값이 있으면 해당 필드만 덮어쓰고, 비어 있으면 공통 설정 유지
+                    if ($cHeaderHtml !== '' || $cHeaderImage !== '') {
+                        $headerHtml = $cHeaderHtml;
+                        $headerImage = $cHeaderImage;
+                    }
+                    if ($cFooterHtml !== '' || $cFooterImage !== '') {
+                        $footerHtml = $cFooterHtml;
+                        $footerImage = $cFooterImage;
+                    }
+                    $source = 'category';
+                }
+            }
+        }
+
         return [
             'header_html' => $headerHtml,
             'footer_html' => $footerHtml,
@@ -595,6 +632,8 @@ final class ShopService
             'footer_image_url' => ShopProductImageService::resolveUrl($footerImage),
             'has_header' => $headerHtml !== '' || $headerImage !== '',
             'has_footer' => $footerHtml !== '' || $footerImage !== '',
+            'source' => $source,
+            'category_id' => $cid,
         ];
     }
 

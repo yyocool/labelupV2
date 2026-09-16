@@ -390,6 +390,9 @@ final class Router
         $router->get('/api/admin/shop/product-page-settings', [$shopApi, 'productPageSettings']);
         $router->post('/api/admin/shop/product-page-settings/save', [$shopApi, 'saveProductPageSettings']);
         $router->post('/api/admin/shop/product-page-settings/upload-images', [$shopApi, 'uploadProductPageImages']);
+        $router->get('/api/admin/shop/product-page-category-settings', [$shopApi, 'productPageCategorySettingsList']);
+        $router->get('/api/admin/shop/product-page-category-settings/one', [$shopApi, 'productPageCategorySettings']);
+        $router->post('/api/admin/shop/product-page-category-settings/save', [$shopApi, 'saveProductPageCategorySettings']);
 
         $router->get('/api/shop/editor-papers', [$shopPublicApi, 'editorPapers']);
         $router->get('/api/shop/catalog', [$shopPublicApi, 'catalog']);

@@ -186,7 +186,7 @@ final class ContentAdminController extends BaseController
 
         view('admin/content/product-detail-preview', [
             'product' => $product,
-            'pageLayout' => $shopPublic->productPageLayout(),
+            'pageLayout' => $shopPublic->productPageLayout((int) ($product['category_id'] ?? 0)),
             'related' => [],
             'shopService' => $shopPublic,
             'publicUrl' => $publicUrl,

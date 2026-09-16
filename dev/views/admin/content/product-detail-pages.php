@@ -21,10 +21,11 @@ $queryParams = array_filter([
 <div class="admin-head">
   <div>
     <h1>상세페이지관리</h1>
-    <p>등록된 상품의 상세페이지 생성 여부를 확인하고, 공통 헤더·푸터를 설정할 수 있습니다.</p>
+    <p>등록된 상품의 상세페이지 생성 여부를 확인하고, 공통·카테고리별 헤더/푸터를 설정할 수 있습니다.</p>
   </div>
   <div class="admin-head-actions">
-    <button type="button" class="admin-btn admin-btn--primary js-product-page-settings">페이지설정</button>
+    <button type="button" class="admin-btn admin-btn--primary js-product-page-settings">공통헤더/푸터 설정</button>
+    <button type="button" class="admin-btn js-product-page-category-settings">카테고리별 헤더/푸터 설정</button>
   </div>
 </div>
 
@@ -117,6 +118,7 @@ $queryParams = array_filter([
 <?php endif; ?>
 <script>window.SHOP_PAGE_SETTINGS=<?= json_encode($pageSettings ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;</script>
 <?php require view_path('admin/content/partials/page-settings-modal.php'); ?>
+<?php require view_path('admin/content/partials/page-category-settings-modal.php'); ?>
 <div id="productDetailPreviewModal" class="admin-modal" hidden>
   <div class="admin-modal-backdrop js-product-detail-preview-close"></div>
   <div class="admin-modal-dialog admin-modal-dialog--preview" role="dialog" aria-modal="true" aria-labelledby="productDetailPreviewTitle">
