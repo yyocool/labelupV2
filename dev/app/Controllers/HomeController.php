@@ -41,7 +41,7 @@ final class HomeController extends BaseController
             $popularCliparts = [];
         }
         $this->render('home/index', [
-            'pageTitle' => '라벨업 LABEL UP',
+            'pageTitle' => 'labelup — 라벨업',
             'year' => (int) date('Y'),
             'authUser' => $user,
             'activeNav' => 'home',

@@ -409,3 +409,29 @@ function site_intro_render(): void
     } catch (\Throwable) {
     }
 }
+
+/** @return array<string, string> */
+function company_info(): array
+{
+    try {
+        return (new \App\Services\CompanyInfoService())->all();
+    } catch (\Throwable) {
+        return [
+            'name' => '라벨업',
+            'ceo' => '',
+            'biz_no' => '',
+            'mail_order_no' => '',
+            'address' => '',
+            'phone' => '',
+            'email' => '',
+            'privacy_officer' => '',
+        ];
+    }
+}
+
+function render_site_footer(array $opts = []): void
+{
+    $year = (int) ($opts['year'] ?? date('Y'));
+    $links = $opts['links'] ?? null;
+    require view_path('partials/site-footer.php');
+}

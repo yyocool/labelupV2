@@ -179,10 +179,14 @@
         </aside>
       </div>
 
-      <p class="register-legal">가입하면 라벨업의 <button type="button" class="register-agree-link" data-doc="terms">이용약관</button> 및 <button type="button" class="register-agree-link" data-doc="privacy">개인정보 처리방침</button>에 동의하게 됩니다.</p>
+      <p class="register-legal">가입하면 라벨업의 <a href="<?= url('terms') ?>" target="_blank" rel="noopener">이용약관</a> 및 <a href="<?= url('privacy') ?>" target="_blank" rel="noopener">개인정보 처리방침</a>에 동의하게 됩니다.
+        <button type="button" class="register-agree-link" data-doc="terms">약관 요약</button> ·
+        <button type="button" class="register-agree-link" data-doc="privacy">처리방침 요약</button>
+      </p>
     </div>
   </section>
 </div>
+<?php render_site_footer(['year' => (int) date('Y')]); ?>
 
 <div id="legalModal" class="legal-modal" hidden aria-hidden="true">
   <div class="legal-modal-backdrop" data-close="legal"></div>

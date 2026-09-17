@@ -26,6 +26,7 @@
     <?php if (empty($hideShopAside)): ?>
     <?php require view_path('shop/partials/aside-panel.php'); ?>
     <?php endif; ?>
+    <?php render_site_footer(['year' => (int) date('Y')]); ?>
   </div>
 </main>
 </div>

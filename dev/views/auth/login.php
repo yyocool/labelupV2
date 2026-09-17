@@ -17,8 +17,8 @@
 
   <section class="login-panel" aria-label="로그인">
     <div class="login-card">
-      <h2 class="login-card-title">라벨업에 오신 것을 환영합니다</h2>
-      <p class="login-card-sub">로그인하여 다양한 기능을 이용해 보세요.</p>
+      <h2 class="login-card-title">labelup에 오신 것을 환영합니다</h2>
+      <p class="login-card-sub">라벨업(labelup) 계정으로 로그인하여 다양한 기능을 이용해 보세요.</p>
 
       <div id="authAlert" class="login-alert<?= !empty($authFlash) ? ' show error' : '' ?>"><?= e($authFlash ?? '') ?></div>
 
@@ -94,10 +94,16 @@
       </div>
 
       <p class="login-signup">계정이 없으신가요? <a href="<?= url('register') ?>">회원가입</a></p>
+      <p class="login-legal-links">
+        <a href="<?= url('about') ?>">서비스 소개</a>
+        <a href="<?= url('terms') ?>">이용약관</a>
+        <a href="<?= url('privacy') ?>">개인정보 처리방침</a>
+      </p>
       <p class="login-admin-link">관리자는 <a href="<?= url('admin/login') ?>">관리자 로그인</a></p>
     </div>
   </section>
 </div>
+<?php render_site_footer(['year' => (int) date('Y')]); ?>
 <?php require view_path('auth/partials/recovery-modal.php'); ?>
 <script src="<?= js('auth.js') ?>"></script>
 <?php marketing_render_body_end(); ?>

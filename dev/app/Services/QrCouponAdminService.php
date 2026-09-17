@@ -239,8 +239,13 @@ final class QrCouponAdminService
             }
         }
 
+        $group = $this->repo->findByGroupNo($groupNo) ?? [];
+        $categoryNo = (int) ($group['category_no'] ?? 0);
+
         return [
             'group_no' => $groupNo,
+            'category_no' => $categoryNo,
+            'category_name' => (string) ($group['category_name'] ?? ''),
             'quantity' => count($normalized),
             'printed_count' => $printed,
             'unprinted_count' => count($normalized) - $printed,
@@ -284,6 +289,8 @@ final class QrCouponAdminService
             $normalized[] = [
                 'id' => (int) ($row['id'] ?? 0),
                 'batch_id' => (int) ($row['batch_id'] ?? 0),
+                'group_no' => (int) ($row['group_no'] ?? 0),
+                'category_no' => (int) ($row['category_no'] ?? 0),
                 'code' => $code,
                 'coupon_page_url' => $url,
                 'status' => $status,
@@ -295,6 +302,47 @@ final class QrCouponAdminService
             ];
         }
         return $normalized;
+    }
+
+    public static function templateKeyForCategory(int $categoryNo): string
+    {
+        return $categoryNo > 0 ? ('cat-' . $categoryNo) : 'default';
+    }
+
+    public static function categoryNoFromTemplateKey(string $key): int
+    {
+        if (preg_match('/^cat-(\d+)$/', $key, $m) === 1) {
+            return (int) $m[1];
+        }
+        return 0;
+    }
+
+    public function normalizeTemplateKey(string $key): string
+    {
+        $key = trim($key);
+        if ($key === '' || $key === 'default') {
+            return 'default';
+        }
+        if (preg_match('/^cat-(\d{1,3})$/', $key, $m) === 1) {
+            $no = (int) $m[1];
+            if ($no >= 1 && $no <= 99) {
+                return 'cat-' . $no;
+            }
+        }
+        throw new RuntimeException('출력템플릿 키가 올바르지 않습니다.');
+    }
+
+    public function resolveTemplateKeyFromRequest(?string $key, mixed $categoryNo): string
+    {
+        $key = trim((string) ($key ?? ''));
+        if ($key !== '') {
+            return $this->normalizeTemplateKey($key);
+        }
+        $cat = (int) ($categoryNo ?? 0);
+        if ($cat > 0) {
+            return self::templateKeyForCategory($cat);
+        }
+        return 'default';
     }
 
     /** @return list<array<string, mixed>> */
@@ -357,21 +405,38 @@ final class QrCouponAdminService
      */
     public function getPrintTemplate(string $key = 'default'): array
     {
+        $key = $this->normalizeTemplateKey($key);
+        $categoryNo = self::categoryNoFromTemplateKey($key);
         $row = $this->repo->findPrintTemplate($key);
+        $fallbackFrom = null;
+
+        if ($row === null && $key !== 'default') {
+            $row = $this->repo->findPrintTemplate('default');
+            $fallbackFrom = $row !== null ? 'default' : null;
+        }
+
         if ($row === null) {
             $defaults = self::defaultPrintTemplate();
+            $defaults['key'] = $key;
+            $defaults['category_no'] = $categoryNo;
+            $defaults['name'] = $this->templateDisplayName($key, $categoryNo);
             $defaults['persisted'] = false;
+            $defaults['fallback_from'] = null;
             return $defaults;
         }
 
         return [
-            'key' => (string) ($row['template_key'] ?? $key),
-            'name' => (string) ($row['name'] ?? 'QR 출력템플릿'),
+            'key' => $key,
+            'category_no' => $categoryNo,
+            'name' => $fallbackFrom !== null
+                ? $this->templateDisplayName($key, $categoryNo)
+                : (string) ($row['name'] ?? $this->templateDisplayName($key, $categoryNo)),
             'paper' => $this->decodeJsonMap($row['paper_json'] ?? null),
             'objects' => $this->decodeJsonList($row['objects_json'] ?? null),
             'settings' => $this->decodeJsonMap($row['settings_json'] ?? null),
-            'persisted' => true,
-            'updated_at' => $row['updated_at'] ?? null,
+            'persisted' => $fallbackFrom === null,
+            'fallback_from' => $fallbackFrom,
+            'updated_at' => $fallbackFrom === null ? ($row['updated_at'] ?? null) : null,
         ];
     }
 
@@ -381,13 +446,14 @@ final class QrCouponAdminService
      */
     public function savePrintTemplate(array $payload, ?int $adminId = null): array
     {
-        $key = trim((string) ($payload['key'] ?? 'default'));
-        if ($key === '') {
-            $key = 'default';
-        }
-        $name = trim((string) ($payload['name'] ?? 'QR 출력템플릿'));
+        $key = $this->resolveTemplateKeyFromRequest(
+            (string) ($payload['key'] ?? ''),
+            $payload['category_no'] ?? null
+        );
+        $categoryNo = self::categoryNoFromTemplateKey($key);
+        $name = trim((string) ($payload['name'] ?? ''));
         if ($name === '') {
-            $name = 'QR 출력템플릿';
+            $name = $this->templateDisplayName($key, $categoryNo);
         }
         $paper = $payload['paper'] ?? null;
         $objects = $payload['objects'] ?? null;
@@ -401,7 +467,20 @@ final class QrCouponAdminService
 
         $saved = $this->repo->upsertPrintTemplate($key, $name, $paper, $objects, $settings, $adminId);
         $saved['persisted'] = true;
+        $saved['category_no'] = $categoryNo;
+        $saved['fallback_from'] = null;
         return $saved;
+    }
+
+    private function templateDisplayName(string $key, int $categoryNo): string
+    {
+        if ($categoryNo > 0) {
+            return '분류 ' . $categoryNo . ' 출력템플릿';
+        }
+        if ($key === 'default') {
+            return '공통 출력템플릿';
+        }
+        return 'QR 출력템플릿';
     }
 
     /**

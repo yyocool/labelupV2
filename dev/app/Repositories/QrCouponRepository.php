@@ -286,7 +286,12 @@ final class QrCouponRepository
     {
         $limit = max(1, min(2000, $limit));
         $stmt = $this->db->prepare(
-            "SELECT * FROM qr_coupon_codes WHERE group_no = :group_no ORDER BY id DESC LIMIT {$limit}"
+            "SELECT qc.*, g.category_no, g.category_name, g.category_slug, g.sheets_per_pack
+             FROM qr_coupon_codes qc
+             LEFT JOIN qr_coupon_groups g ON g.group_no = qc.group_no
+             WHERE qc.group_no = :group_no
+             ORDER BY qc.id DESC
+             LIMIT {$limit}"
         );
         $stmt->execute(['group_no' => $groupNo]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];

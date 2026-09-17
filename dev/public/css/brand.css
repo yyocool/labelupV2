@@ -23,3 +23,20 @@
   --highlight:#C4A574;
   --shadow:0 14px 36px rgba(46,42,39,.08);
 }
+
+/* 공통 사업자정보 푸터 */
+.site-footer.page-footer{margin-top:28px;padding:18px 4px 8px;border-top:1px solid #eceaf2}
+.site-footer-links{display:flex;flex-wrap:wrap;gap:12px 14px;margin-bottom:12px}
+.site-footer-links a{font-size:12px;font-weight:700;color:#6b6560;text-decoration:none}
+.site-footer-links a:hover{color:var(--burgundy,#7B2840)}
+.site-footer-brand{display:block;font-size:13px;margin:4px 0 8px}
+.site-footer-biz-list{
+  list-style:none;margin:0 0 8px;padding:0;display:grid;gap:4px 16px;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+}
+.site-footer-biz-list li{display:flex;gap:8px;font-size:12px;line-height:1.45;color:#5c5650}
+.site-footer-biz-list span{flex:0 0 auto;color:#8a837c;min-width:7.5em}
+.site-footer-biz-list em{font-style:normal;font-weight:600;color:#2e2a27;word-break:keep-all}
+.site-footer-biz-empty{margin:0 0 8px;font-size:12px;color:#8a837c;line-height:1.5}
+.site-footer .copy{margin-top:10px;font-size:10px;color:#989aac}
+

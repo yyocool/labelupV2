@@ -12,8 +12,11 @@ $isFaqActive = $activeNav === 'faq';
 ?>
 <aside class="sidebar">
   <div class="brand">
-    <a href="<?= url('/') ?>"><img class="brand-img" src="<?= asset('logo.png') ?>" alt="LABEL UP"></a>
-    <small>with AI - 라벨업</small>
+    <a href="<?= url('/') ?>" aria-label="labelup 홈">
+      <img class="brand-img" src="<?= asset('logo.png') ?>" alt="labelup">
+    </a>
+    <strong class="brand-name">labelup</strong>
+    <small>라벨업 · AI 라벨 디자인</small>
   </div>
   <a class="create" href="<?= url('editor/') ?>">✎ &nbsp;새 디자인 만들기</a>
 

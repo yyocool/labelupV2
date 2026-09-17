@@ -90,6 +90,13 @@
   letter-spacing:-.02em;
   color:var(--charcoal);
 }
+.login-hero-appname{
+  display:inline-block;
+  margin-bottom:6px;
+  font-size:.72em;
+  letter-spacing:.02em;
+  color:var(--accent);
+}
 .login-hero-title .hl-design{color:var(--accent)}
 .login-hero-title .hl-print{color:var(--highlight)}
 .login-hero-desc{
@@ -209,9 +216,13 @@
 .login-signup{margin:24px 0 0;text-align:center;font-size:13px;color:var(--login-muted)}
 .login-signup a{color:var(--accent);font-weight:800;text-decoration:none}
 .login-signup a:hover{text-decoration:underline}
+.login-legal-links{margin:12px 0 0;text-align:center;display:flex;justify-content:center;flex-wrap:wrap;gap:8px 12px}
+.login-legal-links a{font-size:12px;font-weight:700;color:var(--muted);text-decoration:none}
+.login-legal-links a:hover{color:var(--accent)}
 .login-admin-link{margin:10px 0 0;text-align:center;font-size:11px;color:var(--muted)}
 .login-admin-link a{color:var(--muted);font-weight:700;text-decoration:none}
 .login-admin-link a:hover{color:var(--accent)}
+.login-page .site-footer{max-width:960px;margin:0 auto;padding:24px 20px 40px}
 .login-alert{
   margin-bottom:16px;padding:10px 12px;border-radius:10px;
   font-size:12px;display:none;

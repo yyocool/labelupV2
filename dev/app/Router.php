@@ -47,6 +47,8 @@ use App\Controllers\Api\SeedController;
 use App\Controllers\Api\SystemController;
 use App\Controllers\AuthController;
 use App\Controllers\HomeController;
+use App\Controllers\AboutController;
+use App\Controllers\LegalPublicController;
 use App\Controllers\SeoAdminController;
 use App\Controllers\SeoPublicController;
 use App\Controllers\Api\SeoAdminApiController;
@@ -126,6 +128,8 @@ final class Router
     {
         $router = new self();
         $home = new HomeController();
+        $about = new AboutController();
+        $legalPublic = new LegalPublicController();
         $auth = new AuthController();
         $admin = new AdminController();
         $health = new HealthController();
@@ -183,6 +187,10 @@ final class Router
         $qaReviewApi = new QaReviewApiController();
 
         $router->get('/', [$home, 'index']);
+        $router->get('/about', [$about, 'index']);
+        $router->get('/service', [$about, 'index']);
+        $router->get('/terms', [$legalPublic, 'terms']);
+        $router->get('/privacy', [$legalPublic, 'privacy']);
         $router->get('/faq', [$faqPublic, 'index']);
         $router->get('/compat', [$compatPublic, 'index']);
         $router->get('/compat-codes', [$compatPublic, 'index']);
