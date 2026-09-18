@@ -304,6 +304,11 @@
             </select>
             <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.BarcodeShowText" @onchange="e => SetBool(v => o.BarcodeShowText = v, e)" /> <span>내용</span></label>
             <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.BarcodeShowStartEnd" @onchange="e => SetBool(v => o.BarcodeShowStartEnd = v, e)" /> <span>시작·끝</span></label>
+            <select title="가드 막대 — 시작·가운데·끝 막대를 길게" value="@o.BarcodeGuardBars" @onchange="e => SetString(v => o.BarcodeGuardBars = v, e)">
+              <option value="@DesignObject.GuardBarsAuto">가드 자동</option>
+              <option value="@DesignObject.GuardBarsOn">가드 길게</option>
+              <option value="@DesignObject.GuardBarsOff">가드 평평</option>
+            </select>
           }
           else
           {

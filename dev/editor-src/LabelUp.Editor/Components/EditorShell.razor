@@ -1109,7 +1109,9 @@
             return;
         if (Session.Dialog is not (EditorDialog.None or EditorDialog.LocalFont))
             return;
-        var missing = Fonts.MissingLocalFamilies(families);
+        // 이 PC에 없다고 이미 판가름 난 이름은 빼야 한다. 안 그러면 대화상자를 닫을 때마다
+        // InvalidateRender가 판을 올려 곧바로 다시 열린다.
+        var missing = Fonts.UnresolvedLocalFamilies(families);
         if (missing.Count == 0)
             return;
         _localFontOfferEpoch = epoch;

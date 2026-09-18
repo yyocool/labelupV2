@@ -78,14 +78,21 @@ internal static class MicroPdf417Encoder
     /// ISO/IEC 24728 AutoSize. 아이라벨도 상자 모양과 무관하게 이 규칙을 쓴다.
     /// `12345` 실측: 1열×11행 = 38×11 모듈.
     /// </summary>
-    public static BitMatrix? Encode(string value)
+    /// <summary>텍스트 압축 모드 전환 코드워드. 심볼 첫머리는 원래 텍스트 압축이라 생략해도 된다.</summary>
+    private const int TextLatch = 900;
+
+    public static BitMatrix? Encode(string value, int wantColumns = 0, int wantRows = 0, bool leadTextLatch = false)
     {
         if (string.IsNullOrEmpty(value)) return null;
         var bytes = Encoding.Latin1.GetBytes(value);
-        var compact = Compact(bytes);
+        var compact = Compact(bytes, out var startedWithText);
+        // 애니라벨은 생략해도 되는 첫 텍스트 전환을 굳이 적는다(「QR코드 타입.lbl」 9번 칸 실측).
+        // 읽히는 값은 같고 메움 코드워드가 하나 줄 뿐이지만, 그만큼 무늬가 통째로 달라진다.
+        if (leadTextLatch && startedWithText)
+            compact.Insert(0, TextLatch);
         if (compact.Count == 0 || compact.Count > 126) return null;
 
-        var variant = PickVariant(compact.Count);
+        var variant = PickVariant(compact.Count, wantColumns, wantRows);
         return variant < 0 ? null : Build(compact, variant);
     }
 
@@ -149,8 +156,21 @@ internal static class MicroPdf417Encoder
         return matrix;
     }
 
-    private static int PickVariant(int codeWordCount)
+    /// <summary>
+    /// 자료가 들어갈 변형을 고른다. 열·행을 지정하면(애니라벨은 BMP에서 재어 넘긴다)
+    /// 그 변형을 먼저 쓴다. 규격에는 같은 자료가 들어가는 변형이 여럿이라 인코더마다
+    /// 고르는 게 달라진다 — 애니라벨은 1열 17행, 아이라벨·Zint 기본은 2열 8행이다.
+    /// </summary>
+    private static int PickVariant(int codeWordCount, int wantColumns, int wantRows)
     {
+        if (wantColumns > 0 && wantRows > 0)
+        {
+            for (var v = 0; v < 34; v++)
+            {
+                if (Variants[v] != wantColumns || Variants[v + 34] != wantRows) continue;
+                return Variants[v] * Variants[v + 34] - Variants[v + 68] >= codeWordCount ? v : -1;
+            }
+        }
         for (var i = 0; i < 34; i++)
         {
             if (codeWordCount <= AutoSize[i])
@@ -195,12 +215,14 @@ internal static class MicroPdf417Encoder
     private const int SubLower = 1;
     private const int SubMixed = 2;
 
-    private static List<int> Compact(byte[] data)
+    private static List<int> Compact(byte[] data, out bool startedWithText)
     {
         var words = new List<int>();
         var chain = new List<int>();
         var sub = SubAlpha;
         var i = 0;
+        startedWithText = false;
+        var first = true;
         while (i < data.Length)
         {
             var run = 0;
@@ -210,6 +232,7 @@ internal static class MicroPdf417Encoder
             {
                 FlushText(words, chain);
                 sub = SubAlpha;
+                first = false;
                 var take = Math.Min(run, 44);
                 AppendNumeric(words, data, i, take);
                 i += take;
@@ -223,11 +246,17 @@ internal static class MicroPdf417Encoder
             {
                 FlushText(words, chain);
                 sub = SubAlpha;
+                first = false;
                 AppendBytes(words, data, i, bytes);
                 i += bytes;
                 continue;
             }
 
+            if (first)
+            {
+                startedWithText = true;
+                first = false;
+            }
             AppendTextChar(chain, ref sub, data[i]);
             i++;
         }

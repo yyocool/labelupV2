@@ -40,6 +40,24 @@ public static class BarcodeRenderer
             return;
         }
 
+        // 인코더가 없는 심볼은 여기서 끊는다. ParseFormat이 모르는 이름을 Code 128로 흘려보내
+        // 원본과 전혀 다른 값이 읽히는 막대가 인쇄되기 때문이다.
+        if (IsUnsupportedSymbology(obj))
+        {
+            DrawPlaceholder(canvas, obj, UnsupportedNotice(obj), alpha);
+            return;
+        }
+
+        // USPS IMB 는 추적 20자리 + 배달구역 0·5·9·11자리라야 만들어진다.
+        // 애니라벨은 값이 모자라면 제 샘플 추적번호를 대신 찍지만(52번 칸) 그건 남의 우편번호를
+        // 인쇄물에 싣는 것이라 따라 하지 않는다. Code 128 로 떨어뜨려도 전혀 다른 심볼이 되므로
+        // 그리지 않고 무엇이 모자란지 알려 준다.
+        if (ImbShortage(obj, value) is { } shortage)
+        {
+            DrawPlaceholder(canvas, obj, shortage, alpha);
+            return;
+        }
+
         var format = ResolveFormat(obj);
         if (TryDrawEan13(canvas, obj, value, format, alpha))
             return;
@@ -51,11 +69,23 @@ public static class BarcodeRenderer
             return;
         if (TryDrawCode11(canvas, obj, value, alpha))
             return;
+        if (TryDrawPatchCode(canvas, obj, value, alpha))
+            return;
         if (TryDrawPostnet(canvas, obj, value, alpha))
+            return;
+        if (TryDrawFourState(canvas, obj, value, alpha))
             return;
         if (TryDrawFim(canvas, obj, value, alpha))
             return;
+        if (TryDrawTelepen(canvas, obj, value, alpha))
+            return;
         if (TryDrawPharmaTwo(canvas, obj, value, alpha))
+            return;
+        if (TryDrawPharmaOne(canvas, obj, value, alpha))
+            return;
+        if (TryDrawPlessey(canvas, obj, value, alpha))
+            return;
+        if (TryDrawSingleWidth(canvas, obj, value, alpha))
             return;
         if (TryDrawCodabar(canvas, obj, value, alpha))
             return;
@@ -76,6 +106,8 @@ public static class BarcodeRenderer
         if (TryDrawMsi(canvas, obj, value, alpha))
             return;
         if (TryDrawKoreanPost(canvas, obj, value, alpha))
+            return;
+        if (TryDrawMaxiCode(canvas, obj, value, alpha))
             return;
 
         var isMatrix = format is BarcodeFormat.QR_CODE or BarcodeFormat.DATA_MATRIX or BarcodeFormat.PDF_417
@@ -117,7 +149,7 @@ public static class BarcodeRenderer
         else if (upcA && upcDigits.Length == 12)
             leftPad = hriFont.MeasureText(upcDigits[0].ToString()) * 1.15f;
         // EAN/UPC 가드(시작·가운데·끝)는 숫자 표시와 같이 길어진다. Code 39의 * 표시와 무관하다.
-        var showGuards = retail && textH > 0;
+        var showGuards = retail && textH > 0 && RetailGuardsOn(obj);
 
         if (!isMatrix)
         {
@@ -237,6 +269,36 @@ public static class BarcodeRenderer
         canvas.DrawImage(image, new SKRect(0, 0, bmp.Width, bmp.Height), dest,
             new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
     }
+
+    /// <summary>
+    /// 애니라벨 소매 계열 가드. 구형(LBL 0x07) EMF에서 막대가 캡션 칸까지 내려오는 것은
+    /// 기본 EAN-13(0x02) 하나뿐이고, ISBN·ISSN·ISMN·UPC-A·UPC-E·JAN-8·JAN-13은 밑변이 모두 같다.
+    /// 기본 EAN-8(0x01)은 표본이 없어 같은 기본형인 EAN-13과 함께 가드를 남긴다.
+    /// 신형(LBL 0x1B)은 0x1A~0x21 전부 가드가 있어 해당하지 않는다.
+    /// </summary>
+    private static bool AniLabelFlatGuards(DesignObject obj)
+    {
+        if (!Barcode1DEncoders.IsAniLabelLegacy(obj)) return false;
+        var id = (obj.BarcodeFormat ?? "").Replace("-", "_").ToUpperInvariant();
+        return id is not ("EAN_13" or "EAN13" or "EAN_8" or "EAN8");
+    }
+
+    /// <summary>
+    /// 시작·가운데·끝 막대를 늘릴지 정한다. `BarcodeGuardBars`가 on/off면 그 값을 쓰고,
+    /// auto(기본)면 <paramref name="byVendor"/>로 넘어온 출처별 실측 규칙을 따른다.
+    /// 늘어나는 자리와 길이는 심볼 구조가 정하므로 여기서 다루지 않는다.
+    /// </summary>
+    private static bool GuardBarsOn(DesignObject obj, bool byVendor)
+        => (obj.BarcodeGuardBars ?? "").Trim() switch
+        {
+            DesignObject.GuardBarsOn => true,
+            DesignObject.GuardBarsOff => false,
+            _ => byVendor
+        };
+
+    /// <summary>소매 계열 가드 여부. auto면 애니라벨 구형 실측 규칙을 쓴다.</summary>
+    private static bool RetailGuardsOn(DesignObject obj)
+        => GuardBarsOn(obj, !AniLabelFlatGuards(obj));
 
     private static bool IsEan13Family(string? format)
     {
@@ -468,9 +530,17 @@ public static class BarcodeRenderer
         return digits.Length == 7 ? digits + EanChecksum(digits) : digits;
     }
 
+    /// <summary>
+    /// UPC-A 12자리. 끝자리는 늘 앞 11자리에서 다시 셈한다.
+    ///
+    /// 애니라벨은 체크숫자를 따지지 않는다. 「1D barcode 타입.lbl」 28번 칸은 값 12345678901 을
+    /// 012345678901 로 왼쪽 채움한 뒤 끝자리 1 을 그대로 찍는데, 규격대로면 5다.
+    /// 그대로 두면 ZXing 이 인코딩을 거절해 Code 128 로 떨어지고, 심볼로지도 값도 달라진 인쇄물이 나온다.
+    /// 여기서 고쳐 주면 캡션과 막대가 같은 값을 말하고 스캐너도 읽는다. EAN-13(WithEan13Checksum)과 같은 처리다.
+    /// </summary>
     private static string EnsureUpcA(string digits)
     {
-        if (digits.Length >= 12) return digits[..12];
+        if (digits.Length >= 12) return digits[..11] + EanChecksum(digits[..11]);
         return digits.Length == 11 ? digits + EanChecksum(digits) : digits;
     }
 
@@ -486,9 +556,30 @@ public static class BarcodeRenderer
         return (char)('0' + (10 - sum % 10) % 10);
     }
 
-    private static float HriBand(DesignObject obj, bool show, float line = 1.28f)
+    /// <summary>HRI 글자 칸 높이 ÷ 글자 크기.</summary>
+    private const float HriLine = 1.28f;
+
+    /// <summary>
+    /// 애니라벨 신형의 HRI 글자 칸 배수. 가져오기에서 거꾸로 글자 크기를 셈할 때도 쓴다.
+    ///
+    /// 「1D barcode 타입.lbl」에 든 애니라벨 원본 그림에서 글자 칸은 그림 높이의 13.3%,
+    /// 숫자 잉크는 8.7%였다. 우리 HRI 글꼴은 숫자 잉크가 글자 크기의 0.697이므로
+    /// 글자 칸을 13.3%로 두면서 잉크도 8.7%로 맞추려면 배수가 13.3 ÷ (8.7 ÷ 0.697) = 1.07이다.
+    /// 기본값 1.28로 두면 막대 높이는 맞지만 글자가 애니라벨보다 16% 작게 나온다.
+    /// </summary>
+    public const float AniLabelHriLine = 1.07f;
+
+    /// <summary>애니라벨 신형 엔진(LBL 0x1B). 구형 PSOFT(0x07)와 막대 배치가 여러 군데 다르다.</summary>
+    private static bool IsAniLabelModern(DesignObject obj)
+        => Barcode1DEncoders.VendorOf(obj) == BarcodeVendorKind.AniLabel
+           && !Barcode1DEncoders.IsAniLabelLegacy(obj);
+
+    /// <param name="line">0이면 심볼을 만든 회사에 맞는 기본 배수를 쓴다.</param>
+    private static float HriBand(DesignObject obj, bool show, float line = 0f)
     {
         if (!show) return 0f;
+        if (line <= 0f)
+            line = IsAniLabelModern(obj) ? AniLabelHriLine : HriLine;
         var fs = obj.FontSize > 0.5f ? obj.FontSize : 2.4f;
         return Math.Min(obj.Height * 0.48f, fs * line);
     }
@@ -496,7 +587,12 @@ public static class BarcodeRenderer
     private static float HriFontMm(DesignObject obj, float band)
     {
         var fs = obj.FontSize > 0.5f ? obj.FontSize : 2.4f;
-        return Math.Min(fs, Math.Max(1.2f, band * 0.88f));
+        // 기본 글자 칸은 글자 크기의 1.28배라 0.88을 곱해도 글자 크기가 이긴다.
+        // 애니라벨 신형은 칸이 1.07배뿐이라 같은 셈을 하면 글자가 6% 작아진다. 칸에서 그대로 푼다.
+        var fit = IsAniLabelModern(obj)
+            ? band / AniLabelHriLine
+            : Math.Max(1.2f, band * 0.88f);
+        return Math.Min(fs, fit);
     }
 
     private static SKFont CreateHriFont(DesignObject obj, float sizeMm)
@@ -553,6 +649,30 @@ public static class BarcodeRenderer
         canvas.DrawRect(0, 0, obj.Width, obj.Height, bg);
     }
 
+    /// <summary>
+    /// 그릴 수 없는 심볼로지. Compact Matrix는 중국 국가표준 GB/T 27767-2011을 구하지 못했다.
+    /// 부속서의 생성다항식 81개와 부호어 분할 규칙 없이는 표본만으로 복원할 수 없고,
+    /// 공개 구현도 없다. 애니라벨 39×18 심볼과 닮은 대체품이 없으므로 그리지 않는다.
+    /// </summary>
+    private static bool IsUnsupportedSymbology(DesignObject obj)
+        => (obj.BarcodeFormat ?? "").Replace("-", "_").ToUpperInvariant() is "COMPACT_MATRIX";
+
+    private static string UnsupportedNotice(DesignObject obj)
+        => BarcodeCatalog.Find(obj.BarcodeFormat)?.Label ?? "미지원 심볼";
+
+    /// <summary>
+    /// OneCode(USPS IMB) 값이 규격 자릿수에 못 미치면 무엇이 모자란지 한 줄로 돌려준다.
+    /// 맞으면 null. 추적 20자리는 반드시 있어야 하고 뒤 배달구역은 0·5·9·11자리만 된다.
+    /// </summary>
+    private static string? ImbShortage(DesignObject obj, string value)
+    {
+        if ((obj.BarcodeFormat ?? "").Replace("-", "_").ToUpperInvariant() is not "ONECODE")
+            return null;
+        var n = DigitsOnly(value).Length;
+        if (n < 20) return $"OneCode: 추적 20자리 필요 (지금 {n}자리)";
+        return n is 20 or 25 or 29 or 31 ? null : $"OneCode: 배달구역은 0·5·9·11자리 (지금 {n - 20}자리)";
+    }
+
     private static void DrawPlaceholder(SKCanvas canvas, DesignObject obj, string msg, byte alpha)
     {
         using var fill = new SKPaint { Color = new SKColor(0xF3, 0xE8, 0xEC, alpha), IsAntialias = true };
@@ -568,7 +688,12 @@ public static class BarcodeRenderer
         if (!DocumentRenderer.FontsReady) return;
         using var tp = new SKPaint { Color = ColorUtil.Parse("#6B6560", alpha), IsAntialias = true };
         using var font = new SKFont(DocumentRenderer.ResolveTypeface(false), Math.Min(3.2f, obj.Height * 0.3f));
-        canvas.DrawText(msg, obj.Width / 2f, obj.Height / 2f + 1f, SKTextAlign.Center, font, tp);
+        // 「OneCode: 추적 20자리 필요」처럼 긴 알림도 상자를 넘지 않게 줄여 앉힌다.
+        var width = font.MeasureText(msg);
+        var room = obj.Width * 0.92f;
+        if (width > room)
+            font.Size *= room / width;
+        canvas.DrawText(msg, obj.Width / 2f, obj.Height / 2f + font.Size * 0.35f, SKTextAlign.Center, font, tp);
     }
 
     private static bool TryDrawEan13(SKCanvas canvas, DesignObject obj, string value, BarcodeFormat format, byte alpha)
@@ -592,23 +717,32 @@ public static class BarcodeRenderer
             EditorLog.Info($"EAN-13 체크 보정 {digits} → {encoded}");
 
         // 폼텍 ISBN(하이픈)만 가운데 캡션. 아이라벨 Bookland 123456789 → 9 781234 567897.
-        var hyphenHri = bookland && value.Contains('-');
+        // 애니라벨은 저장값에 하이픈이 있어도 캡션을 EAN-13 묶음으로 쓴다.
+        //「바코드 타입 전체.lbl」16~18번 칸 80-7226-102-9 →
+        // ISBN 9 788072 261024, ISSN 9 778072 261025, ISMN 9 798072 261023.
+        var hyphenHri = bookland && value.Contains('-')
+            && Barcode1DEncoders.VendorOf(obj) != BarcodeVendorKind.AniLabel;
         var showText = obj.BarcodeShowText;
         var extraCaption = showText && DocumentRenderer.FontsReady
             && obj.BarcodeIsbnCaption && id is "ISBN"
             ? BarcodeCatalog.FormatILabelIsbnCaption(value)
             : "";
-        var extraH = extraCaption.Length > 0 ? HriBand(obj, true, 1.28f) : 0f;
+        var extraH = extraCaption.Length > 0 ? HriBand(obj, true) : 0f;
         var eanHri = showText && encoded.Length == 13 && !hyphenHri;
-        var textH = HriBand(obj, showText, bookland ? 1.35f : 1.28f);
+        var textH = HriBand(obj, showText, bookland ? 1.35f : 0f);
         var barH = Math.Max(1f, obj.Height - textH - extraH);
+        // 애니라벨 신형은 오른쪽 여백을 두지 않는다. 「1D barcode 타입.lbl」1번 칸 원본 그림에서
+        // 612px 중 왼쪽 42px(7모듈)만 비고 막대가 오른쪽 끝까지 닿았다. 첫 자리 숫자는 그 왼쪽 여백에 쓴다.
+        var aniModern = IsAniLabelModern(obj);
         const int quiet = 7;
-        var total = modules.Length + quiet * 2;
+        var quietRight = aniModern ? 0 : quiet;
+        var total = modules.Length + quiet + quietRight;
         var barColor = ColorUtil.Parse(obj.Fill, alpha);
         // 캡션이 없어도 시작·가운데·끝 가드는 아래로 조금 더 길게(아이라벨 EAN-13 실측).
         var silentGuard = !eanHri && !hyphenHri ? Math.Min(barH * 0.12f, Math.Max(0.9f, barH * 0.08f)) : 0f;
-        var guardExtra = eanHri ? textH * 0.92f : silentGuard;
-        var bodyH = eanHri ? barH : Math.Max(1f, barH - silentGuard);
+        var flatGuards = !RetailGuardsOn(obj);
+        var guardExtra = flatGuards ? 0f : eanHri ? textH * 0.92f : silentGuard;
+        var bodyH = eanHri || flatGuards ? barH : Math.Max(1f, barH - silentGuard);
 
         FillBarcodeBackground(canvas, obj, alpha);
 
@@ -618,7 +752,8 @@ public static class BarcodeRenderer
         {
             var faceSize = obj.FontSize > 0.5f ? obj.FontSize : HriFontMm(obj, textH);
             font = CreateHriFont(obj, faceSize);
-            leftPad = font.MeasureText(encoded[0].ToString()) * 1.15f;
+            // 애니라벨은 첫 자리를 7모듈 여백 안에 쓴다. 상자를 따로 넓히지 않는다.
+            leftPad = aniModern ? 0f : font.MeasureText(encoded[0].ToString()) * 1.15f;
         }
 
         var addOn = ResolveEanSupplement(obj.BarcodeSupplement);
@@ -628,7 +763,8 @@ public static class BarcodeRenderer
         var unit = barAreaW / Math.Max(1, total + (addTotal > 0 ? addGap + addTotal : 0));
         var mainW = unit * total;
         var cellW = unit;
-        DrawEanModules(canvas, modules, quiet, mainW, bodyH, barColor, leftPad, guardExtra, retailGuards: guardExtra > 0);
+        DrawEanModules(canvas, modules, quiet, mainW, bodyH, barColor, leftPad, guardExtra,
+            retailGuards: guardExtra > 0, quietRight: quietRight);
 
         if (addOn is { Length: > 0 })
         {
@@ -705,13 +841,15 @@ public static class BarcodeRenderer
         var showText = obj.BarcodeShowText;
         var textH = HriBand(obj, showText);
         var barH = Math.Max(1f, obj.Height - textH);
-        const int quiet = 7;
+        // 애니라벨 신형 EAN-8은 여백이 없다. 34번 칸 원본 그림 402px가 67모듈 × 6px로 딱 맞는다.
+        var quiet = IsAniLabelModern(obj) ? 0 : 7;
         var total = modules.Length + quiet * 2;
         var barColor = ColorUtil.Parse(obj.Fill, alpha);
         var eanHri = showText && encoded.Length == 8;
         var silentGuard = !eanHri ? Math.Min(barH * 0.12f, Math.Max(0.9f, barH * 0.08f)) : 0f;
-        var guardExtra = eanHri ? textH * 0.92f : silentGuard;
-        var bodyH = eanHri ? barH : Math.Max(1f, barH - silentGuard);
+        var flatGuards = !RetailGuardsOn(obj);
+        var guardExtra = flatGuards ? 0f : eanHri ? textH * 0.92f : silentGuard;
+        var bodyH = eanHri || flatGuards ? barH : Math.Max(1f, barH - silentGuard);
 
         FillBarcodeBackground(canvas, obj, alpha);
 
@@ -762,38 +900,74 @@ public static class BarcodeRenderer
     private static bool TryDrawCode39(SKCanvas canvas, DesignObject obj, string value, byte alpha)
     {
         var id = (obj.BarcodeFormat ?? "").Replace("-", "_").ToUpperInvariant();
-        if (id is not ("PZN" or "CODE_39" or "CODE39" or "CODE_39_EXT"))
+        // UPU·Code 32 는 애니라벨 신형만 여기로 들어온다. 기본 경로(UPU=Code 128)는 그대로 둔다.
+        var aniCode39 = id is "UPU" or "CODE_32" && IsAniLabelModern(obj);
+        if (!aniCode39 && id is not ("PZN" or "CODE_39" or "CODE39" or "CODE_39_EXT"))
             return false;
 
+        var vendor = Barcode1DEncoders.VendorOf(obj);
+        // 애니라벨 신형 PZN 은 값을 일곱 자리로 왼쪽 채움한 뒤 앞에 `-` 만 붙인다(가져오기에서 채운다).
+        var upuValue = id is "UPU" ? Barcode1DEncoders.WithUpuS10Check(value) : value;
         string? payload;
         if (id is "PZN")
-            payload = obj.UsesFormtecBarcodeRules ? ToPznCode39Payload(value) : value.Trim().ToUpperInvariant();
+            payload = vendor switch
+            {
+                BarcodeVendorKind.Formtec => ToPznCode39Payload(value),
+                // 애니라벨 구형 0x29 실측(36번 칸): 막대는 `*-123456*` 9심볼로 체크문자가 없고,
+                // 앞에 `-` 하나만 붙는다. 캡션은 `PZN - 123456`이다.
+                BarcodeVendorKind.AniLabel => "-" + value.Trim().ToUpperInvariant(),
+                _ => value.Trim().ToUpperInvariant()
+            };
+        else if (id is "CODE_32")
+            payload = Barcode1DEncoders.ToCode32Payload(DigitsOnly(value));
+        else if (id is "UPU")
+            payload = upuValue;
         else if (id is "CODE_39_EXT")
             payload = Barcode1DEncoders.ToCode39FullAscii(value);
         else
             payload = value.Trim().ToUpperInvariant();
         if (string.IsNullOrEmpty(payload)) return false;
-        var vendor = Barcode1DEncoders.VendorOf(obj);
         // 폼텍 실측: N:W=1:2, 글자 사이 1X, 시작/종료 * (46글자=230막대).
+        // 애니라벨도 1:2다.「바코드 타입 전체.lbl」 3번 칸 EMF에서 좁은 막대 5~6, 넓은 막대 11~12다.
         // ISO/IEC 16388은 1:2~1:3 허용. 공칭 1:3은 직접 추가분.
-        var wide = vendor == BarcodeVendorKind.Formtec ? 2 : 3;
-        var modules = EncodeCode39(payload, wide);
+        var wide = vendor is BarcodeVendorKind.Formtec or BarcodeVendorKind.AniLabel ? 2 : 3;
+        // 구형 애니라벨(PSOFT) Code 39 Full ASCII는 데이터 앞에 `*+$*` 네 글자를 늘 붙인다.
+        //「바코드 타입 전체.lbl」 45번 칸 EMF 실측: AB → `* *+$* AB *`(8문자),
+        // PSOFTab → `* *+$* PSOFT +A +B *`(15문자). 길이·내용이 달라도 앞머리는 같다.
+        // 신형(LBL 0x1B 0x10)에는 없다. 캡션에는 앞머리가 나오지 않으므로 막대에만 넣는다.
+        var barPayload = id is "CODE_39_EXT" && Barcode1DEncoders.IsAniLabelLegacy(obj)
+            ? "*+$*" + payload
+            : payload;
+        var modules = EncodeCode39(barPayload, wide);
         if (modules is null) return false;
 
         var hriBody = vendor == BarcodeVendorKind.ILabel && !string.IsNullOrWhiteSpace(obj.Text)
             ? obj.Text.Trim()
             : payload;
-        var shown = obj.BarcodeShowStartEnd
-            ? $"*{hriBody}*"
-            : (id is "CODE_39_EXT" ? value.Trim() : hriBody);
-        var quiet = Barcode1DEncoders.Quiet(vendor, 10);
+        // 애니라벨 캡션은 구형·신형이 다르다. 원본 그림 실측이다.
+        //   PZN     구형 `PZN - 123456`   신형 `PZN-0123456`(일곱 자리)
+        //   Code 32 `A` + 아홉 자리 십진수. 막대에 실린 32진 여섯 글자는 쓰지 않는다.
+        //   UPU     `*EE123456785CN*` 로 Code 39 시작·정지 문자까지 그대로 쓴다.
+        var shown = id switch
+        {
+            "PZN" when vendor == BarcodeVendorKind.AniLabel =>
+                IsAniLabelModern(obj) ? "PZN-" + value.Trim() : "PZN - " + value.Trim(),
+            "CODE_32" when aniCode39 => "A" + DigitsOnly(value).PadLeft(9, '0'),
+            "UPU" when aniCode39 => $"*{upuValue}*",
+            _ => obj.BarcodeShowStartEnd
+                ? $"*{hriBody}*"
+                : (id is "CODE_39_EXT" ? value.Trim() : hriBody)
+        };
+        // 애니라벨은 막대가 상자 좌우 끝까지 닿는다. EMF 실측에서 0~500을 다 채운다.
+        var quiet = vendor == BarcodeVendorKind.AniLabel ? 0 : Barcode1DEncoders.Quiet(vendor, 10);
         var showHri = obj.BarcodeShowText && DocumentRenderer.FontsReady;
         var faceSize = obj.FontSize > 0.5f ? obj.FontSize : 2.4f;
         using var font = CreateHriFont(obj, faceSize);
         if (showHri)
             FitHriToWidth(font, shown, obj.Width * 0.98f);
         var textH = showHri
-            ? Math.Min(obj.Height * 0.40f, Math.Max(1.6f, faceSize * 1.25f))
+            ? Math.Min(obj.Height * 0.40f,
+                Math.Max(1.6f, faceSize * (IsAniLabelModern(obj) ? AniLabelHriLine : 1.25f)))
             : 0f;
         var barH = Math.Max(1f, obj.Height - textH);
         var barColor = ColorUtil.Parse(obj.Fill, alpha);
@@ -867,14 +1041,27 @@ public static class BarcodeRenderer
 
         var vendor = Barcode1DEncoders.VendorOf(obj);
         var extended = id is "CODE_93_EXT";
+        var anylabel = vendor == BarcodeVendorKind.AniLabel;
         // 폼텍 Standard(PSOFT)는 C/K 있음. Extended(Formtec)만 C/K 없음. ISO는 둘 다 C/K.
-        var checksum = !(vendor == BarcodeVendorKind.Formtec && extended);
+        // 애니라벨은 구형(LBL 0x07) Standard만 C/K가 있다. EMF 실측 PSOFT → `*PSOFT$B*` 9심볼.
+        // 같은 구형 Extended는 `*PSOFT*` 7심볼이고, 신형(LBL 0x1B) 0x13·0x14도 둘 다 C/K가 없다.
+        var checksum = vendor switch
+        {
+            BarcodeVendorKind.Formtec => !extended,
+            BarcodeVendorKind.AniLabel => !extended && Barcode1DEncoders.IsAniLabelLegacy(obj),
+            _ => true
+        };
         var payload = value.Trim();
         var modules = Barcode1DEncoders.EncodeCode93(payload, extended, checksum);
         if (modules is null) return false;
 
         var shown = extended ? payload : payload.ToUpperInvariant();
-        return TryDrawLinear(canvas, obj, modules, shown, Barcode1DEncoders.Quiet(vendor, 10), alpha);
+        // 구형 애니라벨은 시작 문자의 막대 3개와 정지 문자+종단 막대 4개를 글자 칸 끝까지 늘린다.
+        // 신형 비트맵에는 이 긴 막대가 없다. 막대가 상자 좌우 끝까지 닿는 것은 구형·신형이 같다.
+        var guards = GuardBarsOn(obj, anylabel && Barcode1DEncoders.IsAniLabelLegacy(obj));
+        var quiet = anylabel ? 0 : Barcode1DEncoders.Quiet(vendor, 10);
+        return TryDrawLinear(canvas, obj, modules, shown, quiet, alpha,
+            edgeGuardRuns: guards ? 3 : 0, trailGuardRuns: guards ? 4 : 0);
     }
 
     private static bool TryDrawCode128(SKCanvas canvas, DesignObject obj, string value, byte alpha)
@@ -898,6 +1085,11 @@ public static class BarcodeRenderer
             // 아이라벨 EAN-128 실측: Start C + FNC1 + 숫자 쌍(13자리→37막대). 폼텍(Start A+69)은 그대로.
             modules = Barcode1DEncoders.EncodeCode128(
                 payload, gs1: false, formtecEan128: false, Barcode1DEncoders.Code128Subset.Auto, fnc1: true);
+        }
+        else if (ean && IsAniLabelModern(obj))
+        {
+            modules = Barcode1DEncoders.EncodeCode128(
+                payload, gs1: true, formtecEan128: false, aniLabelEan128: true);
         }
         else
         {
@@ -932,6 +1124,48 @@ public static class BarcodeRenderer
             _ => Barcode1DEncoders.Code128Subset.Auto
         };
 
+    /// <summary>
+    /// 막대 폭이 모두 같고 사이 간격만 달라지는 세 가지 — Channel Code·BC309·BC412.
+    ///
+    /// 애니라벨 신형(0x25·0x26·0x27)이 쓰는 것을 원본 그림에서 풀어 확인했다.
+    /// 여백은 두지 않는다. 39·40번 칸 그림이 왼쪽 끝부터 막대로 시작한다.
+    /// </summary>
+    private static bool TryDrawSingleWidth(SKCanvas canvas, DesignObject obj, string value, byte alpha)
+    {
+        var id = (obj.BarcodeFormat ?? "").Replace("-", "_").ToUpperInvariant();
+        var modules = id switch
+        {
+            "CHANNEL_CODE" => Barcode1DEncoders.EncodeChannelCode(DigitsOnly(value)),
+            "BC309" => Barcode1DEncoders.EncodeBc309(value),
+            "BC412" => Barcode1DEncoders.EncodeBc412(value),
+            "FLATTERMARKEN" => Barcode1DEncoders.EncodeFlattermarken(DigitsOnly(value)),
+            "CLOCKED_35" => Barcode1DEncoders.EncodeClocked35(DigitsOnly(value)),
+            "CPC_BINARY" => Barcode1DEncoders.EncodeCpcBinary(value),
+            _ => null
+        };
+        if (modules is null) return false;
+
+        // Channel Code 캡션은 채널 수보다 한 자리 적게 왼쪽을 0으로 채운다(규격 9.2).
+        var shown = id == "CHANNEL_CODE"
+            ? ChannelCodeHri(DigitsOnly(value))
+            : value.Trim().ToUpperInvariant();
+        var quiet = Barcode1DEncoders.VendorOf(obj) == BarcodeVendorKind.AniLabel ? 0 : 5;
+        return TryDrawLinear(canvas, obj, modules, shown, quiet, alpha);
+    }
+
+    private static string ChannelCodeHri(string digits)
+    {
+        if (digits.Length is 0 or > 7) return digits;
+        var channels = digits.Length + 1;
+        if (!int.TryParse(digits, out var v)) return digits;
+        if (v > 576688) channels = Math.Max(channels, 8);
+        else if (v > 44072) channels = Math.Max(channels, 7);
+        else if (v > 3493) channels = Math.Max(channels, 6);
+        else if (v > 292) channels = Math.Max(channels, 5);
+        else if (v > 26) channels = Math.Max(channels, 4);
+        return digits.PadLeft(Math.Max(digits.Length, channels - 1), '0');
+    }
+
     /// <summary>아이라벨 UPC-E 실측: 가드가 캡션 띠의 0.54만큼 내려온다(47px / 86.6px).</summary>
     private const float UpcEGuardDrop = 0.54f;
 
@@ -953,7 +1187,9 @@ public static class BarcodeRenderer
         var digits = DigitsOnly(value);
         // UPC-E0/E1은 넘버 시스템이 형식으로 정해진다. 아이라벨 UPC-E는 값의 첫 자리를 쓴다.
         bool? numberSystem1 = id switch { "UPC_E0" => false, "UPC_E1" => true, _ => null };
-        var modules = Barcode1DEncoders.EncodeUpcE(digits, numberSystem1, out var hri);
+        // 애니라벨 신형은 일곱 자리를 「데이터 여섯 + 체크 하나」로 쓴다. 1234567 → 0 123456 5.
+        var modules = Barcode1DEncoders.EncodeUpcE(
+            digits, numberSystem1, out var hri, IsAniLabelModern(obj));
         if (modules is null) return false;
 
         var quiet = Barcode1DEncoders.Quiet(vendor, 9);
@@ -972,8 +1208,9 @@ public static class BarcodeRenderer
         FillBarcodeBackground(canvas, obj, alpha);
         canvas.Save();
         canvas.ClipRect(new SKRect(0, 0, obj.Width, obj.Height));
+        var guardDrop = RetailGuardsOn(obj) ? textH * UpcEGuardDrop : 0f;
         DrawEanModules(canvas, modules, quiet, obj.Width, barH, ColorUtil.Parse(obj.Fill, alpha),
-            0, textH * UpcEGuardDrop, retailGuards: true, RetailGuardKind.UpcE);
+            0, guardDrop, retailGuards: guardDrop > 0, RetailGuardKind.UpcE);
 
         var faceMm = HriFontMm(obj, textH);
         using var font = CreateHriFont(obj, faceMm);
@@ -1006,17 +1243,29 @@ public static class BarcodeRenderer
 
         var vendor = Barcode1DEncoders.VendorOf(obj);
         var digits = DigitsOnly(value);
-        var modules = Barcode1DEncoders.EncodeItf(digits, vendor);
+        var modules = Barcode1DEncoders.EncodeItf(
+            digits, vendor, Barcode1DEncoders.IsAniLabelLegacy(obj));
         // 폼텍 ITF-14·시작/끝 표시만 베어러. 아이라벨은 막대만(실측).
-        var bearer = vendor != BarcodeVendorKind.ILabel
-            && (id is "ITF_14" || obj.BarcodeShowStartEnd);
+        // 애니라벨은 구형 0x10에만 테두리가 있고 ITF-14(0x17)에는 없어서 가져오기 표시만 따른다.
+        // 신형은 ITF-6·14·16 세 가지에만 있고, 가져올 때 원본 그림에서 보고 표시를 세운다.
+        var bearer = vendor switch
+        {
+            BarcodeVendorKind.ILabel => false,
+            BarcodeVendorKind.AniLabel => obj.BarcodeShowStartEnd,
+            _ => id is "ITF_14" || obj.BarcodeShowStartEnd
+        };
         var hri = !string.IsNullOrWhiteSpace(obj.Text)
             ? obj.Text.Trim()
             : digits;
         if ((obj.QrKind ?? "").Equals("CHECK_CAPTION", StringComparison.OrdinalIgnoreCase))
             hri = digits;
+        // 신형 애니라벨 테두리는 여백 바깥에 따로 선다. 원본 그림에서 테두리 3X + 흰 여백 10X였다.
+        var quiet = bearer && vendor == BarcodeVendorKind.AniLabel
+                    && !Barcode1DEncoders.IsAniLabelLegacy(obj)
+            ? 13
+            : Barcode1DEncoders.Quiet(vendor, 10);
         return modules is not null
-            && TryDrawLinear(canvas, obj, modules, hri, Barcode1DEncoders.Quiet(vendor, 10), alpha, bearer);
+            && TryDrawLinear(canvas, obj, modules, hri, quiet, alpha, bearer);
     }
 
     /// <summary>
@@ -1036,6 +1285,15 @@ public static class BarcodeRenderer
                 && TryDrawLinear(canvas, obj, itf, digits, Barcode1DEncoders.Quiet(vendor, 10), alpha);
         }
 
+        // 애니라벨 구형 0x25 실측(32번 칸): 막대는 저장값 10자리 그대로 ITF 1:2로 57요소,
+        // 캡션만 5-4-1로 끊어 `12345-6789-7`로 찍는다. 막대가 상자 좌우 끝까지 닿아 여백이 없다.
+        if (vendor == BarcodeVendorKind.AniLabel)
+        {
+            var aniItf = Barcode1DEncoders.EncodeItf(digits, vendor);
+            return aniItf is not null
+                && TryDrawLinear(canvas, obj, aniItf, OpcGroupedCaption(digits), 0, alpha);
+        }
+
         // 아이라벨 실측(123456789): ITF 57요소, 캡션 1234567897. 9자리 + Luhn 체크.
         if (digits.Length == 0) return false;
         var payload = digits + LuhnCheckDigit(digits);
@@ -1043,6 +1301,12 @@ public static class BarcodeRenderer
         return itfModules is not null
             && TryDrawLinear(canvas, obj, itfModules, payload, Barcode1DEncoders.Quiet(vendor, 10), alpha);
     }
+
+    /// <summary>OPC 캡션은 제조사 5 · 제품 4 · 체크 1로 끊는다. 자릿수가 다르면 그대로 둔다.</summary>
+    private static string OpcGroupedCaption(string digits)
+        => digits.Length == 10
+            ? $"{digits[..5]}-{digits[5..9]}-{digits[9..]}"
+            : digits;
 
     /// <summary>ISO/IEC 7812 Luhn. 오른쪽부터 한 칸 걸러 2배, 10 이상이면 자릿수 합.</summary>
     private static int LuhnCheckDigit(string digits)
@@ -1237,7 +1501,8 @@ public static class BarcodeRenderer
             return false;
         var vendor = Barcode1DEncoders.VendorOf(obj);
         var digits = DigitsOnly(value);
-        var modules = Barcode1DEncoders.EncodeDiscrete25(id, digits, vendor);
+        var modules = Barcode1DEncoders.EncodeDiscrete25(
+            id, digits, vendor, Barcode1DEncoders.IsAniLabelLegacy(obj));
         if (modules is null) return false;
         var quiet = Barcode1DEncoders.Quiet(vendor, 4);
         return TryDrawLinear(canvas, obj, modules, digits, quiet, alpha);
@@ -1245,7 +1510,7 @@ public static class BarcodeRenderer
 
     private static bool TryDrawLinear(
         SKCanvas canvas, DesignObject obj, bool[] modules, string hri, int quiet, byte alpha,
-        bool bearer = false)
+        bool bearer = false, int edgeGuardRuns = 0, int trailGuardRuns = -1)
     {
         var textH = HriBand(obj, obj.BarcodeShowText);
         var barH = Math.Max(1f, obj.Height - textH);
@@ -1253,7 +1518,8 @@ public static class BarcodeRenderer
         FillBarcodeBackground(canvas, obj, alpha);
         canvas.Save();
         canvas.ClipRect(new SKRect(0, 0, obj.Width, obj.Height));
-        DrawEanModules(canvas, modules, quiet, obj.Width, barH, barColor);
+        DrawEanModules(canvas, modules, quiet, obj.Width, barH, barColor,
+            guardExtraH: textH, edgeGuardRuns: edgeGuardRuns, trailGuardRuns: trailGuardRuns);
         if (bearer)
             DrawItfBearer(canvas, obj, modules, quiet, barH, barColor);
         if (textH > 0)
@@ -1272,14 +1538,37 @@ public static class BarcodeRenderer
     {
         var total = modules.Length + quiet * 2;
         var cellW = obj.Width / Math.Max(1, total);
-        var wide = Barcode1DEncoders.VendorOf(obj) == BarcodeVendorKind.Formtec ? 2 : 3;
-        var t = Math.Min(barH * 0.35f, cellW * wide);
+        var vendor = Barcode1DEncoders.VendorOf(obj);
         using var paint = new SKPaint
         {
             Color = color,
             IsAntialias = false,
             Style = SKPaintStyle.Fill
         };
+
+        if (vendor == BarcodeVendorKind.AniLabel)
+        {
+            // 애니라벨은 위아래 굵은 베어러가 아니라 막대 영역을 두르는 가는 사각 테두리다.
+            //「바코드 타입 전체.lbl」15번 칸 EMF: 500×434 논리 공간에서 네 변 모두 두께 4단위,
+            // 좁은 막대도 4단위다. 논리 단위가 가로세로로 달라서 가로줄이 세로줄보다 얇게 나온다.
+            //
+            // 신형(0x1B)은 더 굵다. 「1D barcode 타입.lbl」13~15번 칸(ITF-6·14·16)에 든
+            // 애니라벨 원본 그림은 좁은 막대가 6px, 네 변이 모두 18px로 3배다.
+            // 그림 높이는 심볼 길이와 상관없이 늘 540px이라 가로줄은 상자 높이의 18/540이다.
+            var legacy = Barcode1DEncoders.IsAniLabelLegacy(obj);
+            var sideW = legacy ? cellW : cellW * 3f;
+            var lineH = legacy
+                ? (obj.Width > 0 ? cellW * obj.Height / obj.Width : cellW)
+                : obj.Height * (18f / 540f);
+            canvas.DrawRect(0, 0, obj.Width, lineH, paint);
+            canvas.DrawRect(0, barH - lineH, obj.Width, lineH, paint);
+            canvas.DrawRect(0, 0, sideW, barH, paint);
+            canvas.DrawRect(obj.Width - sideW, 0, sideW, barH, paint);
+            return;
+        }
+
+        var wide = vendor == BarcodeVendorKind.Formtec ? 2 : 3;
+        var t = Math.Min(barH * 0.35f, cellW * wide);
         canvas.DrawRect(0, 0, obj.Width, t, paint);
         canvas.DrawRect(0, barH - t, obj.Width, t, paint);
     }
@@ -1289,11 +1578,23 @@ public static class BarcodeRenderer
         var id = (obj.BarcodeFormat ?? "").Replace("-", "_").ToUpperInvariant();
         if (id is not ("CODABAR" or "ABC_CODABAR")) return false;
         var vendor = Barcode1DEncoders.VendorOf(obj);
-        var modules = Barcode1DEncoders.EncodeCodabar(value, vendor, abc: id == "ABC_CODABAR");
+        var abc = id == "ABC_CODABAR";
+        var modules = Barcode1DEncoders.EncodeCodabar(
+            value, vendor, abc, legacyPsoft: Barcode1DEncoders.IsAniLabelLegacy(obj));
         var hri = obj.BarcodeShowText && !string.IsNullOrWhiteSpace(obj.Text)
             ? obj.Text.Trim()
             : value.Trim();
-        return modules is not null && TryDrawLinear(canvas, obj, modules, hri, Barcode1DEncoders.Quiet(vendor, 8), alpha);
+        // 애니라벨(PSOFT)은 시작·정지 문자의 막대 4개씩을 글자 칸 끝까지 늘려 그린다.
+        // 「바코드 타입 전체.lbl」 2번 칸 EMF에서 237개 중 앞 4·뒤 4개만 전체 높이다.
+        // 같은 EMF에서 막대가 상자 좌우 끝(0~500)까지 닿으므로 여백도 없다.
+        // 다만 8번 칸 ABC Codabar(0x09)는 EMF 막대 24개가 모두 같은 높이다. 긴 막대가 없다.
+        // 신형(LBL 0x1B) Codabar도「1D barcode 타입.lbl」2번 칸 비트맵에서 막대 높이가 모두 같다.
+        var anylabel = vendor == BarcodeVendorKind.AniLabel;
+        var guards = GuardBarsOn(obj, anylabel && !abc && Barcode1DEncoders.IsAniLabelLegacy(obj));
+        var quiet = anylabel ? 0 : Barcode1DEncoders.Quiet(vendor, 8);
+        return modules is not null
+               && TryDrawLinear(canvas, obj, modules, hri, quiet, alpha,
+                   edgeGuardRuns: guards ? 4 : 0);
     }
 
     private static bool TryDrawCode11(SKCanvas canvas, DesignObject obj, string value, byte alpha)
@@ -1301,8 +1602,16 @@ public static class BarcodeRenderer
         var id = (obj.BarcodeFormat ?? "").Replace("-", "_").ToUpperInvariant();
         if (id is not "CODE_11") return false;
         var payload = value.Trim();
-        var modules = Barcode1DEncoders.EncodeCode11(payload);
-        return modules is not null && TryDrawLinear(canvas, obj, modules, payload, quiet: 4, alpha);
+        // 애니라벨은 막대가 상자 좌우 끝까지 닿는다(「바코드 타입 전체.lbl」35번 칸 실측).
+        // 체크문자는 엔진마다 다르다. 구형 PSOFT(0x07)는 C·K 둘을 붙이지만,
+        // 신형(0x1B)은 하나도 붙이지 않는다. 「1D barcode 타입.lbl」 3번 칸 애니라벨 원본 그림이
+        // 71요소 = 시작 5 + 간격 1 + 열 글자 6씩 60 + 정지 5 로, 체크문자 자리가 없다.
+        // Code 11 체크문자는 규격에서도 선택이라 둘 다 규격 안이다.
+        var anylabel = Barcode1DEncoders.VendorOf(obj) == BarcodeVendorKind.AniLabel;
+        var checks = anylabel && Barcode1DEncoders.IsAniLabelLegacy(obj) ? 2 : 0;
+        var modules = Barcode1DEncoders.EncodeCode11(payload, checks);
+        return modules is not null
+               && TryDrawLinear(canvas, obj, modules, payload, anylabel ? 0 : 4, alpha);
     }
 
     private static bool TryDrawEanAddon(SKCanvas canvas, DesignObject obj, string value, byte alpha)
@@ -1322,10 +1631,68 @@ public static class BarcodeRenderer
     {
         var id = (obj.BarcodeFormat ?? "").Replace("-", "_").ToUpperInvariant();
         if (id is not "FIM") return false;
-        var modules = Barcode1DEncoders.EncodeFim(value);
-        return modules is not null && TryDrawLinear(canvas, obj, modules, value.Trim(), quiet: 4, alpha);
+        // 애니라벨은 빈자리를 1모듈로만 잡아 폭이 좁고, 막대가 상자 좌우 끝까지 닿는다(38번 칸 실측).
+        var anylabel = Barcode1DEncoders.VendorOf(obj) == BarcodeVendorKind.AniLabel;
+        var modules = Barcode1DEncoders.EncodeFim(value, compact: anylabel);
+        return modules is not null
+               && TryDrawLinear(canvas, obj, modules, value.Trim(), anylabel ? 0 : 4, alpha);
     }
 
+    /// <summary>
+    /// Telepen. 좁음 1모듈 / 넓음 3모듈이며 한 문자가 16모듈이다.
+    /// 애니라벨 구형 0x31은 막대가 상자 좌우 끝까지 닿아 여백이 없다(39번 칸 실측).
+    /// </summary>
+    private static bool TryDrawTelepen(SKCanvas canvas, DesignObject obj, string value, byte alpha)
+    {
+        var id = (obj.BarcodeFormat ?? "").Replace("-", "_").ToUpperInvariant();
+        if (id is not "TELEPEN") return false;
+        // 검사문자는 엔진마다 다르다. 구형 PSOFT(0x31)는 붙이지만 신형(0x1B 0x17)은 붙이지 않는다.
+        // 25번 칸 원본 그림 175요소 대 우리 185요소이고 앞 166요소가 같아 한 문자만큼 모자란다.
+        var modules = Barcode1DEncoders.EncodeTelepen(value.Trim(), withCheck: !IsAniLabelModern(obj));
+        if (modules is null) return false;
+        var quiet = Barcode1DEncoders.VendorOf(obj) == BarcodeVendorKind.AniLabel ? 0 : 10;
+        return TryDrawLinear(canvas, obj, modules, value.Trim(), quiet, alpha);
+    }
+
+    /// <summary>
+    /// Plessey. 애니라벨 신형만 우리 표로 그린다. 기본 경로(ZXing)는 그대로 둔다.
+    /// 신형은 CRC 검사문자를 붙이지 않고 칸 하나가 5모듈이다(<see cref="Barcode1DEncoders.EncodePlesseyAniLabel"/>).
+    /// </summary>
+    private static bool TryDrawPlessey(SKCanvas canvas, DesignObject obj, string value, byte alpha)
+    {
+        var id = (obj.BarcodeFormat ?? "").Replace("-", "_").ToUpperInvariant();
+        if (id is not "PLESSEY" || !IsAniLabelModern(obj)) return false;
+        var modules = Barcode1DEncoders.EncodePlesseyAniLabel(value);
+        return modules is not null
+               && TryDrawLinear(canvas, obj, modules, value.Trim(), 0, alpha);
+    }
+
+    /// <summary>
+    /// Pharmacode One-track(Laetus). 인코더가 없어 Code 128 로 흘러가던 것을 여기서 끊는다.
+    ///
+    /// 막대가 상자 좌우 끝까지 닿는다. 「1D barcode 타입.lbl」 26번 칸 애니라벨 원본 그림
+    /// 360px 이 60모듈 × 6px 로 딱 맞아 여백이 한 칸도 없다.
+    /// </summary>
+    private static bool TryDrawPharmaOne(SKCanvas canvas, DesignObject obj, string value, byte alpha)
+    {
+        var id = (obj.BarcodeFormat ?? "").Replace("-", "_").ToUpperInvariant();
+        if (id is not ("PHARMA_1" or "PHARMA")) return false;
+        var digits = DigitsOnly(value);
+        var modules = Barcode1DEncoders.EncodePharmaOne(digits);
+        if (modules is null) return false;
+
+        var quiet = Barcode1DEncoders.VendorOf(obj) == BarcodeVendorKind.AniLabel
+            ? 0
+            : Barcode1DEncoders.Quiet(Barcode1DEncoders.VendorOf(obj), 6);
+        return TryDrawLinear(canvas, obj, modules, digits, quiet, alpha);
+    }
+
+    /// <summary>
+    /// Pharmacode Two-track(Laetus). 막대 폭과 막대 사이가 1:1 이고(a3 = c3 = 1mm),
+    /// 위 칸·아래 칸 높이가 각각 전높이의 절반이다(e3 = e4 = e5 ÷ 2). 사이를 띄우지 않는다.
+    /// 「1D barcode 타입.lbl」 27번 칸 애니라벨 원본 그림도 막대 6px·사이 6px 에
+    /// 위 칸 0~232행·아래 칸 233~466행으로 맞닿아 있었다.
+    /// </summary>
     private static bool TryDrawPharmaTwo(SKCanvas canvas, DesignObject obj, string value, byte alpha)
     {
         var id = (obj.BarcodeFormat ?? "").Replace("-", "_").ToUpperInvariant();
@@ -1338,10 +1705,11 @@ public static class BarcodeRenderer
         var barColor = ColorUtil.Parse(obj.Fill, alpha);
         FillBarcodeBackground(canvas, obj, alpha);
 
-        var gap = 2.2f;
-        var total = bars.Length * gap;
-        var unit = obj.Width / Math.Max(1f, total);
-        var half = barH * 0.48f;
+        // 애니라벨은 좌우에 12모듈씩 비운다(원본 그림 330px = 여백 12 + 내용 31 + 여백 12 모듈).
+        var quiet = Barcode1DEncoders.VendorOf(obj) == BarcodeVendorKind.AniLabel ? 12 : 10;
+        var total = bars.Length * 2 - 1 + quiet * 2;
+        var unit = obj.Width / Math.Max(1, total);
+        var half = barH * 0.5f;
         using var paint = new SKPaint
         {
             Color = barColor,
@@ -1350,7 +1718,7 @@ public static class BarcodeRenderer
         };
         for (var i = 0; i < bars.Length; i++)
         {
-            var x = i * gap * unit;
+            var x = (quiet + i * 2) * unit;
             var kind = bars[i];
             if (kind is 1 or 2)
                 canvas.DrawRect(x, 0, unit, half, paint);
@@ -1367,12 +1735,65 @@ public static class BarcodeRenderer
         return true;
     }
 
+    /// <summary>
+    /// 코닥 패치 코드. 자료를 싣지 않고 스캐너에 「여기서 문서를 나눠라」만 알리는 표시다.
+    ///
+    /// 넓은 막대 둘(0.20인치)과 좁은 막대 둘(0.08인치)을 좁은 간격(0.08인치) 셋으로 띄운다.
+    /// 여섯 가지뿐이라 값이 곧 종류다. 1=WWnn 2=WnnW 3=WnWn 4=nWWn 6=nnWW T=nWnW.
+    /// 전체 폭은 늘 0.80인치(좁은 폭 10개분)라 어떤 종류든 크기가 같다.
+    ///
+    /// 다른 1D 와 달리 막대가 가로로 눕고 위에서 아래로 읽는다.
+    /// 애니라벨 신형 0x2A(43번 칸 값 `1`)도 30·12·30·12·12·12·12 픽셀로 눕혀 그려
+    /// 넓은 막대 대 좁은 막대가 2.5:1 인 규격과 맞는다. 자료가 없으니 캡션도 없다.
+    /// </summary>
+    private static bool TryDrawPatchCode(SKCanvas canvas, DesignObject obj, string value, byte alpha)
+    {
+        var id = (obj.BarcodeFormat ?? "").Replace("-", "_").ToUpperInvariant();
+        if (id is not ("PATCH_CODE" or "PATCHCODE")) return false;
+
+        var kind = (value ?? "").Trim().ToUpperInvariant();
+        var bars = kind switch
+        {
+            "1" => "WWnn",
+            "2" => "WnnW",
+            "3" => "WnWn",
+            "4" => "nWWn",
+            "6" => "nnWW",
+            "T" => "nWnW",
+            _ => null
+        };
+        if (bars is null) return false;
+
+        FillBarcodeBackground(canvas, obj, alpha);
+        using var paint = new SKPaint
+        {
+            Color = ColorUtil.Parse(obj.Fill, alpha),
+            IsAntialias = false,
+            Style = SKPaintStyle.Fill
+        };
+
+        // 좁은 폭을 1로 보면 넓은 막대 2.5, 좁은 막대 1, 간격 1 이라 전부 10이다.
+        var unit = obj.Height / 10f;
+        var y = 0f;
+        for (var i = 0; i < 4; i++)
+        {
+            var thick = (bars[i] == 'W' ? 2.5f : 1f) * unit;
+            canvas.DrawRect(0, y, obj.Width, thick, paint);
+            y += thick + unit;
+        }
+        return true;
+    }
+
     private static bool TryDrawPostnet(SKCanvas canvas, DesignObject obj, string value, byte alpha)
     {
         var id = (obj.BarcodeFormat ?? "").Replace("-", "_").ToUpperInvariant();
         if (id is not ("POSTNET" or "PLANET")) return false;
         var digits = DigitsOnly(value);
-        var pattern = Barcode1DEncoders.EncodePostnetPattern(digits, id is "PLANET");
+
+        // 애니라벨 실측(25번 칸 POSTNET): 막대 폭과 간격이 1:1, 짧은 막대는 전체 높이의 절반이다.
+        // 폼텍·아이라벨은 기존 값(간격 0.6X, 짧은 막대 0.4)을 그대로 쓴다.
+        var anylabel = Barcode1DEncoders.VendorOf(obj) == BarcodeVendorKind.AniLabel;
+        var pattern = Barcode1DEncoders.EncodePostnetPattern(digits, id is "PLANET", !anylabel);
         if (pattern is null) return false;
 
         var textH = HriBand(obj, obj.BarcodeShowText);
@@ -1380,10 +1801,10 @@ public static class BarcodeRenderer
         var barColor = ColorUtil.Parse(obj.Fill, alpha);
         FillBarcodeBackground(canvas, obj, alpha);
 
-        var gap = 1.6f;
-        var total = pattern.Length * gap - 0.6f;
+        var gap = anylabel ? 2f : 1.6f;
+        var total = pattern.Length * gap - (gap - 1f);
         var unit = obj.Width / Math.Max(1f, total);
-        var shortH = barH * 0.4f;
+        var shortH = barH * (anylabel ? 0.5f : 0.4f);
         using var paint = new SKPaint
         {
             Color = barColor,
@@ -1405,6 +1826,193 @@ public static class BarcodeRenderer
             DrawCenteredHri(canvas, obj, digits, barH, textH, font, tp, obj.Width);
         }
         return true;
+    }
+
+    /// <summary>애니라벨 구형 0x1F. 시작·정지 막대는 있고 체크문자만 없는 4상태다.</summary>
+    public const string FourStateNoCheck = "FOUR_STATE_NO_CHECK";
+
+    /// <summary>
+    /// RM4SCC·KIX 4상태 우편 심볼. 막대 칸을 세로로 3등분해서
+    /// F는 전체, A는 위 2/3, T는 가운데 1/3, D는 아래 2/3를 채운다.
+    /// 애니라벨 구형 EMF 실측(27번 칸): 전체 0~363, 상승부 0~242, 추적부 121~242, 하강부 121~363.
+    /// 막대 폭과 간격은 1:1이다. KIX는 시작·정지 막대도 체크문자도 없다.
+    /// USPS Intelligent Mail(65막대)과 Australia Post(37막대)도 같은 그리기 규칙을 쓴다.
+    /// </summary>
+    private static bool TryDrawFourState(SKCanvas canvas, DesignObject obj, string value, byte alpha)
+    {
+        var id = (obj.BarcodeFormat ?? "").Replace("-", "_").ToUpperInvariant();
+        if (id is not ("RM4SCC" or "KIX" or "KIX4S" or "ONECODE" or "AUSPOST" or "JAPAN_POST"
+            or "POSTBAR"))
+            return false;
+
+        string? pattern;
+        var shown = value.Trim();
+        if (id is "ONECODE")
+        {
+            pattern = Barcode1DEncoders.EncodeImb(value);
+        }
+        else if (id is "AUSPOST")
+        {
+            pattern = Barcode1DEncoders.EncodeAusPost(value, out var apHri);
+            // 애니라벨도 `59 32211324 A124B 26 23 20 52` 처럼 칸을 띄고 검사심볼까지 적는다.
+            if (pattern is not null) shown = apHri;
+        }
+        else if (id is "POSTBAR")
+        {
+            pattern = Barcode1DEncoders.EncodePostBar(value, out var pbHri);
+            // 애니라벨도 `B K1A4S2 1234 18283160` 처럼 칸을 띄고 검사심볼까지 적는다.
+            if (pattern is not null) shown = pbHri;
+        }
+        else if (id is "JAPAN_POST")
+        {
+            pattern = Barcode1DEncoders.EncodeJapanPost(value, out var jpHri);
+            // 캡션에 검사문자를 붙여 보여 준다. 애니라벨도 `1234567-890-AA` 로 찍는다.
+            if (pattern is not null) shown = jpHri;
+        }
+        else
+        {
+            var kix = id is not "RM4SCC";
+            var noCheck = kix
+                || (obj.QrKind ?? "").Equals(FourStateNoCheck, StringComparison.OrdinalIgnoreCase);
+            pattern = Barcode1DEncoders.EncodeFourState(value, startStop: !kix, check: !noCheck);
+        }
+        if (pattern is null) return false;
+
+        var textH = HriBand(obj, obj.BarcodeShowText);
+        var barH = Math.Max(1f, obj.Height - textH);
+        FillBarcodeBackground(canvas, obj, alpha);
+        canvas.Save();
+        canvas.ClipRect(new SKRect(0, 0, obj.Width, obj.Height));
+
+        var unit = obj.Width / Math.Max(1f, pattern.Length * 2 - 1);
+        var third = barH / 3f;
+        using var paint = new SKPaint
+        {
+            Color = ColorUtil.Parse(obj.Fill, alpha),
+            IsAntialias = false,
+            Style = SKPaintStyle.Fill
+        };
+        for (var i = 0; i < pattern.Length; i++)
+        {
+            var (top, bottom) = pattern[i] switch
+            {
+                'F' => (0f, barH),
+                'A' => (0f, third * 2f),
+                'D' => (third, barH),
+                _ => (third, third * 2f)
+            };
+            canvas.DrawRect(i * 2 * unit, top, unit, bottom - top, paint);
+        }
+
+        if (textH > 0)
+        {
+            using var font = CreateHriFont(obj, HriFontMm(obj, textH));
+            using var tp = new SKPaint { Color = HriColor(obj, alpha), IsAntialias = true };
+            DrawCenteredHri(canvas, obj, shown, barH, textH, font, tp, obj.Width);
+        }
+        canvas.Restore();
+        return true;
+    }
+
+    /// <summary>
+    /// 애니라벨은 값만 있는 MaxiCode도 모드 5(전체 오류정정)로 찍는다.
+    /// 「QR코드 타입.lbl」 7번 칸을 복호해 부호어 0~20이 모드 5와 그대로 맞는 것을 확인했다.
+    /// </summary>
+    private const int AniLabelMaxiCodeMode = 5;
+
+    /// <summary>
+    /// 그림 8의 행 간격 Y ÷ 칸 너비 X = √3/2. 애니라벨 BMP는 5px ÷ 4px = 0.800으로 납작하지만
+    /// 그쪽 과녁은 찌그러짐 없는 지름 42px 원이고, 42 ÷ 9 = 4.67px는 심볼 높이에서 되짚은
+    /// X(133 ÷ 28.87 = 4.61px)와 맞는다. 즉 애니라벨도 √3/2를 의도했고 행 간격만
+    /// 4.33px에서 정수로 내림한 것이라 규격 값을 그대로 쓴다.
+    /// </summary>
+    private const float MaxiRowPitchRatio = 0.8660254f;
+
+    /// <summary>육각형 긴 지름 V ÷ 짧은 지름 X = 2/√3.</summary>
+    private const float MaxiHexHeightRatio = 1.1547005f;
+
+    /// <summary>
+    /// MaxiCode (ISO/IEC 16023). 정육각형 모듈을 벌집으로 쌓고 가운데에 과녁(동심원 셋)을 올린다.
+    /// 사각 모듈이 아니라 ZXing BitMatrix 경로를 쓸 수 없어 여기서 끝까지 그린다.
+    /// 홀수 행은 반 칸 오른쪽으로 밀리고 열이 하나 적어 29칸이다(그림 5의 오른쪽 끝 자리가 비어 있다).
+    /// </summary>
+    private static bool TryDrawMaxiCode(SKCanvas canvas, DesignObject obj, string value, byte alpha)
+    {
+        var id = (obj.BarcodeFormat ?? "").Replace("-", "_").ToUpperInvariant();
+        if (id is not ("MAXICODE" or "MAXI_CODE")) return false;
+
+        var anylabel = Barcode1DEncoders.VendorOf(obj) == BarcodeVendorKind.AniLabel;
+        var grid = (anylabel ? MaxiCodeEncoder.Encode(value, AniLabelMaxiCodeMode) : null)
+                   ?? MaxiCodeEncoder.Encode(value);
+        if (grid is null)
+        {
+            // 모드 4 용량(부호어 93개)을 넘었거나 라틴1 밖 글자가 섞였다.
+            // 여기서 false를 돌려주면 ZXing 격자 경로로 흘러 엉뚱한 심볼이 나온다.
+            DrawPlaceholder(canvas, obj, "바코드 오류", alpha);
+            return true;
+        }
+
+        FillBarcodeBackground(canvas, obj, alpha);
+        canvas.Save();
+        canvas.ClipRect(new SKRect(0, 0, obj.Width, obj.Height));
+
+        // 33행 × 30열은 고정 크기라 상자 비율과 무관하게 심볼 비율을 지키고 왼쪽 위에 붙인다.
+        var symbolHeight = 32f * MaxiRowPitchRatio + MaxiHexHeightRatio;
+        var hexWidth = Math.Min(obj.Width / MaxiCodeEncoder.Columns, obj.Height / symbolHeight);
+        var hexHeight = hexWidth * MaxiHexHeightRatio;
+        var rowPitch = hexWidth * MaxiRowPitchRatio;
+
+        using var paint = new SKPaint
+        {
+            Color = ColorUtil.Parse(obj.Fill, alpha),
+            IsAntialias = true,
+            Style = SKPaintStyle.Fill
+        };
+        using var honeycomb = new SKPath();
+        for (var row = 0; row < MaxiCodeEncoder.Rows; row++)
+        {
+            var odd = (row & 1) != 0;
+            var cy = hexHeight / 2f + row * rowPitch;
+            var cols = MaxiCodeEncoder.Columns - (odd ? 1 : 0);
+            for (var col = 0; col < cols; col++)
+            {
+                if (!grid[row, col]) continue;
+                var cx = (col + (odd ? 1f : 0.5f)) * hexWidth;
+                AppendMaxiHexagon(honeycomb, cx, cy, hexWidth, hexHeight);
+            }
+        }
+        canvas.DrawPath(honeycomb, paint);
+
+        // 4.11.4 과녁. 전체 지름은 9X고, 첫 지름 V에서 같은 폭으로 다섯 번 커진다.
+        var step = (9f * hexWidth - hexHeight) / 5f;
+        using var ring = new SKPaint
+        {
+            Color = paint.Color,
+            IsAntialias = true,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = step / 2f
+        };
+        var bullX = 14.5f * hexWidth;
+        var bullY = symbolHeight * hexWidth / 2f;
+        for (var k = 5; k >= 1; k -= 2)
+            canvas.DrawCircle(bullX, bullY, (hexHeight + step * k - step / 2f) / 2f, ring);
+
+        canvas.Restore();
+        return true;
+    }
+
+    /// <summary>그림 8의 정육각형. 위아래가 꼭짓점이고 좌우가 평면이라 가로로 맞물린다.</summary>
+    private static void AppendMaxiHexagon(SKPath path, float cx, float cy, float w, float h)
+    {
+        var half = w / 2f;
+        var shoulder = h / 4f;
+        path.MoveTo(cx, cy - h / 2f);
+        path.LineTo(cx + half, cy - shoulder);
+        path.LineTo(cx + half, cy + shoulder);
+        path.LineTo(cx, cy + h / 2f);
+        path.LineTo(cx - half, cy + shoulder);
+        path.LineTo(cx - half, cy - shoulder);
+        path.Close();
     }
 
     /// <summary>
@@ -1472,7 +2080,7 @@ public static class BarcodeRenderer
             "MSI" => BarcodeFormat.MSI,
             "PLESSEY" => BarcodeFormat.PLESSEY,
             "PHARMA_1" or "PHARMA_2" => BarcodeFormat.PHARMA_CODE,
-            "RSS_14" => BarcodeFormat.RSS_14,
+            "RSS_14" or "RSS_LIMITED" => BarcodeFormat.RSS_14,
             "RSS_EXPANDED" => BarcodeFormat.RSS_EXPANDED,
             "ONECODE" => BarcodeFormat.IMB,
             _ => objTypeFallback(key)
@@ -1506,7 +2114,9 @@ public static class BarcodeRenderer
         if (id is "EAN_2" or "EAN_5" or "FIM" or "POSTNET" or "PLANET"
             or "I25_IATA" or "IATA" or "I25_DATALOGIC" or "DATALOGIC"
             or "I25_INDUSTRIAL" or "I25_MATRIX" or "I25_INVERT" or "COOP25"
-            or "CODE_11" or "PHARMA_2" or "CODABAR" or "ABC_CODABAR"
+            or "CODE_11" or "PHARMA_2" or "CODABAR" or "ABC_CODABAR" or "TELEPEN"
+            or "ONECODE" or "AUSPOST" or "JAPAN_POST" or "POSTBAR" or "CPC_BINARY"
+            or "CLOCKED_35"
             or "CODE_93" or "CODE93" or "CODE_93_EXT"
             or "EAN_128" or "GS1_128" or "UCC_EAN_128" or "UCC_128"
             or "UPC_E" or "UPCE" or "UPC_E0" or "UPC_E1"
@@ -1514,9 +2124,7 @@ public static class BarcodeRenderer
             or "MSI" or "MSI_PLESSEY")
             yield break;
 
-        if (id is "PATCH_CODE" or "FLATTERMARKEN" or "CHANNEL_CODE" or "BC309" or "BC412"
-            or "CLOCKED_35" or "ONECODE" or "KIX" or "JAPAN_POST" or "RM4SCC" or "UPU"
-            or "TELEPEN")
+        if (id is "PATCH_CODE" or "KIX" or "RM4SCC" or "UPU")
         {
             yield return (BarcodeFormat.CODE_128, value);
             yield break;
@@ -1554,8 +2162,9 @@ public static class BarcodeRenderer
 
         if (format == BarcodeFormat.UPC_A)
         {
+            // 체크숫자를 고쳐서 넘긴다. 저장값 그대로면 ZXing 이 거절해 Code 128 로 떨어진다.
             if (digits.Length is 11 or 12)
-                yield return (BarcodeFormat.UPC_A, digits);
+                yield return (BarcodeFormat.UPC_A, EnsureUpcA(digits));
             yield return (BarcodeFormat.CODE_128, value);
             yield break;
         }
@@ -1655,8 +2264,58 @@ public static class BarcodeRenderer
         }
 
         var id = (obj.BarcodeFormat ?? "").Replace("-", "_").ToUpperInvariant();
+        if (id is "MICRO_QR" or "MICRO_QR_CODE")
+        {
+            // 애니라벨은 판형·오류정정·마스크를 BMP에서 재어 넣어 둔다. 없으면 규격대로 자동이다.
+            var microQrVersion = obj.QrVersion is > 0 and <= 4 ? obj.QrVersion : 0;
+            return MicroQrEncoder.Encode(value, microQrVersion, obj.QrEcc, ParseMaskHint(obj.QrKind) ?? -1)
+                   ?? MicroQrEncoder.Encode(value);
+        }
+        if (id is "HANXIN" or "HAN_XIN")
+        {
+            // 애니라벨은 판형·오류정정·마스크를 BMP에서 재어 넣어 둔다. 없으면 규격대로 자동이다.
+            var hanXinVersion = obj.QrVersion is > 0 and <= 84 ? obj.QrVersion : 0;
+            return HanXinEncoder.Encode(value, hanXinVersion, obj.QrEcc, ParseMaskHint(obj.QrKind) ?? -1)
+                   ?? HanXinEncoder.Encode(value);
+        }
+        if (id is "GRID_MATRIX" or "GRIDMATRIX")
+        {
+            // 오류정정 등급은 심볼에 적히지 않아 자동에 맡긴다. 판형만 실측값을 넘긴다.
+            // 애니라벨 심볼은 혼합 모드 빈칸과 바이트 블록 길이가 규격을 벗어나 있어, 가져온 객체에만
+            // 그 결함을 켜서 원본과 모듈까지 같게 찍는다. 편집기에서 새로 만든 것은 규격대로 둔다.
+            var gridVersion = obj.QrVersion is > 0 and <= 13 ? obj.QrVersion : 0;
+            var gridQuirks = Barcode1DEncoders.VendorOf(obj) == BarcodeVendorKind.AniLabel;
+            return GridMatrixEncoder.Encode(value, gridVersion, 0, gridQuirks)
+                   ?? GridMatrixEncoder.Encode(value, 0, 0, gridQuirks);
+        }
+        if (id is "RSS_14" or "RSS14" or "GS1_DATABAR")
+        {
+            var rss14 = GS1DataBarEncoder.EncodeRss14(value);
+            if (rss14 is not null) return rss14;
+        }
+        if (id is "RSS_LIMITED" or "GS1_DATABAR_LIMITED")
+        {
+            var rssLimited = GS1DataBarEncoder.EncodeRssLimited(value);
+            if (rssLimited is not null) return rssLimited;
+        }
+        if (id is "RSS_EXPANDED" or "GS1_DATABAR_EXPANDED")
+        {
+            var rssExpanded = GS1DataBarEncoder.EncodeRssExpanded(value);
+            if (rssExpanded is not null) return rssExpanded;
+        }
+        if (id is "CODE_16K" or "CODE16K")
+        {
+            var code16k = Code16kEncoder.Encode(value);
+            if (code16k is not null) return code16k;
+        }
         if (id is "MICRO_PDF417" or "MICRO_PDF_417")
-            return MicroPdf417Encoder.Encode(value);
+        {
+            // 애니라벨은 열·행을 BMP에서 재어 `1x17` 꼴로 넣어 둔다. 없으면 규격 AutoSize를 쓴다.
+            TryParseGrid(obj.QrKind, out var microCols, out var microRows);
+            var latch = Barcode1DEncoders.VendorOf(obj) == BarcodeVendorKind.AniLabel;
+            return MicroPdf417Encoder.Encode(value, microCols, microRows, latch)
+                   ?? MicroPdf417Encoder.Encode(value, leadTextLatch: latch);
+        }
 
         EncodingOptions? options = null;
         try
@@ -1668,7 +2327,7 @@ public static class BarcodeRenderer
                     Width = 0,
                     Height = 0,
                     Margin = 0,
-                    CharacterSet = "UTF-8",
+                    CharacterSet = SkipQrEci(obj, value) ? null : "UTF-8",
                     ErrorCorrection = ParseEcc(obj.QrEcc)
                 },
                 BarcodeFormat.DATA_MATRIX => MakeDataMatrixOptions(obj),
@@ -1689,6 +2348,9 @@ public static class BarcodeRenderer
                 if (Barcode1DEncoders.VendorOf(obj) == BarcodeVendorKind.ILabel
                     && ILabelQrMasks.TryGetValue(MaskKey(obj, value), out var ilabelMask))
                     qr.Hints[EncodeHintType.QR_MASK_PATTERN] = ilabelMask;
+                // 애니라벨은 마스크 번호를 가져오기 때 BMP에서 읽어 `MASK:n`으로 넣어 둔다.
+                else if (ParseMaskHint(obj.QrKind) is { } aniMask)
+                    qr.Hints[EncodeHintType.QR_MASK_PATTERN] = aniMask;
             }
 
             var encoded = new BarcodeWriterGeneric { Format = format, Options = options }.Encode(value);
@@ -1699,14 +2361,37 @@ public static class BarcodeRenderer
         }
         catch
         {
+            var fallbackVendor = Barcode1DEncoders.VendorOf(obj);
             if (format == BarcodeFormat.DATA_MATRIX
-                && Barcode1DEncoders.VendorOf(obj) == BarcodeVendorKind.ILabel
+                && fallbackVendor is BarcodeVendorKind.ILabel or BarcodeVendorKind.AniLabel
                 && options is DatamatrixEncodingOptions dm)
             {
                 try
                 {
+                    // 실측 크기·인코딩에 안 들어가는 자료로 바뀐 경우다. 제약을 풀고 다시 시도한다.
                     dm.DefaultEncodation = Encodation.ASCII;
+                    if (fallbackVendor == BarcodeVendorKind.AniLabel)
+                    {
+                        dm.MinSize = null;
+                        dm.MaxSize = null;
+                        dm.SymbolShape = SymbolShapeHint.FORCE_SQUARE;
+                    }
                     return new BarcodeWriterGeneric { Format = format, Options = dm }.Encode(value);
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+            if (format == BarcodeFormat.PDF_417
+                && fallbackVendor == BarcodeVendorKind.AniLabel
+                && options is PDF417EncodingOptions pdf)
+            {
+                try
+                {
+                    // 못 박은 열·행에 안 들어갈 만큼 자료가 길어졌다. 열만 지키고 행은 푼다.
+                    pdf.Dimensions = new Dimensions(1, 30, 3, 90);
+                    return new BarcodeWriterGeneric { Format = format, Options = pdf }.Encode(value);
                 }
                 catch
                 {
@@ -1742,6 +2427,38 @@ public static class BarcodeRenderer
         => $"{value}:{(obj.QrEcc ?? "M").Trim().ToUpperInvariant()}:{obj.QrVersion}";
 
     /// <summary>
+    /// ZXing은 문자셋 힌트가 있으면 값과 상관없이 ECI 머리말 12비트를 먼저 넣는다.
+    /// 애니라벨은 ECI를 쓰지 않아 같은 버전·오류정정 수준이라도 그림이 달라지고,
+    /// 「QR코드 타입.lbl」 1번 칸(버전 1·H·마스크 3)처럼 아예 그 버전에 안 들어가기도 한다.
+    /// 라틴1로 적히는 값이면 힌트를 빼야 애니라벨과 같은 심볼이 나온다.
+    /// </summary>
+    private static bool SkipQrEci(DesignObject obj, string value)
+        => Barcode1DEncoders.VendorOf(obj) == BarcodeVendorKind.AniLabel
+           && value.All(c => c <= 0xFF);
+
+    /// <summary>`MASK:3` 형태면 마스크 번호를, 아니면 null을 준다.</summary>
+    private static int? ParseMaskHint(string? raw)
+    {
+        var key = (raw ?? "").Trim();
+        if (!key.StartsWith("MASK:", StringComparison.OrdinalIgnoreCase)) return null;
+        return int.TryParse(key[5..], NumberStyles.Integer, CultureInfo.InvariantCulture, out var n)
+               && n is >= 0 and <= 7
+            ? n
+            : null;
+    }
+
+    /// <summary>`3x9` 형태를 열·행으로 가른다. 애니라벨 2D 모양 실측값이 이 꼴로 들어온다.</summary>
+    private static bool TryParseGrid(string? raw, out int cols, out int rows)
+    {
+        cols = rows = 0;
+        var parts = (raw ?? "").Trim().ToUpperInvariant().Split('X');
+        return parts.Length == 2
+               && int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out cols)
+               && int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out rows)
+               && cols > 0 && rows > 0;
+    }
+
+    /// <summary>
     /// 표준/Truncated PDF417. Micro는 <see cref="MicroPdf417Encoder"/>가 담당한다.
     /// 아이라벨은 ECC·최소 열·종횡비를 옵션으로 넘기고, 폼텍은 ZXing 기본(ECC 2, 열 2–30)을 유지한다.
     /// </summary>
@@ -1756,7 +2473,31 @@ public static class BarcodeRenderer
             PureBarcode = true,
             Compact = id is "PDF_417_TRUNC" or "PDF417_TRUNCATED" or "PDF_417_TRUNCATED"
         };
-        if (Barcode1DEncoders.VendorOf(obj) != BarcodeVendorKind.ILabel)
+        var vendor = Barcode1DEncoders.VendorOf(obj);
+        if (vendor == BarcodeVendorKind.AniLabel)
+        {
+            // PDF417은 행 수·열 수·오류정정 수준을 인코더가 고르게 되어 있어(ISO/IEC 15438)
+            // 같은 자료라도 모양이 달라진다. 애니라벨은 데이터 8열을 쓴다 — 37번 칸 EMF에서
+            // 한 행이 막대 49개(= 시작 4 + 코드워드 10묶음 × 4 + 정지 5)이고 가로가 205모듈
+            // (= 17 × (8+4) + 1), 행 윗변이 0·100·200·300·400이라 5행이다.
+            //
+            // 실측 1행의 왼쪽 행표시자는 오류정정 2단계를 가리키지만, ZXing의 텍스트 압축은
+            // 애니라벨보다 코드워드를 하나 더 써서 2단계로 맞추면 6행이 되어 모양이 어긋난다.
+            // 1단계로 두면 5행 × 8열이 그대로 나오고 읽히는 값도 같다.
+            // 열만 최소 8로 묶고 행은 풀어두어 자료가 길어져도 인코딩이 실패하지 않게 한다.
+            //
+            // 신형 0x1C는 BMP가 함께 저장되어 열·행을 직접 잴 수 있다. 그때는 실측값을 그대로 쓴다.
+            if (TryParseGrid(obj.QrKind, out var pdfCols, out var pdfRows))
+            {
+                opt.Dimensions = new Dimensions(pdfCols, pdfCols, pdfRows, pdfRows);
+                opt.ErrorCorrection = FitPdf417Ecc(value, pdfCols, pdfRows);
+                return opt;
+            }
+            opt.ErrorCorrection = PDF417ErrorCorrectionLevel.L1;
+            opt.Dimensions = new Dimensions(8, 30, 3, 90);
+            return opt;
+        }
+        if (vendor != BarcodeVendorKind.ILabel)
             return opt;
 
         // 아이라벨 실측(12345)은 ZXing 기본과 같은 2열×6행(103모듈)이다. 열·행을 강제하지 않는다.
@@ -1771,6 +2512,48 @@ public static class BarcodeRenderer
         if (value.Length > 0 && value.All(char.IsAsciiDigit))
             opt.Compaction = Compaction.NUMERIC;
         return opt;
+    }
+
+    private static readonly Dictionary<string, PDF417ErrorCorrectionLevel> Pdf417EccFit = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// 열·행을 못 박은 채 들어갈 수 있는 가장 높은 오류정정 수준을 고른다.
+    /// 수준을 올릴수록 검사 코드워드가 배로 늘어나니, 못 박은 칸에 딱 차는 수준은 사실상 하나다.
+    /// 메움 코드워드로 남는 칸을 채우는 낮은 수준보다 이쪽이 원본과 맞는다.
+    /// 한 번 고른 값은 같은 값·크기에 대해 다시 쓰도록 담아 둔다.
+    /// </summary>
+    private static PDF417ErrorCorrectionLevel FitPdf417Ecc(string value, int cols, int rows)
+    {
+        var key = $"{cols}x{rows}:{value}";
+        if (Pdf417EccFit.TryGetValue(key, out var cached)) return cached;
+
+        var picked = PDF417ErrorCorrectionLevel.L2;
+        for (var level = 8; level >= 0; level--)
+        {
+            var probe = new PDF417EncodingOptions
+            {
+                Width = 0,
+                Height = 0,
+                Margin = 0,
+                PureBarcode = true,
+                Dimensions = new Dimensions(cols, cols, rows, rows),
+                ErrorCorrection = (PDF417ErrorCorrectionLevel)level
+            };
+            try
+            {
+                if (new BarcodeWriterGeneric { Format = BarcodeFormat.PDF_417, Options = probe }.Encode(value) is null)
+                    continue;
+                picked = (PDF417ErrorCorrectionLevel)level;
+                break;
+            }
+            catch
+            {
+                // 이 수준은 못 박은 칸에 안 들어간다. 한 단계 낮춰 본다.
+            }
+        }
+
+        Pdf417EccFit[key] = picked;
+        return picked;
     }
 
     private static PDF417ErrorCorrectionLevel ParsePdf417Ecc(string? raw)
@@ -1841,7 +2624,18 @@ public static class BarcodeRenderer
             PureBarcode = true,
             SymbolShape = SymbolShapeHint.FORCE_SQUARE
         };
-        if (Barcode1DEncoders.VendorOf(obj) != BarcodeVendorKind.ILabel)
+        var kind = Barcode1DEncoders.VendorOf(obj);
+        if (kind == BarcodeVendorKind.AniLabel)
+        {
+            // 애니라벨 Data Matrix는 텍스트 인코딩으로 넣는다.
+            // 심볼 크기는 파일에 없어 가져오기 때 BMP에서 재어 `20x20` 꼴로 넣어 둔다.
+            // 「QR코드 타입.lbl」 5번 칸이 20×20 400모듈 전부 일치한다.
+            opt.DefaultEncodation = Encodation.TEXT;
+            if (TryParseGrid(obj.QrKind, out var dmCols, out var dmRows))
+                ILabelDataMatrix.ApplySymbolSize(opt, dmCols, dmRows);
+            return opt;
+        }
+        if (kind != BarcodeVendorKind.ILabel)
             return opt;
 
         var size = (obj.QrKind ?? "").Trim().ToUpperInvariant();
@@ -1879,9 +2673,12 @@ public static class BarcodeRenderer
     private static void DrawEanModules(
         SKCanvas canvas, bool[] modules, int quiet, float width, float barH, SKColor color,
         float originX = 0, float guardExtraH = 0, bool retailGuards = false,
-        RetailGuardKind guardKind = RetailGuardKind.Ean13)
+        RetailGuardKind guardKind = RetailGuardKind.Ean13, int edgeGuardRuns = 0,
+        int trailGuardRuns = -1, int quietRight = -1)
     {
-        var total = modules.Length + quiet * 2;
+        if (trailGuardRuns < 0) trailGuardRuns = edgeGuardRuns;
+        if (quietRight < 0) quietRight = quiet;
+        var total = modules.Length + quiet + quietRight;
         var cellW = width / Math.Max(1, total);
         using var paint = new SKPaint
         {
@@ -1889,6 +2686,8 @@ public static class BarcodeRenderer
             IsAntialias = false,
             Style = SKPaintStyle.Fill
         };
+        var runs = (edgeGuardRuns > 0 || trailGuardRuns > 0) && guardExtraH > 0 ? CountBarRuns(modules) : 0;
+        var run = 0;
         var i = 0;
         var x = originX + quiet * cellW;
         while (i < modules.Length)
@@ -1901,12 +2700,25 @@ public static class BarcodeRenderer
             }
             var n = 1;
             while (i + n < modules.Length && modules[i + n]) n++;
-            var guard = retailGuards && guardExtraH > 0 && RunTouchesRetailGuard(i, n, guardKind);
+            var edge = runs > 0 && (run < edgeGuardRuns || run >= runs - trailGuardRuns);
+            var guard = edge || (retailGuards && guardExtraH > 0 && RunTouchesRetailGuard(i, n, guardKind));
             var h = guard ? barH + guardExtraH : barH;
             canvas.DrawRect(x, 0, n * cellW, h, paint);
             x += n * cellW;
             i += n;
+            run++;
         }
+    }
+
+    private static int CountBarRuns(bool[] modules)
+    {
+        var runs = 0;
+        for (var i = 0; i < modules.Length; i++)
+        {
+            if (!modules[i] || (i > 0 && modules[i - 1])) continue;
+            runs++;
+        }
+        return runs;
     }
 
     private enum RetailGuardKind { Ean13, Ean8, UpcE }

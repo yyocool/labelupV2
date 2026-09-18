@@ -29,6 +29,7 @@ final class EditorSystemFontApiController extends BaseController
         '궁서' => ['gungsuh.ttf', 'gungseh.ttf', 'batang.ttc'],
         'gungsuh' => ['gungsuh.ttf', 'gungseh.ttf'],
         'arial' => ['arial.ttf', 'arialbd.ttf', 'ariali.ttf', 'arialbi.ttf'],
+        'arial black' => ['ariblk.ttf'],
         'arial narrow' => ['arialn.ttf', 'arialnb.ttf', 'arialni.ttf', 'arialnbi.ttf'],
         'times new roman' => ['times.ttf', 'timesbd.ttf', 'timesi.ttf', 'timesbi.ttf'],
         'georgia' => ['georgia.ttf', 'georgiab.ttf', 'georgiai.ttf', 'georgiaz.ttf'],

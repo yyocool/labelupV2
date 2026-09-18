@@ -28,9 +28,26 @@
         {
           <p class="ed-vendor-report__error">@_error</p>
         }
-        else
+        else if (_notFound.Count == 0)
         {
           <p>「Chrome에서 허용」을 누르면 바로 아래 허용 창이 떠야 합니다.</p>
+        }
+        @if (_notFound.Count > 0)
+        {
+          <p>못 찾은 글꼴은 대체 글꼴로 그립니다. 글꼴 파일을 직접 고르면 그대로 씁니다.</p>
+          <ul class="ed-local-font__picks">
+            @foreach (var name in _notFound)
+            {
+              <li>
+                <span class="ed-local-font__name">@name</span>
+                <label class="ed-btn ed-btn--file">
+                  글꼴 파일 고르기
+                  <InputFile OnChange="e => OnFontFile(e, name)" accept=".ttf,.otf,.ttc,.otc" disabled="@_busy" />
+                </label>
+              </li>
+            }
+          </ul>
+          <p class="ed-local-font__hint">윈도우 글꼴은 C:\Windows\Fonts 에 있습니다.</p>
         }
       </div>
       <footer class="ed-modal__foot">
@@ -38,7 +55,7 @@
         <button type="button" class="ed-btn ed-btn--primary" data-local-font-grant
                 disabled="@_busy"
                 onclick="event.stopPropagation(); window.labelUpEditor && labelUpEditor.grantLocalFonts();">
-          @(_busy ? "글꼴을 읽는 중…" : "Chrome에서 허용")
+          @(_busy ? "글꼴을 읽는 중…" : _notFound.Count > 0 ? "다시 찾기" : "Chrome에서 허용")
         </button>
       </footer>
     </div>
@@ -46,8 +63,13 @@
 }
 
 @code {
+    /// <summary>글꼴 파일 하나가 이보다 크면 받지 않는다. ttc 모음집도 이 안에 든다.</summary>
+    private const long MaxFontBytes = 48L * 1024 * 1024;
+
     private bool _busy;
+    private bool _wasOpen;
     private string _error = "";
+    private List<string> _notFound = [];
     private DotNetObjectReference<LocalFontDialog>? _self;
 
     protected override void OnInitialized() => Session.Changed += OnChanged;
@@ -57,7 +79,17 @@
         _self?.Dispose();
     }
 
-    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+    private void OnChanged()
+    {
+        var open = Session.Dialog == EditorDialog.LocalFont;
+        if (open && !_wasOpen)
+        {
+            _notFound = [];
+            _error = "";
+        }
+        _wasOpen = open;
+        _ = InvokeAsync(StateHasChanged);
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -113,18 +145,21 @@
         try
         {
             await Fonts.TryChromeLocalFontsAsync(names);
-            Session.InvalidateRender();
             var still = Fonts.MissingLocalFamilies(names);
             var applied = names.Where(n => !still.Contains(n, StringComparer.OrdinalIgnoreCase)).ToList();
+            // 못 찾은 이름을 적어 둬야 이 창이 닫힌 뒤 다시 열리지 않는다.
+            Fonts.MarkLocalMissing(still);
+            Session.InvalidateRender();
             if (still.Count == 0)
             {
                 Close("이 PC 글꼴을 적용했습니다: " + string.Join(", ", applied));
                 return;
             }
-            Session.PendingLocalFonts = still.ToList();
+            _notFound = still.ToList();
+            Session.PendingLocalFonts = _notFound.ToList();
             _error = applied.Count > 0
                 ? string.Join(", ", applied) + " 적용. 나머지 글꼴은 이 PC에서 찾지 못했습니다."
-                : "이 PC에서 해당 글꼴을 찾지 못했습니다. Chrome 허용 창에서 허용했는지 확인해 주세요.";
+                : "이 PC에서 해당 글꼴을 찾지 못했습니다.";
         }
         catch (Exception ex)
         {
@@ -138,10 +173,61 @@
         }
     }
 
+    /// <summary>고른 글꼴 파일을 그 이름에 묶는다. 이름이 달라도 고른 대로 쓴다.</summary>
+    private async Task OnFontFile(InputFileChangeEventArgs e, string family)
+    {
+        var file = e.File;
+        if (file is null || _busy) return;
+        _busy = true;
+        _error = "";
+        try
+        {
+            if (file.Size > MaxFontBytes)
+            {
+                _error = "글꼴 파일이 너무 큽니다 (최대 48MB).";
+                return;
+            }
+            using var stream = file.OpenReadStream(MaxFontBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+
+            if (Fonts.AttachPickedFile(file.Name, buffer.ToArray(), family) is { } reason)
+            {
+                _error = reason;
+                return;
+            }
+
+            _notFound.Remove(family);
+            Session.PendingLocalFonts = _notFound.ToList();
+            Session.InvalidateRender();
+            if (_notFound.Count == 0)
+            {
+                Close($"{family} 글꼴 파일을 적용했습니다");
+                return;
+            }
+            _error = $"{family} 적용. 남은 글꼴: {string.Join(", ", _notFound)}";
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn($"고른 글꼴 파일 적용 실패: {family} · {ex.Message}");
+            _error = "글꼴 파일을 읽지 못했습니다. ttf · otf · ttc만 됩니다.";
+        }
+        finally
+        {
+            _busy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
     private void Skip()
     {
         if (_busy) return;
-        Close("대체 글꼴로 표시합니다");
+        var names = CurrentNames().ToList();
+        // 닫고 나서 같은 이름으로 다시 묻지 않는다.
+        Fonts.MarkLocalMissing(names);
+        Close(names.Count > 0
+            ? string.Join(", ", names) + " → 대체 글꼴로 표시합니다"
+            : "대체 글꼴로 표시합니다");
     }
 
     private List<string> CurrentNames()

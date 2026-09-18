@@ -3440,6 +3440,36 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   cursor: pointer;
 }
 
+.ed-local-font__picks {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  max-height: 200px;
+  overflow: auto;
+}
+.ed-local-font__picks li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: #f7f4f1;
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+.ed-local-font__name {
+  font-weight: 800;
+  font-size: 12px;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.ed-local-font__hint {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
 .ed-float-tools__bar { flex-wrap: wrap; max-width: min(980px, calc(100vw - 48px)); }
 .ed-float-tools__paper {
   display: flex;

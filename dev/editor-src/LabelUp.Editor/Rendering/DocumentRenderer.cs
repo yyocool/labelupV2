@@ -715,7 +715,7 @@ public static class DocumentRenderer
     private const float AniLabelLineMarginMm = 3f;
 
     private static bool IsAniLabelStroke(DesignObject obj)
-        => string.Equals(obj.BarcodeVendor, "anylabel", StringComparison.OrdinalIgnoreCase);
+        => Barcode1DEncoders.VendorOf(obj) == BarcodeVendorKind.AniLabel;
 
     /// <summary>애니라벨 선/화살표. 크기 박스 안쪽 3mm를 비우고 가로·세로·대각을 그린다.</summary>
     private static void DrawAniLabelLine(SKCanvas canvas, DesignObject obj, SKPaint stroke)
@@ -825,6 +825,19 @@ public static class DocumentRenderer
             ? obj.TextPaddingXMm
             : Math.Clamp(obj.Width * 0.015f, 0.08f, 0.35f);
 
+    /// <summary>줄을 나누고 가운데·오른쪽 맞춤을 잡는 기준 폭. 둘이 어긋나면 글이 상자 밖으로 밀린다.</summary>
+    private static float TextWrapWidth(DesignObject obj)
+        => Math.Max(0.3f, obj.Width - TextPadX(obj) * 2f);
+
+    /// <summary>
+    /// 글상자 한 개를 줄로 나눈다. 그리기와 같은 값을 얻으려면 이 함수만 부르면 된다.
+    /// 그리는 쪽이 이미 만들어 둔 글자자가 있으면 그것을 넘겨, 재는 자와 그리는 자를 하나로 묶는다.
+    /// </summary>
+    private static List<string> LayoutTextLines(
+        DesignObject obj, SKFont font, string text, GdiTextMetrics? metrics = null)
+        => WrapText(text, font, obj.FontFamily, obj.Bold, TextWrapWidth(obj), obj.TextWrap,
+            metrics ?? MakeGdiMetrics(obj, font));
+
     private static void DrawText(SKCanvas canvas, DesignObject obj, string text, byte alpha)
     {
         if (!obj.BackgroundTransparent && !string.IsNullOrWhiteSpace(obj.BackgroundFill))
@@ -869,7 +882,7 @@ public static class DocumentRenderer
         }
 
         using var paint = new SKPaint { Color = ColorUtil.Parse(obj.Fill, alpha), IsAntialias = true };
-        using var font = MakeTextFont(ResolveTypeface(obj.FontFamily, obj.Bold, obj.Italic), obj.FontSize);
+        using var font = MakeTextFont(ResolveTypeface(obj.FontFamily, obj.Bold, obj.Italic), TextEmSize(obj));
 
         if (obj.TextDirection == "vertical")
         {
@@ -886,8 +899,10 @@ public static class DocumentRenderer
         }
 
         var inset = TextPadX(obj);
-        var maxW = Math.Max(0.3f, obj.Width - inset * 2f);
-        var lines = WrapText(text, font, obj.FontFamily, obj.Bold, maxW, obj.TextWrap);
+        var maxW = TextWrapWidth(obj);
+        // 줄을 나눌 때 쓴 자를 그대로 들고 가야 맞춤과 밑줄이 줄바꿈과 어긋나지 않는다.
+        var metrics = MakeGdiMetrics(obj, font);
+        var lines = LayoutTextLines(obj, font, text, metrics);
         var lineH = obj.FontSize * Math.Max(0.62f, obj.LineHeight);
         var totalH = lineH * lines.Count;
         var ascent = VisualAscent(font, lines.Count > 0 ? lines[0] : text, obj.FontSize);
@@ -903,7 +918,7 @@ public static class DocumentRenderer
         for (var i = 0; i < lines.Count; i++)
         {
             var line = lines[i];
-            var tw = MeasureLine(font, obj.FontFamily, obj.Bold, line);
+            var tw = metrics?.Width(line) ?? MeasureLine(font, obj.FontFamily, obj.Bold, line);
             float x = obj.TextAlign switch
             {
                 "left" => inset,
@@ -911,7 +926,10 @@ public static class DocumentRenderer
                 _ => inset + (maxW - tw) / 2f
             };
             var y = startY + i * lineH;
-            DrawGlyph(canvas, obj, line, x, y, SKTextAlign.Left, font, paint, alpha);
+            if (metrics is null)
+                DrawGlyph(canvas, obj, line, x, y, SKTextAlign.Left, font, paint, alpha);
+            else
+                metrics.DrawLine(canvas, obj, line, x, y, paint, alpha);
             if (obj.Underline || obj.Strikeout)
             {
                 using var lp = new SKPaint
@@ -1191,13 +1209,17 @@ public static class DocumentRenderer
         lines.Add(line);
     }
 
-    private static List<string> WrapText(string text, SKFont font, string? family, bool bold, float maxWidth, string? mode)
+    private static List<string> WrapText(
+        string text, SKFont font, string? family, bool bold, float maxWidth, string? mode,
+        GdiTextMetrics? metrics = null)
     {
         var hard = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         if (string.Equals(mode, "none", StringComparison.OrdinalIgnoreCase))
             return [.. hard];
 
         var word = string.Equals(mode, "word", StringComparison.OrdinalIgnoreCase);
+        // GDI는 상자 폭도 글자 폭도 정수 픽셀이라 실수 여유가 없다. 실수로 잴 때만 0.35mm를 봐준다.
+        var limit = metrics is not null ? SnapToGdiPixels(maxWidth) : maxWidth + 0.35f;
         var lines = new List<string>();
         foreach (var para in hard)
         {
@@ -1211,7 +1233,8 @@ public static class DocumentRenderer
             foreach (var ch in para)
             {
                 var test = current + ch;
-                if (MeasureLine(font, family, bold, test) <= maxWidth + 0.35f || current.Length == 0)
+                var width = metrics?.Width(test) ?? MeasureLine(font, family, bold, test);
+                if (width <= limit || current.Length == 0)
                 {
                     current = test;
                     continue;
@@ -1245,6 +1268,119 @@ public static class DocumentRenderer
             if (char.IsWhiteSpace(s[i])) return i;
         }
         return -1;
+    }
+
+    /// <summary>애니라벨이 글꼴을 만들 때 쓰는 화면 해상도. lfHeight = -MulDiv(pt, 96, 72) 의 96이다.</summary>
+    private const float GdiScreenDpi = 96f;
+
+    private static float ToGdiPixels(float mm) => mm * GdiScreenDpi / 25.4f;
+
+    private static float FromGdiPixels(float px) => px * 25.4f / GdiScreenDpi;
+
+    /// <summary>GDI 반올림은 0.5를 올린다. Arial x는 0.5em이라 13px에서 6.5px가 아니라 7px이다.</summary>
+    private static float RoundGdiPixels(float px) => MathF.Round(px, MidpointRounding.AwayFromZero);
+
+    /// <summary>
+    /// 상자 폭을 정수 픽셀에 맞춘다. 애니라벨 상자는 화면 픽셀 단위로 잡혀 있어
+    /// 「QR코드 타입.lbl」 14·15·16번 칸의 39.69mm 는 96dpi에서 꼭 150px 이다.
+    /// </summary>
+    private static float SnapToGdiPixels(float mm) => FromGdiPixels(RoundGdiPixels(ToGdiPixels(mm)));
+
+    /// <summary>
+    /// 글자를 그릴 때 쓸 em 크기(mm). 애니라벨 글상자만 96dpi 정수 픽셀에 맞춘다.
+    /// 애니라벨의 lfHeight = -MulDiv(pt, 96, 72) 과 같은 값이 나온다. 10pt = 3.5278mm 는 13px = 3.4396mm 다.
+    /// DesignObject.FontSize 는 건드리지 않는다. 파일에 10pt로 적혀 있으면 속성창도 10pt라고 말해야 한다.
+    /// </summary>
+    private static float TextEmSize(DesignObject obj)
+        => obj.TextGdiMetrics
+            ? FromGdiPixels(Math.Max(1f, RoundGdiPixels(ToGdiPixels(obj.FontSize))))
+            : obj.FontSize;
+
+    /// <summary>애니라벨 글상자면 GDI 글자자를 만든다. 아니면 null 이라 기존 경로가 그대로 쓰인다.</summary>
+    private static GdiTextMetrics? MakeGdiMetrics(DesignObject obj, SKFont font)
+        => obj.TextGdiMetrics ? new GdiTextMetrics(font, obj.FontFamily, obj.Bold) : null;
+
+    /// <summary>
+    /// GDI 글자자. em을 정수 픽셀에 맞춘 글꼴에서 글자마다 이송폭을 정수 픽셀로 반올림해 쓴다.
+    ///
+    /// 「QR코드 타입.lbl」 16번 칸 첫 줄 `RSS expanded , (01)9501` 을 보면,
+    /// 실수 이송폭 합은 11.563em = 40.794mm 로 39.6875mm(=150px) 상자를 1.1mm 넘지만,
+    /// 13px 정수 이송폭으로 더하면 9+9+9+4 +7×8 +4+4+4 +7+7+4 +7+7+7+7 = 149px = 39.42mm 라 들어간다.
+    /// 좁아지는 몫은 대부분 글자별 반올림에서 온다. Arial 숫자 이송폭 0.556em 은 13px에서 7.228px 이고
+    /// 내려서 7px 이 되므로 숫자가 많은 글줄에서 3.2%가 줄어든다. em만 정수로 맞춰서는 모자란다.
+    ///
+    /// 재기(Width)와 그리기(DrawLine)가 같은 이송폭 표를 쓰므로 두 값이 어긋날 수 없다.
+    /// 덕분에 줄바꿈 자리와 가운데·오른쪽 맞춤과 밑줄 길이가 모두 같은 자에서 나온다.
+    /// 같은 글자가 줄마다 되풀이되므로 이송폭과 글꼴 판정은 한 번만 재서 갖고 있는다.
+    /// </summary>
+    private sealed class GdiTextMetrics
+    {
+        private readonly Dictionary<int, float> _advances = [];
+        private readonly Dictionary<int, bool> _plain = [];
+        private readonly SKFont _font;
+        private readonly string? _family;
+        private readonly bool _bold;
+        private readonly float _pixelsPerMm;
+
+        public GdiTextMetrics(SKFont font, string? family, bool bold)
+        {
+            _font = font;
+            _family = family;
+            _bold = bold;
+            var emPixels = Math.Max(1f, RoundGdiPixels(ToGdiPixels(font.Size)));
+            _pixelsPerMm = emPixels / Math.Max(0.01f, font.Size);
+        }
+
+        /// <summary>글줄 폭(mm). 정수 이송폭을 더한 값이라 실제로 그려지는 폭과 언제나 같다.</summary>
+        public float Width(string text)
+        {
+            var pixels = 0f;
+            foreach (var rune in text.EnumerateRunes())
+            {
+                if (IsInvisibleFormat(rune.Value)) continue;
+                pixels += Advance(rune);
+            }
+            return FromGdiPixels(pixels);
+        }
+
+        /// <summary>
+        /// 글줄을 정수 이송폭 위에 한 글자씩 앉힌다. GDI ExtTextOutW 가 글자를 앉히는 방식 그대로다.
+        /// 한 자씩 그려도 글자 모양은 달라지지 않는다. Skia 는 이 경로에서 커닝을 넣지 않아
+        /// 이송폭을 더해 얻은 자리와 글줄로 한 번에 그린 자리가 어차피 같기 때문이다.
+        /// </summary>
+        public void DrawLine(
+            SKCanvas canvas, DesignObject obj, string text, float x, float y, SKPaint paint, byte alpha)
+        {
+            var pixels = 0f;
+            foreach (var rune in text.EnumerateRunes())
+            {
+                if (IsInvisibleFormat(rune.Value)) continue;
+                var glyph = rune.ToString();
+                var at = x + FromGdiPixels(pixels);
+                if (IsPlain(rune) && !obj.Shadow && !obj.Outline)
+                    canvas.DrawText(glyph, at, y, SKTextAlign.Left, _font, paint);
+                else
+                    DrawGlyph(canvas, obj, glyph, at, y, SKTextAlign.Left, _font, paint, alpha);
+                pixels += Advance(rune);
+            }
+        }
+
+        private float Advance(System.Text.Rune rune)
+        {
+            if (_advances.TryGetValue(rune.Value, out var advance)) return advance;
+            advance = RoundGdiPixels(MeasureLine(_font, _family, _bold, rune.ToString()) * _pixelsPerMm);
+            _advances[rune.Value] = advance;
+            return advance;
+        }
+
+        /// <summary>이 글꼴로 바로 그려도 되는 글자인지. 대체 글꼴을 찾아야 하는 글자만 느린 길로 보낸다.</summary>
+        private bool IsPlain(System.Text.Rune rune)
+        {
+            if (_plain.TryGetValue(rune.Value, out var plain)) return plain;
+            plain = !NeedsMixedGlyphs(_font, rune.ToString());
+            _plain[rune.Value] = plain;
+            return plain;
+        }
     }
 
     private static void DrawStretchedText(SKCanvas canvas, DesignObject obj, string text, SKFont font, SKPaint paint, byte alpha)
@@ -1559,39 +1695,241 @@ public static class DocumentRenderer
         }
     }
 
-    private static void DrawVerticalText(SKCanvas canvas, DesignObject obj, string text, SKFont font, SKPaint paint, byte alpha)
+    /// <summary>세로쓰기는 글자를 한 칸씩 쌓으므로 줄바꿈 글자는 칸을 차지하지 않는다.</summary>
+    private static char[] VerticalChars(string text)
+        => text.Replace("\r\n", "").Replace("\n", "").ToCharArray();
+
+    /// <summary>세로쓰기 글자 하나의 자리. Baseline 은 상자 위쪽에서 잰 기준선이다.</summary>
+    private readonly record struct VerticalGlyph(char Text, int Column, float Baseline);
+
+    /// <summary>세로쓰기 배치 결과. 열은 오른쪽에서 왼쪽으로 늘어난다.</summary>
+    private readonly record struct VerticalTextBox(
+        int Columns, float ColumnWidth, float StartX, VerticalGlyph[] Glyphs);
+
+    /// <summary>
+    /// 세로쓰기 글상자를 상자 안에 앉힌다. 글자는 위에서 아래로 쌓이고 열은 오른쪽에서 왼쪽으로 늘어난다.
+    ///
+    /// 열 나누기는 가로쓰기 글자 단위 줄바꿈과 축만 맞바꾼 셈이다. 글자마다 이송폭을 재어 채우다
+    /// 상자 높이를 넘으면 다음 열로 넘긴다. 그래서 열 안쪽으로는 넘칠 일이 없고 넘침은 열 묶음 쪽에만 생긴다.
+    /// 들어가지 않는 글을 줄이거나 좁히지 않는 것도 가로쓰기와 같다.
+    ///
+    /// 값은 mm 과 붙박이 96dpi 에서만 나온다. PxPerMm·확대율·내보내기 배율은 읽지 않는다.
+    /// 화면에서 본 열 나눔이 인쇄에서 달라지면 안 되기 때문이다.
+    /// </summary>
+    private static VerticalTextBox MeasureVerticalText(DesignObject obj, string text, SKFont font)
     {
-        var chars = text.Replace("\r\n", "").Replace("\n", "").ToCharArray();
-        if (chars.Length == 0) return;
-        var lineH = obj.FontSize * Math.Max(0.7f, obj.LineHeight);
-        var colW = obj.FontSize * 1.15f;
-        var rows = Math.Max(1, (int)Math.Floor(obj.Height / lineH));
-        var cols = (int)Math.Ceiling(chars.Length / (double)rows);
-        var totalW = cols * colW;
+        var chars = VerticalChars(text);
+        var colW = font.Size * VerticalColumnPitchEm(obj);
         var pad = TextPadX(obj);
+        var limit = Math.Max(0.1f, obj.Height);
+
+        var steps = new float[chars.Length];
+        for (var i = 0; i < chars.Length; i++)
+            steps[i] = VerticalStepMm(obj, font, chars[i]);
+
+        var breaks = new List<int> { 0 };
+        var heights = new List<float>();
+        var used = 0f;
+        for (var i = 0; i < chars.Length; i++)
+        {
+            if (i > breaks[^1] && used + steps[i] > limit)
+            {
+                heights.Add(used);
+                breaks.Add(i);
+                used = 0f;
+            }
+            used += steps[i];
+        }
+        heights.Add(used);
+
+        var cols = breaks.Count;
+
+        // 열 묶음이 상자보다 넓어도 맞춤 그대로 앉힌다. 애니라벨도 그렇게 그린다.
+        // 「QR코드 타입2.lbl」 3쪽 11번 칸 B 는 15px 상자에 두 열이라 가운데 맞춤으로 양쪽이 잘리는데,
+        // 애니라벨 화면도 오른쪽 열은 왼쪽 반만, 왼쪽 열은 오른쪽 반만 남아 있다.
+        var width = cols * colW;
         var startX = obj.TextAlign switch
         {
             "left" => pad,
-            "right" => Math.Max(pad, obj.Width - totalW - pad),
-            _ => pad + Math.Max(0, (obj.Width - pad * 2f - totalW) / 2f)
-        };
-        var startY = obj.VerticalAlign switch
-        {
-            "top" => lineH,
-            "bottom" => obj.Height - 0.4f,
-            _ => (obj.Height + lineH * Math.Min(rows, chars.Length)) / 2f
+            "right" => obj.Width - pad - width,
+            _ => pad + (TextWrapWidth(obj) - width) / 2f
         };
 
+        // 세로 맞춤은 열마다 제 높이로 따로 잡는다. 애니라벨 B 의 둘째 열은 「기」 한 글자뿐인데
+        // 첫 열 꼭대기가 아니라 상자 한가운데(첫 열 잉크 중심과 같은 자리)에 놓여 있다.
+        // 기준선을 글자 칸의 아래에 두므로 각 열 첫 글자 기준선은 제 이송폭만큼 내려간 자리다.
+        var glyphs = new VerticalGlyph[chars.Length];
+        var col = 0;
+        var y = VerticalColumnTop(obj, heights[0]);
         for (var i = 0; i < chars.Length; i++)
         {
-            var col = i / rows;
-            var row = i % rows;
-            var x = startX + (cols - 1 - col) * colW + colW * 0.5f;
-            var y = obj.VerticalAlign == "top"
-                ? lineH + row * lineH
-                : startY - (Math.Min(rows, chars.Length) - 1 - row) * lineH;
-            DrawGlyph(canvas, obj, chars[i].ToString(), x, y, SKTextAlign.Center, font, paint, alpha);
+            if (col + 1 < cols && i == breaks[col + 1])
+            {
+                col++;
+                y = VerticalColumnTop(obj, heights[col]);
+            }
+            y += steps[i];
+            glyphs[i] = new VerticalGlyph(chars[i], col, y);
         }
+        return new VerticalTextBox(cols, colW, startX, glyphs);
+    }
+
+    /// <summary>
+    /// 세로쓰기 열 사이 간격(em 배수).
+    ///
+    /// 애니라벨 값은 「QR코드 타입2.lbl」 3쪽 11번 칸 B 화면에서 재었다. 두 열이 상자를 넘쳐 양쪽이 잘리므로
+    /// 남은 잉크 사이의 빈 자리가 곧 `간격 − 글자 잉크 폭`이다. 상자 폭으로 나누면 애니라벨 0.378,
+    /// 우리 0.344 였고 글자 잉크 폭이 같으니 차이가 그대로 간격 차이다. 애니라벨은 15.5px = 1.19em 이다.
+    /// 가로쓰기 기본 행간과 같은 1.2em 으로 본다.
+    ///
+    /// 1.15 는 예전부터 에디터가 쓰던 값이라 애니라벨 밖에서는 건드리지 않는다.
+    /// 애니라벨 행간을 늘려도 열 간격이 움직이지 않으므로 여기에도 행간을 곱하지 않는다.
+    /// </summary>
+    private static float VerticalColumnPitchEm(DesignObject obj) => obj.TextGdiMetrics ? 1.2f : 1.15f;
+
+    /// <summary>세로쓰기 한 열의 첫 글자 칸이 시작하는 자리(mm).</summary>
+    private static float VerticalColumnTop(DesignObject obj, float height)
+        => obj.VerticalAlign switch
+        {
+            "top" => 0f,
+            "bottom" => obj.Height - 0.4f - height,
+            _ => (obj.Height - height) / 2f
+        };
+
+    /// <summary>
+    /// 세로쓰기에서 글자 하나가 차지하는 높이(mm).
+    ///
+    /// 애니라벨 글상자는 행간을 곱하지 않는다. 애니라벨에서 세로 글상자의 행간을 늘려 봐도 화면이 그대로다.
+    /// 글자 사이도 열 사이도 움직이지 않으니, 세로쓰기에서는 행간 값이 쓰이지 않는 것으로 본다.
+    /// 그래서 이송폭은 글꼴에서 읽은 값 그대로 쓴다. `LineHeight` 는 가로쓰기 경로에서만 뜻이 있다.
+    /// </summary>
+    private static float VerticalStepMm(DesignObject obj, SKFont font, char ch)
+    {
+        if (!obj.TextGdiMetrics) return font.Size * Math.Max(0.7f, obj.LineHeight);
+
+        // 애니라벨 세로쓰기는 사이띄개를 자리로 세지 않는다. GDI 는 @맑은 고딕에서도 공백에 5px 을 주지만
+        // 「QR코드 타입2.lbl」 B 의 애니라벨 화면은 85px 상자 첫 열에 `텍스트 세로쓰` 를 담았다.
+        // 한글 여섯 자만 해도 84px 이라 공백이 2px 만 돼도 「쓰」가 다음 열로 밀린다.
+        if (char.IsWhiteSpace(ch)) return 0f;
+
+        var emPixels = Math.Max(1f, RoundGdiPixels(ToGdiPixels(font.Size)));
+        var pixels = RoundGdiPixels(VerticalCellPixels(obj, font, ch, emPixels));
+        return FromGdiPixels(Math.Max(1f, pixels));
+    }
+
+    /// <summary>
+    /// 세로쓰기 글자 한 칸의 높이(96dpi 픽셀). 반올림 전 값이라 행간을 곱한 뒤에 반올림한다.
+    ///
+    /// 애니라벨은 얼굴 이름 앞에 @ 를 붙여 GDI 세로쓰기 글꼴을 만든다. 파일에 적힌 태그가 `@?? ??` 다.
+    /// 그 글꼴에 GetGlyphOutlineW(GGO_METRICS) 로 물어보면 맑은 고딕 10pt(lfHeight -13)에서
+    /// 한글은 14px, 공백은 5px, 'A' 는 9px, '1' 은 7px 이다.
+    /// 한글 14px 은 글꼴 vmtx 의 advanceHeight 2176/2048 = 1.0625em 을 반올림한 값이고,
+    /// 공백·'A'·'1' 은 vmtx(5·10·10px)가 아니라 가로 이송폭(5·9·7px)과 맞는다.
+    /// 세로쓰기에서 라틴 글자는 눕히지 않고 세워 둔 채 가로 이송폭만큼 나아가기 때문이다.
+    /// 그래서 한중일 글자만 vmtx 를 쓰고 나머지는 가로 이송폭을 쓴다.
+    ///
+    /// vmtx 가 없는 글꼴은 em 으로 되돌아간다. 시스템 글꼴을 못 받아와 Noto Sans 로 대체된 경우다.
+    /// </summary>
+    private static float VerticalCellPixels(DesignObject obj, SKFont font, char ch, float emPixels)
+    {
+        if (IsCjkVertical(ch))
+        {
+            var em = VerticalFontMetrics.For(font.Typeface).AdvanceEm(ch);
+            return em > 0f ? em * emPixels : emPixels;
+        }
+        var width = MeasureLine(font, obj.FontFamily, obj.Bold, ch.ToString());
+        return width / Math.Max(0.01f, font.Size) * emPixels;
+    }
+
+    /// <summary>세로쓰기에서 눕히지 않고 제 방향 그대로 쌓이는 글자인지. 한중일 글자만 그렇다.</summary>
+    private static bool IsCjkVertical(char ch)
+        => ch is (>= '\u1100' and <= '\u11FF')      // 한글 자모
+            or (>= '\u2E80' and <= '\u303F')        // 부수·한중일 기호
+            or (>= '\u3040' and <= '\u30FF')        // 가나
+            or (>= '\u3130' and <= '\u318F')        // 호환 자모
+            or (>= '\u31C0' and <= '\u9FFF')        // 한자
+            or (>= '\uAC00' and <= '\uD7A3')        // 한글 음절
+            or (>= '\uF900' and <= '\uFAFF')        // 호환 한자
+            or (>= '\uFF00' and <= '\uFF60')        // 전각
+            or (>= '\uFFE0' and <= '\uFFE6');
+
+    /// <summary>
+    /// 글꼴의 세로 이송폭 표(vhea·vmtx). 글꼴 하나를 한 번만 읽고 글자마다 결과를 갖고 있는다.
+    /// 세로쓰기 글상자는 드물지만 한 글상자가 같은 글자를 여러 번 쓰고 화면은 매 프레임 다시 그린다.
+    /// </summary>
+    private sealed class VerticalFontMetrics
+    {
+        private static readonly Dictionary<SKTypeface, VerticalFontMetrics> Cache = [];
+
+        private readonly Dictionary<char, float> _cells = [];
+        private readonly SKTypeface _face;
+        private readonly byte[]? _vmtx;
+        private readonly int _longMetrics;
+        private readonly float _upem;
+
+        private VerticalFontMetrics(SKTypeface face)
+        {
+            _face = face;
+            _upem = face.UnitsPerEm > 0 ? face.UnitsPerEm : 2048f;
+            try
+            {
+                var vhea = face.GetTableData(TableTag("vhea"));
+                _vmtx = face.GetTableData(TableTag("vmtx"));
+                if (vhea is { Length: >= 36 })
+                    _longMetrics = (vhea[34] << 8) | vhea[35];
+            }
+            catch (Exception ex)
+            {
+                EditorLog.Warn($"세로 이송폭 표를 읽지 못했다: {face.FamilyName} · {ex.Message}");
+                _vmtx = null;
+            }
+        }
+
+        public static VerticalFontMetrics For(SKTypeface face)
+        {
+            if (Cache.TryGetValue(face, out var got)) return got;
+            got = new VerticalFontMetrics(face);
+            Cache[face] = got;
+            return got;
+        }
+
+        /// <summary>글자의 세로 이송폭(em). 표가 없거나 글자가 없으면 0 이다.</summary>
+        public float AdvanceEm(char ch)
+        {
+            if (_cells.TryGetValue(ch, out var cached)) return cached;
+
+            var em = 0f;
+            if (_vmtx is not null && _longMetrics > 0)
+            {
+                var gid = _face.GetGlyph(ch);
+                if (gid != 0)
+                {
+                    var at = Math.Min(gid, _longMetrics - 1) * 4;
+                    if (at + 2 <= _vmtx.Length)
+                        em = ((_vmtx[at] << 8) | _vmtx[at + 1]) / _upem;
+                }
+            }
+            _cells[ch] = em;
+            return em;
+        }
+
+        private static uint TableTag(string name)
+            => ((uint)name[0] << 24) | ((uint)name[1] << 16) | ((uint)name[2] << 8) | name[3];
+    }
+
+    private static void DrawVerticalText(SKCanvas canvas, DesignObject obj, string text, SKFont font, SKPaint paint, byte alpha)
+    {
+        var box = MeasureVerticalText(obj, text, font);
+        if (box.Glyphs.Length == 0) return;
+
+        canvas.Save();
+        canvas.ClipRect(new SKRect(0, 0, obj.Width, obj.Height));
+        foreach (var glyph in box.Glyphs)
+        {
+            var x = box.StartX + (box.Columns - 1 - glyph.Column) * box.ColumnWidth + box.ColumnWidth * 0.5f;
+            DrawGlyph(canvas, obj, glyph.Text.ToString(), x, glyph.Baseline, SKTextAlign.Center, font, paint, alpha);
+        }
+        canvas.Restore();
     }
 
     private static void ShadowOffset(DesignObject obj, out float dx, out float dy)

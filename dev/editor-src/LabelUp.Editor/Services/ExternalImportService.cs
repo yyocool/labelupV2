@@ -611,12 +611,18 @@ public sealed class ExternalImportService(PaperCatalog papers)
         if (key.Contains("ITF") || key.Contains("INTERLEAVED") || key.Contains("I25") || key.Contains("2_5") || key.Contains("2/5")) return "ITF";
         if (key.Contains("ABC") && key.Contains("CODABAR")) return "ABC_CODABAR";
         if (key.Contains("CODABAR")) return "CODABAR";
+        // 우편 심볼은 이름에 POST가 들어가므로 한국 우편번호로 넘기기 전에 먼저 걸러낸다.
+        if (key.Contains("AUSPOST") || key.Contains("AUSTRALIA")) return "AUSPOST";
+        if (key.Contains("POSTNET")) return "POSTNET";
+        if (key.Contains("JAPAN") && key.Contains("POST")) return "JAPAN_POST";
         if (key.Contains("POST")) return "KOREAN_POST";
         return BarcodeCatalog.Find(key) is not null ? key : "CODE_128";
     }
 
     internal static bool Is2dBarcode(string format)
-        => format is "QR_CODE" or "DATA_MATRIX" or "PDF_417" or "PDF_417_TRUNC" or "MICRO_PDF417" or "AZTEC";
+        => format is "QR_CODE" or "DATA_MATRIX" or "PDF_417" or "PDF_417_TRUNC" or "MICRO_PDF417"
+            or "AZTEC" or "MICRO_QR" or "CODE_16K" or "MAXICODE" or "HANXIN" or "GRID_MATRIX"
+            or "COMPACT_MATRIX";
 
     internal static List<string> ExtractPrintable(byte[] data, int start, int end, int minLen = 2)
     {

@@ -4,6 +4,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Text.RegularExpressions;
 using LabelUp.Editor.Models;
+using LabelUp.Editor.Rendering;
 using LabelUp.Editor.Vendor;
 using SkiaSharp;
 
@@ -26,6 +27,12 @@ internal static class AniLabelImporter
     private const byte TypeText = 0x1A;
     private const byte TypeBarcode1D = 0x1B;
     private const byte TypeBarcode2D = 0x1C;
+
+    /// <summary>구형 0x07의 바코드 종류 중 테두리를 두르는 ITF.</summary>
+    private const byte LegacyItfFramed = 0x10;
+
+    /// <summary>구형 0x07의 4상태 우편형 중 체크문자를 붙이지 않는 종류.</summary>
+    private const byte LegacyFourStateNoCheck = 0x1F;
 
     private static readonly byte[] Footer = [0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
     private static readonly byte[] RtfTable = Encoding.Unicode.GetBytes("RTF TABLE");
@@ -213,16 +220,48 @@ internal static class AniLabelImporter
         o.Italic = (run.Style & 0x02) != 0;
         o.Underline = (run.Style & 0x04) != 0;
         o.Strikeout = (run.Style & 0x08) != 0;
-        if (run.LayoutHint == 0 || h > w * 1.5f)
+        // 배치힌트 0은 세로쓰기 후보일 뿐이다. 「QR코드 타입.lbl」 6번 칸의 Arial 줄은
+        // 힌트가 0인데도 39.7×7.9mm 가로 상자에 가로로 그려진다. 상자가 길쭉할 때만 세로로 본다.
+        if (h > w * 1.5f || (run.LayoutHint == 0 && h > w))
         {
             o.TextDirection = "vertical";
-            // 애니라벨 세로는 em의 약 0.87. 기본 행간 1.2면 상자 밖으로 넘어 두 열이 된다.
-            o.LineHeight = 0.86f;
+            // 세로쓰기 글자 사이는 글꼴의 세로 이송폭(vmtx)에서 나온다. 여기에는 애니라벨이 적어 둔
+            // 행간 배수만 넣는다. 가로쓰기 기본값 1.2를 그대로 두면 이송폭이 1.2배로 늘어난다.
+            o.LineHeight = 1f;
         }
+        // 애니라벨은 상자를 넘치면 낱말을 쪼개서라도 글자 단위로 넘긴다.
+        // 「QR코드 타입.lbl」 5·6·15번 칸의 애니라벨 화면이 각각 `Data Matrix (ECC 200), D`,
+        // `Data Matrix (ECC 000 - E`, `RSS Limited , 000987654`에서 끊겼다. 셋 다 낱말 한가운데다.
+        // 96dpi·10pt(lfHeight 13px)·정수 이송폭으로 상자 폭 150px을 채워 보면 세 줄 모두
+        // 글자 단위와만 맞고 낱말 단위와는 셋 다 어긋난다.
+        o.TextWrap = "char";
+        ApplyAniTextMetrics(o);
         ApplyTextBackground(data, start, o);
         ApplyTextAlign(data, start, end, o);
         ApplyLineSpacing(data, start, end, o);
         return o;
+    }
+
+    /// <summary>
+    /// 애니라벨 글상자를 애니라벨과 같은 자로 재고 그리게 한다.
+    /// 애니라벨 자료는 우리 편집기에서도 애니라벨에서 보이던 그대로 보여야 한다는 원칙을 따른다.
+    ///
+    /// 여백: 애니라벨 글상자에는 가로 안쪽 여백이 없다. 「QR코드 타입.lbl」 14·15·16번 칸은 39.69×7.94mm,
+    /// 곧 96dpi에서 150×30px 이고 애니라벨은 글자를 상자 왼쪽 끝부터 앉힌다. 그런데 렌더러는
+    /// TextPaddingXMm 가 0.01mm 이하면 "값 없음"으로 보고 상자 폭의 1.5%(최대 0.35mm)를 넣으므로,
+    /// 150px 상자에서 좌우 0.35mm씩 2.65px(1.76%)를 잃어 줄이 한 글자 일찍 끊겼다.
+    /// 아이라벨 변환과 같이 0.02mm(96dpi에서 0.08px)를 넣어 "진짜 0"을 말한다.
+    ///
+    /// 글자자: 애니라벨은 GDI로 lfHeight = -MulDiv(10, 96, 72) = -13px 글꼴을 만들어 글자마다 이송폭을
+    /// 정수 픽셀로 반올림해 앉힌다. 우리 기본값인 실수 em(3.5278mm)과 실수 이송폭으로는 같은 글이
+    /// 4.7%쯤 넓어져, 줄이 한 줄 더 늘거나 줄 끝이 상자 밖으로 잘려 나간다.
+    /// TextGdiMetrics 를 세우면 재기와 그리기를 모두 GDI 자로 하므로 두 탈이 함께 사라진다.
+    /// FontSize 는 파일에 적힌 값을 그대로 둔다. 바꾸는 일은 렌더러가 그릴 때만 한다.
+    /// </summary>
+    private static void ApplyAniTextMetrics(DesignObject o)
+    {
+        o.TextPaddingXMm = 0.02f;
+        o.TextGdiMetrics = true;
     }
 
     /// <summary>
@@ -466,7 +505,7 @@ internal static class AniLabelImporter
         var spacing = BitConverter.ToDouble(data, geom + 275);
         if (double.IsNaN(spacing) || spacing is < 0.5 or > 5.0) return;
         var factor = (float)spacing;
-        o.LineHeight = o.TextDirection == "vertical" ? 0.86f * factor : factor;
+        o.LineHeight = factor;
     }
 
     private static void ApplyTextBackground(byte[] data, int start, DesignObject o)
@@ -536,7 +575,8 @@ internal static class AniLabelImporter
     }
 
     /// <summary>
-    /// ASCII 태그는 그대로. `?? ??`는 한글 얼굴(맑은 고딕)이 ANSI에서 ?로 치환된 값.
+    /// ASCII 태그는 그대로. `?? ??`는 한글 얼굴 이름이 파일에 적힐 때 이미 ANSI '?'로 뭉개진 값이라
+    /// 애니라벨도 읽을 때 같은 다섯 바이트(3F 3F 20 3F 3F)를 받아 GDI 글꼴 매퍼가 고른 얼굴로 그린다.
     /// 태그가 전부 ?이고 본문 길이가 태그와 같으며 카탈로그 폰트명이면 본문을 쓴다.
     /// </summary>
     private static string ResolveAniFontName(string? tag, string? text = null)
@@ -551,7 +591,7 @@ internal static class AniLabelImporter
                 return name;
             }
             if (name is "?? ??")
-                return "맑은 고딕";
+                return MappedLostFace(text);
         }
 
         var body = (text ?? "").Trim();
@@ -563,6 +603,16 @@ internal static class AniLabelImporter
             return FontCatalog.CanonicalId(body);
         return "맑은 고딕";
     }
+
+    /// <summary>
+    /// 이름이 뭉개진 얼굴을 GDI 글꼴 매퍼가 무엇으로 바꿔 놓는지. 라틴 글만 있는 줄은 Arial이다.
+    /// 「QR코드 타입.lbl」 5·15번 칸을 애니라벨 화면에서 글자 시작 위치로 재면 Arial이 평균 1.4·1.4px
+    /// 어긋나는 데 비해 맑은 고딕은 5.5·5.4px 어긋난다(잰 글줄 폭 630·430px). 애니라벨 글자가 더
+    /// 굵고 넓어 보인 까닭이 이것이고, 문자 레코드에 굵기 비트는 없다(표본 196줄 모두 0).
+    /// 한글이 섞인 줄은 매퍼가 한글 charset으로 다른 얼굴을 고르는데 견줄 화면이 없어 손대지 않는다.
+    /// </summary>
+    private static string MappedLostFace(string? text)
+        => text is { Length: > 0 } body && body.All(ch => ch < 0x80) ? "Arial" : "맑은 고딕";
 
     /// <summary>문자 SizeParam이 4~96이면 pt→mm. 아니면 상자 높이에 맞춘다.</summary>
     private static float ResolveTextMm(float sizeParam, float boxH)
@@ -585,6 +635,7 @@ internal static class AniLabelImporter
         o.FontSize = ResolveTextMm(fontSize, h);
         if (!string.IsNullOrWhiteSpace(fontName) && !fontName.Contains('?'))
             o.FontFamily = fontName;
+        ApplyAniTextMetrics(o);
         return o;
     }
 
@@ -647,7 +698,9 @@ internal static class AniLabelImporter
         string format;
         var is2d = type == TypeBarcode2D;
         var afterBmp = start;
-        if (is2d && AniLabelBarcodes.TryRead2D(data, start, end, out _, out var v2, out var f2, out afterBmp))
+        var bmpStart = start;
+        byte legacyType = 0xFF;
+        if (is2d && AniLabelBarcodes.TryRead2D(data, start, end, out _, out var v2, out var f2, out bmpStart, out afterBmp))
         {
             value = v2;
             format = f2;
@@ -655,15 +708,17 @@ internal static class AniLabelImporter
         }
         else if (type == TypeBarcode1D && AniLabelBarcodes.TryRead1D(data, start, end, out _, out var v1, out var f1))
         {
-            value = v1;
+            value = AniLabelBarcodes.PadFixedLength(f1, v1);
             format = f1;
             is2d = false;
         }
-        else if (type == TypeBarcode && AniLabelBarcodes.TryRead1DLegacy(data, start, end, out var v0, out var f0))
+        else if (type == TypeBarcode && AniLabelBarcodes.TryRead1DLegacy(data, start, end, out var v0, out var f0, out var t0))
         {
             value = v0;
             format = f0;
-            is2d = false;
+            legacyType = t0;
+            // 구형 0x07 안에도 PDF417(0x2A)·Data Matrix(0x34)·QR(0x35)이 들어온다.
+            is2d = ExternalImportService.Is2dBarcode(format);
         }
         else if (type == TypeBarcode)
         {
@@ -684,12 +739,87 @@ internal static class AniLabelImporter
         bar.Height = h;
         bar.BarcodeValue = value;
         bar.BarcodeFormat = format;
-        bar.BarcodeVendor = "anylabel";
+        bar.BarcodeVendor = type == TypeBarcode
+            ? Barcode1DEncoders.AniLabelLegacyVendor
+            : "anylabel";
         if (type == TypeBarcode2D && afterBmp > start)
+        {
             AniLabelBarcodes.Apply2DStyle(bar, data, afterBmp, end);
-        else if (type != TypeBarcode2D)
+            // 2D의 버전·오류정정·마스크·크기는 파일에 없고 그려 둔 BMP에만 있다(분석 문서 8.18).
+            AniLabelBarcodes.ApplyBmp2DShape(bar, data, bmpStart, afterBmp);
+            // 애니라벨은 ASCII 밖 글자를 '?'로 깎아 저장한다. 원문은 BMP에만 남아 있어 되읽는다.
+            // 판형을 먼저 재어 둬야 다시 찍어 맞대 볼 수 있으므로 ApplyBmp2DShape 뒤에 와야 한다.
+            AniLabelValueRecovery.Apply(bar, data, bmpStart, afterBmp);
+        }
+        else if (type == TypeBarcode1D)
+        {
             AniLabelBarcodes.Apply1DStyle(bar, data, start, end);
+            // 신형은 EMF에 다 그린 비트맵을 넣어 둔다. 글자 칸 높이와 사각 테두리를 거기서 잰다.
+            if (TryReadEmfRange(data, start, end, out var dibStart, out var dibLen))
+                AniLabelBarcodes.ApplyEmfDib1D(bar, data, dibStart, dibLen);
+        }
+        else if (type == TypeBarcode)
+        {
+            AniLabelBarcodes.Apply1DLegacyStyle(bar, data, start, end);
+            if (is2d)
+                bar.BarcodeShowText = false;
+            else if (TryReadEmfRange(data, start, end, out var emfStart, out var emfLen))
+                AniLabelBarcodes.ApplyEmfHriFont(bar, data, emfStart, emfLen);
+        }
+        // 구형 0x10 ITF만 막대 둘레에 가는 사각 테두리가 있다.
+        //「바코드 타입 전체.lbl」EMF를 44칸 모두 훑어 테두리가 나온 칸은 15번(0x10) 하나뿐이었다.
+        // 같은 ITF로 매핑되는 0x0B·0x1C나 ITF-14인 0x17에는 없다.
+        // 렌더러의 기존 베어러 표시 항목을 그대로 쓰고 에디터 모델은 건드리지 않는다.
+        if (legacyType == LegacyItfFramed)
+            bar.BarcodeShowStartEnd = true;
+        // 구형 0x1F는 RM4SCC와 막대표가 같지만 체크문자만 붙이지 않는다.
+        // 28번 칸(`123456`, 26막대)이 30번 칸(0x22, 같은 값 30막대)에서 체크문자 4막대만 빠진 모양이었다.
+        //
+        // 신형 0x2F(RM4SCC)도 마찬가지다. 애니라벨 신형은 POSTNET·PLANET·RM4SCC 어느 쪽도
+        // 검사문자를 계산해 붙이지 않고 적어 준 값을 그대로 그린다. 검사문자까지 값에 넣으라는 뜻이다.
+        // 48번 칸 `ABC1234567890` 이 막대 54개(= 시작 + 13자 + 끝)로, 검사문자 4막대가 없다.
+        // 구형 0x22 는 같은 RM4SCC 라도 검사문자를 붙이므로(30막대) 신형만 걸러야 한다.
+        if (legacyType == LegacyFourStateNoCheck
+            || (type == TypeBarcode1D && format is "RM4SCC"))
+            bar.QrKind = BarcodeRenderer.FourStateNoCheck;
+        if (!is2d)
+            bar.BarcodeGuardBars = GuardBarsFor(type == TypeBarcode, format, data, start, end);
         return bar;
+    }
+
+    /// <summary>
+    /// 긴 막대(가드)를 쓰는 심볼로지. 이 밖의 심볼은 렌더러가 항목을 보지 않으므로 늘 off로 둔다.
+    /// 우편형(POSTNET·4상태)은 막대 높이가 원래 제각각이라 EMF로 재면 안 된다.
+    /// </summary>
+    private static bool UsesGuardBars(string id)
+        => id is "EAN_13" or "EAN_8" or "JAN_13" or "JAN_8" or "ISBN" or "ISSN" or "ISMN"
+            or "UPC_A" or "UPC_E" or "UPC_E0" or "UPC_E1"
+            or "CODABAR" or "ABC_CODABAR" or "CODE_93" or "CODE_93_EXT";
+
+    /// <summary>
+    /// 긴 막대 여부를 EMF 그림에서 직접 잰다.
+    ///
+    /// 애니라벨의 「start end 표시」 설정이 켜지면 시작·정지 심볼 자리의 막대가 캡션 칸까지 내려온다
+    /// (소매는 시작·가운데·끝 6개, Codabar는 앞뒤 4개씩, Code 93은 앞 3·뒤 4개).
+    /// 그런데 이 설정은 .lbl 논리 필드에 저장되지 않고 EMF 캐시에만 남는다(분석 문서 8.16).
+    /// 그래서 타입 표로 짐작하던 것을 그림 실측으로 바꿨다.
+    ///
+    /// 신형 0x1B의 EMF는 벡터가 아니라 비트맵이라 실측이 안 된다. 그때는 DIB 분석으로 확정해 둔
+    /// 기존 표(분석 문서 8.9·8.11)를 그대로 쓴다 — 소매 계열만 가드가 있고 Codabar·Code 93에는 없다.
+    /// </summary>
+    private static string GuardBarsFor(bool legacy, string format, byte[] data, int start, int end)
+    {
+        var id = format.Replace("-", "_").ToUpperInvariant();
+        if (!UsesGuardBars(id)) return DesignObject.GuardBarsOff;
+
+        if (TryReadEmfRange(data, start, end, out var emfStart, out var emfLen)
+            && AniLabelBarcodes.TryReadEmfGuardBars(data, emfStart, emfLen, out var measured))
+            return measured ? DesignObject.GuardBarsOn : DesignObject.GuardBarsOff;
+
+        var on = !legacy
+                 && id is "EAN_13" or "EAN_8" or "JAN_13" or "JAN_8" or "ISBN" or "ISSN" or "ISMN"
+                     or "UPC_A" or "UPC_E" or "UPC_E0" or "UPC_E1";
+        return on ? DesignObject.GuardBarsOn : DesignObject.GuardBarsOff;
     }
 
     private static void BindLinkedSheet(LabelDocument doc, string name, List<(int Global, string Field, string Value)> linked)
@@ -772,9 +902,14 @@ internal static class AniLabelImporter
 
     /// <summary>
     /// 문자 레코드(약 280~320바이트 간격):
-    /// u16 unicode, u16 layoutHint(가로 0x095A / 세로 0), u32 fontSizePt, u32 TColor, u8 tagLen, tag[].
+    /// u16 unicode, u16 layoutHint, u32 fontSizePt, u32 TColor, u8 tagLen, tag[].
     /// 레코드 끝 Footer(64 00..) 직전 u32 = TFont.Style (1볼드 2이탤릭 4밑줄 8취소).
     /// +8은 0이 아니라 Delphi TColor다. 빨강=0x000000FF 처럼 값이 크면 예전 zero 검사에서 버려졌다.
+    ///
+    /// 글상자 몸통 앞머리에는 글자 폭을 적어 둔 메트릭 표가 40바이트 간격으로 깔려 있고,
+    /// 그 레코드도 위 자리와 겹쳐 걸려든다. 간격 조건만으로는 280 = 40 × 7이라 걸러지지 않아,
+    /// 얼굴 이름꼴 검사와 한 줄 안에서 글꼴·크기·색이 같아야 한다는 조건을 함께 건다.
+    /// 「QR코드 타입.lbl」 5·6번 칸에서 확인.
     /// </summary>
     private static bool TryCollectText(byte[] data, int start, int end, out AniTextRun run)
     {
@@ -794,6 +929,7 @@ internal static class AniLabelImporter
             if (slen is < 1 or > 64 || i + 13 + slen > end) continue;
             if (!IsPrintableTag(data.AsSpan(i + 13, slen))) continue;
             var tag = DecodeAniFaceTag(data.AsSpan(i + 13, slen));
+            if (!LooksLikeFaceName(tag)) continue;
             chars.Add((i, (char)code, size, color, hint, tag));
             i += 12;
         }
@@ -802,16 +938,17 @@ internal static class AniLabelImporter
         List<(int Off, char Ch, uint Size, uint Color, ushort Hint, string Tag)> best = chars.Count == 1 ? chars : [];
         for (var s = 0; s < chars.Count && chars.Count > 1; s++)
         {
-            var group = new List<(int Off, char Ch, uint Size, uint Color, ushort Hint, string Tag)> { chars[s] };
-            var last = chars[s].Off;
+            var head = chars[s];
+            var group = new List<(int Off, char Ch, uint Size, uint Color, ushort Hint, string Tag)> { head };
+            var last = head.Off;
             for (var i = s + 1; i < chars.Count; i++)
             {
                 var delta = chars[i].Off - last;
-                if (delta is >= 200 and <= 400)
-                {
-                    group.Add(chars[i]);
-                    last = chars[i].Off;
-                }
+                if (delta is < 200 or > 400) continue;
+                if (chars[i].Size != head.Size || chars[i].Color != head.Color
+                    || chars[i].Hint != head.Hint || chars[i].Tag != head.Tag) continue;
+                group.Add(chars[i]);
+                last = chars[i].Off;
             }
             if (group.Count > best.Count)
                 best = group;
@@ -857,6 +994,23 @@ internal static class AniLabelImporter
            or (>= 0x3130 and <= 0x318F)
            or (>= 0xAC00 and <= 0xD7A3)
            or (>= 0x4E00 and <= 0x9FFF);
+
+    /// <summary>
+    /// 글꼴 얼굴 이름꼴인지 가린다. 윈도 얼굴 이름에는 제어문자가 들어갈 수 없으므로,
+    /// 메트릭 표가 남긴 UTF-16 쓰레기(0x00이 섞인다)를 여기서 떨군다.
+    /// ANSI에서 한글이 날아간 `?? ??`는 글자로 쳐서 살린다.
+    /// </summary>
+    private static bool LooksLikeFaceName(string tag)
+    {
+        if (tag.Length is < 2 or > 64) return false;
+        var letters = 0;
+        foreach (var ch in tag)
+        {
+            if (char.IsControl(ch)) return false;
+            if (char.IsLetter(ch) || ch == '?') letters++;
+        }
+        return letters * 2 >= tag.Length;
+    }
 
     private static bool IsPrintableTag(ReadOnlySpan<byte> tag)
     {
@@ -1488,6 +1642,17 @@ internal static class AniLabelImporter
         return string.Create(CultureInfo.InvariantCulture, $"#{r:X2}{g:X2}{b:X2}");
     }
 
+    /// <summary>
+    /// 압축을 풀어 받아 줄 설계 자료의 최대 크기. 압축폭탄을 막는 울타리다.
+    ///
+    /// 애니라벨은 칸마다 EMF 를 통째로 넣어 두어 한 칸이 1MB 남짓 된다.
+    /// 시험용 「1D barcode 타입」 파일이 64칸에서 82.1MB 가 되어 예전 80MB 울타리에 걸렸다.
+    /// 실제로 쓰는 파일이 막히면 안 되므로 256MB 로 넓혔다. 200칸 넘는 판까지 든다.
+    /// </summary>
+    private const int MaxDesignBytes = 256_000_000;
+
+    private const int MaxDesignMb = MaxDesignBytes / 1_000_000;
+
     private static async Task<byte[]> InflateAsync(byte[] fileBytes, Func<string, int, Task>? progress)
     {
         var jpeg = -1;
@@ -1507,14 +1672,14 @@ internal static class AniLabelImporter
         if (rest + 6 > fileBytes.Length)
             throw new InvalidDataException("LBL zlib 설계 블록이 없습니다.");
         var uncompressed = BitConverter.ToInt32(fileBytes, rest + 1);
-        if (uncompressed > 80_000_000)
-            throw new InvalidDataException("설계 데이터가 너무 큽니다 (80MB 초과).");
+        if (uncompressed > MaxDesignBytes)
+            throw new InvalidDataException($"설계 데이터가 너무 큽니다 ({MaxDesignMb}MB 초과).");
         var zlib = fileBytes.AsSpan(rest + 5).ToArray();
         if (zlib.Length < 2 || zlib[0] != 0x78)
             throw new InvalidDataException("LBL zlib 시그니처가 없습니다.");
         using var input = new MemoryStream(zlib);
         using var zs = new ZLibStream(input, CompressionMode.Decompress);
-        using var output = new MemoryStream(uncompressed > 0 && uncompressed < 80_000_000 ? uncompressed : 4096);
+        using var output = new MemoryStream(uncompressed > 0 && uncompressed < MaxDesignBytes ? uncompressed : 4096);
         var buffer = new byte[256 * 1024];
         var total = 0;
         var sw = Stopwatch.StartNew();
@@ -1522,8 +1687,8 @@ internal static class AniLabelImporter
         while ((read = zs.Read(buffer, 0, buffer.Length)) > 0)
         {
             total += read;
-            if (total > 80_000_000)
-                throw new InvalidDataException("설계 데이터가 너무 큽니다 (80MB 초과).");
+            if (total > MaxDesignBytes)
+                throw new InvalidDataException($"설계 데이터가 너무 큽니다 ({MaxDesignMb}MB 초과).");
             if (sw.Elapsed.TotalSeconds > 45)
                 throw new TimeoutException("변환이 너무 오래 걸립니다. 파일이 너무 큽니다.");
             output.Write(buffer, 0, read);

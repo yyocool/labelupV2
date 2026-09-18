@@ -27,6 +27,8 @@ public sealed class FontCatalog : IAsyncDisposable
     private readonly Dictionary<string, SKTypeface?> _italicFaces = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _loading = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _localFaces = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _localMissing = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _pinnedFaces = new(StringComparer.OrdinalIgnoreCase);
 
     public FontCatalog(HttpClient http, IJSRuntime js)
     {
@@ -419,6 +421,24 @@ public sealed class FontCatalog : IAsyncDisposable
             .OrderBy(id => id, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
+    /// <summary>
+    /// 아직 못 읽었고, 이 PC에 없다고 이미 판가름 나지도 않은 이름.
+    /// 허용 창을 다시 띄울지 정할 때 쓴다. 한 번 없다고 나온 이름은 다시 묻지 않는다.
+    /// </summary>
+    public IReadOnlyList<string> UnresolvedLocalFamilies(IEnumerable<string?> families)
+        => MissingLocalFamilies(families).Where(id => !_localMissing.Contains(id)).ToList();
+
+    /// <summary>이 PC에서 찾지 못한 이름으로 적어 둔다. 대체 글꼴로 그리고 더는 묻지 않는다.</summary>
+    public void MarkLocalMissing(IEnumerable<string?> families)
+    {
+        foreach (var family in families)
+        {
+            var id = CanonicalId(family);
+            if (id.Length > 0 && _localMissing.Add(id))
+                EditorLog.Info($"이 PC에 없는 글꼴로 적어 둠, 대체 글꼴 사용: {id}");
+        }
+    }
+
     /// <summary>윈도우 전용으로 표시할 이름. 이미 읽었는지는 보지 않는다.</summary>
     public static IReadOnlyList<string> WindowsFamilies(IEnumerable<string?> families)
         => families
@@ -435,7 +455,7 @@ public sealed class FontCatalog : IAsyncDisposable
         foreach (var family in families)
         {
             var id = CanonicalId(family);
-            if (id.Length == 0 || !_localFaces.Contains(id))
+            if (id.Length == 0 || !_localFaces.Contains(id) || _pinnedFaces.Contains(id))
                 continue;
             if (!_faces.TryGetValue(id, out var face) || face is null || IsWebFallbackFace(face.FamilyName)
                 || !FaceNameMatches(id, face.FamilyName))
@@ -453,6 +473,9 @@ public sealed class FontCatalog : IAsyncDisposable
             return false;
         if (!_faces.TryGetValue(id, out var face) || face is null)
             return false;
+        // 사용자가 손수 고른 파일은 이름이 달라도 그대로 쓴다.
+        if (_pinnedFaces.Contains(id))
+            return true;
         if (IsWebFallbackFace(face.FamilyName))
         {
             _localFaces.Remove(id);
@@ -478,7 +501,28 @@ public sealed class FontCatalog : IAsyncDisposable
         if (LocalQueryNames.TryGetValue(id, out var names)
             && names.Any(n => fn.Equals(n, StringComparison.OrdinalIgnoreCase)))
             return true;
-        return fn.Equals(id, StringComparison.OrdinalIgnoreCase);
+        return fn.Equals(id, StringComparison.OrdinalIgnoreCase) || IsStyleVariantOf(id, fn);
+    }
+
+    /// <summary>
+    /// 굵기·너비가 이름에 박힌 갈래. ariblk.ttf와 arialn.ttf는 이름표에 큰 갈래 「Arial」과
+    /// 잔 갈래 「Black」·「Narrow」를 따로 담는데, FreeType은 큰 갈래만 얼굴 이름으로 돌려준다.
+    /// 그래서 「Arial Black」을 찾으면 「Arial」이 와서, 딴 글꼴인 줄 알고 버리던 것이다.
+    /// </summary>
+    private static readonly string[] StyleWords =
+    [
+        "Black", "Heavy", "Ultra", "ExtraBold", "Extra Bold", "SemiBold", "Semi Bold",
+        "DemiBold", "Demi Bold", "Medium", "Light", "ExtraLight", "Extra Light", "Thin",
+        "Narrow", "Condensed", "SemiCondensed", "Semi Condensed", "Expanded", "Rounded"
+    ];
+
+    /// <summary>찾는 이름이 「얼굴 이름 + 잔 갈래」이면 같은 글꼴로 본다.</summary>
+    private static bool IsStyleVariantOf(string id, string faceName)
+    {
+        if (faceName.Length == 0 || id.Length <= faceName.Length) return false;
+        if (!id.StartsWith(faceName, StringComparison.OrdinalIgnoreCase)) return false;
+        var tail = id[faceName.Length..].Trim(' ', '-');
+        return StyleWords.Any(w => tail.Equals(w, StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool IsWebFallbackFace(string? faceName)
@@ -494,6 +538,50 @@ public sealed class FontCatalog : IAsyncDisposable
     }
 
     public void ResetLocalAccess() => _localDisabled = false;
+
+    /// <summary>
+    /// 사용자가 손수 고른 글꼴 파일을 이름에 묶는다. 이름이 달라도 고른 대로 쓴다.
+    /// 되면 null, 안 되면 까닭을 돌려준다.
+    /// </summary>
+    public string? AttachPickedFile(string fileName, byte[] bytes, string? family)
+    {
+        var id = CanonicalId(family);
+        if (id.Length == 0 || id.Equals("Pretendard", StringComparison.OrdinalIgnoreCase))
+            return "묶을 글꼴 이름이 없습니다.";
+        if (bytes is not { Length: >= 100 })
+            return "글꼴 파일이 비어 있습니다.";
+
+        SKTypeface? regular = null, bold = null, italic = null;
+        try
+        {
+            CollectFaces(bytes, ref regular, ref bold, ref italic);
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn($"고른 글꼴 파일을 읽지 못함: {fileName} · {ex.Message}");
+            return "글꼴 파일을 읽지 못했습니다. ttf · otf · ttc만 됩니다.";
+        }
+
+        var face = regular ?? bold ?? italic;
+        if (face is null)
+            return "글꼴 파일을 읽지 못했습니다. ttf · otf · ttc만 됩니다.";
+        if (NeedsHangul(id) && !HasGlyph(face, 0xAC00))
+        {
+            regular?.Dispose();
+            bold?.Dispose();
+            italic?.Dispose();
+            return $"{id}은(는) 한글 글꼴인데 고른 파일에 한글이 없습니다.";
+        }
+
+        _faces[id] = face;
+        if (bold is not null) _boldFaces[id] = bold;
+        if (italic is not null) _italicFaces[id] = italic;
+        _localFaces.Add(id);
+        _pinnedFaces.Add(id);
+        _localMissing.Remove(id);
+        EditorLog.Info($"고른 글꼴 파일 적용: {id} ← {fileName} face={face.FamilyName}");
+        return null;
+    }
 
     public bool AttachRawBytes(string fileName, byte[] bytes, IEnumerable<string>? preferred = null)
     {
@@ -524,6 +612,7 @@ public sealed class FontCatalog : IAsyncDisposable
         if (bold is not null) _boldFaces[id] = bold;
         if (italic is not null) _italicFaces[id] = italic;
         _localFaces.Add(id);
+        _localMissing.Remove(id);
         EditorLog.Info($"글꼴 파일 적용: {id} ← {fileName} face={face.FamilyName}");
         return true;
     }
@@ -577,6 +666,7 @@ public sealed class FontCatalog : IAsyncDisposable
             var n when n.StartsWith("batang") => id is "바탕" or "궁서",
             var n when n.StartsWith("gungsuh") || n.StartsWith("gungseh")
                 => id.Equals("궁서", StringComparison.OrdinalIgnoreCase),
+            var n when n.StartsWith("ariblk") => id.Equals("Arial Black", StringComparison.OrdinalIgnoreCase),
             var n when n.StartsWith("arialn") => id.Equals("Arial Narrow", StringComparison.OrdinalIgnoreCase),
             var n when n.StartsWith("arial") => id.Equals("Arial", StringComparison.OrdinalIgnoreCase),
             var n when n.StartsWith("times") => id.Equals("Times New Roman", StringComparison.OrdinalIgnoreCase),
@@ -600,6 +690,7 @@ public sealed class FontCatalog : IAsyncDisposable
             var n when n.StartsWith("dotum") => "돋움",
             var n when n.StartsWith("batang") => "바탕",
             var n when n.StartsWith("gungsuh") || n.StartsWith("gungseh") => "궁서",
+            var n when n.StartsWith("ariblk") => "Arial Black",
             var n when n.StartsWith("arialn") => "Arial Narrow",
             var n when n.StartsWith("arial") => "Arial",
             var n when n.StartsWith("times") => "Times New Roman",
@@ -776,6 +867,7 @@ public sealed class FontCatalog : IAsyncDisposable
         "굴림" or "돋움" => "gulim.ttc",
         "바탕" or "궁서" => "batang.ttc",
         "Arial" => "arial.ttf",
+        "Arial Black" => "ariblk.ttf",
         _ => id + ".ttf"
     };
 
@@ -861,6 +953,7 @@ public sealed class FontCatalog : IAsyncDisposable
             if (bold is not null) _boldFaces[id] = bold;
             if (italic is not null) _italicFaces[id] = italic;
             _localFaces.Add(id);
+            _localMissing.Remove(id);
             EditorLog.Info($"로컬 글꼴 로드: {id} face={face.FamilyName}");
             return true;
         }

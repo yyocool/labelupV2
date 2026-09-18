@@ -58,17 +58,32 @@ public static class BarcodeCatalog
         new("PLANET", "PLANET", "숫자만, 11 또는 13자", 11, 13, null),
         new("RM4SCC", "RM4SCC", "영문·숫자, 권장 1~20자", 1, 20, BarcodeFormat.CODE_128),
         new("KIX", "KIX / Kix4s", "영문·숫자, 권장 1~20자", 1, 20, BarcodeFormat.CODE_128),
-        new("JAPAN_POST", "Japan Post", "숫자·하이픈·영문, 권장 7~20자", 7, 20, BarcodeFormat.CODE_128),
-        new("ONECODE", "USPS OneCode / IMB", "숫자만, 20 / 25 / 29 / 31자", 20, 31, BarcodeFormat.IMB),
+        new("JAPAN_POST", "Japan Post", "숫자·하이픈·영문, 권장 7~20자", 7, 20, null),
+        new("ONECODE", "USPS OneCode / IMB", "숫자만, 20 / 25 / 29 / 31자", 20, 31, null),
+        new("AUSPOST", "Australia Post", "FCC 2자리 + 배달구역 8자리 (+ 고객정보 최대 13자)", 10, 23, null),
+        new("PATCH_CODE", "Patch Code (코닥)", "1 · 2 · 3 · 4 · 6 · T 중 하나. 문서 구분용 표시라 자료를 싣지 않는다", 1, 1, null),
         new("LEITCODE", "Leitcode", "숫자만, 13자", 13, 13, BarcodeFormat.ITF),
         new("IDENTCODE", "Identcode", "숫자만, 11자", 11, 11, BarcodeFormat.ITF),
         new("FIM", "FIM", "A/B/C/D 또는 1~4", 1, 4, null),
-        new("TELEPEN", "Telepen", "영문·숫자, 권장 1~30자", 1, 30, BarcodeFormat.CODE_128),
+        new("TELEPEN", "Telepen", "ASCII 전체, 권장 1~30자", 1, 30, null),
         new("UPU", "UPU", "영문·숫자, 예: EE123456781CN (13자)", 13, 13, BarcodeFormat.CODE_128),
         new("KOREAN_POST", "Korean PostCode", "한국 우체국 우편번호. 숫자 5자리(체크 자동)", 1, 6, BarcodeFormat.CODE_128),
         new("OPC", "OPC / Optical Product", "숫자 9자리. ITF 막대 + Luhn 체크 자동", 8, 14, BarcodeFormat.ITF),
+        // 막대 폭이 모두 같고 사이 간격만 달라지는 계열. 애니라벨 신형 0x25~0x27 이 쓴다.
+        new("CHANNEL_CODE", "Channel Code", "숫자만, 1~7자. 값 0~7742862", 1, 7, null),
+        new("BC309", "BC309", "숫자만, 권장 1~20자", 1, 20, null),
+        new("BC412", "BC412 (SEMI T1-95)", "숫자·대문자(O 제외), 권장 1~18자", 1, 18, null),
+        new("FLATTERMARKEN", "Flattermarken", "숫자만, 권장 1~128자. 제책용 접지 표시라 스캐너로 읽는 코드가 아니다", 1, 128, null),
+        new("CPC_BINARY", "CPC Binary (캐나다우정)", "캐나다 우편번호 여섯 글자 (예: L3B4T9)", 6, 6, null),
+        new("POSTBAR", "POST Bar (캐나다우정 4상태)", "형식문자 1 + 우편번호 6 + 주소코드 4 = 11자 (예: BK1A4S21234)", 11, 11, null),
+        // 공개 규격이 없어 애니라벨 0x28 표본 세 개로 역산했다(문서 10.5절).
+        // 이름 그대로 「시계막대 + 다섯 자리 중 셋」이라 숫자만 담는다.
+        new("CLOCKED_35", "Clocked-35", "숫자만. 글자마다 시계막대 하나와 다섯 자리 중 세 자리 막대", 1, 64, null),
         new("NUMLY", "Numly / ESN", "19자리 전자일련번호. Code 39 막대 + ESN 캡션", 19, 19, BarcodeFormat.CODE_39),
         new("RSS_14", "GS1 DataBar (RSS-14)", "숫자만, 14자", 14, 14, BarcodeFormat.RSS_14),
+        // RSS 계열은 ZXing에 인코더가 없어 GS1DataBarEncoder가 그린다.
+        // Zxing 값은 2D 격자 경로를 타게 하려고 남겨 둔다.
+        new("RSS_LIMITED", "GS1 DataBar Limited", "숫자만 14자. 첫 자리는 0 또는 1", 14, 14, BarcodeFormat.RSS_14),
         new("RSS_EXPANDED", "GS1 DataBar Expanded", "숫자·AI, 권장 1~74자", 1, 74, BarcodeFormat.RSS_EXPANDED)
     ];
 
@@ -79,7 +94,20 @@ public static class BarcodeCatalog
         new("PDF_417", "PDF417", "텍스트, 권장 1~1000자", 1, 1800, BarcodeFormat.PDF_417, true),
         new("PDF_417_TRUNC", "PDF417 Truncated", "텍스트, 권장 1~1000자", 1, 1800, BarcodeFormat.PDF_417, true),
         new("MICRO_PDF417", "Micro PDF417", "텍스트, 권장 1~150자", 1, 150, BarcodeFormat.PDF_417, true),
-        new("AZTEC", "Aztec", "텍스트, 권장 1~300자", 1, 300, BarcodeFormat.AZTEC, true)
+        new("AZTEC", "Aztec", "텍스트, 권장 1~300자", 1, 300, BarcodeFormat.AZTEC, true),
+        // 아래 셋은 ZXing에 인코더가 없어 전용 인코더가 그린다.
+        // Zxing 값은 2D 격자 경로를 타게 하려고 모양이 비슷한 것으로 남겨 둔다.
+        new("MICRO_QR", "Micro QR Code", "숫자·영문, 권장 1~35자", 1, 35, BarcodeFormat.QR_CODE, true),
+        new("CODE_16K", "Code 16K", "영문·숫자·기호, 권장 1~77자", 1, 77, BarcodeFormat.PDF_417, true),
+        // 한신코드는 GB 18030 한자 모드를 뺀 라틴1 범위만 그린다.
+        new("HANXIN", "Han Xin Code", "라틴1 텍스트, 권장 1~500자", 1, 3264, BarcodeFormat.QR_CODE, true),
+        new("GRID_MATRIX", "Grid Matrix", "영문·숫자·GB 2312, 권장 1~500자", 1, 1313, BarcodeFormat.QR_CODE, true),
+        // MaxiCode는 정사각 모듈이 아니라 정육각형 벌집이라 2D 격자 경로에 태울 수 없다.
+        // BarcodeRenderer.TryDrawMaxiCode가 끝까지 그리므로 Zxing 값을 비워 둔다.
+        new("MAXICODE", "MaxiCode", "라틴1 텍스트, 권장 1~77자", 1, 93, null, true),
+        // 규격서(GB/T 27767-2011)를 구하지 못해 인코더가 없다. 모양이 닮은 다른 심볼로
+        // 바꿔치기하면 읽히는 값이 달라지므로, 대체하지 않고 미지원임을 드러낸다.
+        new("COMPACT_MATRIX", "Compact Matrix (미지원)", "GB/T 27767 규격 미확보로 그리지 못한다", 1, 4096, null, true)
     ];
 
     public static BarcodeSpec? Find(string? id)

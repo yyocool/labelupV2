@@ -50,6 +50,21 @@ public sealed class DesignObject
     public string TextDirection { get; set; } = "horizontal";
     /// <summary>박스 폭을 넘기면 줄바꿈. char=글자 단위, word=단어 단위, none=없음.</summary>
     public string TextWrap { get; set; } = "char";
+    /// <summary>
+    /// 가로쓰기 글자를 GDI 글자자(96dpi 정수 픽셀)로 재고 앉힌다. 애니라벨 변환 글상자가 true.
+    ///
+    /// 애니라벨은 lfHeight = -MulDiv(pt, 96, 72) 로 글꼴을 만들어(10pt면 13px) 글자마다 이송폭을
+    /// 정수 픽셀로 반올림해 앉힌다. 우리 기본값인 실수 em(10pt=3.5278mm)과 실수 이송폭으로는
+    /// 같은 글이 4.7%쯤 넓어져, 줄이 한 줄 더 늘거나 상자 밖으로 잘린다.
+    /// 그래서 이 표가 붙은 글상자는 em을 96dpi 정수 픽셀에 맞추고 글자를 정수 이송폭 위에 앉힌다.
+    /// 재는 값과 그리는 값이 같은 자에서 나오므로 줄바꿈·가운데맞춤·밑줄 길이가 모두 맞물린다.
+    ///
+    /// 기준은 붙박이 96dpi 이고 계산은 모두 mm 문서 좌표에서 한다. 화면 배율·확대율·내보내기
+    /// 해상도는 쳐다보지 않으므로, 화면에 보이는 줄바꿈이 인쇄·PNG 에서도 그대로 나온다.
+    /// FontSize 는 건드리지 않는다. 파일에 10pt로 적혀 있으면 속성창도 10pt라고 말해야 한다.
+    /// 기존 문서에는 이 항목이 없어 false로 읽히므로 동작이 그대로 유지된다.
+    /// </summary>
+    public bool TextGdiMetrics { get; set; }
     /// <summary>변환 시 넣는 가로 안쪽 여백(mm). 박스 크기는 그대로. 폼텍=2. 우리 박스는 0.</summary>
     public float TextPaddingXMm { get; set; }
     public string? BackgroundFill { get; set; }
@@ -83,6 +98,22 @@ public sealed class DesignObject
     public string BarcodeValue { get; set; } = "12345678";
     public bool BarcodeShowText { get; set; } = true;
     public bool BarcodeShowStartEnd { get; set; }
+
+    /// <summary>가드 막대를 늘린다.</summary>
+    public const string GuardBarsOn = "on";
+    /// <summary>가드 막대를 늘리지 않는다.</summary>
+    public const string GuardBarsOff = "off";
+    /// <summary>변환 출처별 기본 규칙을 따른다.</summary>
+    public const string GuardBarsAuto = "auto";
+
+    /// <summary>
+    /// 시작·가운데·끝 막대를 캡션 칸까지 길게 늘릴지. on / off / auto.
+    /// 늘어나는 자리는 심볼 구조가 정하므로(소매는 시작·가운데·끝, Codabar·Code 93은 앞뒤)
+    /// 여기서는 켜고 끄기만 고른다. auto면 렌더러가 변환 출처별 실측 규칙을 쓴다.
+    /// 기존 문서에는 이 항목이 없어 auto로 읽히므로 동작이 그대로 유지된다.
+    /// </summary>
+    public string BarcodeGuardBars { get; set; } = GuardBarsAuto;
+
     /// <summary>
     /// 바코드 변환 출처. formtec / anylabel / ilabel.
     /// 비어 있으면 에디터에서 직접 넣은 객체(표준 인코딩).
@@ -220,6 +251,7 @@ public sealed class DesignObject
             LetterSpacing = LetterSpacing,
             TextDirection = TextDirection,
             TextWrap = TextWrap,
+            TextGdiMetrics = TextGdiMetrics,
             TextPaddingXMm = TextPaddingXMm,
             BackgroundFill = BackgroundFill,
             BackgroundTransparent = BackgroundTransparent,
@@ -243,6 +275,7 @@ public sealed class DesignObject
             BarcodeValue = BarcodeValue,
             BarcodeShowText = BarcodeShowText,
             BarcodeShowStartEnd = BarcodeShowStartEnd,
+            BarcodeGuardBars = BarcodeGuardBars,
             BarcodeVendor = BarcodeVendor,
             BarcodeSupplement = BarcodeSupplement,
             BarcodeIsbnCaption = BarcodeIsbnCaption,

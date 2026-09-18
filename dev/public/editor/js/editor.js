@@ -61,6 +61,12 @@ window.labelUpEditor = {
     var self = this;
     self._localFontDenied = false;
     self._localFontLastError = '';
+    // 이미 받아 둔 목록이 있으면 다시 묻지 않는다. 목록에 없는 글꼴은 다시 물어도 나오지 않고,
+    // 되물을 때마다 Chrome 허용 창만 다시 뜬다.
+    if (self._localFonts && self._localFonts.length) {
+      self.notifyLocalFontResult(self._localFonts.length);
+      return true;
+    }
     self._localFonts = null;
     if (!window.isSecureContext) {
       self._localFontLastError = 'HTTPS 또는 localhost에서만 Chrome 허용 창이 뜹니다.';
