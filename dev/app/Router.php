@@ -22,6 +22,7 @@ use App\Controllers\HeroAdminController;
 use App\Controllers\Api\HeroAdminApiController;
 use App\Controllers\ShopAdminController;
 use App\Controllers\ShopController;
+use App\Controllers\ShopPaymentController;
 use App\Controllers\Api\AdminApiController;
 use App\Controllers\Api\AdminWorkspaceApiController;
 use App\Controllers\Api\InquiryApiController;
@@ -46,6 +47,8 @@ use App\Controllers\Api\SeedController;
 use App\Controllers\Api\SystemController;
 use App\Controllers\AuthController;
 use App\Controllers\HomeController;
+use App\Controllers\AboutController;
+use App\Controllers\LegalPublicController;
 use App\Controllers\SeoAdminController;
 use App\Controllers\SeoPublicController;
 use App\Controllers\Api\SeoAdminApiController;
@@ -57,6 +60,8 @@ use App\Controllers\QrCouponAdminController;
 use App\Controllers\Api\QrCouponAdminApiController;
 use App\Controllers\QrCouponPublicController;
 use App\Controllers\CompatCodePublicController;
+use App\Controllers\QaReviewController;
+use App\Controllers\Api\QaReviewApiController;
 
 final class Router
 {
@@ -123,6 +128,8 @@ final class Router
     {
         $router = new self();
         $home = new HomeController();
+        $about = new AboutController();
+        $legalPublic = new LegalPublicController();
         $auth = new AuthController();
         $admin = new AdminController();
         $health = new HealthController();
@@ -161,6 +168,7 @@ final class Router
         $editorSystemFontApi = new EditorSystemFontApiController();
         $editorClipartApi = new EditorClipartApiController();
         $shopPublic = new ShopController();
+        $shopPayment = new ShopPaymentController();
         $shopPublicApi = new ShopApiController();
         $accountAddressApi = new AccountAddressApiController();
         $notificationApi = new NotificationApiController();
@@ -175,8 +183,14 @@ final class Router
         $qrCouponAdminApi = new QrCouponAdminApiController();
         $qrCouponPublic = new QrCouponPublicController();
         $compatPublic = new CompatCodePublicController();
+        $qaReview = new QaReviewController();
+        $qaReviewApi = new QaReviewApiController();
 
         $router->get('/', [$home, 'index']);
+        $router->get('/about', [$about, 'index']);
+        $router->get('/service', [$about, 'index']);
+        $router->get('/terms', [$legalPublic, 'terms']);
+        $router->get('/privacy', [$legalPublic, 'privacy']);
         $router->get('/faq', [$faqPublic, 'index']);
         $router->get('/compat', [$compatPublic, 'index']);
         $router->get('/compat-codes', [$compatPublic, 'index']);
@@ -190,6 +204,8 @@ final class Router
         $router->get('/shop/products/{id}', [$shopPublic, 'product']);
         $router->get('/shop/cart', [$shopPublic, 'cart']);
         $router->get('/shop/complete', [$shopPublic, 'complete']);
+        $router->get('/shop/pay/success', [$shopPayment, 'success']);
+        $router->get('/shop/pay/fail', [$shopPayment, 'fail']);
 
         $router->get('/login', [$auth, 'loginForm']);
         $router->get('/register', [$auth, 'registerForm']);
@@ -201,6 +217,9 @@ final class Router
 
         $router->get('/admin/login', [$admin, 'loginForm']);
         $router->get('/admin/logout', [$admin, 'logout']);
+        $router->get('/admin/qa-review', [$qaReview, 'index']);
+        $router->post('/api/admin/qa-review/save', [$qaReviewApi, 'save']);
+        $router->post('/api/admin/qa-review/upload-image', [$qaReviewApi, 'uploadImage']);
         $router->get('/admin', [$admin, 'dashboard']);
         $router->get('/admin/users', [$admin, 'users']);
         $router->get('/admin/users/{id}', [$admin, 'userDetail']);
@@ -217,6 +236,7 @@ final class Router
         $router->get('/app-ads.txt', [$seoPublic, 'appAdsTxt']);
 
         $router->get('/admin/ops/credit-rewards', [$creditAdmin, 'rewardRules']);
+        $router->get('/admin/ops/credit-usage', [$creditAdmin, 'creditUsage']);
         $router->get('/admin/ops/purchase-credits', [$creditAdmin, 'purchaseCredits']);
         $router->get('/admin/ops/hero-slides', [$heroAdmin, 'index']);
         $router->get('/admin/ops/event-popups', [$eventPopupAdmin, 'index']);
@@ -325,6 +345,9 @@ final class Router
         $router->post('/api/admin/credit/reward/delete', [$creditAdminApi, 'deleteRewardRule']);
         $router->post('/api/admin/credit/purchase-product/save', [$creditAdminApi, 'savePurchaseProduct']);
         $router->post('/api/admin/credit/purchase-product/delete', [$creditAdminApi, 'deletePurchaseProduct']);
+        $router->post('/api/admin/credit/purchase-group/credit/save', [$creditAdminApi, 'savePurchaseGroupCredit']);
+        $router->post('/api/admin/credit/purchase-group/usage-history', [$creditAdminApi, 'purchaseGroupUsageHistory']);
+        $router->post('/api/admin/ops/credit-usage/save', [$creditAdminApi, 'saveCreditUsage']);
         $router->post('/api/admin/credit/codes/generate', [$creditAdminApi, 'generateCodes']);
         $router->post('/api/admin/credit/adjust', [$creditAdminApi, 'adjustCredit']);
         $router->post('/api/admin/credit/grant', [$creditAdminApi, 'grantCredit']);
@@ -375,6 +398,9 @@ final class Router
         $router->get('/api/admin/shop/product-page-settings', [$shopApi, 'productPageSettings']);
         $router->post('/api/admin/shop/product-page-settings/save', [$shopApi, 'saveProductPageSettings']);
         $router->post('/api/admin/shop/product-page-settings/upload-images', [$shopApi, 'uploadProductPageImages']);
+        $router->get('/api/admin/shop/product-page-category-settings', [$shopApi, 'productPageCategorySettingsList']);
+        $router->get('/api/admin/shop/product-page-category-settings/one', [$shopApi, 'productPageCategorySettings']);
+        $router->post('/api/admin/shop/product-page-category-settings/save', [$shopApi, 'saveProductPageCategorySettings']);
 
         $router->get('/api/shop/editor-papers', [$shopPublicApi, 'editorPapers']);
         $router->get('/api/shop/catalog', [$shopPublicApi, 'catalog']);
@@ -385,6 +411,8 @@ final class Router
         $router->post('/api/shop/cart/update', [$shopPublicApi, 'updateCart']);
         $router->post('/api/shop/cart/remove', [$shopPublicApi, 'removeCart']);
         $router->post('/api/shop/checkout', [$shopPublicApi, 'checkout']);
+        $router->get('/api/shop/pay/methods', [$shopPublicApi, 'paymentMethods']);
+        $router->post('/api/shop/pay/prepare', [$shopPublicApi, 'preparePayment']);
 
         $router->get('/api/account/addresses', [$accountAddressApi, 'index']);
         $router->post('/api/account/addresses/save', [$accountAddressApi, 'save']);

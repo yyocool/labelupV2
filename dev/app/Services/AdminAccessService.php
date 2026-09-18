@@ -79,11 +79,14 @@ final class AdminAccessService
         $skip = [
             '/admin/login',
             '/admin/logout',
+            '/admin/qa-review',
             '/api/admin/login',
             '/api/admin/favorites',
             '/api/admin/alerts',
             '/api/admin/alerts/ack',
             '/api/admin/password',
+            '/api/admin/qa-review/save',
+            '/api/admin/qa-review/upload-image',
         ];
         if (in_array($path, $skip, true)) {
             return null;
@@ -113,7 +116,10 @@ final class AdminAccessService
             '/api/admin/legal' => 'settings',
             '/admin/ops/credit-rewards' => 'ops-credit-rewards',
             '/api/admin/credit/reward' => 'ops-credit-rewards',
+            '/admin/ops/credit-usage' => 'ops-credit-usage',
+            '/api/admin/ops/credit-usage' => 'ops-credit-usage',
             '/admin/ops/purchase-credits' => 'ops-purchase-credits',
+            '/api/admin/credit/purchase-group' => 'ops-purchase-credits',
             '/api/admin/credit/purchase' => 'ops-purchase-credits',
             '/api/admin/credit/codes' => 'ops-purchase-credits',
             '/admin/ops/hero-slides' => 'ops-hero-slides',
@@ -138,6 +144,8 @@ final class AdminAccessService
             '/admin/content/templates' => 'content-templates',
             '/api/admin/content/template' => 'content-templates',
             '/admin/content/product-detail-pages' => 'content-product-detail-pages',
+            '/api/admin/shop/product-page-settings' => 'content-product-detail-pages',
+            '/api/admin/shop/product-page-category-settings' => 'content-product-detail-pages',
             '/admin/shop/categories' => 'shop-categories',
             '/api/admin/shop/category' => 'shop-categories',
             '/admin/shop/specs' => 'shop-specs',

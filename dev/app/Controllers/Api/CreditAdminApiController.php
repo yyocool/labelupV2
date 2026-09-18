@@ -6,8 +6,10 @@ namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
 use App\Middleware\AuthMiddleware;
+use App\Services\AiCreditService;
 use App\Services\AuthService;
 use App\Services\CreditAdminService;
+use App\Services\QrCouponAdminService;
 use RuntimeException;
 
 final class CreditAdminApiController extends BaseController
@@ -122,6 +124,50 @@ final class CreditAdminApiController extends BaseController
         try {
             $id = $this->credits->saveCsLog(request_json(), (int) $this->auth->adminId());
             $this->jsonSuccess(['id' => $id], 'CS 이력이 저장되었습니다.');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
+        }
+    }
+
+    /** 구매크레딧/QR쿠폰 공통 — 그룹 지급 크레딧 저장 */
+    public function savePurchaseGroupCredit(): never
+    {
+        $this->guard();
+        try {
+            $payload = request_json();
+            $saved = (new QrCouponAdminService())->saveCreditAmount(
+                (int) ($payload['group_no'] ?? 0),
+                $payload['credit_amount'] ?? null
+            );
+            $this->jsonSuccess($saved, '지급 크레딧이 저장되었습니다. (QR쿠폰관리에도 동일 적용)');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
+        }
+    }
+
+    /** 구매크레딧 — 그룹별 지급 이력 */
+    public function purchaseGroupUsageHistory(): never
+    {
+        $this->guard();
+        try {
+            $groupNo = (int) (request_json()['group_no'] ?? 0);
+            $items = (new QrCouponAdminService())->usageHistory($groupNo);
+            $this->jsonSuccess(['items' => $items, 'group_no' => $groupNo]);
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
+        }
+    }
+
+    /** 운영관리 › 크레딧 사용 설정 저장 */
+    public function saveCreditUsage(): never
+    {
+        $this->guard();
+        try {
+            (new AiCreditService())->saveAdminSettings(request_json());
+            $this->jsonSuccess(
+                (new AiCreditService())->adminSettings(),
+                '크레딧 사용 설정이 저장되었습니다.'
+            );
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage(), null, 422);
         }

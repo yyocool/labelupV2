@@ -276,6 +276,7 @@ function admin_menu_catalog(): array
         ['key' => 'ops-faq', 'label' => 'FAQ 관리', 'href' => 'admin/ops/faq', 'group' => '운영관리', 'ic' => '?'],
         ['key' => 'ops-inquiries', 'label' => '1:1 문의', 'href' => 'admin/ops/inquiries', 'group' => '운영관리', 'ic' => '✉'],
         ['key' => 'ops-credit-rewards', 'label' => '크레딧보상 관리', 'href' => 'admin/ops/credit-rewards', 'group' => '운영관리', 'ic' => '◈'],
+        ['key' => 'ops-credit-usage', 'label' => '크레딧 사용 설정', 'href' => 'admin/ops/credit-usage', 'group' => '운영관리', 'ic' => 'C'],
         ['key' => 'ops-purchase-credits', 'label' => '구매크레딧', 'href' => 'admin/ops/purchase-credits', 'group' => '운영관리', 'ic' => '▣'],
         ['key' => 'settings-admins', 'label' => '관리자', 'href' => 'admin/settings/admins', 'group' => '설정', 'ic' => '⚙'],
         ['key' => 'settings-member-grades', 'label' => '회원등급 설정', 'href' => 'admin/settings/member-grades', 'group' => '설정', 'ic' => '◇'],
@@ -407,4 +408,30 @@ function site_intro_render(): void
         echo '<script src="' . e(js('site-intro.js')) . '"></script>';
     } catch (\Throwable) {
     }
+}
+
+/** @return array<string, string> */
+function company_info(): array
+{
+    try {
+        return (new \App\Services\CompanyInfoService())->all();
+    } catch (\Throwable) {
+        return [
+            'name' => '라벨업',
+            'ceo' => '',
+            'biz_no' => '',
+            'mail_order_no' => '',
+            'address' => '',
+            'phone' => '',
+            'email' => '',
+            'privacy_officer' => '',
+        ];
+    }
+}
+
+function render_site_footer(array $opts = []): void
+{
+    $year = (int) ($opts['year'] ?? date('Y'));
+    $links = $opts['links'] ?? null;
+    require view_path('partials/site-footer.php');
 }

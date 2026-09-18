@@ -122,7 +122,11 @@ final class QrCouponAdminApiController extends BaseController
     {
         $this->guard();
         try {
-            $this->jsonSuccess($this->service->getPrintTemplate());
+            $key = $this->service->resolveTemplateKeyFromRequest(
+                isset($_GET['key']) ? (string) $_GET['key'] : null,
+                $_GET['category_no'] ?? null
+            );
+            $this->jsonSuccess($this->service->getPrintTemplate($key));
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage());
         } catch (Throwable $e) {

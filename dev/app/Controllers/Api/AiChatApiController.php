@@ -9,7 +9,6 @@ use App\Middleware\AuthMiddleware;
 use App\Services\AiCreditService;
 use App\Services\AiUsageService;
 use App\Services\AuthService;
-use App\Services\CreditService;
 use App\Services\LabiDesignService;
 use RuntimeException;
 
@@ -46,20 +45,11 @@ final class AiChatApiController extends BaseController
             }
             $result = (new LabiDesignService())->handle($messages, $userId, $surface, $forceIntent);
             $creditInfo = null;
-            if ($userId > 0) {
-                try {
-                    $creditInfo = $aiCredits->charge(
-                        $userId,
-                        (string) ($result['intent'] ?? 'chat'),
-                        $surface
-                    );
-                } catch (RuntimeException $creditError) {
-                    $creditInfo = [
-                        'charged' => 0,
-                        'balance' => (new CreditService())->balance($userId),
-                        'error' => $creditError->getMessage(),
-                    ];
-                }
+            if ($userId > 0 && $aiCredits->isEnabled()) {
+                $intent = (string) ($result['intent'] ?? 'chat');
+                // 실제 intent 기준으로 잔액 재확인 후 차감 (실패 시 응답 미제공)
+                $aiCredits->assertCanAfford($userId, $intent);
+                $creditInfo = $aiCredits->charge($userId, $intent, $surface);
             }
             $this->jsonSuccess([
                 'reply' => $result['reply'],

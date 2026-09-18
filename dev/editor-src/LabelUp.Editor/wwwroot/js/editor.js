@@ -1105,6 +1105,9 @@ window.labelUpEditor = {
         if (!self._labiDotNet || !file) return;
         self._labiDotNet.invokeMethodAsync('OnVendorFileFromLabi', file.fileName || 'vendor-import', file.dataUrl || '');
       },
+      onCreditChange: function (creditInfo) {
+        self.setCreditBalance(creditInfo && creditInfo.balance);
+      },
     });
   },
   enrichLabiProduct: async function (product) {
@@ -1346,6 +1349,15 @@ window.labelUpEditor = {
     }
     var orderNo = json.data && json.data.order_no;
     if (String(path || '').indexOf('/api/shop/checkout') !== -1 && orderNo) {
+      var payment = json.data && json.data.payment;
+      if (json.data && json.data.requires_payment && payment && window.LabelUpTossPay) {
+        await window.LabelUpTossPay.start(payment);
+        return JSON.stringify({
+          data: json.data,
+          message: json.message || '',
+          payment_started: true
+        });
+      }
       window.location.href = '/shop/complete?order=' + encodeURIComponent(String(orderNo));
     }
     return JSON.stringify({
@@ -2871,6 +2883,15 @@ window.labelUpEditor = {
       });
       wait.observe(document.documentElement, { childList: true, subtree: true });
     }
+  },
+  setCreditBalance: function (balance) {
+    if (balance == null || !Number.isFinite(Number(balance))) return;
+    var chip = document.getElementById('lu-credit-chip');
+    if (!chip) return;
+    var strong = chip.querySelector('strong');
+    if (strong) strong.textContent = (Number(balance) || 0).toLocaleString('ko-KR') + ' C';
+    chip.hidden = false;
+    chip.classList.remove('is-guest');
   },
   bindCreditBadge: function () {
     if (this._creditBadgeBound) return;

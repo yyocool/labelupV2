@@ -16,6 +16,7 @@ $v = static fn (string $key, string $default = ''): string => (string) ($seo[$ke
   <button type="button" class="admin-legal-tab" data-tab="social">소셜 · Open Graph</button>
   <button type="button" class="admin-legal-tab" data-tab="search">검색엔진</button>
   <button type="button" class="admin-legal-tab" data-tab="org">구조화 데이터</button>
+  <button type="button" class="admin-legal-tab" data-tab="company">사업자정보</button>
   <button type="button" class="admin-legal-tab" data-tab="pages">페이지별 SEO</button>
 </div>
 
@@ -114,6 +115,36 @@ $v = static fn (string $key, string $default = ''): string => (string) ($seo[$ke
       </label>
       <label class="admin-field admin-field--full"><span>공식 채널 (sameAs)</span>
         <textarea class="admin-input" name="org_same_as" rows="4" placeholder="https://blog.naver.com/&#10;https://www.instagram.com/"><?= e($v('org_same_as')) ?></textarea>
+      </label>
+    </div>
+  </section>
+
+  <section class="admin-legal-panel" data-panel="company">
+    <p class="admin-meta-line">카카오·네이버 비즈앱 검수와 전자상거래법 고시에 맞게 <b>사업자등록증과 동일한 정보</b>를 입력하세요. 입력값은 사이트 푸터·서비스 소개에 로그인 없이 노출됩니다.</p>
+    <div class="admin-form-grid">
+      <label class="admin-field"><span>상호(법인/상호명)</span>
+        <input class="admin-input" name="company_name" value="<?= e($v('company_name', $v('org_name', '라벨업'))) ?>">
+      </label>
+      <label class="admin-field"><span>대표자</span>
+        <input class="admin-input" name="company_ceo" value="<?= e($v('company_ceo')) ?>">
+      </label>
+      <label class="admin-field"><span>사업자등록번호</span>
+        <input class="admin-input" name="company_biz_no" value="<?= e($v('company_biz_no')) ?>" placeholder="000-00-00000">
+      </label>
+      <label class="admin-field"><span>통신판매업 신고번호</span>
+        <input class="admin-input" name="company_mail_order_no" value="<?= e($v('company_mail_order_no')) ?>" placeholder="제0000-서울○○-0000호">
+      </label>
+      <label class="admin-field admin-field--full"><span>사업장 주소</span>
+        <input class="admin-input" name="company_address" value="<?= e($v('company_address')) ?>">
+      </label>
+      <label class="admin-field"><span>대표 전화</span>
+        <input class="admin-input" name="company_phone" value="<?= e($v('company_phone', $v('org_phone'))) ?>">
+      </label>
+      <label class="admin-field"><span>대표 이메일</span>
+        <input class="admin-input" name="company_email" value="<?= e($v('company_email', $v('org_email'))) ?>">
+      </label>
+      <label class="admin-field"><span>개인정보보호책임자</span>
+        <input class="admin-input" name="company_privacy_officer" value="<?= e($v('company_privacy_officer')) ?>">
       </label>
     </div>
   </section>

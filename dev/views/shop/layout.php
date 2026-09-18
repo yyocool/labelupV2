@@ -26,6 +26,7 @@
     <?php if (empty($hideShopAside)): ?>
     <?php require view_path('shop/partials/aside-panel.php'); ?>
     <?php endif; ?>
+    <?php render_site_footer(['year' => (int) date('Y')]); ?>
   </div>
 </main>
 </div>
@@ -34,6 +35,7 @@
 <script src="<?= js('address-book.js') ?>"></script>
 <script src="<?= js('home.js') ?>"></script>
 <script src="<?= js('notifications.js') ?>"></script>
+<script src="<?= js('toss-pay.js') ?>"></script>
 <script src="<?= js('shop.js') ?>"></script>
 <script src="<?= asset('labi-assistant.js') ?>"></script>
 <?php require view_path('home/partials/event-popup.php'); ?>

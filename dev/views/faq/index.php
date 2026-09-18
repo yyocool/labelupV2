@@ -71,14 +71,7 @@
     <p class="faq-empty-search" hidden>검색 결과가 없습니다. 다른 키워드로 찾아 보세요.</p>
     <?php endif; ?>
 
-    <footer class="page-footer">
-      <div class="faq-foot-links">
-        <a href="<?= url('faq') ?>">FAQ</a>
-        <a href="<?= url('shop') ?>">라벨쇼핑</a>
-        <a href="<?= url('account') ?>">마이페이지</a>
-      </div>
-      <div class="copy">© <?= (int) ($year ?? date('Y')) ?> LABEL UP. All rights reserved.</div>
-    </footer>
+    <?php render_site_footer(['year' => $year ?? date('Y')]); ?>
   </div>
 </main>
 </div>

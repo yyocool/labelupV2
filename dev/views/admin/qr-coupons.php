@@ -11,7 +11,7 @@ $markPrintedUrl = url('api/admin/qr-coupons/mark-printed');
 $usageUrl = url('api/admin/qr-coupons/usage-history');
 $couponPageUrl = (string) ($matrix['coupon_page_url'] ?? qr_public_url('qr-coupon'));
 $couponPreviewUrl = absolute_url('qr-coupon') . '?preview=1';
-$sampleCouponCode = 'LU01-SAMPLE';
+$sampleCouponCode = '쿠폰코드자리(입력안됨)';
 $sampleCouponUrl = qr_public_url('qr-coupon', [
     'g' => 1,
     'cat' => 'sample',
@@ -25,7 +25,7 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
     <p>무료배포 QR 그룹 체계 — 제품분류 · 매수/팩 · 정상 소비자가 기준</p>
   </div>
   <div class="admin-head-actions">
-    <button type="button" class="admin-btn" id="qrPrintTplBtn">출력템플릿</button>
+    <button type="button" class="admin-btn" id="qrPrintTplBtn">공통 출력템플릿</button>
     <button type="button" class="admin-btn admin-btn--primary" id="qrPreviewBtn">쿠폰페이지 미리보기</button>
   </div>
 </div>
@@ -69,6 +69,7 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
         $qrImg = 'https://api.qrserver.com/v1/create-qr-code/?size=96x96&margin=8&data=' . rawurlencode($landingUrl);
       ?>
       <tr data-group-no="<?= (int) $row['group_no'] ?>"
+          data-category-no="<?= (int) $row['category_no'] ?>"
           data-category-name="<?= e((string) $row['category_name']) ?>"
           data-category-slug="<?= e((string) $row['category_slug']) ?>"
           data-sheets="<?= (int) $row['sheets_per_pack'] ?>"
@@ -78,7 +79,16 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
           data-printed="<?= (int) ($row['printed_qr_count'] ?? 0) ?>">
         <?php if (!empty($row['show_category'])): ?>
         <td class="qr-catno" rowspan="<?= (int) $row['category_rowspan'] ?>" style="background:<?= e((string) $row['color_hex']) ?>">
-          <?= (int) $row['category_no'] ?>
+          <div class="qr-catno-wrap">
+            <strong><?= (int) $row['category_no'] ?></strong>
+            <button
+              type="button"
+              class="admin-btn admin-btn--sm qr-cat-tpl-btn js-qr-category-template"
+              data-category-no="<?= (int) $row['category_no'] ?>"
+              data-category-name="<?= e((string) $row['category_name']) ?>"
+              title="분류 <?= (int) $row['category_no'] ?> 출력템플릿 편집"
+            >템플릿</button>
+          </div>
         </td>
         <?php endif; ?>
         <td class="qr-groupno">
@@ -151,8 +161,8 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
     <li>QR 그룹은 <b>제품 분류</b>별로 나누며, 같은 분류 안에서는 <b>정상 소비자가가 동일한 상품</b>을 하나의 그룹으로 묶습니다.</li>
     <li>그룹No. 아래 QR은 그룹 안내용(카테고리·매수) 주소입니다. <b>패키지 인쇄용 QR은 반드시 [QR코드생성]으로 만든 고유 쿠폰번호 URL</b>을 사용하세요.</li>
     <li>생성 URL 형식: <code>https://www.labelup.co.kr/qr-coupon?g=&amp;cat=&amp;sheets=&amp;code=LU01-XXXX</code> — <b>code</b>가 고객 고유 쿠폰번호입니다.</li>
-    <li><b>지급크레딧</b>은 목록에서 바로 수정·저장할 수 있습니다.</li>
-    <li><b>출력템플릿</b>은 패키지 인쇄용 라벨 레이아웃입니다. 용지를 고르고 QR·쿠폰번호 위치를 맞춘 뒤 저장하세요.</li>
+    <li><b>지급크레딧</b>은 목록에서 바로 수정·저장할 수 있으며, <b>구매크레딧</b> 메뉴에서도 동일 값이 적용됩니다.</li>
+    <li><b>공통 출력템플릿</b>은 분류별 템플릿이 없을 때 쓰는 기본 레이아웃입니다. 제품 분류No. 아래 <b>템플릿</b> 버튼으로 분류마다 따로 편집·저장할 수 있습니다.</li>
   </ul>
 </div>
 
@@ -341,12 +351,13 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
           <thead>
             <tr>
               <th>코드</th>
+              <th>지급 크레딧</th>
               <th>사용자</th>
               <th>사용일시</th>
             </tr>
           </thead>
           <tbody id="qrUsageBody">
-            <tr><td colspan="3" class="empty">불러오는 중…</td></tr>
+            <tr><td colspan="4" class="empty">불러오는 중…</td></tr>
           </tbody>
         </table>
       </div>
@@ -365,6 +376,7 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
   var codesTitle = '프린트';
   var codesMetaText = '';
   var codesGroupNo = '';
+  var codesCategoryNo = 0;
 
   function formatQrCount(generated, printed) {
     return Number(generated || 0).toLocaleString() + '개 (출력 ' + Number(printed || 0).toLocaleString() + '건)';
@@ -559,12 +571,13 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
           var res = await AdminAPI.post(groupCodesUrl, { group_no: Number(groupNo) });
           var data = res.data || {};
           codesGroupNo = String(groupNo);
+          codesCategoryNo = Number(data.category_no || row.getAttribute('data-category-no') || 0);
           row.setAttribute('data-printed', String(Number(data.printed_count || 0)));
           paintGeneratedCell(row);
           renderCodesModal(
             'QR 그룹 ' + groupNo + ' 프린트',
             data.items || [],
-            '그룹 ' + groupNo
+            '그룹 ' + groupNo + (codesCategoryNo ? (' · 분류 ' + codesCategoryNo) : '')
           );
         } catch (err) {
           showAdminAlert(err.message || '쿠폰 목록을 불러오지 못했습니다.', 'error');
@@ -575,20 +588,23 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
       if (action === 'usage-history') {
         openModal('qrUsageModal');
         var ubody = document.getElementById('qrUsageBody');
-        ubody.innerHTML = '<tr><td colspan="3" class="empty">불러오는 중…</td></tr>';
+        ubody.innerHTML = '<tr><td colspan="4" class="empty">불러오는 중…</td></tr>';
         try {
           var ures = await AdminAPI.post(usageUrl, { group_no: Number(groupNo) });
           var uitems = (ures.data && ures.data.items) || [];
           if (!uitems.length) {
-            ubody.innerHTML = '<tr><td colspan="3" class="empty">사용이력이 없습니다.</td></tr>';
+            ubody.innerHTML = '<tr><td colspan="4" class="empty">사용이력이 없습니다.</td></tr>';
             return;
           }
           ubody.innerHTML = uitems.map(function (it) {
             var who = it.used_by_name || it.used_by_email || ('#' + (it.used_by || '-'));
-            return '<tr><td><code>' + (it.code || '-') + '</code></td><td>' + who + '</td><td>' + (it.used_at || '-') + '</td></tr>';
+            var credit = (it.credit_amount == null || it.credit_amount === '')
+              ? '<span class="admin-muted">미설정</span>'
+              : ('<strong>' + Number(it.credit_amount).toLocaleString() + ' C</strong>');
+            return '<tr><td><code>' + (it.code || '-') + '</code></td><td>' + credit + '</td><td>' + who + '</td><td>' + (it.used_at || '-') + '</td></tr>';
           }).join('');
         } catch (err) {
-          ubody.innerHTML = '<tr><td colspan="3" class="empty">' + (err.message || '조회 실패') + '</td></tr>';
+          ubody.innerHTML = '<tr><td colspan="4" class="empty">' + (err.message || '조회 실패') + '</td></tr>';
         }
       }
     });
@@ -623,6 +639,7 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
           paintGeneratedCell(row);
         }
         codesGroupNo = String(groupNo);
+        codesCategoryNo = Number((row && row.getAttribute('data-category-no')) || 0);
         renderCodesModal(
           quantity.toLocaleString() + '개 쿠폰 생성 완료',
           codes,
@@ -697,7 +714,11 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
       showAdminAlert('인쇄 미리보기를 불러오지 못했습니다.', 'error');
       return;
     }
-    window.LabelUpQrLabelPrint.open(list);
+    var categoryNo = codesCategoryNo;
+    if (!categoryNo && list && list[0] && list[0].category_no) {
+      categoryNo = Number(list[0].category_no || 0);
+    }
+    window.LabelUpQrLabelPrint.open(list, { categoryNo: categoryNo || 0 });
   }
 
   var codesBody = document.getElementById('qrCodesBody');

@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Repositories\ShopRepository;
 use App\Repositories\ShopProductPageSettingsRepository;
+use App\Repositories\ShopProductPageCategorySettingsRepository;
 use RuntimeException;
 
 final class ShopAdminService
@@ -493,6 +494,92 @@ final class ShopAdminService
             'footer_image' => $footerImage,
         ]);
         return $this->productPageSettings();
+    }
+
+    /** @return array{categories:list<array<string,mixed>>} */
+    public function productPageCategorySettingsList(): array
+    {
+        $indexed = (new ShopProductPageCategorySettingsRepository())->allIndexed();
+        $categories = [];
+        foreach ($this->categories() as $cat) {
+            $id = (int) ($cat['id'] ?? 0);
+            if ($id <= 0) {
+                continue;
+            }
+            $custom = $indexed[$id] ?? null;
+            $categories[] = [
+                'id' => $id,
+                'name' => (string) ($cat['name'] ?? ''),
+                'slug' => (string) ($cat['slug'] ?? ''),
+                'is_active' => (int) ($cat['is_active'] ?? 0) === 1,
+                'has_custom' => !empty($custom['has_custom']),
+                'header_html' => (string) ($custom['header_html'] ?? ''),
+                'footer_html' => (string) ($custom['footer_html'] ?? ''),
+                'header_image' => (string) ($custom['header_image'] ?? ''),
+                'footer_image' => (string) ($custom['footer_image'] ?? ''),
+                'header_image_url' => ShopProductImageService::resolveUrl((string) ($custom['header_image'] ?? '')),
+                'footer_image_url' => ShopProductImageService::resolveUrl((string) ($custom['footer_image'] ?? '')),
+            ];
+        }
+        return ['categories' => $categories];
+    }
+
+    /** @return array<string, mixed> */
+    public function productPageCategorySettings(int $categoryId): array
+    {
+        if ($categoryId <= 0) {
+            throw new RuntimeException('카테고리를 선택해주세요.');
+        }
+        $cat = null;
+        foreach ($this->categories() as $row) {
+            if ((int) ($row['id'] ?? 0) === $categoryId) {
+                $cat = $row;
+                break;
+            }
+        }
+        if (!$cat) {
+            throw new RuntimeException('카테고리를 찾을 수 없습니다.');
+        }
+        $custom = (new ShopProductPageCategorySettingsRepository())->findByCategoryId($categoryId) ?? [
+            'header_html' => '',
+            'footer_html' => '',
+            'header_image' => '',
+            'footer_image' => '',
+        ];
+        $repo = new ShopProductPageCategorySettingsRepository();
+        return [
+            'category_id' => $categoryId,
+            'category_name' => (string) ($cat['name'] ?? ''),
+            'header_html' => $custom['header_html'],
+            'footer_html' => $custom['footer_html'],
+            'header_image' => $custom['header_image'],
+            'footer_image' => $custom['footer_image'],
+            'header_image_url' => ShopProductImageService::resolveUrl($custom['header_image']),
+            'footer_image_url' => ShopProductImageService::resolveUrl($custom['footer_image']),
+            'has_custom' => $repo->hasContent(
+                $custom['header_html'],
+                $custom['footer_html'],
+                $custom['header_image'],
+                $custom['footer_image']
+            ),
+        ];
+    }
+
+    public function saveProductPageCategorySettings(array $data): array
+    {
+        $categoryId = (int) ($data['category_id'] ?? 0);
+        if ($categoryId <= 0) {
+            throw new RuntimeException('카테고리를 선택해주세요.');
+        }
+        $headerImage = ShopProductImageService::normalizePublicPath((string) ($data['header_image'] ?? ''));
+        $footerImage = ShopProductImageService::normalizePublicPath((string) ($data['footer_image'] ?? ''));
+        (new ShopProductPageCategorySettingsRepository())->save($categoryId, [
+            'header_html' => (string) ($data['header_html'] ?? ''),
+            'footer_html' => (string) ($data['footer_html'] ?? ''),
+            'header_image' => $headerImage,
+            'footer_image' => $footerImage,
+        ]);
+        return $this->productPageCategorySettings($categoryId);
     }
 
     /** @return array<int, string> */

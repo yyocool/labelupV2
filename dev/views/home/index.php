@@ -58,7 +58,22 @@
           <span class="prompt-badge">AI DESIGN</span>
         </div>
 
-        <div class="ai-chat-log" id="aiChatLog" hidden aria-live="polite"></div>
+        <div class="ai-chat-log" id="aiChatLog"<?= empty($authUser) ? '' : ' hidden' ?> aria-live="polite">
+          <?php if (empty($authUser)): ?>
+          <div class="ai-demo-thread" aria-label="서비스 이용 예시">
+            <div class="ai-demo-msg ai-demo-msg--user">카페 원두 스티커용 라벨지 추천해줘</div>
+            <div class="ai-demo-msg ai-demo-msg--labi">
+              <b>라비</b>
+              <p>원두 스티커에는 방수·광택 라벨이 잘 맞아요. 쇼핑몰에서 원형·사각형 규격을 고르거나, 로그인 후 템플릿으로 바로 디자인을 시작할 수 있어요.</p>
+              <div class="ai-demo-actions">
+                <a href="<?= url('shop') ?>">라벨지 쇼핑 보기</a>
+                <a href="<?= url('about') ?>">서비스 소개</a>
+                <a href="<?= url('login') ?>?redirect=<?= rawurlencode(url('')) ?>">로그인하고 만들기</a>
+              </div>
+            </div>
+          </div>
+          <?php endif; ?>
+        </div>
 
         <div class="prompt-composer">
           <div class="ai-attach-preview" id="aiAttachPreview" hidden></div>
@@ -104,7 +119,7 @@
       <div class="feature"><div class="fi p">✦</div><div><b>디자인 추천</b><span>용도에 맞는 디자인을 자동으로 추천해드려요</span></div></div>
       <div class="feature"><div class="fi g">⌕</div><div><b>규격 검색</b><span>원하는 용지 규격을 빠르게 찾아보세요</span></div></div>
       <div class="feature"><a class="feature-link" href="<?= url('shop') ?>"><div class="fi b">🛒</div><div><b>라벨지 쇼핑몰</b><span>다양한 규격 라벨지를 바로 구매하세요</span></div></a></div>
-      <div class="feature"><div class="fi o">◇</div><div><b>맞춤 제작</b><span>특별한 라벨을 맞춤 제작해보세요</span></div></div>
+      <div class="feature"><a class="feature-link" href="<?= url('about') ?>"><div class="fi o">◇</div><div><b>서비스 소개</b><span>이용 흐름과 사업자정보를 확인해보세요</span></div></a></div>
       <div class="feature"><div class="fi c">⌘</div><div><b>데이터 연동</b><span>엑셀 데이터로 라벨을 자동 생성하세요</span></div></div>
       <div class="feature"><a class="feature-link" href="<?= url('faq') ?>"><div class="fi r">▶</div><div><b>사용 가이드</b><span>처음이신가요? FAQ로 시작해보세요</span></div></a></div>
     </section>
@@ -270,14 +285,7 @@
     </section>
 
 
-    <footer class="page-footer">
-      <div class="faq-foot-links">
-        <a href="<?= url('faq') ?>">자주 묻는 질문</a>
-        <a href="<?= url('shop') ?>">라벨쇼핑</a>
-        <a href="<?= url('account') ?>">마이페이지</a>
-      </div>
-      <div class="copy">© <?= (int) ($year ?? date('Y')) ?> LABEL UP. All rights reserved.</div>
-    </footer>
+    <?php render_site_footer(['year' => $year ?? date('Y')]); ?>
   </div>
 </main>
 </div>

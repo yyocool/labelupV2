@@ -29,11 +29,28 @@ final class AiCreditService
     public function adminSettings(): array
     {
         $cfg = $this->repo->getConfig();
+        $costs = $this->repo->allCosts();
+        $stats = [];
+        try {
+            $stats = (new AiUsageRepository())->averagesByIntent();
+        } catch (\Throwable) {
+            $stats = [];
+        }
+        foreach ($costs as &$row) {
+            $intent = (string) ($row['intent'] ?? '');
+            $stat = $stats[$intent] ?? null;
+            $row['avg_tokens'] = $stat ? (float) $stat['avg_tokens'] : null;
+            $row['avg_cost_krw'] = $stat ? (float) $stat['avg_cost_krw'] : null;
+            $row['total_cost_krw'] = $stat ? (float) $stat['total_cost_krw'] : null;
+            $row['usage_samples'] = $stat ? (int) $stat['samples'] : 0;
+        }
+        unset($row);
+
         return [
             'is_enabled' => (int) ($cfg['is_enabled'] ?? 1) === 1,
             'monthly_budget' => (int) ($cfg['monthly_budget'] ?? 0),
             'low_balance_threshold' => (int) ($cfg['low_balance_threshold'] ?? 10),
-            'costs' => $this->repo->allCosts(),
+            'costs' => $costs,
         ];
     }
 

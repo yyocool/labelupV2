@@ -13,10 +13,14 @@
     shapeKind: 'rect',
     dirty: false,
     drag: null,
+    templateKey: 'default',
+    categoryNo: 0,
+    templateName: '공통 출력템플릿',
   };
 
   var els = {
     modal: document.getElementById('qrPrintTplModal'),
+    title: document.getElementById('qrPrintTplTitle'),
     openBtn: document.getElementById('qrPrintTplBtn'),
     saveBtn: document.getElementById('qrTplSaveBtn'),
     resetBtn: document.getElementById('qrTplResetBtn'),
@@ -118,7 +122,7 @@
   }
 
   function sampleCouponUrl() {
-    var code = cfg.sampleCode || 'LU01-SAMPLE';
+    var code = cfg.sampleCode || '쿠폰코드자리(입력안됨)';
     var url = String(cfg.sampleUrl || 'https://labelup.kr/qr-coupon');
     if (/[?&]code=/.test(url)) return url;
     return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'code=' + encodeURIComponent(code);
@@ -127,12 +131,12 @@
   function payloadText(o) {
     var raw = String(o.payload || '{{coupon_url}}');
     if (raw === '{{coupon_url}}') return sampleCouponUrl();
-    if (raw === '{{coupon_code}}') return cfg.sampleCode || 'LU01-SAMPLE';
+    if (raw === '{{coupon_code}}') return cfg.sampleCode || '쿠폰코드자리(입력안됨)';
     return raw;
   }
 
   function displayText(o) {
-    return String(o.text || '').replace('{{coupon_code}}', cfg.sampleCode || 'LU01-SAMPLE');
+    return String(o.text || '').replace('{{coupon_code}}', cfg.sampleCode || '쿠폰코드자리(입력안됨)');
   }
 
   function qrSrc(o) {
@@ -623,6 +627,41 @@
     }
   }
 
+  function templateKeyForCategory(categoryNo) {
+    categoryNo = Number(categoryNo || 0);
+    return categoryNo > 0 ? ('cat-' + categoryNo) : 'default';
+  }
+
+  function templateTitle(categoryNo, categoryName) {
+    categoryNo = Number(categoryNo || 0);
+    if (categoryNo > 0) {
+      var name = String(categoryName || '').trim();
+      return name
+        ? ('분류 ' + categoryNo + ' 출력템플릿 · ' + name)
+        : ('분류 ' + categoryNo + ' 출력템플릿');
+    }
+    return '공통 출력템플릿';
+  }
+
+  function setTemplateContext(opts) {
+    opts = opts || {};
+    var categoryNo = Number(opts.categoryNo || 0);
+    state.categoryNo = categoryNo;
+    state.templateKey = opts.key || templateKeyForCategory(categoryNo);
+    state.templateName = opts.name || (
+      categoryNo > 0 ? ('분류 ' + categoryNo + ' 출력템플릿') : '공통 출력템플릿'
+    );
+    if (els.title) {
+      els.title.textContent = templateTitle(categoryNo, opts.categoryName || '');
+    }
+  }
+
+  function loadUrlForKey(key) {
+    var base = cfg.loadUrl || '/api/admin/qr-coupons/print-template';
+    var sep = base.indexOf('?') >= 0 ? '&' : '?';
+    return base + sep + 'key=' + encodeURIComponent(key || 'default');
+  }
+
   async function loadPapers() {
     try {
       var res = await fetch(cfg.papersUrl || '/api/shop/editor-papers', { credentials: 'same-origin' });
@@ -636,11 +675,22 @@
 
   async function loadTemplate() {
     try {
-      var res = await AdminAPI.get(cfg.loadUrl);
+      var res = await AdminAPI.get(loadUrlForKey(state.templateKey));
       var data = (res && res.data) || {};
+      if (data.key) state.templateKey = data.key;
+      if (data.category_no != null) state.categoryNo = Number(data.category_no || 0);
+      if (data.name) state.templateName = data.name;
       applyTemplate(data, false);
-      els.status.dataset.saved = data.updated_at ? ('저장 ' + data.updated_at) : '';
-      els.status.textContent = els.status.dataset.saved || (data.persisted ? '불러옴' : '기본 레이아웃');
+      if (data.persisted && data.updated_at) {
+        els.status.dataset.saved = '저장 ' + data.updated_at;
+        els.status.textContent = els.status.dataset.saved;
+      } else if (data.fallback_from) {
+        els.status.dataset.saved = '';
+        els.status.textContent = '공통 템플릿 기준 · 저장 전';
+      } else {
+        els.status.dataset.saved = '';
+        els.status.textContent = '기본 레이아웃';
+      }
     } catch (err) {
       applyTemplate({ paper: defaultPaper(), objects: defaultObjects(), settings: state.settings }, false);
       els.status.textContent = '기본 레이아웃';
@@ -667,8 +717,9 @@
     els.saveBtn.disabled = true;
     try {
       var res = await AdminAPI.post(cfg.saveUrl, {
-        key: 'default',
-        name: 'QR 출력템플릿',
+        key: state.templateKey || 'default',
+        category_no: state.categoryNo || 0,
+        name: state.templateName || 'QR 출력템플릿',
         paper: state.paper,
         objects: state.objects,
         settings: state.settings,
@@ -685,7 +736,8 @@
     }
   }
 
-  function openModal() {
+  function openModal(opts) {
+    setTemplateContext(opts || { key: 'default', categoryNo: 0 });
     els.modal.hidden = false;
     loadPapers();
     loadTemplate().then(function () {
@@ -696,13 +748,29 @@
     });
   }
 
-  if (els.openBtn) els.openBtn.addEventListener('click', openModal);
+  if (els.openBtn) {
+    els.openBtn.addEventListener('click', function () {
+      openModal({ key: 'default', categoryNo: 0, name: '공통 출력템플릿' });
+    });
+  }
+  document.querySelectorAll('.js-qr-category-template').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      openModal({
+        categoryNo: Number(btn.getAttribute('data-category-no') || 0),
+        categoryName: btn.getAttribute('data-category-name') || '',
+      });
+    });
+  });
   if (els.saveBtn) els.saveBtn.addEventListener('click', saveTemplate);
   if (els.resetBtn) {
     els.resetBtn.addEventListener('click', function () {
       applyTemplate({ paper: defaultPaper(), objects: defaultObjects(), settings: { grid: true, snap: true, bg: '#ffffff' } }, true);
     });
   }
+
+  window.LabelUpQrPrintTemplate = {
+    open: openModal,
+  };
 
   document.querySelectorAll('.qr-tpl-tool[data-tool]').forEach(function (btn) {
     btn.addEventListener('click', function () {

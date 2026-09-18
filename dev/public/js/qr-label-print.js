@@ -26,8 +26,11 @@
     btn.addEventListener('click', closeModal);
   });
 
-  async function loadTemplate() {
-    var res = await AdminAPI.get(cfg.loadUrl);
+  async function loadTemplate(categoryNo) {
+    var base = cfg.loadUrl || '/api/admin/qr-coupons/print-template';
+    var key = Number(categoryNo || 0) > 0 ? ('cat-' + Number(categoryNo)) : 'default';
+    var sep = base.indexOf('?') >= 0 ? '&' : '?';
+    var res = await AdminAPI.get(base + sep + 'key=' + encodeURIComponent(key));
     return (res && res.data) || {};
   }
 
@@ -162,14 +165,19 @@
     document.dispatchEvent(new CustomEvent('qr-coupons-printed', { detail: { ids: ids } }));
   }
 
-  async function open(coupons) {
+  async function open(coupons, opts) {
+    opts = opts || {};
     coupons = Array.isArray(coupons) ? coupons.filter(function (c) { return c && c.code; }) : [];
     if (!coupons.length) {
       showAdminAlert('인쇄할 쿠폰이 없습니다.', 'error');
       return;
     }
     pendingIds = coupons.map(function (c) { return Number(c.id || 0); }).filter(function (id) { return id > 0; });
-    var tpl = await loadTemplate();
+    var categoryNo = Number(opts.categoryNo || 0);
+    if (!categoryNo && coupons[0] && coupons[0].category_no) {
+      categoryNo = Number(coupons[0].category_no || 0);
+    }
+    var tpl = await loadTemplate(categoryNo);
     var paper = tpl.paper || {
       labelWidthMm: 70, labelHeightMm: 36, columns: 2, rows: 7,
       leftMarginMm: 32.5, topMarginMm: 13.5, hGapMm: 5, vGapMm: 3,
@@ -180,7 +188,8 @@
     if (meta) {
       meta.textContent = coupons.length.toLocaleString() + '개 · A4 ' + pages + '장 · ' +
         (paper.name || paper.sku || '라벨지') + ' · ' +
-        (Number(paper.columns) || 0) + '×' + (Number(paper.rows) || 0);
+        (Number(paper.columns) || 0) + '×' + (Number(paper.rows) || 0) +
+        (categoryNo ? (' · 분류 ' + categoryNo) : '');
     }
     var html = printDocument(coupons, paper, objects);
     var doc = frame.contentDocument;

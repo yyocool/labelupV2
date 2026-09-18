@@ -191,8 +191,14 @@ function bindCartPage() {
         shipping_memo: String(fd.get('shipping_memo') || ''),
         save_address: fd.get('save_address') === '1',
         address_label: String(fd.get('address_label') || ''),
+        source: 'shop',
       });
       const orderNo = res.data?.order_no || '';
+      const payment = res.data?.payment;
+      if (res.data?.requires_payment && payment && window.LabelUpTossPay) {
+        await window.LabelUpTossPay.start(payment);
+        return;
+      }
       window.location.href = orderNo ? `/shop/complete?order=${encodeURIComponent(orderNo)}` : '/shop/complete';
     } catch (err) {
       showShopToast(err.message);
@@ -200,6 +206,23 @@ function bindCartPage() {
         window.location.href = '/login?next=/shop/cart';
       }
       if (submit) submit.disabled = false;
+    }
+  });
+
+  document.getElementById('shopPayRetryBtn')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const orderNo = btn.getAttribute('data-order-no') || '';
+    const source = btn.getAttribute('data-source') || 'shop';
+    btn.disabled = true;
+    try {
+      const res = await ShopAPI.post('/api/shop/pay/prepare', { order_no: orderNo, source });
+      if (!res.data?.payment || !window.LabelUpTossPay) {
+        throw new Error('결제 정보를 불러오지 못했습니다.');
+      }
+      await window.LabelUpTossPay.start(res.data.payment);
+    } catch (err) {
+      showShopToast(err.message || '결제 재시도에 실패했습니다.');
+      btn.disabled = false;
     }
   });
 }

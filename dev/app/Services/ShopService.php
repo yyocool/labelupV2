@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Repositories\ShopRepository;
 use App\Repositories\ShopProductPageSettingsRepository;
+use App\Repositories\ShopProductPageCategorySettingsRepository;
 use App\Repositories\ProductDetailPageRepository;
 use RuntimeException;
 
@@ -289,13 +290,119 @@ final class ShopService
             );
         }
 
-        return [
+        $orderName = $this->buildOrderName($items);
+        $result = [
             'order_id' => $created['id'],
             'order_no' => $created['order_no'],
             'total' => $summary['total'],
             'total_label' => $summary['total_label'],
             'count' => $summary['count'],
+            'order_name' => $orderName,
+            'requires_payment' => false,
+            'payment' => null,
         ];
+
+        $source = trim((string) ($payload['source'] ?? 'shop'));
+        if ($source === '') {
+            $source = 'shop';
+        }
+        $toss = new TossPaymentsService();
+        if ($toss->isEnabled() && $summary['total'] > 0) {
+            $result['requires_payment'] = true;
+            $result['payment'] = $toss->buildWidgetPayload([
+                'order_no' => $created['order_no'],
+                'total_amount' => $summary['total'],
+                'order_name' => $orderName,
+                'user_id' => $userId > 0 ? $userId : null,
+                'customer_name' => $name,
+                'customer_email' => $email,
+                'customer_phone' => $phone,
+            ], $source);
+        }
+
+        return $result;
+    }
+
+    /** @param array<int, array<string, mixed>> $items */
+    private function buildOrderName(array $items): string
+    {
+        $first = (string) ($items[0]['name'] ?? '라벨업 상품');
+        $extra = max(0, count($items) - 1);
+        if ($extra > 0) {
+            return mb_substr($first, 0, 60) . ' 외 ' . $extra . '건';
+        }
+        return mb_substr($first, 0, 80);
+    }
+
+    /**
+     * @return array{order_no:string,complete_url:string,payment:array<string,mixed>}
+     */
+    public function confirmTossPayment(string $paymentKey, string $orderId, int $amount, string $source = 'shop'): array
+    {
+        $order = $this->repo->findOrderByNo($orderId);
+        if (!$order) {
+            throw new RuntimeException('주문을 찾을 수 없습니다.');
+        }
+        if ((string) ($order['payment_status'] ?? '') === 'paid') {
+            return [
+                'order_no' => (string) $order['order_no'],
+                'complete_url' => absolute_url('shop/complete') . '?order=' . rawurlencode((string) $order['order_no']),
+                'payment' => ['already_paid' => true],
+            ];
+        }
+        if ((int) ($order['total_amount'] ?? 0) !== $amount) {
+            throw new RuntimeException('결제 금액이 주문 금액과 일치하지 않습니다.');
+        }
+
+        $toss = new TossPaymentsService();
+        $confirmed = $toss->confirmPayment($paymentKey, $orderId, $amount);
+        $this->repo->markOrderPaid((int) $order['id'], [
+            'payment_key' => (string) ($confirmed['paymentKey'] ?? $paymentKey),
+            'payment_method' => TossPaymentsService::methodLabel($confirmed),
+            'raw' => $confirmed,
+        ]);
+
+        return [
+            'order_no' => (string) $order['order_no'],
+            'complete_url' => absolute_url('shop/complete') . '?order=' . rawurlencode((string) $order['order_no']),
+            'payment' => [
+                'method' => TossPaymentsService::methodLabel($confirmed),
+                'approved_at' => $confirmed['approvedAt'] ?? null,
+            ],
+            'source' => $source,
+        ];
+    }
+
+    /**
+     * 미결제 주문 재결제용 위젯 페이로드
+     * @return array<string, mixed>
+     */
+    public function paymentPayloadForOrder(string $orderNo, ?int $userId = null, string $source = 'shop'): array
+    {
+        $order = $this->repo->findOrderByNo($orderNo);
+        if (!$order) {
+            throw new RuntimeException('주문을 찾을 수 없습니다.');
+        }
+        if ($userId !== null && $userId > 0 && (int) ($order['user_id'] ?? 0) !== $userId) {
+            throw new RuntimeException('주문에 대한 권한이 없습니다.');
+        }
+        if ((string) ($order['payment_status'] ?? '') === 'paid') {
+            throw new RuntimeException('이미 결제가 완료된 주문입니다.');
+        }
+        $items = $this->repo->orderItems((int) $order['id']);
+        $order['order_name'] = $this->buildOrderName(array_map(static function ($row) {
+            return ['name' => $row['product_name'] ?? '상품'];
+        }, $items));
+        return (new TossPaymentsService())->buildWidgetPayload($order, $source);
+    }
+
+    public function markPaymentFailed(string $orderNo, ?string $reason = null): void
+    {
+        $order = $this->repo->findOrderByNo($orderNo);
+        if (!$order) {
+            return;
+        }
+        $this->repo->markOrderPaymentFailed((int) $order['id'], $reason);
     }
 
     /** @return array<string, mixed>|null */
@@ -472,14 +579,50 @@ final class ShopService
             && (float) $w > 0 && (float) $h > 0;
     }
 
-    /** @return array{header_html:string,footer_html:string,header_image:string,footer_image:string,header_image_url:string,footer_image_url:string,has_header:bool,has_footer:bool} */
-    public function productPageLayout(): array
+    /**
+     * @return array{
+     *   header_html:string,footer_html:string,header_image:string,footer_image:string,
+     *   header_image_url:string,footer_image_url:string,has_header:bool,has_footer:bool,
+     *   source:string,category_id:int
+     * }
+     */
+    public function productPageLayout(?int $categoryId = null): array
     {
-        $row = (new ShopProductPageSettingsRepository())->get();
-        $headerHtml = trim($row['header_html']);
-        $footerHtml = trim($row['footer_html']);
-        $headerImage = trim($row['header_image']);
-        $footerImage = trim($row['footer_image']);
+        $global = (new ShopProductPageSettingsRepository())->get();
+        $headerHtml = trim($global['header_html']);
+        $footerHtml = trim($global['footer_html']);
+        $headerImage = trim($global['header_image']);
+        $footerImage = trim($global['footer_image']);
+        $source = 'global';
+        $cid = $categoryId !== null && $categoryId > 0 ? $categoryId : 0;
+
+        if ($cid > 0) {
+            try {
+                $custom = (new ShopProductPageCategorySettingsRepository())->findByCategoryId($cid);
+            } catch (\Throwable) {
+                $custom = null;
+            }
+            if (is_array($custom)) {
+                $cHeaderHtml = trim($custom['header_html']);
+                $cFooterHtml = trim($custom['footer_html']);
+                $cHeaderImage = trim($custom['header_image']);
+                $cFooterImage = trim($custom['footer_image']);
+                $hasAny = $cHeaderHtml !== '' || $cFooterHtml !== '' || $cHeaderImage !== '' || $cFooterImage !== '';
+                if ($hasAny) {
+                    // 카테고리 값이 있으면 해당 필드만 덮어쓰고, 비어 있으면 공통 설정 유지
+                    if ($cHeaderHtml !== '' || $cHeaderImage !== '') {
+                        $headerHtml = $cHeaderHtml;
+                        $headerImage = $cHeaderImage;
+                    }
+                    if ($cFooterHtml !== '' || $cFooterImage !== '') {
+                        $footerHtml = $cFooterHtml;
+                        $footerImage = $cFooterImage;
+                    }
+                    $source = 'category';
+                }
+            }
+        }
+
         return [
             'header_html' => $headerHtml,
             'footer_html' => $footerHtml,
@@ -489,6 +632,8 @@ final class ShopService
             'footer_image_url' => ShopProductImageService::resolveUrl($footerImage),
             'has_header' => $headerHtml !== '' || $headerImage !== '',
             'has_footer' => $footerHtml !== '' || $footerImage !== '',
+            'source' => $source,
+            'category_id' => $cid,
         ];
     }
 
@@ -553,11 +698,18 @@ final class ShopService
         $discount = (int) ($order['discount_amount'] ?? 0);
         $total = (int) ($order['total_amount'] ?? ($subtotal + $shipping - $discount));
         $payLabel = ShopAdminService::paymentStatusLabel($payStatus);
+        $methodLabel = trim((string) ($order['payment_method'] ?? ''));
         if ($payStatus === 'pending') {
             $payLabel = '결제대기';
-            $payHint = '담당자 확인 후 안내';
+            $payHint = (new TossPaymentsService())->isEnabled()
+                ? '토스페이먼츠 결제 대기 중'
+                : '담당자 확인 후 안내';
         } elseif ($payStatus === 'paid') {
-            $payHint = '결제 확인 완료';
+            $payLabel = $methodLabel !== '' ? $methodLabel : '결제완료';
+            $payHint = '토스페이먼츠 결제 확인 완료';
+        } elseif ($payStatus === 'failed') {
+            $payLabel = '결제실패';
+            $payHint = '다시 결제를 시도해 주세요';
         } else {
             $payHint = $payLabel;
         }
@@ -569,6 +721,7 @@ final class ShopService
             'status_label' => ShopAdminService::orderStatusLabel($status),
             'payment_status' => $payStatus,
             'payment_label' => $payLabel,
+            'payment_method' => $methodLabel,
             'payment_hint' => $payHint,
             'created_at' => $createdAt,
             'date_label' => $this->formatOrderDate($createdAt),

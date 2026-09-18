@@ -670,9 +670,17 @@
                 shipping_address = _form.Address,
                 shipping_memo = _form.Memo,
                 save_address = _form.SaveAddress,
-                address_label = _form.AddressLabel
+                address_label = _form.AddressLabel,
+                source = "editor"
             });
             using var doc = JsonDocument.Parse(raw);
+            if (doc.RootElement.TryGetProperty("payment_started", out var started) && started.ValueKind == JsonValueKind.True)
+            {
+                _cart = new();
+                _cartCount = 0;
+                _flash = "결제창에서 결제를 완료해 주세요.";
+                return;
+            }
             var data = doc.RootElement.TryGetProperty("data", out var d) ? d.GetRawText() : raw;
             _order = JsonSerializer.Deserialize<ShopOrderDto>(data, JsonOpts);
             _cart = new();

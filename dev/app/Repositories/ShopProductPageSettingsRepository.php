@@ -59,8 +59,15 @@ final class ShopProductPageSettingsRepository extends BaseModel
         $this->execute(
             'INSERT INTO shop_product_page_settings
              (id, header_html, footer_html, header_image, footer_image, created_at, updated_at)
-             VALUES (1, :header_html, :footer_html, :header_image, :footer_image, :now, :now)',
-            $params
+             VALUES (1, :header_html, :footer_html, :header_image, :footer_image, :created_at, :updated_at)',
+            [
+                'header_html' => $params['header_html'],
+                'footer_html' => $params['footer_html'],
+                'header_image' => $params['header_image'],
+                'footer_image' => $params['footer_image'],
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]
         );
     }
 

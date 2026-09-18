@@ -90,6 +90,8 @@ final class SeoService
             'default_og_image', 'og_site_name', 'twitter_card', 'twitter_site', 'canonical_base',
             'robots_default', 'robots_txt', 'sitemap_enabled', 'jsonld_enabled', 'locale',
             'favicon_url', 'org_name', 'org_url', 'org_logo', 'org_phone', 'org_email', 'org_same_as',
+            'company_name', 'company_ceo', 'company_biz_no', 'company_mail_order_no',
+            'company_address', 'company_phone', 'company_email', 'company_privacy_officer',
         ];
         foreach ($allowed as $key) {
             if (!array_key_exists($key, $input)) {

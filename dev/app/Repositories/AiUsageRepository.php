@@ -317,6 +317,48 @@ final class AiUsageRepository extends BaseModel
         );
     }
 
+    /**
+     * intent별 평균 토큰·예상금액 (성공 건 기준)
+     * @return array<string, array{intent:string,samples:int,avg_tokens:float,avg_cost_krw:float,total_cost_krw:float}>
+     */
+    public function averagesByIntent(): array
+    {
+        try {
+            $costSql = $this->hasCostColumns()
+                ? 'AVG(IFNULL(cost_krw, 0)) AS avg_cost_krw, SUM(IFNULL(cost_krw, 0)) AS total_cost_krw'
+                : '0 AS avg_cost_krw, 0 AS total_cost_krw';
+            $rows = $this->fetchAll(
+                "SELECT intent,
+                        COUNT(*) AS samples,
+                        AVG(IFNULL(total_tokens, 0)) AS avg_tokens,
+                        {$costSql}
+                 FROM ai_usage_logs
+                 WHERE status = 'ok'
+                   AND intent IS NOT NULL
+                   AND intent <> ''
+                 GROUP BY intent"
+            );
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($rows as $row) {
+            $intent = trim((string) ($row['intent'] ?? ''));
+            if ($intent === '') {
+                continue;
+            }
+            $out[$intent] = [
+                'intent' => $intent,
+                'samples' => (int) ($row['samples'] ?? 0),
+                'avg_tokens' => round((float) ($row['avg_tokens'] ?? 0), 1),
+                'avg_cost_krw' => round((float) ($row['avg_cost_krw'] ?? 0), 4),
+                'total_cost_krw' => round((float) ($row['total_cost_krw'] ?? 0), 4),
+            ];
+        }
+        return $out;
+    }
+
     public function updateCost(int $id, float $usd, float $krw, ?string $agent = null): void
     {
         if ($id <= 0 || !$this->hasCostColumns()) {
