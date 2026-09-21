@@ -139,6 +139,14 @@ public sealed class DesignObject
 
     public string? ImageData { get; set; }
     public string ImageFit { get; set; } = "contain";
+    /// <summary>
+    /// 크기를 바꿀 때 가로세로 비를 묶는다. 기준은 드래그를 잡는 순간의 박스 Width:Height 이지
+    /// 원본 그림의 픽셀 비가 아니다. 그래서 폼텍·애니라벨·아이라벨에서 읽어 온 박스처럼
+    /// 그림 비와 박스 비가 다른 항목도 제 모양 그대로 커지고 작아진다.
+    /// 변환으로 들어온 항목은 원본 파일 기하를 그대로 두려고 false 로 둔다.
+    /// 기존 문서에도 이 항목이 없어 false 로 읽히므로 동작이 그대로 유지된다.
+    /// </summary>
+    public bool LockAspectRatio { get; set; }
     public string? Svg { get; set; }
     public List<SvgPart>? SvgParts { get; set; }
     public string? IconName { get; set; }
@@ -181,6 +189,14 @@ public sealed class DesignObject
 
     public static bool IsShape(ObjectType type)
         => type is ObjectType.Rect or ObjectType.Ellipse or ObjectType.Line or ObjectType.Shape;
+
+    /// <summary>
+    /// 원은 지름이 하나뿐이라 가로·세로가 늘 같다. 크기를 바꿀 때 상자를 정사각형으로 묶는다.
+    /// 타원(<see cref="ShapeKind.Ellipse"/>)은 두 반지름이 따로 놀아야 하므로 해당하지 않는다.
+    /// 저장 값이 아니라 <see cref="ShapeKind"/>에서 파생되므로 JSON 스키마는 그대로다.
+    /// </summary>
+    [JsonIgnore]
+    public bool KeepsSquare => Type == ObjectType.Shape && ShapeKind == ShapeKind.Circle;
 
     /// <summary>PNG/JPG 클립아트·아이콘. 채우기·테두리가 그림에 반영되지 않는다.</summary>
     [JsonIgnore]
@@ -285,6 +301,7 @@ public sealed class DesignObject
             QrVersion = QrVersion,
             ImageData = ImageData,
             ImageFit = ImageFit,
+            LockAspectRatio = LockAspectRatio,
             Svg = Svg,
             SvgParts = SvgParts?.Select(p => p.Clone()).ToList(),
             IconName = IconName,

@@ -17,6 +17,70 @@ internal static class RasterImage
         }
         return SKBitmap.Decode(bytes);
     }
+
+    /// <summary>
+    /// 그림의 픽셀 크기만 읽는다. 코덱 머리글만 보므로 화소를 펼치지 않는다.
+    /// BMP 는 이 파일 맨 위 규칙대로 Skia 코덱을 건너뛰고 직접 읽는다.
+    /// 머리글로 읽히지 않으면 직접 디코드로 물러선다.
+    /// </summary>
+    public static bool TryMeasure(byte[] bytes, out int width, out int height)
+    {
+        width = 0;
+        height = 0;
+        if (bytes is not { Length: > 8 }) return false;
+
+        var isBmp = bytes[0] == (byte)'B' && bytes[1] == (byte)'M';
+        if (!isBmp)
+        {
+            try
+            {
+                using var codec = SKCodec.Create(new MemoryStream(bytes, writable: false));
+                if (codec is not null && codec.Info.Width > 0 && codec.Info.Height > 0)
+                {
+                    width = codec.Info.Width;
+                    height = codec.Info.Height;
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                EditorLog.Info($"그림 머리글 읽기 실패, 직접 디코드로 물러섬: {ex.Message}");
+            }
+        }
+
+        try
+        {
+            using var bmp = Decode(bytes);
+            if (bmp is null || bmp.Width <= 0 || bmp.Height <= 0) return false;
+            width = bmp.Width;
+            height = bmp.Height;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error("그림 크기 읽기 실패", ex);
+            return false;
+        }
+    }
+
+    /// <summary>data: URL 에서 화소 바이트를 꺼낸다. 원격 URL 이면 꺼낼 것이 없어 null.</summary>
+    public static byte[]? TryReadDataUrl(string? dataUrl)
+    {
+        if (string.IsNullOrWhiteSpace(dataUrl)) return null;
+        if (!dataUrl.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) return null;
+        var comma = dataUrl.IndexOf(',');
+        if (comma < 0) return null;
+        if (dataUrl.AsSpan(0, comma).IndexOf("base64", StringComparison.OrdinalIgnoreCase) < 0) return null;
+        try
+        {
+            return Convert.FromBase64String(dataUrl[(comma + 1)..]);
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+    }
+
     public static (byte[] Bytes, string Mime) Normalize(byte[] bytes, string mime)
     {
         if (bytes.Length == 0) return (bytes, mime);

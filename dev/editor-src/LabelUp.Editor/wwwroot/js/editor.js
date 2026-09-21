@@ -652,6 +652,13 @@ window.labelUpEditor = {
     var el = document.querySelector(sel);
     if (el) el.click();
   },
+  // 캔버스 손잡이 위 커서. class 는 패닝(is-panning) 쪽이 쓰고 있어 data 속성으로 나눠 둔다.
+  setCanvasCursor: function (kind) {
+    var el = document.querySelector('.canvas-stage');
+    if (!el) return;
+    if (!kind) el.removeAttribute('data-cursor');
+    else el.setAttribute('data-cursor', kind);
+  },
   blockContextMenu: function (selector) {
     var el = document.querySelector(selector);
     if (!el || el.__luCtxBlocked) return;

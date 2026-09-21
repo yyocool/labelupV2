@@ -143,6 +143,42 @@ public static class BarcodeCatalog
         return id is "NUMLY" or "ESBN" or "ESN" or "NUMLY_NUMBER";
     }
 
+    /// <summary>
+    /// 가드 막대를 쓰는 심볼로지. 소매(EAN·UPC)는 시작·가운데·끝 가드가 캡션 칸까지 내려오고,
+    /// Codabar·Code 93은 시작·정지 자리의 막대가 같은 식으로 길어진다(애니라벨 실측).
+    /// Code 128·Code 39·ITF 등에는 가드 막대라는 개념이 없어 렌더러가 항목을 보지 않는다.
+    /// </summary>
+    public static bool UsesGuardBars(string? format)
+    {
+        var id = (format ?? "").Replace("-", "_").ToUpperInvariant();
+        return id is "EAN_13" or "EAN13" or "EAN_8" or "EAN8"
+            or "JAN_13" or "JAN13" or "JAN_8" or "JAN8"
+            or "ISBN" or "ISSN" or "ISMN"
+            or "UPC_A" or "UPCA" or "UPC_E" or "UPC_E0" or "UPC_E1"
+            or "CODABAR" or "ABC_CODABAR" or "CODE_93" or "CODE93" or "CODE_93_EXT";
+    }
+
+    /// <summary>
+    /// 사람이 읽는 글에 시작·정지 문자 `*`를 보일 수 있는 심볼로지.
+    /// ISO/IEC 16388 4.3.3은 Code 39의 시작·정지 문자를 보통 `*`로 나타낸다고 하며, 표시 여부는 선택이다.
+    /// GS1 캐리어(EAN·UPC·GS1-128·ITF-14)의 HRI에는 시작·정지 문자를 넣지 않는다.
+    /// PZN·Code 32·UPU는 캡션 모양이 따로 정해져 있어 이 항목을 보지 않는다.
+    /// </summary>
+    public static bool UsesStartStopCaption(string? format)
+    {
+        var id = (format ?? "").Replace("-", "_").ToUpperInvariant();
+        return id is "CODE_39" or "CODE39" or "CODE_39_EXT";
+    }
+
+    /// <summary>
+    /// 베어러(막대를 두르는 테두리)를 쓰는 심볼로지. ITF 계열에서 시작·끝 표시는 `*`가 아니라 테두리로 나타난다.
+    /// </summary>
+    public static bool UsesBearerBars(string? format)
+    {
+        var id = (format ?? "").Replace("-", "_").ToUpperInvariant();
+        return id is "ITF" or "ITF_6" or "ITF_14" or "ITF_16" or "LEITCODE" or "IDENTCODE";
+    }
+
     /// <summary>하이픈이 있는 978/979만 ISBN(Bookland). 숫자만 있는 978은 일반 EAN-13이다.</summary>
     public static bool LooksLikeIsbn(string? raw)
     {

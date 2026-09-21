@@ -5,7 +5,14 @@ namespace LabelUp.Editor.Services;
 
 public sealed class PaperCatalog
 {
+    /// <summary>용지선택 전용 API. 로컬 빌드에서도 서버 DB를 그대로 조회한다.</summary>
+    private const string PapersEndpoint = "/api/editor/papers";
+
+    /// <summary>구버전 서버 대비 폴백(같은 출처 배포본에서만 동작).</summary>
+    private const string LegacyPapersEndpoint = "/api/shop/editor-papers";
+
     private readonly HttpClient _http;
+    private readonly EditorApiOptions _api;
     private readonly List<PaperSpec> _papers = [];
     private readonly List<ShopPaperItem> _shopPapers = [];
     private readonly List<ShopPaperCategory> _shopCategories = [];
@@ -13,9 +20,10 @@ public sealed class PaperCatalog
     private bool _loaded;
     private bool _shopLoaded;
 
-    public PaperCatalog(HttpClient http)
+    public PaperCatalog(HttpClient http, EditorApiOptions api)
     {
         _http = http;
+        _api = api;
         FormtecWmf = new FormtecWmfCatalog(http);
         AniLabelWmf = new AniLabelWmfCatalog(http);
     }
@@ -81,25 +89,41 @@ public sealed class PaperCatalog
     public async Task EnsureShopPapersAsync()
     {
         if (_shopLoaded) return;
-        try
-        {
-            var json = await _http.GetStringAsync("/api/shop/editor-papers");
-            var env = JsonSerializer.Deserialize<ApiEnvelope<ShopPaperCatalogDto>>(json, LabelDocumentJson.Options);
-            if (env?.Success == true && env.Data is not null)
-            {
-                _shopPapers.Clear();
-                _shopPapers.AddRange(env.Data.Items ?? []);
-                _shopCategories.Clear();
-                _shopCategories.AddRange(env.Data.Categories ?? []);
-            }
-        }
-        catch (Exception ex)
-        {
-            EditorLog.Warn("상점 라벨 목록 로드 실패: " + ex.Message);
-        }
+
+        if (!await TryLoadShopPapersAsync(_api.Url(PapersEndpoint)))
+            await TryLoadShopPapersAsync(_api.Url(LegacyPapersEndpoint));
 
         _shopLoaded = true;
         EditorLog.Info($"상점 라벨 {_shopPapers.Count}종 로드");
+    }
+
+    private async Task<bool> TryLoadShopPapersAsync(string url)
+    {
+        try
+        {
+            var json = await _http.GetStringAsync(url);
+            var env = JsonSerializer.Deserialize<ApiEnvelope<ShopPaperCatalogDto>>(json, LabelDocumentJson.Options);
+            if (env?.Success != true || env.Data is null)
+            {
+                EditorLog.Warn($"상점 라벨 응답 오류: {url} ({env?.Message})");
+                return false;
+            }
+
+            _shopPapers.Clear();
+            foreach (var item in env.Data.Items ?? [])
+            {
+                item.ThumbnailUrl = _api.ResolveAssetUrl(item.ThumbnailUrl);
+                _shopPapers.Add(item);
+            }
+            _shopCategories.Clear();
+            _shopCategories.AddRange(env.Data.Categories ?? []);
+            return _shopPapers.Count > 0;
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn($"상점 라벨 목록 로드 실패: {url} ({ex.Message})");
+            return false;
+        }
     }
 
     public PaperSpec FromShopProduct(ShopPaperItem item)

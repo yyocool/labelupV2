@@ -149,7 +149,7 @@ public static class BarcodeRenderer
         else if (upcA && upcDigits.Length == 12)
             leftPad = hriFont.MeasureText(upcDigits[0].ToString()) * 1.15f;
         // EAN/UPC 가드(시작·가운데·끝)는 숫자 표시와 같이 길어진다. Code 39의 * 표시와 무관하다.
-        var showGuards = retail && textH > 0 && RetailGuardsOn(obj);
+        var showGuards = retail && textH > 0 && GuardBarsOn(obj);
 
         if (!isMatrix)
         {
@@ -236,8 +236,9 @@ public static class BarcodeRenderer
         {
             using var tp = new SKPaint { Color = HriColor(obj, alpha), IsAntialias = true };
             using var font = CreateHriFont(obj, HriFontMm(obj, textH));
-            var shown = obj.BarcodeShowStartEnd ? $"*{value}*" : value;
-            DrawCenteredHri(canvas, obj, shown, barH, textH, font, tp, obj.Width);
+            // 시작·정지 문자 `*`는 Code 39 전용이고 그쪽은 TryDrawCode39가 맡는다.
+            // 여기까지 오는 1D는 UPC-A·GS1 DataBar 같은 GS1 캐리어라, HRI에 시작·정지 문자를 넣지 않는다.
+            DrawCenteredHri(canvas, obj, value, barH, textH, font, tp, obj.Width);
         }
     }
 
@@ -284,21 +285,38 @@ public static class BarcodeRenderer
     }
 
     /// <summary>
+    /// 「가드 자동」이 이 항목에서 길게로 풀리는지. 출처별 실측 규칙이다.
+    /// 소매(EAN·UPC)는 규격대로 늘 길게가 기본이고, 애니라벨 구형만 실측대로 평평해진다.
+    /// Codabar·Code 93의 긴 막대는 애니라벨 구형에서만 관찰된 특성이라 그때만 기본으로 켠다.
+    /// 속성바가 자동의 뜻을 같이 보여주므로 공개해 둔다.
+    /// </summary>
+    public static bool AutoGuardBarsOn(DesignObject obj)
+    {
+        var id = (obj.BarcodeFormat ?? "").Replace("-", "_").ToUpperInvariant();
+        var aniLegacy = Barcode1DEncoders.VendorOf(obj) == BarcodeVendorKind.AniLabel
+            && Barcode1DEncoders.IsAniLabelLegacy(obj);
+        return id switch
+        {
+            "CODE_93" or "CODE93" or "CODE_93_EXT" => aniLegacy,
+            "CODABAR" => aniLegacy,
+            // 구형 8번 칸 ABC Codabar(0x09)는 EMF 막대 24개가 모두 같은 높이다.
+            "ABC_CODABAR" => false,
+            _ => !AniLabelFlatGuards(obj)
+        };
+    }
+
+    /// <summary>
     /// 시작·가운데·끝 막대를 늘릴지 정한다. `BarcodeGuardBars`가 on/off면 그 값을 쓰고,
-    /// auto(기본)면 <paramref name="byVendor"/>로 넘어온 출처별 실측 규칙을 따른다.
+    /// auto(기본)면 <see cref="AutoGuardBarsOn"/>의 출처별 실측 규칙을 따른다.
     /// 늘어나는 자리와 길이는 심볼 구조가 정하므로 여기서 다루지 않는다.
     /// </summary>
-    private static bool GuardBarsOn(DesignObject obj, bool byVendor)
+    private static bool GuardBarsOn(DesignObject obj)
         => (obj.BarcodeGuardBars ?? "").Trim() switch
         {
             DesignObject.GuardBarsOn => true,
             DesignObject.GuardBarsOff => false,
-            _ => byVendor
+            _ => AutoGuardBarsOn(obj)
         };
-
-    /// <summary>소매 계열 가드 여부. auto면 애니라벨 구형 실측 규칙을 쓴다.</summary>
-    private static bool RetailGuardsOn(DesignObject obj)
-        => GuardBarsOn(obj, !AniLabelFlatGuards(obj));
 
     private static bool IsEan13Family(string? format)
     {
@@ -740,7 +758,7 @@ public static class BarcodeRenderer
         var barColor = ColorUtil.Parse(obj.Fill, alpha);
         // 캡션이 없어도 시작·가운데·끝 가드는 아래로 조금 더 길게(아이라벨 EAN-13 실측).
         var silentGuard = !eanHri && !hyphenHri ? Math.Min(barH * 0.12f, Math.Max(0.9f, barH * 0.08f)) : 0f;
-        var flatGuards = !RetailGuardsOn(obj);
+        var flatGuards = !GuardBarsOn(obj);
         var guardExtra = flatGuards ? 0f : eanHri ? textH * 0.92f : silentGuard;
         var bodyH = eanHri || flatGuards ? barH : Math.Max(1f, barH - silentGuard);
 
@@ -847,7 +865,7 @@ public static class BarcodeRenderer
         var barColor = ColorUtil.Parse(obj.Fill, alpha);
         var eanHri = showText && encoded.Length == 8;
         var silentGuard = !eanHri ? Math.Min(barH * 0.12f, Math.Max(0.9f, barH * 0.08f)) : 0f;
-        var flatGuards = !RetailGuardsOn(obj);
+        var flatGuards = !GuardBarsOn(obj);
         var guardExtra = flatGuards ? 0f : eanHri ? textH * 0.92f : silentGuard;
         var bodyH = eanHri || flatGuards ? barH : Math.Max(1f, barH - silentGuard);
 
@@ -1058,7 +1076,7 @@ public static class BarcodeRenderer
         var shown = extended ? payload : payload.ToUpperInvariant();
         // 구형 애니라벨은 시작 문자의 막대 3개와 정지 문자+종단 막대 4개를 글자 칸 끝까지 늘린다.
         // 신형 비트맵에는 이 긴 막대가 없다. 막대가 상자 좌우 끝까지 닿는 것은 구형·신형이 같다.
-        var guards = GuardBarsOn(obj, anylabel && Barcode1DEncoders.IsAniLabelLegacy(obj));
+        var guards = GuardBarsOn(obj);
         var quiet = anylabel ? 0 : Barcode1DEncoders.Quiet(vendor, 10);
         return TryDrawLinear(canvas, obj, modules, shown, quiet, alpha,
             edgeGuardRuns: guards ? 3 : 0, trailGuardRuns: guards ? 4 : 0);
@@ -1208,7 +1226,7 @@ public static class BarcodeRenderer
         FillBarcodeBackground(canvas, obj, alpha);
         canvas.Save();
         canvas.ClipRect(new SKRect(0, 0, obj.Width, obj.Height));
-        var guardDrop = RetailGuardsOn(obj) ? textH * UpcEGuardDrop : 0f;
+        var guardDrop = GuardBarsOn(obj) ? textH * UpcEGuardDrop : 0f;
         DrawEanModules(canvas, modules, quiet, obj.Width, barH, ColorUtil.Parse(obj.Fill, alpha),
             0, guardDrop, retailGuards: guardDrop > 0, RetailGuardKind.UpcE);
 
@@ -1514,12 +1532,22 @@ public static class BarcodeRenderer
     {
         var textH = HriBand(obj, obj.BarcodeShowText);
         var barH = Math.Max(1f, obj.Height - textH);
+        var guardExtraH = textH;
+        // 가드는 캡션 칸까지 내려오는 것이라 캡션이 없으면 늘어날 자리가 없다.
+        // 사용자가 「가드 길게」를 직접 고른 경우에만 소매 심볼과 같은 방식으로 몸통을 줄여 자리를 만든다.
+        // auto는 변환 결과를 그대로 두려고 건드리지 않는다.
+        if (guardExtraH <= 0 && (edgeGuardRuns > 0 || trailGuardRuns > 0)
+            && (obj.BarcodeGuardBars ?? "").Trim() == DesignObject.GuardBarsOn)
+        {
+            guardExtraH = Math.Min(barH * 0.12f, Math.Max(0.9f, barH * 0.08f));
+            barH = Math.Max(1f, barH - guardExtraH);
+        }
         var barColor = ColorUtil.Parse(obj.Fill, alpha);
         FillBarcodeBackground(canvas, obj, alpha);
         canvas.Save();
         canvas.ClipRect(new SKRect(0, 0, obj.Width, obj.Height));
         DrawEanModules(canvas, modules, quiet, obj.Width, barH, barColor,
-            guardExtraH: textH, edgeGuardRuns: edgeGuardRuns, trailGuardRuns: trailGuardRuns);
+            guardExtraH: guardExtraH, edgeGuardRuns: edgeGuardRuns, trailGuardRuns: trailGuardRuns);
         if (bearer)
             DrawItfBearer(canvas, obj, modules, quiet, barH, barColor);
         if (textH > 0)
@@ -1590,7 +1618,7 @@ public static class BarcodeRenderer
         // 다만 8번 칸 ABC Codabar(0x09)는 EMF 막대 24개가 모두 같은 높이다. 긴 막대가 없다.
         // 신형(LBL 0x1B) Codabar도「1D barcode 타입.lbl」2번 칸 비트맵에서 막대 높이가 모두 같다.
         var anylabel = vendor == BarcodeVendorKind.AniLabel;
-        var guards = GuardBarsOn(obj, anylabel && !abc && Barcode1DEncoders.IsAniLabelLegacy(obj));
+        var guards = GuardBarsOn(obj);
         var quiet = anylabel ? 0 : Barcode1DEncoders.Quiet(vendor, 8);
         return modules is not null
                && TryDrawLinear(canvas, obj, modules, hri, quiet, alpha,

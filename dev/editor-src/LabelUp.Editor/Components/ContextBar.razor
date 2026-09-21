@@ -14,10 +14,27 @@
   @if (Session.Selected is { } o)
   {
     <div class="ed-ctx-bar__row ed-ctx-bar__row--main" @key="o.Id">
-      @if (ShowFill(o))
+      @* 색은 종류를 가리지 않고 속성바 맨 앞에 "주 색 → 배경색 → 배경투명" 순으로 둔다. *@
+      @if (ShowMainColor(o) || ShowBackground(o))
       {
-        <span class="ed-ctx-bar__slot" data-slot="fill" @onpointerdown="SaveRichSel">
-          <input type="color" title="채우기" value="@ColorUtil.ToHtmlColor(DisplayFill(o), "#7b2840")" @oninput="e => LiveFill(e)" @onchange="e => CommitFill(e)" />
+        <span class="ed-ctx-bar__slot" data-slot="color" @onpointerdown="SaveRichSel">
+          @if (o.Type == ObjectType.Gradient)
+          {
+            <input type="color" title="그라데이션 시작색" value="@ColorUtil.ToHtmlColor(o.Fill, "#000000")" @oninput="LiveFill" @onchange="CommitFill" />
+            <input type="color" title="그라데이션 끝색" value="@ColorUtil.ToHtmlColor(o.GradientEnd, "#ffffff")" @oninput="LiveGradientEnd" @onchange="CommitGradientEnd" />
+          }
+          else if (ShowMainColor(o))
+          {
+            <input type="color" title="@MainColorTitle(o)" value="@ColorUtil.ToHtmlColor(DisplayFill(o), "#7b2840")" @oninput="LiveFill" @onchange="CommitFill" />
+          }
+          @if (ShowBackground(o))
+          {
+            <input type="color" title="배경색" value="@ColorUtil.ToHtmlColor(o.BackgroundFill, WhiteFallback)" @oninput="LiveBackground" @onchange="CommitBackground" />
+            <label class="ed-field ed-field--check" title="배경을 칠하지 않습니다">
+              <input type="checkbox" checked="@o.BackgroundTransparent" @onchange="OnBackgroundTransparent" />
+              <span>배경투명</span>
+            </label>
+          }
         </span>
       }
       @if (ShowStroke(o))
@@ -106,7 +123,7 @@
     {
     <div class="ed-ctx-bar__row ed-ctx-bar__row--extra">
       <span class="ed-ctx-bar__slot ed-ctx-bar__slot--compact">
-        <label class="ed-field">회전 <input type="number" step="1" value="@o.Rotation.ToString("0.#")" @onchange="e => SetFloat(v => o.Rotation = v, e)" /></label>
+        <label class="ed-field ed-field--rotate">회전 <input type="number" step="0.1" value="@o.Rotation.ToString("0.#")" @onchange="e => SetFloat(v => o.Rotation = v, e)" /></label>
       </span>
 
       @if (ShowFill(o))
@@ -114,7 +131,7 @@
         <span class="ed-ctx-bar__slot">
           <label class="ed-field ed-field--check">
             <input type="checkbox" checked="@ColorUtil.IsTransparent(o.Fill)" @onchange="OnFillTransparent" />
-            <span>채우기 투명</span>
+            <span>@(MainColorTitle(o)) 투명</span>
           </label>
         </span>
       }
@@ -182,7 +199,7 @@
             <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.WordArtGuide" @onchange="e => SetBool(v => o.WordArtGuide = v, e)" /> <span>안내선</span></label>
             @if (o.Shadow)
             {
-              <input type="color" title="그림자 색" value="@ColorUtil.ToHtmlColor(o.ShadowFill, "#403A36")" @onchange="e => SetString(v => o.ShadowFill = v, e)" />
+              <input type="color" title="그림자 색" value="@ColorUtil.ToHtmlColor(o.ShadowFill, "#403A36")" @oninput="LiveShadowFill" @onchange="CommitShadowFill" />
               <label class="ed-field">그림각도 <input type="number" step="1" value="@o.ShadowAngle.ToString("0")" @onchange="e => SetFloat(v => o.ShadowAngle = v, e)" /></label>
               <label class="ed-field">간격 <input type="number" step="0.1" value="@o.ShadowDistanceMm.ToString("0.##")" @onchange="e => SetFloat(v => o.ShadowDistanceMm = v, e)" /></label>
             }
@@ -277,8 +294,6 @@
         <span class="ed-ctx-bar__div"></span>
         <span class="ed-ctx-bar__slot">
           <em class="ed-ctx-bar__lab">그라데이션</em>
-          <input type="color" title="시작" value="@ColorUtil.ToHtmlColor(o.Fill, "#000000")" @onchange="e => SetString(v => o.Fill = v, e)" />
-          <input type="color" title="끝" value="@ColorUtil.ToHtmlColor(o.GradientEnd, "#ffffff")" @onchange="e => SetString(v => o.GradientEnd = v, e)" />
           <select value="@o.GradientDirection" @onchange="e => SetInt(v => o.GradientDirection = Math.Clamp(v, 0, 3), e)">
             <option value="0">왼쪽 → 오른쪽</option>
             <option value="1">오른쪽 → 왼쪽</option>
@@ -303,12 +318,22 @@
               }
             </select>
             <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.BarcodeShowText" @onchange="e => SetBool(v => o.BarcodeShowText = v, e)" /> <span>내용</span></label>
-            <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.BarcodeShowStartEnd" @onchange="e => SetBool(v => o.BarcodeShowStartEnd = v, e)" /> <span>시작·끝</span></label>
-            <select title="가드 막대 — 시작·가운데·끝 막대를 길게" value="@o.BarcodeGuardBars" @onchange="e => SetString(v => o.BarcodeGuardBars = v, e)">
-              <option value="@DesignObject.GuardBarsAuto">가드 자동</option>
-              <option value="@DesignObject.GuardBarsOn">가드 길게</option>
-              <option value="@DesignObject.GuardBarsOff">가드 평평</option>
-            </select>
+            @if (BarcodeCatalog.UsesStartStopCaption(o.BarcodeFormat))
+            {
+              <label class="ed-field ed-field--check" title="시작·정지 문자 * 를 내용에 함께 보인다 (ISO/IEC 16388 4.3.3)"><input type="checkbox" checked="@o.BarcodeShowStartEnd" @onchange="e => SetBool(v => o.BarcodeShowStartEnd = v, e)" /> <span>시작·끝 *</span></label>
+            }
+            else if (BarcodeCatalog.UsesBearerBars(o.BarcodeFormat))
+            {
+              <label class="ed-field ed-field--check" title="막대를 두르는 베어러 막대"><input type="checkbox" checked="@o.BarcodeShowStartEnd" @onchange="e => SetBool(v => o.BarcodeShowStartEnd = v, e)" /> <span>테두리</span></label>
+            }
+            @if (BarcodeCatalog.UsesGuardBars(o.BarcodeFormat))
+            {
+              <select title="가드 막대 — 시작·가운데·끝 막대를 내용 칸까지 길게. 자동은 심볼로지와 변환 출처가 정한다" value="@o.BarcodeGuardBars" @onchange="e => SetString(v => o.BarcodeGuardBars = v, e)">
+                <option value="@DesignObject.GuardBarsAuto">@(BarcodeRenderer.AutoGuardBarsOn(o) ? "가드 자동 (길게)" : "가드 자동 (평평)")</option>
+                <option value="@DesignObject.GuardBarsOn">가드 길게</option>
+                <option value="@DesignObject.GuardBarsOff">가드 평평</option>
+              </select>
+            }
           }
           else
           {
@@ -326,12 +351,6 @@
             </select>
           }
           <input class="ed-ctx-bar__text" title="@BarcodeCatalog.ValueFieldLabel(o.BarcodeFormat)" value="@BarcodeFieldValue(o)" @onchange="e => SetString(v => o.BarcodeValue = BarcodeFieldStore(o, v), e)" />
-          <input type="color" title="색" value="@ColorUtil.ToHtmlColor(o.Fill, "#000000")" @onchange="e => SetString(v => o.Fill = v, e)" />
-          <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.BackgroundTransparent" @onchange="e => SetBool(v => o.BackgroundTransparent = v, e)" /> <span>배경투명</span></label>
-          @if (!o.BackgroundTransparent)
-          {
-            <input type="color" title="배경" value="@ColorUtil.ToHtmlColor(o.BackgroundFill, "#ffffff")" @onchange="e => SetString(v => o.BackgroundFill = v, e)" />
-          }
         </span>
       }
 
@@ -343,10 +362,8 @@
           <em class="ed-ctx-bar__lab">표</em>
           <label class="ed-field">행 <input type="number" min="1" max="12" value="@o.TableRows" @onchange="e => SetInt(v => { o.TableRows = Math.Clamp(v, 1, 12); o.EnsureTableSize(); }, e)" /></label>
           <label class="ed-field">열 <input type="number" min="1" max="12" value="@o.TableCols" @onchange="e => SetInt(v => { o.TableCols = Math.Clamp(v, 1, 12); o.EnsureTableSize(); }, e)" /></label>
-          <input type="color" title="글자색" value="@ColorUtil.ToHtmlColor(o.Fill, InkFallback)" @onchange="e => SetTableInk(o, e)" />
-          <input type="color" title="테두리" value="@ColorUtil.ToHtmlColor(o.Stroke, BorderFallback)" @onchange="e => SetTableStroke(o, e)" />
+          <input type="color" title="테두리" value="@ColorUtil.ToHtmlColor(o.Stroke, BorderFallback)" @oninput="LiveStroke" @onchange="CommitStroke" />
           <label class="ed-field">굵기 <input type="number" step="0.05" min="0.08" max="4" value="@o.TableBorderWidth.ToString("0.##")" @onchange="e => SetFloat(v => o.TableBorderWidth = Math.Clamp(v, 0.08f, 4f), e)" /></label>
-          <input type="color" title="표 배경" value="@ColorUtil.ToHtmlColor(o.BackgroundFill, WhiteFallback)" @onchange="e => SetTableBg(o, e)" />
         </span>
       }
 
@@ -373,6 +390,10 @@
           </select>
           <button type="button" class="@(o.FlipHorizontal ? "is-on" : null)" title="좌우 반전" @onclick="() => Toggle(v => o.FlipHorizontal = v, o.FlipHorizontal)">뒤집기</button>
           <button type="button" class="@(o.FlipVertical ? "is-on" : null)" title="상하 반전" @onclick="() => Toggle(v => o.FlipVertical = v, o.FlipVertical)">상하</button>
+          <label class="ed-field ed-field--check" title="크기를 바꿔도 지금 상자의 가로세로 비를 그대로 지킵니다">
+            <input type="checkbox" checked="@o.LockAspectRatio" @onchange="e => SetBool(v => o.LockAspectRatio = v, e)" />
+            <span>원본비율 유지</span>
+          </label>
         </span>
       }
     </div>
@@ -399,7 +420,6 @@
     private ElementReference _richRef;
     private DotNetObjectReference<ContextBar>? _self;
     private RichCaretStyle? _caret;
-    private const string InkFallback = "#2e2a27";
     private const string BorderFallback = "#000000";
     private const string WhiteFallback = "#ffffff";
 
@@ -409,6 +429,29 @@
         => o.Type is not (ObjectType.Gradient or ObjectType.Table
             or ObjectType.Barcode or ObjectType.Qr or ObjectType.Image)
             && !o.IsRasterGraphic;
+
+    /// <summary>
+    /// 맨 앞 색칸에 주 색을 보일지. 그림과 래스터 클립아트는 칠할 색이 없다.
+    /// 그라데이션은 시작·끝 두 색이라 같은 칸에서 따로 그린다.
+    /// </summary>
+    private static bool ShowMainColor(DesignObject o)
+        => o.Type is not ObjectType.Image && !o.IsRasterGraphic;
+
+    /// <summary>주 색을 뭐라 부를지. 같은 Fill 이라도 종류마다 뜻이 다르다.</summary>
+    private static string MainColorTitle(DesignObject o) => o.Type switch
+    {
+        ObjectType.Barcode => "바코드색",
+        ObjectType.Qr => "QR색",
+        ObjectType.Text or ObjectType.Table => "글자색",
+        _ => "채우기"
+    };
+
+    /// <summary>
+    /// 배경색·배경투명을 보일지. 렌더러가 배경을 실제로 칠하는 종류만 해당한다.
+    /// 도형·그림·클립아트는 배경을 그리지 않아 칸을 두면 눌러도 아무 일이 없다.
+    /// </summary>
+    private static bool ShowBackground(DesignObject o)
+        => o.Type is ObjectType.Text or ObjectType.Barcode or ObjectType.Qr or ObjectType.Table;
 
     private static bool ShowStroke(DesignObject o)
         => o.Type is not (ObjectType.Table or ObjectType.Barcode
@@ -598,6 +641,75 @@
     {
         LiveStroke(e);
         _styleHistoryPushed = false;
+    }
+
+    private void LiveGradientEnd(ChangeEventArgs e)
+    {
+        var v = ColorUtil.ToHtmlColor(e.Value?.ToString(), "");
+        if (v.Length != 7) return;
+        BeginStyleHistory();
+        ApplySelected(obj => obj.GradientEnd = v);
+        Touch();
+    }
+
+    private void CommitGradientEnd(ChangeEventArgs e)
+    {
+        LiveGradientEnd(e);
+        _styleHistoryPushed = false;
+    }
+
+    private void LiveShadowFill(ChangeEventArgs e)
+    {
+        var v = ColorUtil.ToHtmlColor(e.Value?.ToString(), "");
+        if (v.Length != 7) return;
+        BeginStyleHistory();
+        ApplySelected(obj => obj.ShadowFill = v);
+        Touch();
+    }
+
+    private void CommitShadowFill(ChangeEventArgs e)
+    {
+        LiveShadowFill(e);
+        _styleHistoryPushed = false;
+    }
+
+    /// <summary>
+    /// 배경색을 고르면 곧바로 칠한다. 색을 골랐다는 건 배경을 쓰겠다는 뜻이므로 배경투명도 같이 푼다.
+    /// 배경을 그리지 않는 종류는 죽은 값을 남기지 않도록 건너뛴다.
+    /// </summary>
+    private void LiveBackground(ChangeEventArgs e)
+    {
+        var v = ColorUtil.ToHtmlColor(e.Value?.ToString(), "");
+        if (v.Length != 7) return;
+        BeginStyleHistory();
+        ApplySelected(obj =>
+        {
+            if (!ShowBackground(obj)) return;
+            obj.BackgroundFill = v;
+            obj.BackgroundTransparent = false;
+        });
+        Touch();
+    }
+
+    private void CommitBackground(ChangeEventArgs e)
+    {
+        LiveBackground(e);
+        _styleHistoryPushed = false;
+    }
+
+    private void OnBackgroundTransparent(ChangeEventArgs e)
+    {
+        if (BindGuarded) return;
+        var on = e.Value is bool b ? b : string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
+        History.Push(Session.Document);
+        ApplySelected(obj =>
+        {
+            if (!ShowBackground(obj)) return;
+            obj.BackgroundTransparent = on;
+            if (!on && ColorUtil.IsTransparent(obj.BackgroundFill))
+                obj.BackgroundFill = WhiteFallback;
+        });
+        Touch();
     }
 
     private void OnFillTransparent(ChangeEventArgs e)
@@ -951,13 +1063,33 @@
         Touch();
     }
 
+    /// <summary>테두리를 켜 줄 때 쓰는 굵기(mm). <see cref="DesignObject.StrokeWidth"/> 의 클래스 기본값과 같다.</summary>
+    private const float DefaultStrokeMm = 0.4f;
+
     private void OnDashStyle(ChangeEventArgs e)
     {
         if (BindGuarded) return;
         if (!int.TryParse(e.Value?.ToString(), out var dash)) return;
         History.Push(Session.Document);
-        ApplySelected(obj => obj.DashStyle = Math.Clamp(dash, 0, 4));
+        var style = Math.Clamp(dash, 0, 4);
+        ApplySelected(obj =>
+        {
+            obj.DashStyle = style;
+            // 선 종류는 테두리에만 나타난다. 테두리가 안 그려지는 상태에서 고르면 화면이 그대로여서
+            // 항목이 고장 난 것처럼 보인다. 아이콘·클립아트는 기본 굵기가 0이라 늘 이 경우다.
+            if (style > 0)
+                EnsureStrokeVisible(obj);
+        });
         Touch();
+    }
+
+    /// <summary>테두리가 그려지지 않는 상태면 기본 굵기·색으로 켠다. 이미 보이면 건드리지 않는다.</summary>
+    private static void EnsureStrokeVisible(DesignObject o)
+    {
+        if (o.StrokeWidth <= 0f)
+            o.StrokeWidth = DefaultStrokeMm;
+        if (ColorUtil.IsTransparent(o.Stroke))
+            o.Stroke = ColorUtil.IsTransparent(o.Fill) ? "#2E2A27" : ColorUtil.ToHtmlColor(o.Fill);
     }
 
     private void OnShapeKind(ChangeEventArgs e)
@@ -968,8 +1100,23 @@
         {
             Session.Selected.Type = ObjectType.Shape;
             Session.Selected.ShapeKind = kind;
+            // 원으로 바꾸면 상자도 정사각형이어야 한다. 아니면 타원으로 그려진다.
+            // 가운데를 그대로 두고 짧은 변에 맞춰 줄인다.
+            if (Session.Selected.KeepsSquare)
+                SquareUp(Session.Selected);
         }
         Touch();
+    }
+
+    /// <summary>가운데를 고정한 채 상자를 짧은 변 길이의 정사각형으로 맞춘다.</summary>
+    private static void SquareUp(DesignObject o)
+    {
+        var d = Math.Min(o.Width, o.Height);
+        if (d <= 0.01f || Math.Abs(o.Width - o.Height) < 0.001f) return;
+        o.X += (o.Width - d) / 2f;
+        o.Y += (o.Height - d) / 2f;
+        o.Width = d;
+        o.Height = d;
     }
 
     private void OnArrowHeads(ChangeEventArgs e)
@@ -990,21 +1137,6 @@
         Touch();
     }
 
-    private void SetTableInk(DesignObject o, ChangeEventArgs e)
-        => SetString(v => o.Fill = ColorUtil.ToHtmlColor(v, InkFallback), e);
-
-    private void SetTableStroke(DesignObject o, ChangeEventArgs e)
-        => SetString(v => o.Stroke = ColorUtil.ToHtmlColor(v, BorderFallback), e);
-
-    private void SetTableBg(DesignObject o, ChangeEventArgs e)
-    {
-        if (BindGuarded) return;
-        History.Push(Session.Document);
-        o.BackgroundTransparent = false;
-        o.BackgroundFill = ColorUtil.ToHtmlColor(e.Value?.ToString(), WhiteFallback);
-        Touch();
-    }
-
     private async Task OnImage(InputFileChangeEventArgs e)
     {
         if (Session.Selected is null || Session.Selected.Type != ObjectType.Image) return;
@@ -1013,11 +1145,13 @@
         await using var stream = file.OpenReadStream(8 * 1024 * 1024);
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);
-        var b64 = Convert.ToBase64String(ms.ToArray());
+        var bytes = ms.ToArray();
+        var b64 = Convert.ToBase64String(bytes);
         var mime = file.ContentType is { Length: > 0 } ? file.ContentType : "image/png";
         History.Push(Session.Document);
         DocumentRenderer.InvalidateImage(Session.Selected.Id);
         Session.Selected.ImageData = $"data:{mime};base64,{b64}";
+        Session.FitBoxToImageRatio(Session.Selected, bytes);
         Touch();
         Session.Status = "이미지 적용됨";
     }

@@ -345,6 +345,78 @@ public sealed class EditorSession
         return obj;
     }
 
+    /// <summary>그림 상자 여백(mm). 상자가 그림보다 이만큼씩 크다.</summary>
+    private const float ImagePadMm = 0.4f;
+    /// <summary>새로 넣는 그림의 긴 변이 차지할 라벨 짧은 변의 비율.</summary>
+    private const float ImageFillRatio = 0.60f;
+    private const float ImageMinMm = 2f;
+
+    /// <summary>
+    /// 새로 넣는 그림 상자 크기(mm). 원본 화소 비를 지키고 긴 변을 라벨 짧은 변의 60%에 맞춘 뒤
+    /// 사방 0.4mm 여백을 두르고, 라벨을 넘치면 비를 지킨 채 줄인다.
+    /// 화소 크기를 못 읽으면 예전처럼 정사각으로 둔다.
+    /// </summary>
+    public (float W, float H) ImageBoxMm(byte[]? bytes)
+    {
+        var labelW = Math.Max(ImageMinMm, Document.WidthMm);
+        var labelH = Math.Max(ImageMinMm, Document.HeightMm);
+        var target = Math.Max(ImageMinMm, Math.Min(labelW, labelH) * ImageFillRatio);
+
+        float cw = target, ch = target;
+        if (bytes is { Length: > 0 } && RasterImage.TryMeasure(bytes, out var px, out var py) && px > 0 && py > 0)
+        {
+            if (px >= py)
+            {
+                cw = target;
+                ch = target * py / px;
+            }
+            else
+            {
+                ch = target;
+                cw = target * px / py;
+            }
+        }
+
+        var availW = Math.Max(ImageMinMm, labelW - ImagePadMm * 2);
+        var availH = Math.Max(ImageMinMm, labelH - ImagePadMm * 2);
+        var shrink = Math.Min(1f, Math.Min(availW / cw, availH / ch));
+        cw = Math.Max(ImageMinMm, cw * shrink);
+        ch = Math.Max(ImageMinMm, ch * shrink);
+
+        return (cw + ImagePadMm * 2, ch + ImagePadMm * 2);
+    }
+
+    /// <summary>
+    /// 새 그림을 원본 비에 맞춘 상자로 넣는다. 에디터에서 직접 넣은 그림만 비 잠금을 켠다.
+    /// 타사 변환으로 들어온 그림은 원본 파일 기하를 지키려고 이 길을 타지 않는다.
+    /// </summary>
+    public DesignObject PlaceImage(string dataUrl, byte[]? bytes = null)
+    {
+        var (w, h) = ImageBoxMm(bytes ?? RasterImage.TryReadDataUrl(dataUrl));
+        return PlaceDefault(ObjectType.Image, o =>
+        {
+            o.ImageData = dataUrl;
+            o.Width = w;
+            o.Height = h;
+            o.LockAspectRatio = true;
+        });
+    }
+
+    /// <summary>
+    /// 이미 놓인 그림을 다른 그림으로 갈아끼울 때 상자를 새 원본 비에 맞춘다.
+    /// 비 잠금이 꺼져 있으면 사용자가 잡아 놓은 상자를 건드리지 않는다.
+    /// </summary>
+    public void FitBoxToImageRatio(DesignObject obj, byte[]? bytes)
+    {
+        if (!obj.LockAspectRatio) return;
+        if (bytes is not { Length: > 0 }) return;
+        if (!RasterImage.TryMeasure(bytes, out var px, out var py) || px <= 0 || py <= 0) return;
+
+        var contentW = Math.Max(ImageMinMm, obj.Width - ImagePadMm * 2);
+        var contentH = contentW * py / px;
+        obj.Height = Math.Max(ImageMinMm, contentH) + ImagePadMm * 2;
+    }
+
     public DesignObject PlaceShape(ShapeKind kind)
     {
         var obj = DesignObject.CreateShape(kind, Document.WidthMm * 0.18f, Document.HeightMm * 0.22f);

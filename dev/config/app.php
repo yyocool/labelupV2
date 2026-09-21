@@ -37,6 +37,8 @@ return [
         || (isset($_GET['debug']) && $_GET['debug'] === '1'),
     'url' => rtrim((string) env('APP_URL', ''), '/'),
     'qr_public_url' => rtrim((string) env('QR_PUBLIC_URL', 'https://www.labelup.co.kr'), '/'),
+    // 공개 읽기 API(CORS)를 추가로 허용할 출처. 쉼표 구분, 예: http://localhost:5224
+    'cors_extra_origins' => (string) env('CORS_EXTRA_ORIGINS', ''),
     'timezone' => $env['TIMEZONE'] ?? 'Asia/Seoul',
     'session_key' => $env['SESSION_KEY'] ?? 'labelupdev_session',
     'session_lifetime' => (int) ($env['SESSION_LIFETIME'] ?? 7200),

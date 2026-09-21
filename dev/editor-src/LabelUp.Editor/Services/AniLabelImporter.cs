@@ -788,15 +788,6 @@ internal static class AniLabelImporter
     }
 
     /// <summary>
-    /// 긴 막대(가드)를 쓰는 심볼로지. 이 밖의 심볼은 렌더러가 항목을 보지 않으므로 늘 off로 둔다.
-    /// 우편형(POSTNET·4상태)은 막대 높이가 원래 제각각이라 EMF로 재면 안 된다.
-    /// </summary>
-    private static bool UsesGuardBars(string id)
-        => id is "EAN_13" or "EAN_8" or "JAN_13" or "JAN_8" or "ISBN" or "ISSN" or "ISMN"
-            or "UPC_A" or "UPC_E" or "UPC_E0" or "UPC_E1"
-            or "CODABAR" or "ABC_CODABAR" or "CODE_93" or "CODE_93_EXT";
-
-    /// <summary>
     /// 긴 막대 여부를 EMF 그림에서 직접 잰다.
     ///
     /// 애니라벨의 「start end 표시」 설정이 켜지면 시작·정지 심볼 자리의 막대가 캡션 칸까지 내려온다
@@ -810,7 +801,9 @@ internal static class AniLabelImporter
     private static string GuardBarsFor(bool legacy, string format, byte[] data, int start, int end)
     {
         var id = format.Replace("-", "_").ToUpperInvariant();
-        if (!UsesGuardBars(id)) return DesignObject.GuardBarsOff;
+        // 가드를 쓰지 않는 심볼은 렌더러가 항목을 보지 않으므로 늘 off로 둔다.
+        // 우편형(POSTNET·4상태)은 막대 높이가 원래 제각각이라 EMF로 재면 안 된다.
+        if (!BarcodeCatalog.UsesGuardBars(id)) return DesignObject.GuardBarsOff;
 
         if (TryReadEmfRange(data, start, end, out var emfStart, out var emfLen)
             && AniLabelBarcodes.TryReadEmfGuardBars(data, emfStart, emfLen, out var measured))

@@ -593,10 +593,11 @@
         }
         else
         {
-            var size = Math.Min(pw, ph) * 0.72f;
-            img = DesignObject.CreateDefault(ObjectType.Image, (pw - size) / 2f, (ph - size) / 2f);
-            img.Width = size;
-            img.Height = size;
+            var (w, h) = Session.ImageBoxMm(RasterImage.TryReadDataUrl(dataUrl));
+            img = DesignObject.CreateDefault(ObjectType.Image, (pw - w) / 2f, (ph - h) / 2f);
+            img.Width = w;
+            img.Height = h;
+            img.LockAspectRatio = true;
         }
         img.Fill = "transparent";
         img.StrokeWidth = 0;

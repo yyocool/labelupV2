@@ -130,6 +130,7 @@
     private const float Gap = EditorSession.RulerGapPx;
 
     private bool _ctxBlocked;
+    private string? _cursorKind;
     private bool _skipRender;
     private DotNetObjectReference<CanvasHost>? _self;
     private int _longPressGen;
@@ -193,6 +194,48 @@
 
     private (float X, float Y) StagePoint(MouseEventArgs e)
         => ((float)e.OffsetX, (float)e.OffsetY);
+
+    /// <summary>
+    /// 손잡이 위 커서 이름. 회전 손잡이는 돌림 표, 크기 손잡이는 그 손잡이가 실제로 늘리는
+    /// 방향의 양쪽 화살표다. 방향은 항목 회전각을 더해 고르므로 기울어진 항목에서도 맞는다.
+    /// </summary>
+    private static string? CursorFor(DesignObject obj, HandleKind handle)
+    {
+        if (handle == HandleKind.Rotate) return "rotate";
+
+        var baseAngle = handle switch
+        {
+            HandleKind.E or HandleKind.W => 0f,
+            HandleKind.Se or HandleKind.Nw => 45f,
+            HandleKind.S or HandleKind.N => 90f,
+            HandleKind.Ne or HandleKind.Sw => 135f,
+            _ => float.NaN
+        };
+        if (float.IsNaN(baseAngle)) return null;
+
+        var a = (baseAngle + obj.Rotation) % 180f;
+        if (a < 0) a += 180f;
+        if (a < 22.5f) return "ew";
+        if (a < 67.5f) return "nwse";
+        if (a < 112.5f) return "ns";
+        if (a < 157.5f) return "nesw";
+        return "ew";
+    }
+
+    private void SetCursor(string? kind)
+    {
+        if (string.Equals(_cursorKind, kind, StringComparison.Ordinal)) return;
+        _cursorKind = kind;
+        _ = Js.InvokeVoidAsync("labelUpEditor.setCanvasCursor", kind ?? "");
+    }
+
+    private void UpdateHoverCursor(float docX, float docY)
+    {
+        if (_touchPointer) { SetCursor(null); return; }
+        if (Session.Selected is not { } sel || sel.Locked) { SetCursor(null); return; }
+        var h = HitTest.HitHandle(sel, docX, docY, Session.Zoom);
+        SetCursor(h is HandleKind.None or HandleKind.Move ? null : CursorFor(sel, h));
+    }
 
     private bool IsCoarsePointer()
         => _viewW > 0 && _viewW <= 920;
@@ -632,6 +675,7 @@
                 _handle = h;
                 _dragging = true;
                 _dragStarts = [sel.Clone()];
+                SetCursor(CursorFor(sel, h));
                 return;
             }
         }
@@ -644,6 +688,7 @@
             else if (!Session.SelectedIds.Contains(hit.Id))
                 Session.Select(hit.Id);
 
+            SetCursor(null);
             if (!hit.Locked)
             {
                 _handle = HandleKind.Move;
@@ -653,6 +698,7 @@
             return;
         }
 
+        SetCursor(null);
         if (!e.ShiftKey && !e.CtrlKey)
             Session.ClearSelection();
         _marquee = true;
@@ -696,7 +742,10 @@
         }
 
         if (!_dragging || _dragStarts.Count == 0)
+        {
+            UpdateHoverCursor(dx, dy);
             return;
+        }
 
         if (!_historyPushed)
         {
@@ -739,6 +788,7 @@
         if (_gestureLock) return;
         Session.CursorOverLabel = false;
         OnPointerUp(e);
+        SetCursor(null);
         _view?.Invalidate();
     }
 
@@ -771,6 +821,10 @@
         _marquee = false;
         _handle = HandleKind.None;
         _dragStarts.Clear();
+
+        var up = StagePoint(e);
+        var (ux, uy) = ScreenToDoc(up.X, up.Y);
+        UpdateHoverCursor(ux, uy);
     }
 
     private void OnWheel(WheelEventArgs e)

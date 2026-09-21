@@ -41,6 +41,7 @@ use App\Controllers\Api\EditorRemoteImageApiController;
 use App\Controllers\Api\EditorIlabelExcelApiController;
 use App\Controllers\Api\EditorSystemFontApiController;
 use App\Controllers\Api\EditorClipartApiController;
+use App\Controllers\Api\EditorPaperApiController;
 use App\Controllers\Api\EditorWorkspaceApiController;
 use App\Controllers\Api\HealthController;
 use App\Controllers\Api\SeedController;
@@ -76,6 +77,11 @@ final class Router
     public function post(string $pattern, callable $handler): self
     {
         return $this->add('POST', $pattern, $handler);
+    }
+
+    public function options(string $pattern, callable $handler): self
+    {
+        return $this->add('OPTIONS', $pattern, $handler);
     }
 
     private function add(string $method, string $pattern, callable $handler): self
@@ -167,6 +173,7 @@ final class Router
         $editorIlabelExcelApi = new EditorIlabelExcelApiController();
         $editorSystemFontApi = new EditorSystemFontApiController();
         $editorClipartApi = new EditorClipartApiController();
+        $editorPaperApi = new EditorPaperApiController();
         $shopPublic = new ShopController();
         $shopPayment = new ShopPaymentController();
         $shopPublicApi = new ShopApiController();
@@ -298,6 +305,8 @@ final class Router
         $router->post('/api/auth/password-reset/request', [$authApi, 'requestPasswordReset']);
         $router->post('/api/auth/password-reset/confirm', [$authApi, 'resetPassword']);
 
+        $router->get('/api/editor/papers', [$editorPaperApi, 'index']);
+        $router->options('/api/editor/papers', [$editorPaperApi, 'preflight']);
         $router->get('/api/editor/workspaces', [$editorWorkspaceApi, 'index']);
         $router->get('/api/editor/workspace', [$editorWorkspaceApi, 'show']);
         $router->post('/api/editor/workspace', [$editorWorkspaceApi, 'save']);

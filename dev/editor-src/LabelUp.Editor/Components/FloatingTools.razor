@@ -288,13 +288,11 @@
             await using var stream = file.OpenReadStream(8 * 1024 * 1024);
             using var ms = new MemoryStream();
             await stream.CopyToAsync(ms);
-            var b64 = Convert.ToBase64String(ms.ToArray());
+            var bytes = ms.ToArray();
+            var b64 = Convert.ToBase64String(bytes);
             var mime = file.ContentType is { Length: > 0 } ? file.ContentType : "image/png";
             History.Push(Session.Document);
-            Session.PlaceDefault(ObjectType.Image, o =>
-            {
-                o.ImageData = $"data:{mime};base64,{b64}";
-            });
+            Session.PlaceImage($"data:{mime};base64,{b64}", bytes);
             Session.PendingInsert = null;
             Session.Status = "이미지 추가됨";
             Session.Notify();
