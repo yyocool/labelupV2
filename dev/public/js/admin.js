@@ -742,3 +742,111 @@ function initAdminStaffPage() {
 }
 
 initAdminStaffPage();
+
+function initAdminCreditOverview() {
+  const btn = document.getElementById('adminCreditSummaryBtn');
+  const modal = document.getElementById('adminCreditOverviewModal');
+  const body = document.getElementById('adminCreditOverviewBody');
+  if (!btn || !modal || !body) return;
+
+  const fmt = (n) => Number(n || 0).toLocaleString('ko-KR');
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  })[ch]);
+  const who = (row) => {
+    const name = String(row.name || '').trim();
+    const email = String(row.email || '').trim();
+    if (name && email) return `${esc(name)} <span class="admin-muted">(${esc(email)})</span>`;
+    return esc(name || email || `#${row.user_id || ''}`);
+  };
+
+  const paintSummary = (data) => {
+    const g = btn.querySelector('[data-credit-granted]');
+    const u = btn.querySelector('[data-credit-used]');
+    const r = btn.querySelector('[data-credit-remaining]');
+    if (g) g.textContent = fmt(data.granted);
+    if (u) u.textContent = fmt(data.used);
+    if (r) r.textContent = fmt(data.remaining);
+    const remItem = r?.closest('.admin-credit-summary__item');
+    if (remItem) remItem.classList.toggle('is-debt', Number(data.remaining) < 0);
+  };
+
+  const userTable = (rows, empty) => {
+    if (!rows || !rows.length) return `<p class="admin-credit-ov-empty">${esc(empty)}</p>`;
+    return `<table><thead><tr><th>회원</th><th class="num">잔액</th></tr></thead><tbody>${
+      rows.map((row) => {
+        const bal = Number(row.balance || 0);
+        return `<tr><td>${who(row)}</td><td class="num${bal < 0 ? ' is-minus' : ''}">${fmt(bal)} C</td></tr>`;
+      }).join('')
+    }</tbody></table>`;
+  };
+
+  const renderDetail = (data) => {
+    paintSummary(data);
+    const sources = data.by_source || [];
+    const sourceHtml = sources.length
+      ? `<table><thead><tr><th>출처</th><th class="num">지급</th><th class="num">사용</th></tr></thead><tbody>${
+        sources.map((row) => `<tr>
+          <td>${esc(row.source_label || row.source)}</td>
+          <td class="num is-plus">${fmt(row.granted)}</td>
+          <td class="num is-minus">${fmt(row.used)}</td>
+        </tr>`).join('')
+      }</tbody></table>`
+      : '<p class="admin-credit-ov-empty">거래 내역이 없습니다.</p>';
+
+    const recent = data.recent || [];
+    const recentHtml = recent.length
+      ? `<table><thead><tr><th>일시</th><th>회원</th><th>내용</th><th class="num">변동</th></tr></thead><tbody>${
+        recent.map((row) => {
+          const amt = Number(row.amount || 0);
+          return `<tr>
+            <td>${esc(String(row.created_at || '').slice(0, 16))}</td>
+            <td>${who(row)}</td>
+            <td>${esc(row.description || row.tx_type_label || '')}<br><span class="admin-muted">${esc(row.source_label || '')}</span></td>
+            <td class="num${amt < 0 ? ' is-minus' : ' is-plus'}">${amt >= 0 ? '+' : ''}${fmt(amt)}</td>
+          </tr>`;
+        }).join('')
+      }</tbody></table>`
+      : '<p class="admin-credit-ov-empty">최근 거래가 없습니다.</p>';
+
+    body.innerHTML = `
+      <div class="admin-credit-ov-kpis">
+        <div class="admin-credit-ov-kpi"><span>전체 지급</span><strong>${fmt(data.granted)} C</strong></div>
+        <div class="admin-credit-ov-kpi"><span>전체 사용</span><strong>${fmt(data.used)} C</strong></div>
+        <div class="admin-credit-ov-kpi${Number(data.remaining) < 0 ? ' is-debt' : ''}"><span>전체 잔여</span><strong>${fmt(data.remaining)} C</strong></div>
+      </div>
+      <p class="admin-credit-ov-meta">잔액 보유 회원 ${fmt(data.members_with_balance)}명
+        · 마이너스 회원 ${fmt(data.members_in_debt)}명
+        · 잔여 = 회원별 잔액 합계</p>
+      <div class="admin-credit-ov-grid">
+        <div class="admin-credit-ov-card"><h3>출처별 지급·사용</h3>${sourceHtml}</div>
+        <div class="admin-credit-ov-card"><h3>잔액 상위 회원</h3>${userTable(data.top_balances, '잔액 보유 회원이 없습니다.')}</div>
+        <div class="admin-credit-ov-card"><h3>마이너스 잔액 회원</h3>${userTable(data.top_debts, '마이너스 회원이 없습니다.')}</div>
+        <div class="admin-credit-ov-card"><h3>최근 거래</h3>${recentHtml}</div>
+      </div>`;
+  };
+
+  const open = async () => {
+    modal.hidden = false;
+    body.innerHTML = '<p class="admin-muted">불러오는 중…</p>';
+    try {
+      const base = window.LABELUP_ADMIN_CREDIT_OVERVIEW_URL || '/api/admin/credit/overview';
+      const url = base.includes('?') ? `${base}&detail=1` : `${base}?detail=1`;
+      const res = await AdminAPI.get(url);
+      renderDetail(res.data || {});
+    } catch (err) {
+      body.innerHTML = `<p class="admin-credit-ov-empty">${esc(err.message || '불러오지 못했습니다.')}</p>`;
+    }
+  };
+
+  const close = () => { modal.hidden = true; };
+  btn.addEventListener('click', open);
+  modal.querySelectorAll('[data-close="adminCreditOverviewModal"]').forEach((el) => {
+    el.addEventListener('click', close);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.hidden) close();
+  });
+}
+
+initAdminCreditOverview();

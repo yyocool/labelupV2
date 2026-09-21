@@ -1,0 +1,29 @@
+---
+description: project/ 작업 시 기존 서버(프로젝트관리)에만 배포
+alwaysApply: true
+---
+
+# 프로젝트관리 ↔ 서비스 사이트 서버 분리
+
+| 구분 | 로컬 | 원격 | URL |
+|------|------|------|-----|
+| **서비스 사이트** | `dev/` | `uptube1@115.41.222.123:/home/uptube1` (`www/`) | http://www.labelup.co.kr |
+| **프로젝트관리** | `project/` | `root@115.71.237.145:/home/labelup/project` | http://labelup.gagamkorea.kr/project |
+
+- `dev/` 변경 → **새 PHPS 서버만** 배포 (`dev/scripts/deploy.py`). 기존 서버에 `dev/`를 올리지 않는다.
+- `project/` 변경 → **기존 서버만** 배포 (`project/scripts/deploy.py`). 새 서버에 `project/`를 올리지 않는다.
+
+## 프로젝트관리 배포
+
+```powershell
+$env:LABELUP_PROJECT_SSH_PASSWORD = '<기존서버 SSH 비밀번호>'
+python project/scripts/deploy.py
+python project/scripts/test_remote.py
+```
+
+- 공통 설정: `project/scripts/remote_config.py`
+- 비밀번호를 저장소 파일에 쓰지 않는다.
+
+## 서비스 사이트 배포
+
+`.cursor/rules/auto-deploy-dev.mdc` 및 `dev/scripts/remote_config.py` 참고.

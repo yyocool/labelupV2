@@ -143,4 +143,74 @@ final class CreditAdminService
     {
         return $this->credits->listUsersWithCredit($search, $page, 20);
     }
+
+    /**
+     * @return array{
+     *   granted:int,
+     *   used:int,
+     *   remaining:int,
+     *   members_with_balance:int,
+     *   members_in_debt:int,
+     *   by_source?:array<int, array{source:string,source_label:string,granted:int,used:int}>,
+     *   top_balances?:array<int, array{user_id:int,email:string,name:string,balance:int}>,
+     *   top_debts?:array<int, array{user_id:int,email:string,name:string,balance:int}>,
+     *   recent?:array<int, array<string, mixed>>
+     * }
+     */
+    public function overview(bool $detail = false): array
+    {
+        $totals = $this->credits->globalTotals();
+        $out = [
+            'granted' => $totals['granted'],
+            'used' => $totals['used'],
+            'remaining' => $totals['remaining'],
+            'members_with_balance' => $totals['members_with_balance'],
+            'members_in_debt' => $totals['members_in_debt'],
+        ];
+        if (!$detail) {
+            return $out;
+        }
+
+        $bySource = [];
+        foreach ($this->credits->totalsBySource() as $row) {
+            $bySource[] = [
+                'source' => $row['source'],
+                'source_label' => CreditService::sourceLabel($row['source']),
+                'granted' => $row['granted'],
+                'used' => $row['used'],
+            ];
+        }
+        $mapUser = static function (array $row): array {
+            return [
+                'user_id' => (int) ($row['user_id'] ?? 0),
+                'email' => (string) ($row['email'] ?? ''),
+                'name' => (string) ($row['name'] ?? ''),
+                'balance' => (int) ($row['balance'] ?? 0),
+            ];
+        };
+        $recent = [];
+        foreach ($this->credits->recentTransactions(12) as $row) {
+            $amt = (int) ($row['amount'] ?? 0);
+            $recent[] = [
+                'id' => (int) ($row['id'] ?? 0),
+                'user_id' => (int) ($row['user_id'] ?? 0),
+                'email' => (string) ($row['email'] ?? ''),
+                'name' => (string) ($row['name'] ?? ''),
+                'amount' => $amt,
+                'balance_after' => (int) ($row['balance_after'] ?? 0),
+                'tx_type' => (string) ($row['tx_type'] ?? ''),
+                'tx_type_label' => CreditService::txTypeLabel((string) ($row['tx_type'] ?? '')),
+                'source' => (string) ($row['source'] ?? ''),
+                'source_label' => CreditService::sourceLabel((string) ($row['source'] ?? '')),
+                'description' => (string) ($row['description'] ?? ''),
+                'created_at' => (string) ($row['created_at'] ?? ''),
+            ];
+        }
+
+        $out['by_source'] = $bySource;
+        $out['top_balances'] = array_map($mapUser, $this->credits->topBalances(8, false));
+        $out['top_debts'] = array_map($mapUser, $this->credits->topBalances(8, true));
+        $out['recent'] = $recent;
+        return $out;
+    }
 }

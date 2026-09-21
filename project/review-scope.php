@@ -28,6 +28,8 @@ $reviewStatuses = DevScopeService::getReviewStatuses();
 
 try {
     DevScopeService::ensureDefaults($project['id'], $userId);
+    DevScopeService::splitVendorImportReviewItems($project['id'], $userId);
+    DevScopeService::syncReviewPageUrls($project['id'], false, $userId);
 } catch (Exception $e) {
     if (function_exists('labelup_log_error')) {
         labelup_log_error('[review-scope ensureDefaults] ' . $e->getMessage());

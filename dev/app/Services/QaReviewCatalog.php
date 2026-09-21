@@ -75,13 +75,19 @@ final class QaReviewCatalog
             $u('ed-datasheet', '편집기 도구', '데이터시트 연결', '/editor/', '엑셀/데이터 행 연결·필드 매핑'),
             $u('ed-align-transform', '편집기 도구', '정렬·변형', '/editor/', '정렬/회전/앞뒤순서/복사'),
 
-            // 타사포맷 가져오기
-            $u('ed-vendor-entry', '타사포맷 가져오기', '가져오기 UI', '/editor/', '타사포맷 버튼·드롭존·확장자 안내'),
-            $u('ed-vendor-formtec', '타사포맷 가져오기', '폼텍 변환', '/editor/', '.dgz/.dgf/.fmt/.fdx 변환·객체/용지 매핑'),
-            $u('ed-vendor-ilabel', '타사포맷 가져오기', '아이라벨 변환', '/editor/', '.idf/.xml/.zip 변환·엑셀 연결'),
-            $u('ed-vendor-anylabel', '타사포맷 가져오기', '애니라벨 변환', '/editor/', '.lbl 변환·바코드/이미지/텍스트'),
-            $u('ed-vendor-report', '타사포맷 가져오기', '변환 결과 리포트', '/editor/', '벤더/용지/데이터/디자인 요약·경고'),
-            $u('ed-vendor-apply', '타사포맷 가져오기', '변환 적용', '/editor/', '캔버스 반영·편집 가능 여부'),
+            // 타사포맷 — 벤더별 분리 검수
+            $u('ed-vendor-entry', '타사포맷 공통', '가져오기 UI', '/editor/', '타사포맷 버튼·드롭존·확장자 안내'),
+            $u('ed-vendor-report', '타사포맷 공통', '변환 결과 리포트', '/editor/', '벤더/용지/데이터/디자인 요약·경고'),
+            $u('ed-vendor-apply', '타사포맷 공통', '변환 적용', '/editor/', '캔버스 반영·편집 가능 여부'),
+            $u('ed-vendor-formtec-ui', '타사포맷·폼텍', '폼텍 가져오기 UI', '/editor/', '폼텍 확장자 안내·드롭존'),
+            $u('ed-vendor-formtec', '타사포맷·폼텍', '폼텍 변환', '/editor/', '.dgz/.dgf/.fmt/.fdx 변환·객체/용지 매핑'),
+            $u('ed-vendor-formtec-apply', '타사포맷·폼텍', '폼텍 캔버스 반영', '/editor/', '텍스트·바코드·도형 배치·편집'),
+            $u('ed-vendor-ilabel-ui', '타사포맷·아이라벨', '아이라벨 가져오기 UI', '/editor/', '아이라벨 확장자 안내·드롭존'),
+            $u('ed-vendor-ilabel', '타사포맷·아이라벨', '아이라벨 변환', '/editor/', '.idf/.xml/.zip 변환'),
+            $u('ed-vendor-ilabel-excel', '타사포맷·아이라벨', '아이라벨 엑셀 연결', '/editor/', '엑셀형 데이터 매핑·미리보기'),
+            $u('ed-vendor-anylabel-ui', '타사포맷·애니라벨', '애니라벨 가져오기 UI', '/editor/', '애니라벨 확장자 안내·드롭존'),
+            $u('ed-vendor-anylabel', '타사포맷·애니라벨', '애니라벨 변환', '/editor/', '.lbl 변환·바코드/이미지/텍스트'),
+            $u('ed-vendor-anylabel-apply', '타사포맷·애니라벨', '애니라벨 캔버스 반영', '/editor/', '객체 배치·편집 가능 여부'),
 
             // 편집기 AI (라비)
             $u('ed-labi-open', '편집기 AI(라비)', '라비 패널', '/editor/', '편집기 내 라비 다이얼로그 오픈'),

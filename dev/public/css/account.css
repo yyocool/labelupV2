@@ -53,6 +53,8 @@
 }
 .account-grade-kicker{margin:0 0 4px;font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.02em}
 .account-meta{margin:4px 0 0;font-size:13px;color:var(--muted)}
+.account-meta--warn{color:#9b1c1c;font-weight:600}
+.account-meta strong.is-debt{color:#9b1c1c}
 .account-hero-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .account-btn{
   display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 16px;

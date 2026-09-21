@@ -56,11 +56,15 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
         <th class="qr-col-products">상품수</th>
         <th class="qr-col-qrcount">생성QR수</th>
         <th class="qr-col-actions">관리</th>
+        <th class="qr-col-mfg" title="정상 소비자가 × 20%">제조단가</th>
+        <th class="qr-col-payout" title="제조단가 × 3%">최대지급액</th>
+        <th class="qr-col-tokens" title="최대지급액으로 사용 가능한 ChatGPT 토큰(입력75%/출력25% 혼합)">토큰량</th>
+        <th class="qr-col-credit-eq" title="최대지급액 = 크레딧(1C=1원)">크레딧환산</th>
       </tr>
     </thead>
     <tbody>
     <?php if (empty($rows)): ?>
-      <tr><td colspan="9" class="empty">등록된 QR 그룹이 없습니다. 마이그레이션을 실행해 주세요.</td></tr>
+      <tr><td colspan="13" class="empty">등록된 QR 그룹이 없습니다. 마이그레이션을 실행해 주세요.</td></tr>
     <?php else: ?>
       <?php foreach ($rows as $row): ?>
       <?php
@@ -148,6 +152,10 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
             <button type="button" class="admin-btn admin-btn--sm js-qr-action" data-action="usage-history" data-group-no="<?= (int) $row['group_no'] ?>">사용이력</button>
           </div>
         </td>
+        <td class="qr-mfg"><?= number_format((int) ($row['manufacturing_cost'] ?? 0)) ?>원</td>
+        <td class="qr-payout"><?= number_format((int) ($row['max_payout'] ?? 0)) ?>원</td>
+        <td class="qr-tokens"><?= number_format((int) ($row['token_amount'] ?? 0)) ?></td>
+        <td class="qr-credit-eq"><strong><?= number_format((int) ($row['credit_equivalent'] ?? 0)) ?> C</strong></td>
       </tr>
       <?php endforeach; ?>
     <?php endif; ?>
@@ -162,6 +170,9 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
     <li>그룹No. 아래 QR은 그룹 안내용(카테고리·매수) 주소입니다. <b>패키지 인쇄용 QR은 반드시 [QR코드생성]으로 만든 고유 쿠폰번호 URL</b>을 사용하세요.</li>
     <li>생성 URL 형식: <code>https://www.labelup.co.kr/qr-coupon?g=&amp;cat=&amp;sheets=&amp;code=LU01-XXXX</code> — <b>code</b>가 고객 고유 쿠폰번호입니다.</li>
     <li><b>지급크레딧</b>은 목록에서 바로 수정·저장할 수 있으며, <b>구매크레딧</b> 메뉴에서도 동일 값이 적용됩니다.</li>
+    <li><b>제조단가</b> = 정상 소비자가 × 20%, <b>최대지급액</b> = 제조단가 × 3% (원 단위 반올림).</li>
+    <li><b>토큰량</b>은 최대지급액으로 쓸 수 있는 ChatGPT 토큰(현재 기본 모델, 입력 75%·출력 25% 혼합 단가·서버 환율 기준)입니다.</li>
+    <li><b>크레딧환산</b>은 최대지급액을 1 C = 1원으로 환산한 값이며, 실제 지급크레딧 설정 참고용입니다.</li>
     <li><b>공통 출력템플릿</b>은 분류별 템플릿이 없을 때 쓰는 기본 레이아웃입니다. 제품 분류No. 아래 <b>템플릿</b> 버튼으로 분류마다 따로 편집·저장할 수 있습니다.</li>
   </ul>
 </div>

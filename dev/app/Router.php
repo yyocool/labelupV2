@@ -352,6 +352,7 @@ final class Router
         $router->post('/api/admin/credit/adjust', [$creditAdminApi, 'adjustCredit']);
         $router->post('/api/admin/credit/grant', [$creditAdminApi, 'grantCredit']);
         $router->get('/api/admin/credit/grants', [$creditAdminApi, 'grantHistory']);
+        $router->get('/api/admin/credit/overview', [$creditAdminApi, 'overview']);
         $router->post('/api/admin/credit/cs/save', [$creditAdminApi, 'saveCsLog']);
 
         $router->post('/api/admin/hero/slide/save', [$heroAdminApi, 'save']);

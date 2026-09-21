@@ -118,6 +118,7 @@ final class QrCouponAdminService
                 'show_category' => !isset($seenCategory[$catNo]),
                 'category_rowspan' => $categoryCounts[$catNo] ?? 1,
             ];
+            $row = array_merge($row, self::payoutEconomics((int) $row['list_price']));
             $seenCategory[$catNo] = true;
             $rows[] = $row;
         }
@@ -130,6 +131,30 @@ final class QrCouponAdminService
             'generated_qr_count' => $qrTotal,
             'printed_qr_count' => $printedTotal,
             'coupon_page_url' => $this->couponPageAbsoluteUrl(),
+            'ai_model' => AiCostService::chatModels()['normal'],
+            'usd_krw' => AiCostService::usdKrwRate(),
+        ];
+    }
+
+    /**
+     * 정상 소비자가 기준 제조단가·최대지급액·토큰·크레딧.
+     * 제조단가 = 소비자가의 20%, 최대지급액 = 제조단가의 3%.
+     * 토큰량은 기본 ChatGPT 모델의 입력 75%·출력 25% 혼합 단가.
+     * 크레딧환산은 1 C = 1원.
+     *
+     * @return array{manufacturing_cost:int,max_payout:int,token_amount:int,credit_equivalent:int}
+     */
+    public static function payoutEconomics(int $listPrice): array
+    {
+        $listPrice = max(0, $listPrice);
+        $manufacturing = (int) round($listPrice * 0.20);
+        $maxPayout = (int) round($manufacturing * 0.03);
+
+        return [
+            'manufacturing_cost' => $manufacturing,
+            'max_payout' => $maxPayout,
+            'token_amount' => AiCostService::tokensForKrw((float) $maxPayout),
+            'credit_equivalent' => $maxPayout,
         ];
     }
 

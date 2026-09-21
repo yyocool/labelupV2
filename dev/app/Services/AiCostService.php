@@ -245,6 +245,31 @@ final class AiCostService
         return ($promptTokens / 1_000_000) * $inPerM + ($completionTokens / 1_000_000) * $outPerM;
     }
 
+    /**
+     * 대화 혼합 단가(입력 75% · 출력 25%) 기준, 원화로 살 수 있는 총 토큰 수.
+     */
+    public static function tokensForKrw(float $krw, string $model = ''): int
+    {
+        if ($krw <= 0) {
+            return 0;
+        }
+        $per = self::blendedKrwPerToken($model);
+        if ($per <= 0) {
+            return 0;
+        }
+
+        return (int) floor($krw / $per);
+    }
+
+    public static function blendedKrwPerToken(string $model = ''): float
+    {
+        $model = trim($model) !== '' ? $model : self::chatModels()['normal'];
+        [$inPerM, $outPerM] = self::chatRatesPerMillion($model);
+        $usdPerToken = ((0.75 * $inPerM) + (0.25 * $outPerM)) / 1_000_000;
+
+        return $usdPerToken * self::usdKrwRate();
+    }
+
     public static function imageUsd(string $model, string $quality, int $count = 1): float
     {
         $count = max(1, $count);
