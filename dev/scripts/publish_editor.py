@@ -12,6 +12,34 @@ PROJECT = ROOT / "editor-src" / "LabelUp.Editor"
 OUT = ROOT / "public" / "editor"
 
 
+def apply_icu_bin_workaround(out: Path) -> None:
+    """Some hosts block .dat downloads, which stops the editor from booting.
+
+    Ship the ICU table as icudt.bin as well and point the boot files at it.
+    Publishing wipes public/editor, so this has to run on every publish or the
+    fix silently disappears.
+    """
+    framework = out / "_framework"
+    source = framework / "icudt.dat"
+    if not source.exists():
+        print("icudt.dat not found; skipped ICU .bin workaround", file=sys.stderr)
+        return
+
+    shutil.copyfile(source, framework / "icudt.bin")
+
+    for name in ("blazor.boot.json", "dotnet.js"):
+        target = framework / name
+        if not target.exists():
+            print(f"{name} not found; ICU reference left alone", file=sys.stderr)
+            continue
+        text = target.read_text(encoding="utf-8")
+        if "icudt.dat" not in text:
+            continue
+        target.write_text(text.replace("icudt.dat", "icudt.bin"), encoding="utf-8")
+
+    print("Applied ICU .bin workaround")
+
+
 def main() -> int:
     if not PROJECT.exists():
         print(f"Missing project: {PROJECT}", file=sys.stderr)
@@ -55,6 +83,8 @@ def main() -> int:
         p = OUT / name
         if p.exists():
             p.unlink()
+
+    apply_icu_bin_workaround(OUT)
 
     # Keep Apache helper for MIME / SPA
     htaccess = OUT / ".htaccess"

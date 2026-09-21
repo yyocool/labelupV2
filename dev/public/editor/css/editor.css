@@ -790,6 +790,20 @@ html[data-ed-save="off"] .ed-autosave:hover {
 .canvas-stage.is-pan-ready { cursor: grab; }
 .canvas-stage.is-panning,
 .canvas-stage.is-panning * { cursor: grabbing !important; }
+
+/* 선택 손잡이 위 커서. data-cursor 는 CanvasHost 가 손잡이를 맞출 때마다 갈아 끼운다. */
+.canvas-stage[data-cursor="ew"],
+.canvas-stage[data-cursor="ew"] .canvas-stage__skia { cursor: ew-resize; }
+.canvas-stage[data-cursor="ns"],
+.canvas-stage[data-cursor="ns"] .canvas-stage__skia { cursor: ns-resize; }
+.canvas-stage[data-cursor="nwse"],
+.canvas-stage[data-cursor="nwse"] .canvas-stage__skia { cursor: nwse-resize; }
+.canvas-stage[data-cursor="nesw"],
+.canvas-stage[data-cursor="nesw"] .canvas-stage__skia { cursor: nesw-resize; }
+.canvas-stage[data-cursor="rotate"],
+.canvas-stage[data-cursor="rotate"] .canvas-stage__skia {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19.2 12a7.2 7.2 0 1 1-2.1-5.1'/%3E%3Cpath d='M19.2 3.6v4.2h-4.2'/%3E%3C/g%3E%3Cg fill='none' stroke='%23231f20' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19.2 12a7.2 7.2 0 1 1-2.1-5.1'/%3E%3Cpath d='M19.2 3.6v4.2h-4.2'/%3E%3C/g%3E%3C/svg%3E") 12 12, crosshair;
+}
 .canvas-stage__skia {
   position: absolute;
   z-index: 1;
@@ -1205,6 +1219,10 @@ html.lu-right-stack .ed:not(.is-mobile) .ed-props__layers {
 }
 .ed-ctx-bar__row--main {
   flex-wrap: nowrap;
+  /* 맨 앞 색칸(주 색·배경색·배경투명)이 붙어 줄이 길어져도 상자 밖으로 새지 않게 한다. */
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
 }
 .ed-ctx-bar__row--main .ed-ctx-bar__slot {
   flex-wrap: nowrap;
@@ -1245,6 +1263,15 @@ html.lu-right-stack .ed:not(.is-mobile) .ed-props__layers {
   width: 44px;
   min-width: 44px;
   max-width: 44px;
+}
+/* 회전은 -123.4 까지 들어가야 해서 다른 숫자칸보다 넓다. */
+.ed-ctx-bar .ed-field--rotate input[type="number"] {
+  box-sizing: border-box;
+  width: 72px;
+  min-width: 72px;
+  max-width: 72px;
+  padding: 0 4px;
+  text-align: right;
 }
 .ed-ctx-bar .ed-field {
   display: inline-flex;
