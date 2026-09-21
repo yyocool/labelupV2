@@ -97,6 +97,9 @@ img{display:block;max-width:100%}
 .credit-pill-ic{color:var(--accent);font-size:13px}
 .credit-pill-label{color:#7a7d88;font-weight:600}
 .credit-pill-amount{color:var(--accent);font-weight:800;font-size:13px}
+.credit-pill.is-debt{border-color:#e8b4b8;background:linear-gradient(180deg,#fff7f7,#fff)}
+.credit-pill.is-debt .credit-pill-amount,.credit-pill.is-debt .credit-pill-ic{color:#b42318}
+.credit-pill.is-debt .credit-pill-label{color:#b42318}
 .login{height:40px;border:0;border-radius:22px;background:var(--charcoal);color:#fff;padding:0 20px;font-size:12px;font-weight:800;display:inline-flex;align-items:center}
 a.create{display:flex;align-items:center;justify-content:center;text-decoration:none;color:#fff}
 a.login{text-decoration:none}
@@ -304,7 +307,33 @@ a.login{text-decoration:none}
   .ai-draw-ring{width:54px;height:54px;margin:-27px 0 0 -27px}
   .ai-draw-shape--a{width:30px;height:30px;left:20px;top:22px}
   .ai-draw-title{font-size:13px}
+  .ai-labi-scene{width:88px;height:88px}
+  .ai-labi-char{width:62px;height:62px}
+  .ai-labi-sheet{width:34px;height:42px;right:4px;top:16px}
 }
+
+.ai-chat-msg--drawing .ai-chat-avatar{display:none}
+.ai-chat-msg--drawing .ai-chat-body{max-width:100%}
+.ai-labi-scene{position:relative;width:118px;height:118px;border-radius:22px;background:linear-gradient(165deg,#fff 0%,#f7f1f4 100%);box-shadow:inset 0 0 0 1px rgba(123,40,64,.1);overflow:hidden}
+.ai-labi-halo{position:absolute;left:18%;right:28%;top:8%;bottom:18%;border-radius:50%;background:radial-gradient(circle,rgba(123,40,64,.16),transparent 68%);animation:aiLabiHalo 2.8s ease-in-out infinite}
+.ai-labi-sheet{position:absolute;right:8px;top:22px;width:42px;height:54px;border-radius:7px;background:#fff;box-shadow:0 8px 16px rgba(80,40,55,.12);transform:rotate(-8deg);display:flex;flex-direction:column;justify-content:center;gap:5px;padding:8px 6px}
+.ai-labi-sheet b{display:block;height:3px;border-radius:999px;background:linear-gradient(90deg,#7b2840,#e7b7c4);transform-origin:left center;animation:aiLabiLine 2.4s ease-in-out infinite}
+.ai-labi-sheet b:nth-child(2){width:78%;animation-delay:.35s;background:#d9c3cb}
+.ai-labi-sheet b:nth-child(3){width:52%;animation-delay:.7s;background:#ecdde2}
+.ai-labi-char{position:absolute;left:6px;bottom:10px;width:78px;height:78px;animation:aiLabiBob 2.6s ease-in-out infinite}
+.ai-labi-char img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:0;animation:aiLabiPose 6.6s ease-in-out infinite}
+.ai-labi-char img:nth-child(2){animation-delay:2.2s}
+.ai-labi-char img:nth-child(3){animation-delay:4.4s}
+.ai-labi-shadow{position:absolute;left:16px;bottom:8px;width:58px;height:8px;border-radius:50%;background:rgba(80,40,55,.16);filter:blur(1px);animation:aiLabiShadow 2.6s ease-in-out infinite}
+.ai-labi-spark{position:absolute;width:6px;height:6px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px rgba(123,40,64,.18);opacity:0;animation:aiLabiSpark 2.8s ease-in-out infinite}
+.ai-labi-spark.s1{right:14px;top:12px}
+.ai-labi-spark.s2{left:14px;top:18px;animation-delay:1.2s}
+@keyframes aiLabiBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes aiLabiShadow{0%,100%{transform:scaleX(1);opacity:.55}50%{transform:scaleX(.72);opacity:.28}}
+@keyframes aiLabiHalo{0%,100%{opacity:.45;transform:scale(.92)}50%{opacity:1;transform:scale(1.05)}}
+@keyframes aiLabiPose{0%{opacity:0;transform:scale(.94)}8%{opacity:1;transform:scale(1)}26%{opacity:1;transform:scale(1)}34%,100%{opacity:0;transform:scale(.97)}}
+@keyframes aiLabiLine{0%{transform:scaleX(.2);opacity:.35}45%{transform:scaleX(1);opacity:1}100%{transform:scaleX(.35);opacity:.4}}
+@keyframes aiLabiSpark{0%,100%{opacity:0;transform:scale(.4) translateY(4px)}40%{opacity:1;transform:scale(1) translateY(0)}70%{opacity:0;transform:scale(.6) translateY(-6px)}}
 
 /* 상품 추천 카드 */
 .ai-rec-card{display:grid;grid-template-columns:108px 1fr;gap:12px;margin-top:10px;padding:10px;border:1px solid #ebeaf1;border-radius:18px;background:linear-gradient(160deg,#fff 0%,#faf8fb 100%);box-shadow:0 8px 22px rgba(40,36,70,.06);animation:aiCardIn .35s ease}

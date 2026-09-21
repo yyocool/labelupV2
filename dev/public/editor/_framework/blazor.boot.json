@@ -12,7 +12,7 @@
       "dotnet.native.wasm": "sha256-U61gDBifWEu7jpsAh6pn+LryHOs0JfhSHxHE8HzmtBc="
     },
     "icu": {
-      "icudt.dat": "sha256-tO5O5YzMTVSaKBboxAqezOQL9ewmupzV2JrB5Rkc8a4="
+      "icudt.bin": "sha256-tO5O5YzMTVSaKBboxAqezOQL9ewmupzV2JrB5Rkc8a4="
     },
     "assembly": {
       "ExcelDataReader.DataSet.wasm": "sha256-eM/Vt4GxUiQsxVwPh3KKAke/LL9EnUPuS5ajIFktgqQ=",

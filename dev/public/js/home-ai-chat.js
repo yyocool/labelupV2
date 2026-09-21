@@ -456,7 +456,7 @@ window.LabelUpLabiChat = {
   }
 
   function buildTemplateEditorUrl(template) {
-    if (template && template.document && !template.url) {
+    if (template && template.document) {
       if (template.editor_url) return ensureLabiDocUrl(template.editor_url);
       const projectId = Number(template.project_id || 0);
       if (projectId > 0) {
@@ -596,6 +596,14 @@ window.LabelUpLabiChat = {
     window.setTimeout(() => {
       if (lightboxEl) lightboxEl.hidden = true;
     }, 180);
+  }
+
+  function labiAssetUrl(file) {
+    const name = String(file || '').replace(/^\/+/, '');
+    if (labiIconUrl && /\/[^/]+$/.test(labiIconUrl)) {
+      return labiIconUrl.replace(/[^/]+$/, name);
+    }
+    return '/assets/' + name;
   }
 
   function createAvatar(role) {
@@ -819,9 +827,13 @@ window.LabelUpLabiChat = {
         image: template.url,
         kicker: 'AI 라벨 템플릿',
         title: template.title || '라비가 만든 라벨 템플릿',
-        desc: spec
-          ? `${spec} 규격으로 편집기를 열어 바로 다듬을 수 있어요.`
-          : '완성된 라벨 디자인이에요. 바로편집으로 이어가 보세요.',
+        desc: template.document
+          ? (spec
+            ? `${spec} · 글자·숫자는 편집 가능한 텍스트로 분리했어요. 바로편집에서 문구를 바꿔 보세요.`
+            : '글자·숫자는 편집 가능한 텍스트로 분리했어요. 바로편집에서 문구를 바꿔 보세요.')
+          : (spec
+            ? `${spec} 규격으로 편집기를 열어 바로 다듬을 수 있어요.`
+            : '완성된 라벨 디자인이에요. 바로편집으로 이어가 보세요.'),
         editHref: embedMode ? '#' : editHref,
         editLabel: embedMode ? '편집기에 적용' : '바로편집',
         onEdit: () => applyTemplate(template),
@@ -1036,38 +1048,42 @@ window.LabelUpLabiChat = {
     body.className = 'ai-chat-body';
 
     if (mode === 'draw' || mode === 'template') {
-      const title = mode === 'template' ? '라비가 라벨 템플릿을 만들고 있어요' : '라비가 클립아트를 그리고 있어요';
-      const badge = mode === 'template' ? 'AI TEMPLATE' : 'AI DRAWING';
+      const title = mode === 'template' ? '라비가 라벨을 만들고 있어요' : '라비가 그림을 그리고 있어요';
+      const badge = mode === 'template' ? 'LABEL' : 'DRAW';
+      const poses = (mode === 'template'
+        ? ['labi-face-curious.png', 'labi-face-smile.png', 'labi-face-wink.png']
+        : ['labi-face-smile.png', 'labi-face-curious.png', 'labi-face-wink.png']
+      ).map((file) => labiAssetUrl(file));
       body.innerHTML = `
-        <div class="ai-draw-stage" aria-live="polite">
-          <div class="ai-draw-canvas" aria-hidden="true">
-            <span class="ai-draw-glow"></span>
-            <span class="ai-draw-ring"></span>
-            <span class="ai-draw-shape ai-draw-shape--a"></span>
-            <span class="ai-draw-shape ai-draw-shape--b"></span>
-            <span class="ai-draw-shape ai-draw-shape--c"></span>
-            <span class="ai-draw-spark s1"></span>
-            <span class="ai-draw-spark s2"></span>
-            <span class="ai-draw-spark s3"></span>
-            <span class="ai-draw-brush">
-              <i></i>
+        <div class="ai-draw-stage ai-labi-stage" data-labi-mode="${mode}" aria-live="polite">
+          <div class="ai-labi-scene" aria-hidden="true">
+            <span class="ai-labi-halo"></span>
+            <span class="ai-labi-sheet">
+              <b></b><b></b><b></b>
             </span>
-            <span class="ai-draw-stroke"></span>
+            <span class="ai-labi-char">
+              <img src="${poses[0]}" alt="">
+              <img src="${poses[1]}" alt="">
+              <img src="${poses[2]}" alt="">
+            </span>
+            <span class="ai-labi-shadow"></span>
+            <span class="ai-labi-spark s1"></span>
+            <span class="ai-labi-spark s2"></span>
           </div>
           <div class="ai-draw-copy">
             <span class="ai-draw-badge">${badge}</span>
             <strong class="ai-draw-title">${title}</strong>
-            <p class="ai-draw-status">${escapeHtml(hint || '스케치를 시작하는 중…')}</p>
+            <p class="ai-draw-status">${escapeHtml(hint || '라벨 자리를 잡는 중…')}</p>
             <div class="ai-draw-bar"><span></span></div>
           </div>
         </div>`;
       const statusEl = body.querySelector('.ai-draw-status');
       const lines = mode === 'template'
         ? [
-            '첨부 이미지의 구도를 읽는 중…',
-            '라벨 규격에 맞춰 배치하는 중…',
-            '색감과 여백을 다듬는 중…',
-            '인쇄용 템플릿으로 정리하는 중…',
+            '첨부 이미지의 글자를 읽는 중…',
+            '문구를 편집할 수 있게 나누는 중…',
+            '배경 그림만 따로 그리는 중…',
+            '라벨 위에 자리를 맞추는 중…',
             '거의 다 됐어요, 조금만 기다려 주세요…',
           ]
         : [
@@ -1268,9 +1284,19 @@ window.LabelUpLabiChat = {
 
   function updateCreditDisplays(creditInfo) {
     if (!creditInfo || creditInfo.balance == null) return;
-    const label = formatCredit(creditInfo.balance);
+    const bal = Number(creditInfo.balance);
+    const label = formatCredit(bal);
+    const isDebt = Number.isFinite(bal) && bal < 0;
+    document.querySelectorAll('.credit-pill').forEach((pill) => {
+      pill.classList.toggle('is-debt', isDebt);
+      const amount = pill.querySelector('.credit-pill-amount');
+      if (amount) amount.textContent = label;
+      const lab = pill.querySelector('.credit-pill-label');
+      if (lab) lab.textContent = isDebt ? '미정산' : '내 크레딧';
+      pill.title = isDebt ? '마이너스 잔액 · 충전 시 자동 차감' : '내 크레딧';
+    });
     document.querySelectorAll('.credit-pill-amount').forEach((el) => {
-      el.textContent = label;
+      if (!el.closest('.credit-pill')) el.textContent = label;
     });
     const chipStrong = document.querySelector('#lu-credit-chip strong');
     if (chipStrong) chipStrong.textContent = label;
@@ -1321,8 +1347,8 @@ window.LabelUpLabiChat = {
       });
       history.push({ role: 'assistant', content: reply });
       updateCreditDisplays(payload.credit || null);
-      if (payload.template && payload.template.dataset) {
-        compactOfficeHistory();
+      if (payload.template && payload.template.document) {
+        if (payload.template.dataset) compactOfficeHistory();
         void stashPendingDocument(payload.template);
       }
     } catch (err) {

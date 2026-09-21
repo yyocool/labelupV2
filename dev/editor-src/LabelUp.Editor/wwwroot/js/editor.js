@@ -2895,10 +2895,13 @@ window.labelUpEditor = {
     if (balance == null || !Number.isFinite(Number(balance))) return;
     var chip = document.getElementById('lu-credit-chip');
     if (!chip) return;
+    var bal = Number(balance);
     var strong = chip.querySelector('strong');
-    if (strong) strong.textContent = (Number(balance) || 0).toLocaleString('ko-KR') + ' C';
+    if (strong) strong.textContent = bal.toLocaleString('ko-KR') + ' C';
     chip.hidden = false;
     chip.classList.remove('is-guest');
+    chip.classList.toggle('is-debt', bal < 0);
+    chip.title = bal < 0 ? '마이너스 잔액 · 충전 시 자동 차감' : '내 크레딧';
   },
   bindCreditBadge: function () {
     if (this._creditBadgeBound) return;
@@ -2953,9 +2956,12 @@ window.labelUpEditor = {
         return;
       }
       chip.classList.remove('is-guest');
+      chip.classList.toggle('is-debt', Number(state.balance) < 0);
       chip.hidden = false;
-      chip.title = '크레딧 사용 이력 보기';
-      if (em) em.textContent = '남은 크레딧';
+      chip.title = Number(state.balance) < 0
+        ? '마이너스 잔액 · 충전 시 자동 차감'
+        : '크레딧 사용 이력 보기';
+      if (em) em.textContent = Number(state.balance) < 0 ? '미정산' : '남은 크레딧';
       if (strong) strong.textContent = fmt(state.balance);
     };
 

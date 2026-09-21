@@ -113,6 +113,30 @@
         ?>
         관리자 › <b><?= e($crumb) ?></b>
       </div>
+      <?php
+        $creditOverview = ['granted' => 0, 'used' => 0, 'remaining' => 0];
+        try {
+            $creditOverview = (new \App\Services\CreditAdminService())->overview(false);
+        } catch (\Throwable) {
+            $creditOverview = ['granted' => 0, 'used' => 0, 'remaining' => 0];
+        }
+      ?>
+      <button type="button" class="admin-credit-summary" id="adminCreditSummaryBtn" title="크레딧 상세 현황" aria-haspopup="dialog">
+        <span class="admin-credit-summary__item">
+          <em>지급</em>
+          <strong data-credit-granted><?= number_format((int) ($creditOverview['granted'] ?? 0)) ?></strong>
+        </span>
+        <span class="admin-credit-summary__sep" aria-hidden="true">·</span>
+        <span class="admin-credit-summary__item">
+          <em>사용</em>
+          <strong data-credit-used><?= number_format((int) ($creditOverview['used'] ?? 0)) ?></strong>
+        </span>
+        <span class="admin-credit-summary__sep" aria-hidden="true">·</span>
+        <span class="admin-credit-summary__item<?= ((int) ($creditOverview['remaining'] ?? 0)) < 0 ? ' is-debt' : '' ?>">
+          <em>잔여</em>
+          <strong data-credit-remaining><?= number_format((int) ($creditOverview['remaining'] ?? 0)) ?></strong>
+        </span>
+      </button>
       <div class="admin-top-actions">
         <button type="button" class="admin-icon-btn" id="adminFullscreenBtn" title="전체화면" aria-label="전체화면">⛶</button>
         <div class="admin-bell-wrap" id="adminBellWrap">
@@ -200,11 +224,24 @@
     <div class="admin-modal-body" id="adminFavModalBody"></div>
   </div>
 </div>
+<div class="admin-modal" id="adminCreditOverviewModal" hidden>
+  <div class="admin-modal-backdrop" data-close="adminCreditOverviewModal"></div>
+  <div class="admin-modal-panel admin-modal-panel--wide" role="dialog" aria-modal="true" aria-labelledby="adminCreditOverviewTitle">
+    <div class="admin-modal-head">
+      <h2 id="adminCreditOverviewTitle">전체 회원 크레딧 현황</h2>
+      <button type="button" class="admin-modal-close" data-close="adminCreditOverviewModal" aria-label="닫기">×</button>
+    </div>
+    <div class="admin-modal-body" id="adminCreditOverviewBody">
+      <p class="admin-muted">불러오는 중…</p>
+    </div>
+  </div>
+</div>
 <script>
 window.LABELUP_ADMIN_MENUS = <?= json_encode(array_values(array_filter(admin_menu_catalog(), static fn (array $item): bool => admin_can_menu($item['key']))), JSON_UNESCAPED_UNICODE) ?>;
 window.LABELUP_ADMIN_FAVS = <?= json_encode($adminFavoriteSlots ?? [], JSON_UNESCAPED_UNICODE) ?>;
 window.LABELUP_ADMIN_ORDERS_URL = <?= json_encode(url('admin/shop/orders'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 window.LABELUP_ADMIN_INQUIRIES_URL = <?= json_encode(url('admin/ops/inquiries'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+window.LABELUP_ADMIN_CREDIT_OVERVIEW_URL = <?= json_encode(url('api/admin/credit/overview'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 </script>
 <script src="<?= js('admin.js') ?>"></script>
 <?php if (in_array((string) ($activeMenu ?? ''), ['settings-seo', 'settings-tracking'], true)): ?>

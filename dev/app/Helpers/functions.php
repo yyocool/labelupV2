@@ -23,7 +23,21 @@ function storage_path(string $path = ''): string
 
 function public_path(string $path = ''): string
 {
-    return base_path('public' . ($path ? '/' . ltrim($path, '/') : ''));
+    // PHPS 호스팅: 문서루트는 www/, 로컬·구서버는 public/
+    static $docRoot = null;
+    if ($docRoot === null) {
+        $www = base_path('www');
+        $public = base_path('public');
+        if (is_dir($www)) {
+            $docRoot = $www;
+        } elseif (is_dir($public)) {
+            $docRoot = $public;
+        } else {
+            $docRoot = $public;
+        }
+    }
+
+    return rtrim($docRoot, '/\\') . ($path ? '/' . ltrim($path, '/') : '');
 }
 
 function view_path(string $path = ''): string

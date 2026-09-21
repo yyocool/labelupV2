@@ -1,18 +1,31 @@
 #!/usr/bin/env python3
-"""Deploy dev/ to labelupdev remote server via SFTP."""
+"""Deploy local dev/ to PHPS remote (/home/uptube1, public → www)."""
 import os
 import sys
-import stat
 import paramiko
 
-HOST = '115.71.237.145'
-USER = 'root'
-PASSWORD = os.environ.get('LABELUP_SSH_PASSWORD', '')
-REMOTE_ROOT = '/home/labelupdev'
+from remote_config import (
+    HOST,
+    USER,
+    PASSWORD,
+    REMOTE_ROOT,
+    REMOTE_PUBLIC,
+    APP_URL,
+    DB_HOST,
+    DB_PORT,
+    DB_DATABASE,
+    DB_USERNAME,
+    DB_PASSWORD,
+)
+
 LOCAL_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
-SKIP_DIRS = {'.git', 'node_modules', 'vendor', '.env'}
+SKIP_DIRS = {'.git', 'node_modules', 'vendor', '.env', '__pycache__', 'editor-src'}
 SKIP_FILES = {'.env'}
+# PHPS 호스팅용 .htaccess는 서버에 유지 (로컬 단순 규칙으로 덮지 않음)
+SKIP_REMOTE_OVERWRITE = {
+    REMOTE_PUBLIC + '/.htaccess',
+}
 
 
 def should_skip(path: str) -> bool:
@@ -31,42 +44,55 @@ def ensure_remote_dir(sftp, remote_dir: str):
             sftp.mkdir(cur)
 
 
-def upload_dir(sftp, local: str, remote: str):
+def remote_target(local_file: str) -> str:
+    """Map local path under LOCAL_ROOT to remote path (public → www)."""
+    rel = os.path.relpath(local_file, LOCAL_ROOT).replace('\\', '/')
+    if rel == 'public' or rel.startswith('public/'):
+        return REMOTE_PUBLIC + rel[len('public'):]
+    return REMOTE_ROOT + '/' + rel
+
+
+def upload_dir(sftp, local: str):
     for root, dirs, files in os.walk(local):
         dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
-        rel = os.path.relpath(root, local)
-        remote_dir = remote if rel == '.' else remote + '/' + rel.replace('\\', '/')
-        ensure_remote_dir(sftp, remote_dir)
         for name in files:
             if name in SKIP_FILES:
                 continue
             local_file = os.path.join(root, name)
             if should_skip(local_file):
                 continue
-            remote_file = remote_dir + '/' + name
+            remote_file = remote_target(local_file)
+            if remote_file in SKIP_REMOTE_OVERWRITE:
+                print('skip preserve', remote_file)
+                continue
+            ensure_remote_dir(sftp, os.path.dirname(remote_file).replace('\\', '/'))
             sftp.put(local_file, remote_file)
 
 
 def run_ssh(ssh, cmd: str):
-    print('$', cmd)
+    print('$', cmd[:140])
     _, stdout, stderr = ssh.exec_command(cmd)
-    out = stdout.read().decode('utf-8', errors='replace')
-    err = stderr.read().decode('utf-8', errors='replace')
+    out = stdout.read().decode('utf-8', 'replace')
+    err = stderr.read().decode('utf-8', 'replace')
     if out.strip():
-        print(out.strip())
+        print(out.strip()[:800])
     if err.strip():
-        print(err.strip(), file=sys.stderr)
-    return stdout.channel.recv_exit_status()
+        print('ERR:', err.strip()[:400])
 
 
-def parse_env_text(text: str) -> dict:
+def read_remote_env(sftp, path: str) -> dict:
+    try:
+        with sftp.open(path, 'r') as f:
+            raw = f.read().decode('utf-8', 'replace')
+    except FileNotFoundError:
+        return {}
     result = {}
-    for line in text.splitlines():
+    for line in raw.splitlines():
         line = line.strip()
         if not line or line.startswith('#') or '=' not in line:
             continue
-        k, _, v = line.partition('=')
-        result[k.strip()] = v.strip().strip('"').strip("'")
+        k, v = line.split('=', 1)
+        result[k.strip()] = v.strip()
     return result
 
 
@@ -76,18 +102,13 @@ def load_local_env_value(key: str) -> str:
         return ''
     try:
         with open(local_env, 'r', encoding='utf-8') as f:
-            return parse_env_text(f.read()).get(key, '')
+            for line in f:
+                line = line.strip()
+                if line.startswith(key + '='):
+                    return line.split('=', 1)[1].strip()
     except OSError:
         return ''
     return ''
-
-
-def read_remote_env(sftp, path: str) -> dict:
-    try:
-        with sftp.open(path, 'r') as f:
-            return parse_env_text(f.read().decode('utf-8', errors='replace'))
-    except OSError:
-        return {}
 
 
 def pick_env(existing: dict, key: str, default: str = '') -> str:
@@ -102,16 +123,17 @@ def main():
         print('Set LABELUP_SSH_PASSWORD environment variable', file=sys.stderr)
         sys.exit(1)
 
-    print('Connecting to', HOST)
+    print('Connecting to', f'{USER}@{HOST}', '→', REMOTE_ROOT)
     transport = paramiko.Transport((HOST, 22))
     transport.connect(username=USER, password=PASSWORD)
     sftp = paramiko.SFTPClient.from_transport(transport)
     ssh = paramiko.SSHClient()
     ssh._transport = transport
 
-    print('Uploading files to', REMOTE_ROOT)
+    print('Uploading files (public → www)')
     ensure_remote_dir(sftp, REMOTE_ROOT)
-    upload_dir(sftp, LOCAL_ROOT, REMOTE_ROOT)
+    ensure_remote_dir(sftp, REMOTE_PUBLIC)
+    upload_dir(sftp, LOCAL_ROOT)
 
     existing_env = read_remote_env(sftp, REMOTE_ROOT + '/.env')
     openai_key = pick_env(existing_env, 'OPENAI_API_KEY')
@@ -125,18 +147,30 @@ def main():
     kakao_secret = pick_env(existing_env, 'KAKAO_CLIENT_SECRET')
     google_id = pick_env(existing_env, 'GOOGLE_CLIENT_ID')
     google_secret = pick_env(existing_env, 'GOOGLE_CLIENT_SECRET')
+    session_key = existing_env.get('SESSION_KEY') or 'labelup_session'
+    app_url = existing_env.get('APP_URL') or APP_URL
+    # DB는 로컬 .env로 덮지 않음 (원격 전용)
+    db_host = DB_HOST
+    db_port = DB_PORT
+    db_name = DB_DATABASE
+    db_user = DB_USERNAME
+    db_password = DB_PASSWORD or existing_env.get('DB_PASSWORD', '')
+    if not db_password:
+        print('DB_PASSWORD missing: set LABELUP_DB_PASSWORD or keep remote .env', file=sys.stderr)
+        sys.exit(1)
 
     env_content = f"""APP_NAME=LabelUp
 APP_ENV=remote
 APP_DEBUG=true
-APP_URL=http://labelupdev.gagamkorea.kr
+APP_URL={app_url}
 
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=labelupdev
-DB_USERNAME=labelupdev
-DB_PASSWORD=LabelUpDev2026!
+DB_HOST={db_host}
+DB_PORT={db_port}
+DB_DATABASE={db_name}
+DB_USERNAME={db_user}
+DB_PASSWORD={db_password}
 SESSION_LIFETIME=7200
+SESSION_KEY={session_key}
 TIMEZONE=Asia/Seoul
 OPENAI_API_KEY={openai_key}
 OPENAI_MODEL={openai_model}
@@ -155,17 +189,9 @@ GOOGLE_CLIENT_SECRET={google_secret}
 
     cmds = [
         f"mkdir -p {REMOTE_ROOT}/storage/{{uploads,designs,pdf,logs,ai-clipart,imports}}",
-        f"mkdir -p {REMOTE_ROOT}/public/assets/ai-clipart",
-        f"mkdir -p {REMOTE_ROOT}/public/assets/cliparts",
-        f"mkdir -p {REMOTE_ROOT}/public/assets/hero",
-        f"mkdir -p {REMOTE_ROOT}/public/assets/editor-previews",
-        f"mkdir -p {REMOTE_ROOT}/public/assets/editor-media",
-        f"mkdir -p {REMOTE_ROOT}/public/assets/shop-page",
-        # labelupdev PHP-FPM runs as www-data (php8.1)
-        f"chown -R www-data:www-data {REMOTE_ROOT}/public/assets/ai-clipart {REMOTE_ROOT}/public/assets/cliparts {REMOTE_ROOT}/public/assets/hero {REMOTE_ROOT}/public/assets/editor-previews {REMOTE_ROOT}/public/assets/editor-media {REMOTE_ROOT}/public/assets/shop-page {REMOTE_ROOT}/storage/ai-clipart {REMOTE_ROOT}/storage/imports",
-        f"chmod -R 775 {REMOTE_ROOT}/storage",
-        f"chmod 777 {REMOTE_ROOT}/public/assets/ai-clipart {REMOTE_ROOT}/public/assets/cliparts {REMOTE_ROOT}/public/assets/hero {REMOTE_ROOT}/public/assets/editor-previews {REMOTE_ROOT}/public/assets/editor-media {REMOTE_ROOT}/public/assets/shop-page {REMOTE_ROOT}/storage/ai-clipart {REMOTE_ROOT}/storage/imports",
-        f"chown www-data:www-data {REMOTE_ROOT}/.env",
+        f"mkdir -p {REMOTE_PUBLIC}/assets/{{ai-clipart,cliparts,hero,editor-previews,editor-media,shop-page}}",
+        f"chmod -R u+rwX,g+rwX {REMOTE_ROOT}/storage",
+        f"chmod -R u+rwX,g+rwX {REMOTE_PUBLIC}/assets/ai-clipart {REMOTE_PUBLIC}/assets/cliparts {REMOTE_PUBLIC}/assets/hero {REMOTE_PUBLIC}/assets/editor-previews {REMOTE_PUBLIC}/assets/editor-media {REMOTE_PUBLIC}/assets/shop-page {REMOTE_ROOT}/storage/ai-clipart {REMOTE_ROOT}/storage/imports 2>/dev/null || true",
         f"chmod 640 {REMOTE_ROOT}/.env",
     ]
     for cmd in cmds:

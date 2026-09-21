@@ -173,6 +173,18 @@ final class CreditAdminApiController extends BaseController
         }
     }
 
+    /** 관리자 헤더용 전체 회원 크레딧 현황 */
+    public function overview(): never
+    {
+        $this->guard();
+        $detail = !empty($_GET['detail']);
+        try {
+            $this->jsonSuccess($this->credits->overview($detail));
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
+        }
+    }
+
     private function guard(): void
     {
         (new AuthMiddleware($this->auth))->handle(true);

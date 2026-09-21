@@ -239,7 +239,11 @@ $usagePct = $usageLimit > 0 ? min(100, (int) round(($usageUsed / max(1, $usageLi
 
 <section class="account-panel card" id="credits">
   <h2 class="account-section-title">크레딧 내역</h2>
-  <p class="account-meta">보유 크레딧 <strong><?= number_format((int) ($dash['credit']['balance'] ?? 0)) ?> C</strong></p>
+  <?php $creditBal = (int) ($dash['credit']['balance'] ?? 0); ?>
+  <p class="account-meta">보유 크레딧 <strong<?= $creditBal < 0 ? ' class="is-debt"' : '' ?>><?= number_format($creditBal) ?> C</strong></p>
+  <?php if ($creditBal < 0): ?>
+  <p class="account-meta account-meta--warn">AI 사용으로 마이너스 잔액이 생겼습니다. 다음에 충전하면 부족한 <?= number_format(abs($creditBal)) ?> C이(가) 먼저 차감됩니다.</p>
+  <?php endif; ?>
   <?php $creditTx = $dash['credit']['transactions'] ?? []; ?>
   <?php if (empty($creditTx)): ?>
   <p class="account-empty">크레딧 사용·적립 내역이 없습니다.</p>
@@ -263,7 +267,7 @@ $usagePct = $usageLimit > 0 ? min(100, (int) round(($usageUsed / max(1, $usageLi
 <section class="account-panel card" id="ai-usage">
   <h2 class="account-section-title">AI 사용 이력</h2>
   <p class="account-meta">이번 달 AI 사용 크레딧 <strong><?= number_format((int) ($aiUsage['used'] ?? 0)) ?> C</strong>
-    · 보유 <?= number_format((int) ($aiUsage['balance'] ?? 0)) ?> C</p>
+    · 보유 <strong<?= (int) ($aiUsage['balance'] ?? 0) < 0 ? ' class="is-debt"' : '' ?>><?= number_format((int) ($aiUsage['balance'] ?? 0)) ?> C</strong></p>
   <?php $aiItems = $aiUsage['items'] ?? []; ?>
   <?php if (empty($aiItems)): ?>
   <p class="account-empty">아직 AI 사용 이력이 없습니다.</p>

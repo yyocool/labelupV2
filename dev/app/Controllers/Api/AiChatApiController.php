@@ -40,16 +40,24 @@ final class AiChatApiController extends BaseController
             $messages = $this->normalizeMessages($rawMessages);
             $aiCredits = new AiCreditService();
             if ($userId > 0 && $aiCredits->isEnabled()) {
-                $previewIntent = $forceIntent !== '' ? $forceIntent : 'chat';
-                $aiCredits->assertCanAfford($userId, $previewIntent);
+                // 잔액이 이미 0 이하면 새 요청 차단. 양수면 비용 부족해도 시작 허용.
+                $aiCredits->assertCanStart($userId);
             }
             $result = (new LabiDesignService())->handle($messages, $userId, $surface, $forceIntent);
             $creditInfo = null;
             if ($userId > 0 && $aiCredits->isEnabled()) {
                 $intent = (string) ($result['intent'] ?? 'chat');
-                // 실제 intent 기준으로 잔액 재확인 후 차감 (실패 시 응답 미제공)
-                $aiCredits->assertCanAfford($userId, $intent);
+                // 작업은 이미 끝났으므로 잔액이 부족해도 차감(마이너스 허용) 후 결과 제공
                 $creditInfo = $aiCredits->charge($userId, $intent, $surface);
+                if (is_array($creditInfo) && !empty($creditInfo['was_overdraft'])) {
+                    $debt = abs((int) ($creditInfo['balance'] ?? 0));
+                    $note = sprintf(
+                        "\n\n이번 사용으로 크레딧이 마이너스(%s)가 되었어요. 다음에 충전하면 부족한 %s이(가) 먼저 차감됩니다.",
+                        \App\Services\CreditService::format((int) ($creditInfo['balance'] ?? 0)),
+                        \App\Services\CreditService::format($debt)
+                    );
+                    $result['reply'] = rtrim((string) ($result['reply'] ?? '')) . $note;
+                }
             }
             $this->jsonSuccess([
                 'reply' => $result['reply'],

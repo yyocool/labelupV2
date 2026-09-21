@@ -112,29 +112,36 @@ final class AiCreditService
         return AiUsageService::intentLabel($intent);
     }
 
-    public function assertCanAfford(int $userId, string $intent): void
+    /**
+     * 새 AI 요청 시작 가능 여부.
+     * 잔액이 이미 0 이하(부채)면 차단하고, 양수면 비용이 잔액보다 커도 시작을 허용한다.
+     * (작업은 마무리한 뒤 마이너스 잔액으로 기록 → 다음 충전 시 자동 상계)
+     */
+    public function assertCanStart(int $userId): void
     {
         if (!$this->isEnabled() || $userId <= 0) {
             return;
         }
-        $cost = $this->costForIntent($intent);
-        if ($cost <= 0) {
-            return;
-        }
         $balance = $this->credits->balance($userId);
-        if ($balance < $cost) {
-            throw new RuntimeException(
-                sprintf(
-                    'AI 크레딧이 부족합니다. 필요 %s / 보유 %s. 마이페이지에서 잔액을 확인하거나 관리자에게 문의해 주세요.',
-                    CreditService::format($cost),
+        if ($balance <= 0) {
+            $msg = $balance < 0
+                ? sprintf(
+                    'AI 크레딧이 마이너스(%s)입니다. 충전하면 부족한 만큼 먼저 차감된 뒤 사용할 수 있어요.',
                     CreditService::format($balance)
                 )
-            );
+                : 'AI 크레딧이 없습니다. 마이페이지에서 충전한 뒤 다시 이용해 주세요.';
+            throw new RuntimeException($msg);
         }
     }
 
+    /** @deprecated use assertCanStart — 하위 호환용 */
+    public function assertCanAfford(int $userId, string $intent = ''): void
+    {
+        $this->assertCanStart($userId);
+    }
+
     /**
-     * @return array{charged:int,balance:int,intent:string,label:string}|null
+     * @return array{charged:int,balance:int,intent:string,label:string,overdraft:int,was_overdraft:bool}|null
      */
     public function charge(int $userId, string $intent, ?string $sourceRef = null): ?array
     {
@@ -143,27 +150,38 @@ final class AiCreditService
         }
         $intent = trim($intent) !== '' ? trim($intent) : 'chat';
         $cost = $this->costForIntent($intent);
+        $balanceBefore = $this->credits->balance($userId);
         if ($cost <= 0) {
             return [
                 'charged' => 0,
-                'balance' => $this->credits->balance($userId),
+                'balance' => $balanceBefore,
                 'intent' => $intent,
                 'label' => $this->labelForIntent($intent),
+                'overdraft' => 0,
+                'was_overdraft' => false,
             ];
         }
         $label = $this->labelForIntent($intent);
+        $overdraft = max(0, $cost - max(0, $balanceBefore));
+        $desc = sprintf('AI 사용 · %s', $label);
+        if ($overdraft > 0) {
+            $desc .= sprintf(' · 초과 %s (다음 충전 시 차감)', CreditService::format($overdraft));
+        }
         $balance = $this->credits->spend(
             $userId,
             $cost,
-            sprintf('AI 사용 · %s', $label),
+            $desc,
             'ai',
-            $sourceRef
+            $sourceRef,
+            true
         );
         return [
             'charged' => $cost,
             'balance' => $balance,
             'intent' => $intent,
             'label' => $label,
+            'overdraft' => $overdraft,
+            'was_overdraft' => $balance < 0,
         ];
     }
 

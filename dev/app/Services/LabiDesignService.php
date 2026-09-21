@@ -153,9 +153,9 @@ final class LabiDesignService
                 try {
                     $inspect = $this->openai->inspectImageLanguage($messages);
                 } catch (RuntimeException) {
-                    $inspect = ['has_foreign' => false, 'sample' => ''];
+                    $inspect = ['has_foreign' => false, 'sample' => '', 'lang' => 'ko'];
                 }
-                if (!empty($inspect['has_foreign'])) {
+                if (self::shouldAskImageTranslate($inspect)) {
                     return $this->replyAskTranslate(
                         (string) ($inspect['sample'] ?? ''),
                         'image',
@@ -165,27 +165,95 @@ final class LabiDesignService
                     );
                 }
             }
-            $prompt = trim((string) ($structured['clipart_prompt'] ?? ''));
-            if ($prompt === '') {
-                $prompt = $this->fallbackTemplatePrompt($messages);
-            } else {
-                $prompt .= ' Full-bleed print-ready label artwork filling the entire canvas edge to edge. No mockup, no table, no torn paper, no watermark, no extra background around the label.';
+            $size = $this->resolveTemplateSize($structured, $catalog);
+            $layout = null;
+            $translateToKo = $translateChoice === 'translate_yes';
+
+            // HARD RULE: 템플릿의 변경 가능 문구는 반드시 텍스트 오브젝트.
+            // 이미지에는 글자·숫자·특수문자를 넣지 않는다.
+            if ($hasImage) {
+                try {
+                    $layout = $this->openai->extractLabelLayout($messages, $translateToKo);
+                } catch (RuntimeException) {
+                    $layout = null;
+                }
             }
-            if ($translateChoice === 'translate_yes') {
-                $prompt .= ' Translate every readable product/label sentence into natural Korean. Keep numbers, units, barcodes, and graphical logos. Do not leave English/Japanese/Chinese body copy.';
+            if (!is_array($layout) || ($layout['texts'] ?? []) === []) {
+                try {
+                    $layout = $this->openai->planEditableLabelTemplate(
+                        $messages,
+                        $translateToKo,
+                        trim((string) ($structured['clipart_prompt'] ?? '')) !== ''
+                            ? (string) $structured['message'] . ' ' . $this->lastUserText($messages)
+                            : $this->lastUserText($messages)
+                    );
+                } catch (RuntimeException) {
+                    $layout = null;
+                }
             }
+            if (!is_array($layout) || ($layout['texts'] ?? []) === []) {
+                $layout = [
+                    'title' => '라비가 만든 라벨 템플릿',
+                    'width_mm' => $size['width_mm'],
+                    'height_mm' => $size['height_mm'],
+                    'background_prompt' => '',
+                    'texts' => [[
+                        'text' => trim(mb_substr($this->lastUserText($messages) !== '' ? $this->lastUserText($messages) : '상품명', 0, 24)),
+                        'x' => 0.08,
+                        'y' => 0.28,
+                        'w' => 0.84,
+                        'h' => 0.22,
+                        'font_size_mm' => 5.5,
+                        'bold' => true,
+                        'align' => 'center',
+                        'color' => '#7B2840',
+                    ]],
+                ];
+            }
+
+            $lw = (float) ($layout['width_mm'] ?? 0);
+            $lh = (float) ($layout['height_mm'] ?? 0);
+            if ($lw >= 15 && $lh >= 15) {
+                $size = [
+                    'width_mm' => $this->clampMm($lw, 20, 210),
+                    'height_mm' => $this->clampMm($lh, 15, 297),
+                ];
+            }
+
+            $texts = is_array($layout['texts'] ?? null) ? $layout['texts'] : [];
+            $bgHint = trim((string) ($layout['background_prompt'] ?? ''));
+            if ($bgHint === '') {
+                $bgHint = trim((string) ($structured['clipart_prompt'] ?? ''));
+            }
+            if ($bgHint === '') {
+                $bgHint = $this->fallbackTemplatePrompt($messages);
+            }
+            $prompt = $bgHint
+                . ' Full-bleed print-ready label BACKGROUND only, filling the entire canvas edge to edge.'
+                . ' Absolutely NO letters, NO numbers, NO digits, NO punctuation, NO words, NO watermarks, NO barcodes as text.'
+                . ' Keep colors, shapes, ornaments, patterns, borders, and blank areas where text belonged.'
+                . ' No mockup, no table, no torn paper, no extra background around the label.';
+
             $image = $this->openai->generateClipart($prompt);
-            $image['title'] = '라비가 만든 라벨 템플릿';
+            $title = trim((string) ($layout['title'] ?? ''));
+            if ($title === '') {
+                $title = '라비가 만든 라벨 템플릿';
+            }
+            $image['title'] = $title;
             if ($image && $userId !== null && $userId > 0) {
                 $saved = (new UserAiClipartService())->saveForUser($userId, $image);
                 $clipartId = $saved > 0 ? $saved : null;
             }
-            $size = $this->resolveTemplateSize($structured, $catalog);
-            $template = $this->presentTemplate($image, $size['width_mm'], $size['height_mm']);
+            $template = $this->presentTemplate(
+                $image,
+                $size['width_mm'],
+                $size['height_mm'],
+                $texts
+            );
             if ($translateChoice === 'translate_yes') {
-                $reply = '이미지의 외국어를 한국어로 번역해 라벨 템플릿을 만들었어요. 바로편집으로 이어서 다듬어 보세요.';
-            } elseif (!str_contains($reply, '템플릿') && !str_contains($reply, '디자인')) {
-                $reply = '첨부하신 이미지를 참고해 라벨 템플릿을 만들었어요. 바로편집으로 이어서 다듬어 보세요.';
+                $reply = '이미지의 외국어를 한국어로 번역해, 글자는 편집 가능한 텍스트로 분리한 라벨 템플릿을 만들었어요. 바로편집에서 문구를 바꿔 보세요.';
+            } else {
+                $reply = '글자·숫자·특수문자는 편집 가능한 텍스트로, 배경만 이미지로 만든 라벨 템플릿이에요. 바로편집에서 문구를 바꿔 보세요.';
             }
         }
 
@@ -394,18 +462,68 @@ final class LabiDesignService
 
     public static function textLooksForeign(string $text): bool
     {
+        $text = trim($text);
+        if ($text === '') {
+            return false;
+        }
         $letters = preg_match_all('/\p{L}/u', $text);
-        if ($letters < 6) {
+        if ($letters < 8) {
             return false;
         }
         $hangul = preg_match_all('/\p{Hangul}/u', $text);
-        $cjk = preg_match_all('/[\p{Hiragana}\p{Katakana}\p{Han}]/u', $text);
+        $kana = preg_match_all('/[\p{Hiragana}\p{Katakana}]/u', $text);
+        $han = preg_match_all('/\p{Han}/u', $text);
         $other = preg_match_all('/[\p{Cyrillic}\p{Arabic}\p{Thai}]/u', $text);
         $latin = preg_match_all('/\p{Latin}/u', $text);
-        if (($cjk + $other) >= 4) {
+
+        // 한글이 충분히 섞인 본문은 한국어로 본다 (영문 브랜드·단위가 있어도 번역 질문 생략)
+        if ($hangul > 0 && ($hangul / max(1, $letters)) >= 0.35) {
+            return false;
+        }
+        if (($kana + $other) >= 4) {
             return true;
         }
-        return $latin >= 10 && ($hangul / max(1, $letters)) < 0.35;
+        // 한글 없이 한자가 많으면 중·일 계열로 본다
+        if ($han >= 6 && $hangul === 0) {
+            return true;
+        }
+        // 짧은 영문 로고/약어는 외국어 본문으로 보지 않음
+        if ($latin > 0 && $latin <= 12 && !preg_match('/\s/u', $text) && $hangul === 0 && $kana === 0 && $han === 0) {
+            return false;
+        }
+
+        return $latin >= 12 && ($hangul / max(1, $letters)) < 0.2;
+    }
+
+    /**
+     * 이미지 언어 검사 결과로 번역 질문을 띄울지 최종 판단.
+     * 한글(ko)이거나 의미 있는 외국어 본문이 아니면 false.
+     *
+     * @param array{has_foreign?:mixed, sample?:string, lang?:string} $inspect
+     */
+    public static function shouldAskImageTranslate(array $inspect): bool
+    {
+        $lang = strtolower(trim((string) ($inspect['lang'] ?? '')));
+        if (in_array($lang, ['ko', 'kr', 'kor', 'korean'], true)) {
+            return false;
+        }
+        if (empty($inspect['has_foreign'])) {
+            return false;
+        }
+        $sample = trim((string) ($inspect['sample'] ?? ''));
+        if ($sample !== '' && self::textLooksForeign($sample)) {
+            return true;
+        }
+        // 샘플이 짧아도 일/중/기타로 명확히 표시된 경우만 질문
+        if (in_array($lang, ['ja', 'jp', 'jpn', 'japanese', 'zh', 'cn', 'zho', 'chinese', 'other'], true)) {
+            return $sample === '' || mb_strlen($sample) >= 2;
+        }
+        if (in_array($lang, ['en', 'eng', 'english'], true)) {
+            // 영문은 문장성(공백 포함·충분한 길이)일 때만
+            return $sample !== '' && (preg_match('/\s/u', $sample) || mb_strlen($sample) >= 16);
+        }
+
+        return false;
     }
 
     /**
@@ -661,7 +779,7 @@ final class LabiDesignService
     {
         $hint = trim(mb_substr($this->lastUserText($messages) !== '' ? $this->lastUserText($messages) : 'product label', 0, 120));
 
-        return "Print-ready full-bleed label sticker design filling the entire square canvas edge to edge. Professional packaging label inspired by: {$hint}. Clean layout, vivid print colors, no mockup, no wooden table, no torn paper, no watermark, no extra background around the label.";
+        return "Print-ready full-bleed label BACKGROUND only for sticker printing, filling the entire canvas edge to edge. Soft packaging-style colors inspired by: {$hint}. Decorations, shapes, borders, patterns only. Absolutely NO letters, NO numbers, NO digits, NO words, NO watermarks. No mockup, no wooden table, no torn paper, no extra background around the label.";
     }
 
     /** @param array<int, array{role:string, content:mixed}> $messages */
@@ -725,15 +843,46 @@ final class LabiDesignService
 
     /**
      * @param array{url:string, prompt:string, title:string} $image
+     * @param array<int, array{
+     *   text:string,
+     *   x:float,
+     *   y:float,
+     *   w:float,
+     *   h:float,
+     *   font_size_mm:float,
+     *   bold:bool,
+     *   align:string,
+     *   color:string
+     * }> $texts
      * @return array<string, mixed>
      */
-    private function presentTemplate(array $image, float $widthMm, float $heightMm): array
+    private function presentTemplate(array $image, float $widthMm, float $heightMm, array $texts = []): array
     {
         $title = (string) ($image['title'] ?? '라비가 만든 라벨 템플릿');
         $url = (string) ($image['url'] ?? '');
+        $w = max(10.0, $widthMm);
+        $h = max(10.0, $heightMm);
+
+        if ($texts !== [] && $url !== '') {
+            $document = $this->buildEditableTemplateDocument($url, $title, $w, $h, $texts);
+            $editorUrl = url('editor/') . '?labiDoc=1';
+
+            return [
+                'url' => $url,
+                'prompt' => (string) ($image['prompt'] ?? ''),
+                'title' => $title,
+                'width_mm' => $w,
+                'height_mm' => $h,
+                'fit' => 'cover',
+                'editor_url' => $editorUrl,
+                'document' => $document,
+                'editable_texts' => count($texts),
+            ];
+        }
+
         $query = [
-            'w' => rtrim(rtrim(sprintf('%.2f', $widthMm), '0'), '.'),
-            'h' => rtrim(rtrim(sprintf('%.2f', $heightMm), '0'), '.'),
+            'w' => rtrim(rtrim(sprintf('%.2f', $w), '0'), '.'),
+            'h' => rtrim(rtrim(sprintf('%.2f', $h), '0'), '.'),
             'name' => $title,
             'clipart' => $url,
             'fit' => 'cover',
@@ -744,10 +893,138 @@ final class LabiDesignService
             'url' => $url,
             'prompt' => (string) ($image['prompt'] ?? ''),
             'title' => $title,
-            'width_mm' => $widthMm,
-            'height_mm' => $heightMm,
+            'width_mm' => $w,
+            'height_mm' => $h,
             'fit' => 'cover',
             'editor_url' => $editorUrl,
+        ];
+    }
+
+    /**
+     * @param array<int, array{
+     *   text:string,
+     *   x:float,
+     *   y:float,
+     *   w:float,
+     *   h:float,
+     *   font_size_mm:float,
+     *   bold:bool,
+     *   align:string,
+     *   color:string
+     * }> $texts
+     * @return array<string, mixed>
+     */
+    private function buildEditableTemplateDocument(
+        string $imageUrl,
+        string $title,
+        float $w,
+        float $h,
+        array $texts
+    ): array {
+        $paper = [
+            'version' => 1,
+            'paperNo' => 'LU-AI',
+            'name' => sprintf('%s×%s mm', rtrim(rtrim(sprintf('%.1f', $w), '0'), '.'), rtrim(rtrim(sprintf('%.1f', $h), '0'), '.')),
+            'category' => 'Custom',
+            'brand' => 'LabelUp',
+            'paperWidthMm' => $w,
+            'paperHeightMm' => $h,
+            'labelWidthMm' => $w,
+            'labelHeightMm' => $h,
+            'columns' => 1,
+            'rows' => 1,
+            'leftMarginMm' => 0,
+            'topMarginMm' => 0,
+            'rightMarginMm' => 0,
+            'bottomMarginMm' => 0,
+            'hGapMm' => 0,
+            'vGapMm' => 0,
+            'labelColor' => '#FFFFFF',
+            'shape' => ['kind' => 'rect'],
+        ];
+
+        $objects = [
+            [
+                'id' => 'labiBg01',
+                'type' => 'image',
+                'zIndex' => 0,
+                'visible' => true,
+                'locked' => false,
+                'x' => 0,
+                'y' => 0,
+                'width' => $w,
+                'height' => $h,
+                'fill' => 'transparent',
+                'strokeWidth' => 0,
+                'opacity' => 1,
+                'imageData' => $imageUrl,
+                'imageFit' => 'cover',
+                'backgroundTransparent' => true,
+            ],
+        ];
+
+        $z = 1;
+        foreach ($texts as $i => $row) {
+            $boxW = max(4.0, (float) $row['w'] * $w);
+            $boxH = max(3.0, (float) $row['h'] * $h);
+            $x = max(0.0, min($w - 2.0, (float) $row['x'] * $w));
+            $y = max(0.0, min($h - 2.0, (float) $row['y'] * $h));
+            if ($x + $boxW > $w) {
+                $boxW = max(3.0, $w - $x);
+            }
+            if ($y + $boxH > $h) {
+                $boxH = max(2.5, $h - $y);
+            }
+            $font = (float) ($row['font_size_mm'] ?? 0);
+            if ($font < 1.5) {
+                $font = max(1.8, min(12.0, $boxH * 0.72));
+            }
+            $font = max(1.5, min(14.0, $font));
+            // 라벨 크기에 맞게 한 번 더 스케일 (정규화 추정값이 절대 mm로 올 때 보정)
+            if ($font > $boxH * 1.15) {
+                $font = max(1.5, $boxH * 0.78);
+            }
+
+            $objects[] = [
+                'id' => sprintf('labiTx%02d', $i + 1),
+                'type' => 'text',
+                'zIndex' => $z++,
+                'visible' => true,
+                'locked' => false,
+                'x' => round($x, 2),
+                'y' => round($y, 2),
+                'width' => round($boxW, 2),
+                'height' => round($boxH, 2),
+                'fill' => (string) ($row['color'] ?? '#2E2A27'),
+                'strokeWidth' => 0,
+                'opacity' => 1,
+                'text' => (string) $row['text'],
+                'fontSize' => round($font, 2),
+                'fontFamily' => 'Pretendard',
+                'bold' => !empty($row['bold']),
+                'textAlign' => (string) ($row['align'] ?? 'left'),
+                'verticalAlign' => 'middle',
+                'backgroundTransparent' => true,
+                'textMode' => 'normal',
+                'textWrap' => 'char',
+            ];
+        }
+
+        return [
+            'version' => 2,
+            'format' => 'labelup',
+            'name' => $title,
+            'background' => '#FFFFFF',
+            'paper' => $paper,
+            'pages' => [[
+                'index' => 0,
+                'cells' => [[
+                    'index' => 0,
+                    'objects' => $objects,
+                ]],
+            ]],
+            'printOffsetXMm' => 0,
+            'printOffsetYMm' => 0,
         ];
     }
 }

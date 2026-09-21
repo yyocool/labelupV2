@@ -75,7 +75,8 @@ final class CreditService
         int $amount,
         string $description,
         string $source = 'system',
-        ?string $sourceRef = null
+        ?string $sourceRef = null,
+        bool $allowOverdraft = false
     ): int {
         if ($userId <= 0) {
             throw new RuntimeException('유효하지 않은 회원입니다.');
@@ -85,7 +86,7 @@ final class CreditService
         }
         $this->repo->ensureBalanceRow($userId);
         $current = $this->repo->getBalance($userId);
-        if ($current < $amount) {
+        if (!$allowOverdraft && $current < $amount) {
             throw new RuntimeException('크레딧 잔액이 부족합니다.');
         }
         $next = $current - $amount;

@@ -1080,6 +1080,308 @@ class DevScopeService
         return self::seedFromFeatureMap($projectId, $userId, false);
     }
 
+    /**
+     * 서비스 사이트 기준 URL (검수 시트 page_url)
+     */
+    public static function serviceBaseUrl()
+    {
+        return 'https://www.labelup.co.kr';
+    }
+
+    /**
+     * 항목 제목으로 실제 검수 페이지 URL 추정
+     */
+    public static function guessServicePageUrl($title)
+    {
+        $t = (string) $title;
+        $base = self::serviceBaseUrl();
+
+        $rules = array(
+            array('/이용약관|개인정보|정책 게시/', $base . '/terms'),
+            array('/FAQ|공지|1:1 문의|고객센터|헬프센터/', $base . '/faq'),
+            array('/호환|다브랜드 규격|규격 검색|규격 코드/', $base . '/compat'),
+            array('/회원가입|로그인|비밀번호 찾기/', $base . '/login'),
+            array('/소셜 로그인/', $base . '/login'),
+            array('/마이페이지|내 정보|주문·배송/', $base . '/account'),
+            array('/장바구니/', $base . '/shop/cart'),
+            array('/결제|PG 연동/', $base . '/shop/cart'),
+            array('/상품 상세|상세 섹션|스펙 테이블|CTA:|연관:|SEO/', $base . '/shop/products'),
+            array('/쇼핑몰 홈|상품 목록|LNB:|라벨 편집하기/', $base . '/shop'),
+            array('/카테고리 트리|규격 마스터|관리자 CRUD|Backoffice|매출 통계|쿠폰·포인트|관리자/', $base . '/admin'),
+            array('/폼텍|아이라벨|애니라벨|타사|가져오기|임포트|외부포맷|변환|편집기|캔버스|워드아트|라벨복사|미리보기 패널|데이터 연동|시트 미니|디자인 저장/', $base . '/editor/'),
+            array('/AI 기능|프롬프트|파일 첨부|이미지 첨부|전문가 모드|사용량/', $base . '/'),
+            array('/사용자 홈/', $base . '/'),
+        );
+
+        foreach ($rules as $rule) {
+            if (@preg_match($rule[0], $t)) {
+                return $rule[1];
+            }
+        }
+        return '';
+    }
+
+    /**
+     * phase-1 검수 항목 page_url 일괄 등록 (빈 값만 채움, $force면 덮어씀)
+     * @return array{updated:int}
+     */
+    public static function syncReviewPageUrls($projectId, $force = false, $userId = null)
+    {
+        $db = Database::getConnection();
+        $stmt = $db->prepare('
+            SELECT id, title, page_url FROM dev_scope_items
+            WHERE project_id = ? AND phase_key = ?
+            ORDER BY id ASC
+        ');
+        $stmt->execute(array($projectId, 'phase-1'));
+        $rows = $stmt->fetchAll();
+        $upd = $db->prepare('
+            UPDATE dev_scope_items
+            SET page_url = ?, updated_by = ?, updated_at = NOW()
+            WHERE id = ?
+        ');
+        $updated = 0;
+        foreach ($rows as $row) {
+            $current = isset($row['page_url']) ? trim((string) $row['page_url']) : '';
+            if ($current !== '' && !$force) {
+                continue;
+            }
+            $guess = self::guessServicePageUrl(isset($row['title']) ? $row['title'] : '');
+            if ($guess === '' || $guess === $current) {
+                continue;
+            }
+            $upd->execute(array($guess, $userId, (int) $row['id']));
+            $updated++;
+        }
+        return array('updated' => $updated);
+    }
+
+    /**
+     * 「폼텍+애니라벨+아이라벨」 묶음 블록을 벤더 3종으로 분리
+     * @return array{split:bool,created:int,moved:int,message:string}
+     */
+    public static function splitVendorImportReviewItems($projectId, $userId = null)
+    {
+        $db = Database::getConnection();
+        $stmt = $db->prepare("
+            SELECT * FROM dev_scope_items
+            WHERE project_id = ? AND phase_key = 'phase-1' AND depth = 2
+              AND (title LIKE '%폼텍%애니%' OR title LIKE '%폼텍 + %' OR title = '폼텍 + 애니라벨 + 아이라벨')
+            LIMIT 1
+        ");
+        $stmt->execute(array($projectId));
+        $combined = $stmt->fetch();
+        if (!$combined) {
+            // 이미 분리됐는지 확인
+            $chk = $db->prepare("
+                SELECT COUNT(*) FROM dev_scope_items
+                WHERE project_id = ? AND phase_key = 'phase-1' AND depth = 2
+                  AND title IN ('폼텍 (Formtec)', '아이라벨 (iLabel)', '애니라벨 (AnyLabel)')
+            ");
+            $chk->execute(array($projectId));
+            if ((int) $chk->fetchColumn() >= 3) {
+                return array('split' => false, 'created' => 0, 'moved' => 0, 'message' => 'already_split');
+            }
+            return array('split' => false, 'created' => 0, 'moved' => 0, 'message' => 'combined_block_not_found');
+        }
+
+        $parentId = (int) $combined['parent_id'];
+        $combinedId = (int) $combined['id'];
+        $editorUrl = self::serviceBaseUrl() . '/editor/';
+        $adminUrl = self::serviceBaseUrl() . '/admin';
+        $created = 0;
+        $moved = 0;
+
+        // 공통 블록
+        $commonStmt = $db->prepare("
+            SELECT id FROM dev_scope_items
+            WHERE project_id = ? AND parent_id = ? AND depth = 2 AND title LIKE '공통%'
+            LIMIT 1
+        ");
+        $commonStmt->execute(array($projectId, $parentId));
+        $commonId = (int) $commonStmt->fetchColumn();
+
+        $db->beginTransaction();
+        try {
+            // 1) 기존 묶음 → 폼텍
+            $db->prepare("
+                UPDATE dev_scope_items
+                SET title = ?, description = ?, sort_order = 10, page_url = ?, updated_by = ?, updated_at = NOW()
+                WHERE id = ?
+            ")->execute(array(
+                '폼텍 (Formtec)',
+                '폼텍 디자인 프로9 · .dgz/.dgf/.fmt/.fdx',
+                $editorUrl,
+                $userId,
+                $combinedId,
+            ));
+
+            // 기존 자식 정리
+            $childStmt = $db->prepare('SELECT id, title FROM dev_scope_items WHERE parent_id = ? ORDER BY sort_order, id');
+            $childStmt->execute(array($combinedId));
+            $children = $childStmt->fetchAll();
+            foreach ($children as $ch) {
+                $cid = (int) $ch['id'];
+                $title = (string) $ch['title'];
+                if (strpos($title, '폼텍') !== false && strpos($title, '애니') !== false) {
+                    $db->prepare("
+                        UPDATE dev_scope_items
+                        SET title = ?, description = ?, page_url = ?, sort_order = 10, updated_by = ?, updated_at = NOW()
+                        WHERE id = ?
+                    ")->execute(array(
+                        '폼텍 파일 가져오기·변환 (.dgz/.dgf/.fmt/.fdx)',
+                        '디자인프로9 파일 선택·변환·객체/용지 매핑',
+                        $editorUrl,
+                        $userId,
+                        $cid,
+                    ));
+                } elseif (strpos($title, '워드아트') !== false || strpos($title, 'PC응용') !== false) {
+                    $db->prepare("
+                        UPDATE dev_scope_items
+                        SET title = ?, page_url = ?, sort_order = 30, updated_by = ?, updated_at = NOW()
+                        WHERE id = ?
+                    ")->execute(array(
+                        '폼텍 특수객체(워드아트 등) 변환 한계 확인',
+                        $editorUrl,
+                        $userId,
+                        $cid,
+                    ));
+                } elseif (strpos($title, '신고') !== false || strpos($title, '관리자') !== false) {
+                    if ($commonId > 0) {
+                        $db->prepare("
+                            UPDATE dev_scope_items
+                            SET parent_id = ?, title = ?, page_url = ?, sort_order = 50, updated_by = ?, updated_at = NOW()
+                            WHERE id = ?
+                        ")->execute(array(
+                            $commonId,
+                            '변환 문제 신고 → 관리자 전달·해결·크레딧 통보',
+                            $adminUrl,
+                            $userId,
+                            $cid,
+                        ));
+                        $moved++;
+                    }
+                }
+            }
+
+            // 폼텍 상세 항목 추가
+            $formtecExtras = array(
+                array('폼텍 가져오기 UI·드롭존·확장자 안내', 20),
+                array('폼텍 변환 결과 리포트·캔버스 반영', 40),
+            );
+            foreach ($formtecExtras as $ex) {
+                if (!self::childTitleExists($combinedId, $ex[0])) {
+                    $newId = self::create($projectId, array(
+                        'depth' => 3,
+                        'parent_id' => $combinedId,
+                        'phase_key' => 'phase-1',
+                        'title' => $ex[0],
+                        'description' => '',
+                        'priority' => 'P0',
+                        'status' => 'planned',
+                        'sort_order' => $ex[1],
+                    ), $userId);
+                    $db->prepare('UPDATE dev_scope_items SET page_url = ? WHERE id = ?')
+                        ->execute(array($editorUrl, $newId));
+                    $created++;
+                }
+            }
+
+            // 2) 아이라벨 블록
+            $ilabelId = self::create($projectId, array(
+                'depth' => 2,
+                'parent_id' => $parentId,
+                'phase_key' => 'phase-1',
+                'title' => '아이라벨 (iLabel)',
+                'description' => '윈도우 오프라인 아이라벨2 · .idf/.xml/.zip',
+                'priority' => 'P0',
+                'status' => 'planned',
+                'sort_order' => 20,
+            ), $userId);
+            $db->prepare('UPDATE dev_scope_items SET page_url = ? WHERE id = ?')
+                ->execute(array($editorUrl, $ilabelId));
+            $created++;
+            foreach (array(
+                array('아이라벨 가져오기 UI·확장자 안내', 10),
+                array('아이라벨 파일 변환 (.idf/.xml/.zip)', 20),
+                array('아이라벨 엑셀·데이터 연결·매핑 미리보기', 30),
+                array('아이라벨 변환 결과 캔버스 반영', 40),
+            ) as $ex) {
+                $newId = self::create($projectId, array(
+                    'depth' => 3,
+                    'parent_id' => $ilabelId,
+                    'phase_key' => 'phase-1',
+                    'title' => $ex[0],
+                    'priority' => 'P0',
+                    'status' => 'planned',
+                    'sort_order' => $ex[1],
+                ), $userId);
+                $db->prepare('UPDATE dev_scope_items SET page_url = ? WHERE id = ?')
+                    ->execute(array($editorUrl, $newId));
+                $created++;
+            }
+
+            // 3) 애니라벨 블록
+            $aniId = self::create($projectId, array(
+                'depth' => 2,
+                'parent_id' => $parentId,
+                'phase_key' => 'phase-1',
+                'title' => '애니라벨 (AnyLabel)',
+                'description' => '프린텍 라벨메이커 · .lbl',
+                'priority' => 'P0',
+                'status' => 'planned',
+                'sort_order' => 30,
+            ), $userId);
+            $db->prepare('UPDATE dev_scope_items SET page_url = ? WHERE id = ?')
+                ->execute(array($editorUrl, $aniId));
+            $created++;
+            foreach (array(
+                array('애니라벨 가져오기 UI·확장자 안내', 10),
+                array('애니라벨 파일 변환 (.lbl)', 20),
+                array('애니라벨 바코드·이미지·텍스트 반영', 30),
+                array('애니라벨 변환 결과 캔버스 반영', 40),
+            ) as $ex) {
+                $newId = self::create($projectId, array(
+                    'depth' => 3,
+                    'parent_id' => $aniId,
+                    'phase_key' => 'phase-1',
+                    'title' => $ex[0],
+                    'priority' => 'P0',
+                    'status' => 'planned',
+                    'sort_order' => $ex[1],
+                ), $userId);
+                $db->prepare('UPDATE dev_scope_items SET page_url = ? WHERE id = ?')
+                    ->execute(array($editorUrl, $newId));
+                $created++;
+            }
+
+            if ($commonId > 0) {
+                $db->prepare('UPDATE dev_scope_items SET sort_order = 40, updated_at = NOW() WHERE id = ?')
+                    ->execute(array($commonId));
+                // 공통 항목 URL
+                $db->prepare("
+                    UPDATE dev_scope_items SET page_url = ?, updated_at = NOW()
+                    WHERE parent_id = ? AND (page_url IS NULL OR page_url = '')
+                ")->execute(array($editorUrl, $commonId));
+            }
+
+            $db->commit();
+        } catch (Exception $e) {
+            $db->rollBack();
+            throw $e;
+        }
+
+        return array('split' => true, 'created' => $created, 'moved' => $moved, 'message' => 'ok');
+    }
+
+    private static function childTitleExists($parentId, $title)
+    {
+        $db = Database::getConnection();
+        $stmt = $db->prepare('SELECT id FROM dev_scope_items WHERE parent_id = ? AND title = ? LIMIT 1');
+        $stmt->execute(array($parentId, $title));
+        return (bool) $stmt->fetch();
+    }
+
     public static function seedFromFeatureMap($projectId, $userId = null, $replace = false)
     {
         $mapFile = APP_ROOT . '/includes/data/feature_map.php';

@@ -235,9 +235,13 @@ PROMPT;
 
         $parts[] = [
             'type' => 'text',
-            'text' => '이미지에 보이는 글자를 읽고 JSON만 출력하세요. {"has_foreign":true/false,"lang":"ko|en|ja|zh|other","sample":"가장 긴 외국어 문구 한 줄"}. '
-                . '한글만 있거나 로고성 영문 약어(2~3단어)만 있으면 has_foreign=false. '
-                . '문장·상품명·설명처럼 의미 있는 외국어가 있으면 true.',
+            'text' => '이미지에 보이는 글자를 읽고 JSON만 출력하세요. '
+                . '{"has_foreign":true/false,"lang":"ko|en|ja|zh|other","sample":"가장 긴 외국어 본문 한 줄"}. '
+                . '규칙: '
+                . '1) 한글이 주된 문구(상품명·설명·성분 등)이면 영문 브랜드/로고/약어가 있어도 has_foreign=false, lang=ko. '
+                . '2) 의미 있는 외국어 문장·상품 설명이 본문으로 있으면 has_foreign=true (en/ja/zh/other). '
+                . '3) 로고성 영문 1~3단어, 단위(ml,g), 바코드 숫자만 있으면 has_foreign=false. '
+                . '4) 글자가 거의 없으면 has_foreign=false, lang=ko.',
         ];
 
         $response = $this->chatRequest([
@@ -261,6 +265,343 @@ PROMPT;
             'has_foreign' => !empty($decoded['has_foreign']),
             'sample' => $sample,
             'lang' => trim((string) ($decoded['lang'] ?? '')),
+        ];
+    }
+
+    /**
+     * 첨부 라벨 이미지에서 편집 가능한 텍스트 영역과 배경(그래픽) 프롬프트를 추출한다.
+     *
+     * @param array<int, array{role:string, content:mixed}> $messages
+     * @return array{
+     *   title:string,
+     *   width_mm:float,
+     *   height_mm:float,
+     *   background_prompt:string,
+     *   texts:array<int, array{
+     *     text:string,
+     *     x:float,
+     *     y:float,
+     *     w:float,
+     *     h:float,
+     *     font_size_mm:float,
+     *     bold:bool,
+     *     align:string,
+     *     color:string
+     *   }>
+     * }
+     */
+    public function extractLabelLayout(array $messages, bool $translateToKo = false): array
+    {
+        $parts = [];
+        for ($i = count($messages) - 1; $i >= 0; $i--) {
+            if (($messages[$i]['role'] ?? '') !== 'user' || !is_array($messages[$i]['content'] ?? null)) {
+                continue;
+            }
+            foreach ($messages[$i]['content'] as $part) {
+                if (is_array($part) && ($part['type'] ?? '') === 'image_url') {
+                    $parts[] = $part;
+                }
+            }
+            if ($parts !== []) {
+                break;
+            }
+        }
+        if ($parts === []) {
+            return [
+                'title' => '',
+                'width_mm' => 0.0,
+                'height_mm' => 0.0,
+                'background_prompt' => '',
+                'texts' => [],
+            ];
+        }
+
+        $translateRule = $translateToKo
+            ? '4) text 필드는 자연스러운 한국어로 번역한다. 숫자·단위(ml,g,mm)·바코드·영문 브랜드 로고성 1~3단어는 유지.'
+            : '4) text 필드는 이미지에 보이는 그대로 옮긴다. 이미 한국어면 그대로.';
+
+        $parts[] = [
+            'type' => 'text',
+            'text' => "라벨/스티커 이미지를 분석해 JSON만 출력하세요.\n"
+                . "스키마: {\"title\":\"짧은 템플릿 제목\",\"width_mm\":숫자또는0,\"height_mm\":숫자또는0,"
+                . "\"background_prompt\":\"텍스트를 제외한 배경·장식·도형·패턴·색만 영어로 묘사\","
+                . "\"texts\":[{\"text\":\"문자열\",\"x\":0~1,\"y\":0~1,\"w\":0~1,\"h\":0~1,"
+                . "\"font_size_mm\":1.5~14,\"bold\":true/false,\"align\":\"left|center|right\",\"color\":\"#RRGGBB\"}]}\n"
+                . "규칙:\n"
+                . "1) CRITICAL: 사용자가 편집기에서 바꿀 수 있어야 하는 모든 글자·숫자·특수문자·가격·성분·날짜·용량·브랜드명·슬로건은 반드시 texts에 넣는다. "
+                . "이미지에 남을 텍스트는 없다. 한 줄(또는 한 블록)씩 분리. "
+                . "바코드 막대·QR 패턴·글자 없는 순수 그래픽 마크만 texts에서 제외한다.\n"
+                . "2) x,y는 박스 왼쪽 위(라벨 전체 대비 0~1 정규화), w,h는 박스 너비·높이(0~1). "
+                . "박스는 글자를 넉넉히 감싸되 서로 심하게 겹치지 않게.\n"
+                . "3) background_prompt에는 글자/숫자/문장/가격을 절대 쓰지 말고, 배경색·그라데이션·테두리·장식·일러스트만 묘사.\n"
+                . $translateRule . "\n"
+                . "5) font_size_mm는 라벨 높이 기준 추정(제목은 크게, 본문은 작게). color는 실제 글자색에 가까운 #hex.\n"
+                . "6) 읽을 수 있는 글자가 하나라도 있으면 texts는 비우지 말 것. 정말 그래픽만이면 texts는 [].",
+        ];
+
+        $response = $this->chatRequest([
+            [
+                'role' => 'system',
+                'content' => '당신은 라벨 레이아웃 OCR·분해기입니다. 텍스트는 편집 객체로, 배경은 그래픽만 남기도록 JSON만 출력합니다.',
+            ],
+            ['role' => 'user', 'content' => $parts],
+        ], [
+            'response_format' => ['type' => 'json_object'],
+            'temperature' => 0.15,
+            'max_tokens' => 2200,
+        ]);
+
+        $decoded = json_decode((string) ($response['choices'][0]['message']['content'] ?? ''), true);
+        if (!is_array($decoded)) {
+            return [
+                'title' => '',
+                'width_mm' => 0.0,
+                'height_mm' => 0.0,
+                'background_prompt' => '',
+                'texts' => [],
+            ];
+        }
+
+        return $this->normalizeEditableLayout($decoded);
+    }
+
+    /**
+     * 첨부 이미지 없이(또는 OCR 실패 시) 편집 가능 텍스트 + 글자 없는 배경 레이아웃을 설계한다.
+     *
+     * @param array<int, array{role:string, content:mixed}> $messages
+     * @return array{
+     *   title:string,
+     *   width_mm:float,
+     *   height_mm:float,
+     *   background_prompt:string,
+     *   texts:array<int, array{
+     *     text:string,
+     *     x:float,
+     *     y:float,
+     *     w:float,
+     *     h:float,
+     *     font_size_mm:float,
+     *     bold:bool,
+     *     align:string,
+     *     color:string
+     *   }>
+     * }
+     */
+    public function planEditableLabelTemplate(array $messages, bool $translateToKo = false, string $hint = ''): array
+    {
+        $userHint = trim($hint);
+        if ($userHint === '') {
+            for ($i = count($messages) - 1; $i >= 0; $i--) {
+                if (($messages[$i]['role'] ?? '') !== 'user') {
+                    continue;
+                }
+                $content = $messages[$i]['content'] ?? '';
+                if (is_string($content)) {
+                    $userHint = trim($content);
+                    break;
+                }
+                if (is_array($content)) {
+                    foreach ($content as $part) {
+                        if (is_array($part) && ($part['type'] ?? '') === 'text') {
+                            $userHint = trim((string) ($part['text'] ?? ''));
+                            break 2;
+                        }
+                    }
+                }
+            }
+        }
+        if ($userHint === '') {
+            $userHint = '상품 라벨';
+        }
+
+        $translateRule = $translateToKo
+            ? '텍스트는 자연스러운 한국어. 숫자·단위·영문 브랜드 로고성 1~3단어는 유지.'
+            : '사용자가 준 문구를 살리되, 없으면 한국어 샘플 문구를 넣는다.';
+
+        $response = $this->chatRequest([
+            [
+                'role' => 'system',
+                'content' => '당신은 라벨업 템플릿 설계기입니다. '
+                    . '사용자가 바꿀 문구는 반드시 텍스트 객체로, 배경 이미지에는 글자를 넣지 않습니다. JSON만 출력합니다.',
+            ],
+            [
+                'role' => 'user',
+                'content' => "라벨 템플릿을 설계하세요. JSON만:\n"
+                    . "{\"title\":\"짧은 제목\",\"width_mm\":70,\"height_mm\":36,"
+                    . "\"background_prompt\":\"글자 없는 배경·장식만 영어 묘사\","
+                    . "\"texts\":[{\"text\":\"문구\",\"x\":0~1,\"y\":0~1,\"w\":0~1,\"h\":0~1,"
+                    . "\"font_size_mm\":1.5~14,\"bold\":true/false,\"align\":\"left|center|right\",\"color\":\"#RRGGBB\"}]}\n"
+                    . "규칙:\n"
+                    . "1) CRITICAL: 상품명·가격·용량·날짜·슬로건·설명 등 사용자가 수정할 문구는 전부 texts. "
+                    . "이미지(background)에는 글자·숫자·특수문자를 절대 넣지 말 것.\n"
+                    . "2) texts는 최소 1개(보통 2~6개). 제목/본문/부가정보를 분리.\n"
+                    . "3) background_prompt는 색·패턴·테두리·일러스트만. 워드/숫자 금지.\n"
+                    . "4) {$translateRule}\n"
+                    . "5) 기본 규격이 없으면 70×36.\n"
+                    . "사용자 요청: {$userHint}",
+            ],
+        ], [
+            'response_format' => ['type' => 'json_object'],
+            'temperature' => 0.35,
+            'max_tokens' => 1400,
+        ]);
+
+        $decoded = json_decode((string) ($response['choices'][0]['message']['content'] ?? ''), true);
+        if (!is_array($decoded)) {
+            return $this->defaultEditableLayout($userHint);
+        }
+        $layout = $this->normalizeEditableLayout($decoded);
+        if ($layout['texts'] === []) {
+            return $this->defaultEditableLayout($userHint, $layout);
+        }
+        return $layout;
+    }
+
+    /**
+     * @param array<string, mixed> $decoded
+     * @return array{
+     *   title:string,
+     *   width_mm:float,
+     *   height_mm:float,
+     *   background_prompt:string,
+     *   texts:array<int, array{
+     *     text:string,
+     *     x:float,
+     *     y:float,
+     *     w:float,
+     *     h:float,
+     *     font_size_mm:float,
+     *     bold:bool,
+     *     align:string,
+     *     color:string
+     *   }>
+     * }
+     */
+    private function normalizeEditableLayout(array $decoded): array
+    {
+        $texts = [];
+        foreach ($decoded['texts'] ?? [] as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $text = trim((string) ($row['text'] ?? ''));
+            if ($text === '') {
+                continue;
+            }
+            if (mb_strlen($text) > 120) {
+                $text = mb_substr($text, 0, 119) . '…';
+            }
+            $x = max(0.0, min(0.98, (float) ($row['x'] ?? 0)));
+            $y = max(0.0, min(0.98, (float) ($row['y'] ?? 0)));
+            $w = max(0.04, min(1.0 - $x, (float) ($row['w'] ?? 0.3)));
+            $h = max(0.03, min(1.0 - $y, (float) ($row['h'] ?? 0.1)));
+            $font = (float) ($row['font_size_mm'] ?? ($h * 40));
+            if ($font < 1.5) {
+                $font = max(1.5, $h * 28);
+            }
+            $font = max(1.5, min(14.0, $font));
+            $align = strtolower(trim((string) ($row['align'] ?? 'left')));
+            if (!in_array($align, ['left', 'center', 'right'], true)) {
+                $align = 'left';
+            }
+            $color = trim((string) ($row['color'] ?? '#2E2A27'));
+            if (!preg_match('/^#[0-9A-Fa-f]{6}$/', $color)) {
+                $color = '#2E2A27';
+            }
+            $texts[] = [
+                'text' => $text,
+                'x' => $x,
+                'y' => $y,
+                'w' => $w,
+                'h' => $h,
+                'font_size_mm' => $font,
+                'bold' => !empty($row['bold']),
+                'align' => $align,
+                'color' => $color,
+            ];
+            if (count($texts) >= 40) {
+                break;
+            }
+        }
+
+        $bg = trim((string) ($decoded['background_prompt'] ?? ''));
+        if (mb_strlen($bg) > 700) {
+            $bg = mb_substr($bg, 0, 700);
+        }
+
+        return [
+            'title' => trim((string) ($decoded['title'] ?? '')),
+            'width_mm' => (float) ($decoded['width_mm'] ?? 0),
+            'height_mm' => (float) ($decoded['height_mm'] ?? 0),
+            'background_prompt' => $bg,
+            'texts' => $texts,
+        ];
+    }
+
+    /**
+     * @param array{title?:string,width_mm?:float,height_mm?:float,background_prompt?:string}|null $base
+     * @return array{
+     *   title:string,
+     *   width_mm:float,
+     *   height_mm:float,
+     *   background_prompt:string,
+     *   texts:array<int, array{
+     *     text:string,
+     *     x:float,
+     *     y:float,
+     *     w:float,
+     *     h:float,
+     *     font_size_mm:float,
+     *     bold:bool,
+     *     align:string,
+     *     color:string
+     *   }>
+     * }
+     */
+    private function defaultEditableLayout(string $hint, ?array $base = null): array
+    {
+        $title = trim((string) ($base['title'] ?? ''));
+        if ($title === '') {
+            $title = '라비가 만든 라벨 템플릿';
+        }
+        $sample = trim(mb_substr($hint !== '' ? $hint : '상품명', 0, 24));
+        if ($sample === '') {
+            $sample = '상품명';
+        }
+        $bg = trim((string) ($base['background_prompt'] ?? ''));
+        if ($bg === '') {
+            $bg = 'Soft cream full-bleed label background with subtle burgundy border frame and gentle decorative corner ornaments, no letters no numbers no words';
+        }
+
+        return [
+            'title' => $title,
+            'width_mm' => (float) ($base['width_mm'] ?? 70),
+            'height_mm' => (float) ($base['height_mm'] ?? 36),
+            'background_prompt' => $bg,
+            'texts' => [
+                [
+                    'text' => $sample,
+                    'x' => 0.08,
+                    'y' => 0.28,
+                    'w' => 0.84,
+                    'h' => 0.22,
+                    'font_size_mm' => 5.5,
+                    'bold' => true,
+                    'align' => 'center',
+                    'color' => '#7B2840',
+                ],
+                [
+                    'text' => '내용을 수정하세요',
+                    'x' => 0.1,
+                    'y' => 0.55,
+                    'w' => 0.8,
+                    'h' => 0.16,
+                    'font_size_mm' => 3.2,
+                    'bold' => false,
+                    'align' => 'center',
+                    'color' => '#2E2A27',
+                ],
+            ],
         ];
     }
 
@@ -673,12 +1014,13 @@ PROMPT;
         }
         @chmod($full, 0666);
 
-        // public assets path
-        if (str_contains(str_replace('\\', '/', $full), '/public/assets/ai-clipart/')) {
+        // public/www assets path (document root)
+        $norm = str_replace('\\', '/', $full);
+        if (str_contains($norm, '/www/assets/ai-clipart/') || str_contains($norm, '/public/assets/ai-clipart/')) {
             return url('assets/ai-clipart/' . $name);
         }
 
-        // storage fallback: expose via temporary data URL is heavy; copy to public if possible
+        // storage fallback: copy into document-root assets when possible
         $publicDir = public_path('assets/ai-clipart');
         if (!is_dir($publicDir)) {
             @mkdir($publicDir, 0777, true);
@@ -718,9 +1060,10 @@ intent 선택 규칙:
    - 흰 배경, 중앙 모티브, 텍스트/워터마크 없음, 플랫·선명한 벡터 느낌으로 유도하세요.
    - 첨부 이미지가 있으면 그 분위기·모티프를 반영하되 장식이 되는 클립아트로 재해석합니다.
 3) generate_template — 완성된 라벨 디자인/템플릿을 만들어 편집기에서 쓰려 할 때.
-   - clipart_prompt에 라벨 전체를 채우는 인쇄용 아트워크 영어 프롬프트를 작성합니다.
+   - clipart_prompt에는 글자·숫자·특수문자가 없는 배경/장식만 영어로 묘사합니다.
+   - 절대 이미지 안에 문구·가격·날짜·성분 등 텍스트를 그리지 마세요. (텍스트는 서버가 별도 텍스트 오브젝트로 만듭니다.)
    - 캔버스를 가장자리까지 채우고(full-bleed), 목업·책상·찢어진 종이·여백 배경은 넣지 마세요.
-   - 첨부 이미지의 구도·색·텍스트 분위기를 살립니다.
+   - 첨부 이미지의 구도·색·장식 분위기를 살립니다.
    - width_mm/height_mm에 적당한 라벨 규격(없으면 70×36)을 넣습니다.
 4) ask_image_mode — 첨부 이미지가 있는데 클립아트인지 템플릿인지 분명하지 않을 때.
    - 이미지를 생성하지 않습니다.

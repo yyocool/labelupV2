@@ -252,6 +252,94 @@ final class CreditRepository extends BaseModel
         return (int) ($row['spent'] ?? 0);
     }
 
+    /**
+     * 전체 회원 크레딧 요약.
+     * @return array{granted:int,used:int,remaining:int,members_with_balance:int,members_in_debt:int}
+     */
+    public function globalTotals(): array
+    {
+        $tx = $this->fetchOne(
+            "SELECT
+                COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) AS granted,
+                COALESCE(SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END), 0) AS used
+             FROM credit_transactions"
+        );
+        $bal = $this->fetchOne(
+            "SELECT
+                COALESCE(SUM(balance), 0) AS remaining,
+                COALESCE(SUM(CASE WHEN balance > 0 THEN 1 ELSE 0 END), 0) AS with_balance,
+                COALESCE(SUM(CASE WHEN balance < 0 THEN 1 ELSE 0 END), 0) AS in_debt
+             FROM user_credits"
+        );
+        return [
+            'granted' => (int) ($tx['granted'] ?? 0),
+            'used' => (int) ($tx['used'] ?? 0),
+            'remaining' => (int) ($bal['remaining'] ?? 0),
+            'members_with_balance' => (int) ($bal['with_balance'] ?? 0),
+            'members_in_debt' => (int) ($bal['in_debt'] ?? 0),
+        ];
+    }
+
+    /**
+     * @return array<int, array{source:string,granted:int,used:int}>
+     */
+    public function totalsBySource(): array
+    {
+        $rows = $this->fetchAll(
+            "SELECT source,
+                    COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) AS granted,
+                    COALESCE(SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END), 0) AS used
+             FROM credit_transactions
+             GROUP BY source
+             ORDER BY (granted + used) DESC"
+        );
+        $out = [];
+        foreach ($rows as $row) {
+            $out[] = [
+                'source' => (string) ($row['source'] ?? 'system'),
+                'granted' => (int) ($row['granted'] ?? 0),
+                'used' => (int) ($row['used'] ?? 0),
+            ];
+        }
+        return $out;
+    }
+
+    /**
+     * @return array<int, array{user_id:int,email:string,name:string,balance:int}>
+     */
+    public function topBalances(int $limit = 10, bool $debt = false): array
+    {
+        $limit = max(1, min(50, $limit));
+        $order = $debt ? 'c.balance ASC' : 'c.balance DESC';
+        $where = $debt ? 'c.balance < 0' : 'c.balance > 0';
+        return $this->fetchAll(
+            "SELECT c.user_id, c.balance, u.email, COALESCE(p.name, '') AS name
+             FROM user_credits c
+             INNER JOIN users u ON u.id = c.user_id AND u.deleted_at IS NULL
+             LEFT JOIN user_profiles p ON p.user_id = u.id AND p.deleted_at IS NULL
+             WHERE {$where}
+             ORDER BY {$order}
+             LIMIT {$limit}"
+        );
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function recentTransactions(int $limit = 15): array
+    {
+        $limit = max(1, min(50, $limit));
+        return $this->fetchAll(
+            "SELECT t.id, t.user_id, t.amount, t.balance_after, t.tx_type, t.source, t.description, t.created_at,
+                    u.email, COALESCE(p.name, '') AS name
+             FROM credit_transactions t
+             INNER JOIN users u ON u.id = t.user_id
+             LEFT JOIN user_profiles p ON p.user_id = u.id AND p.deleted_at IS NULL
+             ORDER BY t.id DESC
+             LIMIT {$limit}"
+        );
+    }
+
     /** @return array{items: array, total: int, page: int, pages: int, per_page: int} */
     public function adminGrants(?int $userId = null, int $page = 1, int $perPage = 20): array
     {

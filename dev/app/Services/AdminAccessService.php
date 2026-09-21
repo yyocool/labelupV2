@@ -85,6 +85,7 @@ final class AdminAccessService
             '/api/admin/alerts',
             '/api/admin/alerts/ack',
             '/api/admin/password',
+            '/api/admin/credit/overview',
             '/api/admin/qa-review/save',
             '/api/admin/qa-review/upload-image',
         ];
