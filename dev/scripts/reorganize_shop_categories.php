@@ -17,7 +17,7 @@ try {
     $targets = [
         [
             'slug' => 'logistics-label',
-            'name' => '물류관리용/주소용/바코드용/인덱스용',
+            'name' => '다용도라벨',
             'sort' => 1,
             'image' => '/assets/categories/cat_logistics-label.webp',
         ],
@@ -116,7 +116,8 @@ try {
         throw new RuntimeException('logistics-label category missing after upsert');
     }
 
-    $mergeSlugs = ['address-label', 'barcode-label', 'index-label'];
+    // 다용도라벨 하위(물류/주소/바코드/인덱스)는 2차로 유지한다.
+    $mergeSlugs = [];
     $mergeIds = [];
     foreach ($mergeSlugs as $slug) {
         $id = $idBySlug($pdo, $slug);

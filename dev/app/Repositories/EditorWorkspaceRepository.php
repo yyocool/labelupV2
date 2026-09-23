@@ -37,7 +37,7 @@ final class EditorWorkspaceRepository extends BaseModel
     {
         $limit = max(1, min(48, $limit));
         return $this->fetchAll(
-            "SELECT id, user_id, title, preview_path, created_at, updated_at
+            "SELECT id, user_id, title, preview_path, document_json, created_at, updated_at
              FROM user_editor_workspaces
              WHERE user_id = :uid
              ORDER BY updated_at DESC, id DESC

@@ -1,8 +1,10 @@
 <?php
 /** @var string $shopSubNav */
 /** @var array<int, array<string, mixed>> $shopCategories */
+/** @var array<string, mixed>|null $category */
 $shopSubNav = $shopSubNav ?? 'home';
 $shopCategories = $shopCategories ?? [];
+$category = is_array($category ?? null) ? $category : null;
 $isActive = static fn (string ...$keys): string => in_array($shopSubNav, $keys, true) ? ' is-active' : '';
 ?>
 <aside class="sidebar sidebar--shop">
@@ -26,16 +28,35 @@ $isActive = static fn (string ...$keys): string => in_array($shopSubNav, $keys, 
   <?php if ($shopCategories): ?>
   <div class="group">
     <div class="group-title">카테고리</div>
-    <nav class="menu">
-      <?php foreach ($shopCategories as $cat): ?>
-      <a class="<?= $shopSubNav === 'cat-' . $cat['slug'] ? 'is-active' : '' ?>" href="<?= url('shop/products') ?>?category=<?= e($cat['slug']) ?>">
-        <?php if (!empty($cat['image_path'])): ?>
-        <span class="ico ico--img"><img src="<?= e(\App\Services\ShopProductImageService::resolveUrl((string) $cat['image_path'])) ?>" alt=""></span>
+    <nav class="menu menu--shop-cats">
+      <?php foreach (\App\Services\ShopService::groupCategoryTree($shopCategories) as $group): ?>
+      <?php
+        $parent = $group['parent'];
+        $children = $group['children'];
+        $currentSlug = (string) (($category['slug'] ?? '') ?: '');
+        $currentParentId = (int) ($category['parent_id'] ?? 0);
+        $parentId = (int) ($parent['id'] ?? 0);
+        $isParentActive = $shopSubNav === 'cat-' . $parent['slug']
+            || $currentSlug === (string) $parent['slug']
+            || $currentParentId === $parentId;
+      ?>
+      <a class="shop-cat-parent<?= $isParentActive ? ' is-active' : '' ?>" href="<?= url('shop/products') ?>?category=<?= e($parent['slug']) ?>">
+        <?php if (!empty($parent['image_path'])): ?>
+        <span class="ico ico--img"><img src="<?= e(\App\Services\ShopProductImageService::resolveUrl((string) $parent['image_path'])) ?>" alt=""></span>
         <?php else: ?>
         <span class="ico">▧</span>
         <?php endif; ?>
-        <?= e($cat['name']) ?>
+        <?= e($parent['name']) ?>
       </a>
+      <?php if ($children !== []): ?>
+      <div class="shop-cat-children<?= $isParentActive ? ' is-open' : '' ?>">
+        <?php foreach ($children as $child): ?>
+        <a class="shop-cat-child<?= $currentSlug === (string) $child['slug'] ? ' is-active' : '' ?>" href="<?= url('shop/products') ?>?category=<?= e($child['slug']) ?>">
+          <?= e($child['name']) ?>
+        </a>
+        <?php endforeach; ?>
+      </div>
+      <?php endif; ?>
       <?php endforeach; ?>
     </nav>
   </div>

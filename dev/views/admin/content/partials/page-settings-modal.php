@@ -44,7 +44,7 @@
           </div>
         </div>
       </section>
-      <p class="admin-muted">헤더·푸터는 상품 구매 정보(이미지·가격) 아래, 상세 내용의 위·아래에 가로 100%로 공통 적용됩니다.</p>
+      <p class="admin-muted">표시 순서: 공통 헤더 → 카테고리 헤더 → 상품 상세 → 카테고리 푸터 → 공통 푸터. 공통 설정은 카테고리 설정과 함께 모두 표시됩니다.</p>
     </form>
     <div class="admin-modal-foot">
       <button type="button" class="admin-btn js-page-settings-close">취소</button>

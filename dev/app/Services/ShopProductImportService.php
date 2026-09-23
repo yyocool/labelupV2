@@ -21,10 +21,15 @@ final class ShopProductImportService
     /** 제품분류(무료배포 QR 체계) slug 매핑 — 동일 분류는 하나의 slug로 통합 */
     private const GROUP_SLUGS = [
         '물류관리용/주소용/바코드용/인덱스용' => 'logistics-label',
-        '물류관리용 라벨' => 'logistics-label',
-        '인덱스용라벨' => 'logistics-label',
-        '주소용라벨' => 'logistics-label',
-        '바코드용라벨' => 'logistics-label',
+        '다용도라벨' => 'logistics-label',
+        '물류관리용 라벨' => 'logistics-use',
+        '물류관리용' => 'logistics-use',
+        '인덱스용라벨' => 'index-label',
+        '인덱스용' => 'index-label',
+        '주소용라벨' => 'address-label',
+        '주소용' => 'address-label',
+        '바코드용라벨' => 'barcode-label',
+        '바코드용' => 'barcode-label',
         '정부문서화일 라벨' => 'government-doc',
         '정부문서' => 'government-doc',
         '광택 라벨' => 'gloss-label',
@@ -42,6 +47,14 @@ final class ShopProductImportService
         '컬러라벨' => 'color-label',
         '파스텔 컬러 라벨' => 'pastel-color-label',
         '크라프트 라벨' => 'kraft-label',
+    ];
+
+    /** @var array<string, string> slug => parent slug */
+    private const CHILD_PARENTS = [
+        'logistics-use' => 'logistics-label',
+        'address-label' => 'logistics-label',
+        'barcode-label' => 'logistics-label',
+        'index-label' => 'logistics-label',
     ];
 
     public function __construct()
@@ -133,6 +146,12 @@ final class ShopProductImportService
         }
 
         $slug = self::GROUP_SLUGS[$group] ?? ('cat-' . substr(md5($group), 0, 10));
+        $parentId = 0;
+        $parentSlug = self::CHILD_PARENTS[$slug] ?? '';
+        if ($parentSlug !== '') {
+            $parent = $this->repo->findCategoryBySlug($parentSlug);
+            $parentId = $parent ? (int) $parent['id'] : 0;
+        }
         $existing = $this->repo->findCategoryBySlug($slug);
         if ($existing) {
             $id = (int) $existing['id'];
@@ -143,6 +162,7 @@ final class ShopProductImportService
         $id = $this->repo->saveCategory([
             'name' => $group,
             'slug' => $slug,
+            'parent_id' => $parentId,
             'sort_order' => max(1, $sortOrder),
             'is_active' => true,
         ]);

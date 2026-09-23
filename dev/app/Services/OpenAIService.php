@@ -333,7 +333,7 @@ PROMPT;
                 . "바코드 막대·QR 패턴·글자 없는 순수 그래픽 마크만 texts에서 제외한다.\n"
                 . "2) x,y는 박스 왼쪽 위(라벨 전체 대비 0~1 정규화), w,h는 박스 너비·높이(0~1). "
                 . "박스는 글자를 넉넉히 감싸되 서로 심하게 겹치지 않게.\n"
-                . "3) background_prompt에는 글자/숫자/문장/가격을 절대 쓰지 말고, 배경색·그라데이션·테두리·장식·일러스트만 묘사.\n"
+                . "3) background_prompt에는 글자/숫자/문장/가격을 절대 쓰지 말고, 배경색·그라데이션·테두리·장식·일러스트만 묘사. 흰 스튜디오나 목업은 넣지 말고 인쇄 영역만.\n"
                 . $translateRule . "\n"
                 . "5) font_size_mm는 라벨 높이 기준 추정(제목은 크게, 본문은 작게). color는 실제 글자색에 가까운 #hex.\n"
                 . "6) 읽을 수 있는 글자가 하나라도 있으면 texts는 비우지 말 것. 정말 그래픽만이면 texts는 [].",
@@ -387,7 +387,13 @@ PROMPT;
      *   }>
      * }
      */
-    public function planEditableLabelTemplate(array $messages, bool $translateToKo = false, string $hint = ''): array
+    public function planEditableLabelTemplate(
+        array $messages,
+        bool $translateToKo = false,
+        string $hint = '',
+        float $widthMm = 0.0,
+        float $heightMm = 0.0
+    ): array
     {
         $userHint = trim($hint);
         if ($userHint === '') {
@@ -418,6 +424,14 @@ PROMPT;
             ? '텍스트는 자연스러운 한국어. 숫자·단위·영문 브랜드 로고성 1~3단어는 유지.'
             : '사용자가 준 문구를 살리되, 없으면 한국어 샘플 문구를 넣는다.';
 
+        $tw = $widthMm >= 15 ? $widthMm : 0.0;
+        $th = $heightMm >= 15 ? $heightMm : 0.0;
+        $sizeRule = ($tw > 0 && $th > 0)
+            ? "5) width_mm/height_mm는 반드시 {$tw}×{$th}. 다른 규격으로 바꾸지 말 것. 70×36 기본값 금지."
+            : "5) 규격은 용도에 맞게: 반찬통·뚜껑·원형은 40×40 또는 63.5×63.5. 주소/바코드용 70×36·100×50은 쓰지 말 것.";
+        $exampleW = $tw > 0 ? rtrim(rtrim(sprintf('%.2f', $tw), '0'), '.') : '40';
+        $exampleH = $th > 0 ? rtrim(rtrim(sprintf('%.2f', $th), '0'), '.') : '40';
+
         $response = $this->chatRequest([
             [
                 'role' => 'system',
@@ -427,7 +441,7 @@ PROMPT;
             [
                 'role' => 'user',
                 'content' => "라벨 템플릿을 설계하세요. JSON만:\n"
-                    . "{\"title\":\"짧은 제목\",\"width_mm\":70,\"height_mm\":36,"
+                    . "{\"title\":\"짧은 제목\",\"width_mm\":{$exampleW},\"height_mm\":{$exampleH},"
                     . "\"background_prompt\":\"글자 없는 배경·장식만 영어 묘사\","
                     . "\"texts\":[{\"text\":\"문구\",\"x\":0~1,\"y\":0~1,\"w\":0~1,\"h\":0~1,"
                     . "\"font_size_mm\":1.5~14,\"bold\":true/false,\"align\":\"left|center|right\",\"color\":\"#RRGGBB\"}]}\n"
@@ -435,9 +449,9 @@ PROMPT;
                     . "1) CRITICAL: 상품명·가격·용량·날짜·슬로건·설명 등 사용자가 수정할 문구는 전부 texts. "
                     . "이미지(background)에는 글자·숫자·특수문자를 절대 넣지 말 것.\n"
                     . "2) texts는 최소 1개(보통 2~6개). 제목/본문/부가정보를 분리.\n"
-                    . "3) background_prompt는 색·패턴·테두리·일러스트만. 워드/숫자 금지.\n"
+                    . "3) background_prompt는 색·패턴·테두리·일러스트만. 워드/숫자 금지. 흰 스튜디오·목업 금지.\n"
                     . "4) {$translateRule}\n"
-                    . "5) 기본 규격이 없으면 70×36.\n"
+                    . "{$sizeRule}\n"
                     . "사용자 요청: {$userHint}",
             ],
         ], [
@@ -448,9 +462,13 @@ PROMPT;
 
         $decoded = json_decode((string) ($response['choices'][0]['message']['content'] ?? ''), true);
         if (!is_array($decoded)) {
-            return $this->defaultEditableLayout($userHint);
+            return $this->defaultEditableLayout($userHint, ['width_mm' => $tw, 'height_mm' => $th]);
         }
         $layout = $this->normalizeEditableLayout($decoded);
+        if ($tw > 0 && $th > 0) {
+            $layout['width_mm'] = $tw;
+            $layout['height_mm'] = $th;
+        }
         if ($layout['texts'] === []) {
             return $this->defaultEditableLayout($userHint, $layout);
         }
@@ -572,11 +590,17 @@ PROMPT;
         if ($bg === '') {
             $bg = 'Soft cream full-bleed label background with subtle burgundy border frame and gentle decorative corner ornaments, no letters no numbers no words';
         }
+        $w = (float) ($base['width_mm'] ?? 0);
+        $h = (float) ($base['height_mm'] ?? 0);
+        if ($w < 15 || $h < 15) {
+            $w = 40.0;
+            $h = 40.0;
+        }
 
         return [
             'title' => $title,
-            'width_mm' => (float) ($base['width_mm'] ?? 70),
-            'height_mm' => (float) ($base['height_mm'] ?? 36),
+            'width_mm' => $w,
+            'height_mm' => $h,
             'background_prompt' => $bg,
             'texts' => [
                 [
@@ -697,7 +721,7 @@ PROMPT;
     /**
      * @return array{url:string, prompt:string, title:string}
      */
-    public function generateClipart(string $prompt): array
+    public function generateClipart(string $prompt, bool $knockoutBackdrop = true): array
     {
         $apiKey = $this->apiKey();
         $model = trim((string) env('OPENAI_IMAGE_MODEL', 'gpt-image-1'));
@@ -705,29 +729,33 @@ PROMPT;
             $model = 'gpt-image-1';
         }
 
-        $cleanPrompt = trim($prompt);
+        $cleanPrompt = $this->withTransparentBackgroundPrompt($prompt, $knockoutBackdrop);
         if ($cleanPrompt === '') {
             throw new RuntimeException('이미지 생성 프롬프트가 비어 있습니다.');
         }
-        if (mb_strlen($cleanPrompt) > 900) {
-            $cleanPrompt = mb_substr($cleanPrompt, 0, 900);
-        }
 
-        $quality = trim((string) env('OPENAI_IMAGE_QUALITY', 'medium')) ?: 'medium';
+        $quality = trim((string) env('OPENAI_IMAGE_QUALITY', 'low')) ?: 'low';
+        $transparent = true;
         try {
-            $response = $this->request($apiKey, self::IMAGE_URL, $this->imagePayload($model, $cleanPrompt), 180);
+            $response = $this->request($apiKey, self::IMAGE_URL, $this->imagePayload($model, $cleanPrompt, $transparent), 180);
         } catch (RuntimeException $e) {
             $msg = $e->getMessage();
-            if (str_contains($msg, 'response_format')) {
-                $payload = $this->imagePayload($model, $cleanPrompt);
-                unset($payload['response_format'], $payload['style']);
+            if (
+                str_contains($msg, 'response_format')
+                || str_contains($msg, 'background')
+                || str_contains($msg, 'output_format')
+                || str_contains($msg, 'Unknown parameter')
+                || str_contains($msg, 'unsupported')
+            ) {
+                $payload = $this->imagePayload($model, $cleanPrompt, false);
+                unset($payload['response_format'], $payload['style'], $payload['background'], $payload['output_format']);
                 $response = $this->request($apiKey, self::IMAGE_URL, $payload, 180);
             } elseif (
                 (str_contains($msg, 'does not exist') || str_contains($msg, 'not have access') || str_contains($msg, 'invalid_model'))
                 && $model !== 'gpt-image-1'
             ) {
                 $model = 'gpt-image-1';
-                $response = $this->request($apiKey, self::IMAGE_URL, $this->imagePayload($model, $cleanPrompt), 180);
+                $response = $this->request($apiKey, self::IMAGE_URL, $this->imagePayload($model, $cleanPrompt, $transparent), 180);
             } else {
                 throw $e;
             }
@@ -744,9 +772,9 @@ PROMPT;
         $remoteUrl = (string) ($item['url'] ?? '');
 
         if ($b64 !== '') {
-            $url = $this->storeClipartFromBase64($b64);
+            $url = $this->storeClipartFromBase64($b64, $knockoutBackdrop);
         } elseif ($remoteUrl !== '') {
-            $url = $this->storeClipartFromUrl($remoteUrl);
+            $url = $this->storeClipartFromUrl($remoteUrl, $knockoutBackdrop);
         } else {
             throw new RuntimeException('생성된 이미지 데이터가 없습니다.');
         }
@@ -758,8 +786,34 @@ PROMPT;
         ];
     }
 
+    private function withTransparentBackgroundPrompt(string $prompt, bool $isolatedSubject): string
+    {
+        $clean = trim($prompt);
+        if ($clean === '') {
+            return '';
+        }
+        $clean = preg_replace(
+            '/\b((perfectly|pure|solid|plain)\s+)?(white|black|gray|grey|studio)\s+backgrounds?\b/i',
+            'transparent background',
+            $clean
+        ) ?? $clean;
+
+        $extra = $isolatedSubject
+            ? ' Isolated sticker clipart on a fully transparent background, PNG with alpha. No white fill, no black fill, no gray studio, no checkerboard, no table, no drop-shadow plate.'
+            : ' Output as PNG with transparent background; any area that is not part of the printed artwork must be alpha-transparent. No white studio, no mockup, no wooden table.';
+
+        if (!preg_match('/transparent background|png with alpha|alpha-transparent/i', $clean)) {
+            $clean = rtrim($clean, " \t\n\r.") . '. ' . $extra;
+        }
+        if (mb_strlen($clean) > 900) {
+            $clean = mb_substr($clean, 0, 900);
+        }
+
+        return $clean;
+    }
+
     /** @return array<string, mixed> */
-    private function imagePayload(string $model, string $prompt): array
+    private function imagePayload(string $model, string $prompt, bool $transparent = true): array
     {
         $isGptImage = str_starts_with($model, 'gpt-image');
         $payload = [
@@ -778,7 +832,11 @@ PROMPT;
             $payload['quality'] = 'standard';
             $payload['style'] = 'vivid';
         } elseif ($isGptImage) {
-            $payload['quality'] = trim((string) env('OPENAI_IMAGE_QUALITY', 'medium')) ?: 'medium';
+            $payload['quality'] = trim((string) env('OPENAI_IMAGE_QUALITY', 'low')) ?: 'low';
+            if ($transparent) {
+                $payload['background'] = 'transparent';
+                $payload['output_format'] = 'png';
+            }
         }
 
         return $payload;
@@ -960,17 +1018,17 @@ PROMPT;
         ];
     }
 
-    private function storeClipartFromBase64(string $b64): string
+    private function storeClipartFromBase64(string $b64, bool $knockoutBackdrop = true): string
     {
         $bin = base64_decode($b64, true);
         if ($bin === false || $bin === '') {
             throw new RuntimeException('이미지 디코딩에 실패했습니다.');
         }
 
-        return $this->writeClipartFile($bin);
+        return $this->writeClipartFile($bin, $knockoutBackdrop);
     }
 
-    private function storeClipartFromUrl(string $remoteUrl): string
+    private function storeClipartFromUrl(string $remoteUrl, bool $knockoutBackdrop = true): string
     {
         $bin = false;
         if (function_exists('curl_init')) {
@@ -991,11 +1049,17 @@ PROMPT;
             return $remoteUrl;
         }
 
-        return $this->writeClipartFile($bin);
+        return $this->writeClipartFile($bin, $knockoutBackdrop);
     }
 
-    private function writeClipartFile(string $bin): string
+    private function writeClipartFile(string $bin, bool $knockoutBackdrop = true): string
     {
+        if ($knockoutBackdrop) {
+            $cleared = $this->ensureTransparentPng($bin);
+            if ($cleared !== '') {
+                $bin = $cleared;
+            }
+        }
         $dir = public_path('assets/ai-clipart');
         if (!is_dir($dir) && !mkdir($dir, 0777, true) && !is_dir($dir)) {
             // fallback under storage (always writable on remote)
@@ -1034,6 +1098,150 @@ PROMPT;
         return url('assets/ai-clipart/' . $name);
     }
 
+    /** 흰/검정 스튜디오 배경을 가장자리부터 투명 처리. 이미 알파가 있으면 원본 유지. */
+    private function ensureTransparentPng(string $bin): string
+    {
+        if (!function_exists('imagecreatefromstring')) {
+            return $bin;
+        }
+        $src = @imagecreatefromstring($bin);
+        if ($src === false) {
+            return $bin;
+        }
+
+        $w = imagesx($src);
+        $h = imagesy($src);
+        if ($w < 8 || $h < 8 || ($w * $h) > (2048 * 2048)) {
+            imagedestroy($src);
+            return $bin;
+        }
+
+        if (!imageistruecolor($src)) {
+            $tmp = imagecreatetruecolor($w, $h);
+            if ($tmp === false) {
+                imagedestroy($src);
+                return $bin;
+            }
+            imagealphablending($tmp, false);
+            imagesavealpha($tmp, true);
+            $clear = imagecolorallocatealpha($tmp, 0, 0, 0, 127);
+            imagefilledrectangle($tmp, 0, 0, $w, $h, $clear);
+            imagecopy($tmp, $src, 0, 0, 0, 0, $w, $h);
+            imagedestroy($src);
+            $src = $tmp;
+        }
+
+        imagealphablending($src, false);
+        imagesavealpha($src, true);
+
+        $step = max(1, (int) floor(min($w, $h) / 64));
+        $sampled = 0;
+        $transparentCount = 0;
+        for ($y = 0; $y < $h; $y += $step) {
+            for ($x = 0; $x < $w; $x += $step) {
+                $sampled++;
+                $a = (imagecolorat($src, $x, $y) >> 24) & 0x7F;
+                if ($a >= 32) {
+                    $transparentCount++;
+                }
+            }
+        }
+        if ($sampled > 0 && ($transparentCount / $sampled) >= 0.08) {
+            imagedestroy($src);
+            return $bin;
+        }
+
+        $this->knockoutEdgeBackdrop($src);
+        $out = $this->pngBytes($src);
+        return $out !== '' ? $out : $bin;
+    }
+
+    /** @param \GdImage|resource $im */
+    private function knockoutEdgeBackdrop($im): void
+    {
+        $w = imagesx($im);
+        $h = imagesy($im);
+        $seen = str_repeat("\0", $w * $h);
+        $queue = [];
+        $clear = imagecolorallocatealpha($im, 0, 0, 0, 127);
+
+        $push = function (int $x, int $y) use ($im, $w, $h, &$seen, &$queue): void {
+            if ($x < 0 || $y < 0 || $x >= $w || $y >= $h) {
+                return;
+            }
+            $i = $y * $w + $x;
+            if ($seen[$i] !== "\0") {
+                return;
+            }
+            $seen[$i] = "\1";
+            $c = imagecolorat($im, $x, $y);
+            $a = ($c >> 24) & 0x7F;
+            $r = ($c >> 16) & 0xFF;
+            $g = ($c >> 8) & 0xFF;
+            $b = $c & 0xFF;
+            if ($this->isKnockoutColor($r, $g, $b, $a)) {
+                $queue[] = $i;
+            }
+        };
+
+        for ($x = 0; $x < $w; $x++) {
+            $push($x, 0);
+            $push($x, $h - 1);
+        }
+        for ($y = 0; $y < $h; $y++) {
+            $push(0, $y);
+            $push($w - 1, $y);
+        }
+
+        $qi = 0;
+        while ($qi < count($queue)) {
+            $i = $queue[$qi++];
+            $x = $i % $w;
+            $y = intdiv($i, $w);
+            imagesetpixel($im, $x, $y, $clear);
+            $push($x + 1, $y);
+            $push($x - 1, $y);
+            $push($x, $y + 1);
+            $push($x, $y - 1);
+        }
+    }
+
+    private function isKnockoutColor(int $r, int $g, int $b, int $a): bool
+    {
+        if ($a >= 120) {
+            return false;
+        }
+        $mx = max($r, $g, $b);
+        $mn = min($r, $g, $b);
+        if (($mx - $mn) > 40) {
+            return false;
+        }
+        if ($mx >= 210 && ($mx - $mn) <= 28) {
+            return true;
+        }
+        if ($mx <= 28 && ($mx - $mn) <= 18) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /** @param \GdImage|resource $im */
+    private function pngBytes($im): string
+    {
+        imagealphablending($im, false);
+        imagesavealpha($im, true);
+        ob_start();
+        $ok = imagepng($im, null, 6);
+        $out = (string) ob_get_clean();
+        imagedestroy($im);
+        if ($ok === false || $out === '') {
+            return '';
+        }
+
+        return $out;
+    }
+
     private function labelAssistSystemPrompt(): string
     {
         return <<<'PROMPT'
@@ -1057,14 +1265,17 @@ intent 선택 규칙:
    - message에는 추천 이유(용도·모양·크기)를 2~4문장으로 적습니다.
 2) generate_clipart — 라벨 위에 넣을 일러스트·아이콘·로고성 그림·캐릭터·장식 클립아트를 "그려달라"고 할 때.
    - clipart_prompt에 인쇄용 스티커 클립아트에 맞는 영어 프롬프트를 작성합니다.
-   - 흰 배경, 중앙 모티브, 텍스트/워터마크 없음, 플랫·선명한 벡터 느낌으로 유도하세요.
+   - 반드시 투명 배경(PNG alpha). 흰/검정/회색 스튜디오 배경 금지. 중앙 모티브, 텍스트/워터마크 없음, 플랫·선명한 벡터 느낌.
    - 첨부 이미지가 있으면 그 분위기·모티프를 반영하되 장식이 되는 클립아트로 재해석합니다.
 3) generate_template — 완성된 라벨 디자인/템플릿을 만들어 편집기에서 쓰려 할 때.
    - clipart_prompt에는 글자·숫자·특수문자가 없는 배경/장식만 영어로 묘사합니다.
    - 절대 이미지 안에 문구·가격·날짜·성분 등 텍스트를 그리지 마세요. (텍스트는 서버가 별도 텍스트 오브젝트로 만듭니다.)
-   - 캔버스를 가장자리까지 채우고(full-bleed), 목업·책상·찢어진 종이·여백 배경은 넣지 마세요.
+   - 캔버스를 가장자리까지 채우고(full-bleed). 흰 스튜디오·목업·책상·찢어진 종이·여백 배경은 넣지 마세요. 인쇄 장식이 아닌 영역은 투명.
    - 첨부 이미지의 구도·색·장식 분위기를 살립니다.
-   - width_mm/height_mm에 적당한 라벨 규격(없으면 70×36)을 넣습니다.
+   - 고객이 말한 용도·모양·크기·재질을 카탈로그 상품의 이름/분류/규격에 맞춰 가장 가까운 1개를 product_id로 고릅니다. 카탈로그에 없는 용지 id는 쓰지 마세요.
+   - 예: 반찬통·뚜껑·원형 → 정사각/원형(40×40, 63.5×63.5, SKU에 R) 또는 방수 소형. 주소·택배 → 큰 직사각. 바코드·피킹 → 70×36 근처.
+   - 처음 보는 용도여도 “비슷한 크기·모양·재질”로 고르고, 전혀 모르겠으면 product_id는 null, message에서 크기나 모양만 한 가지 물어보세요.
+   - width_mm/height_mm는 고른 상품 규격과 같게 둡니다. 막연히 70×36을 넣지 마세요.
 4) ask_image_mode — 첨부 이미지가 있는데 클립아트인지 템플릿인지 분명하지 않을 때.
    - 이미지를 생성하지 않습니다.
    - message에서 클립아트 그리기 / 템플릿 만들기 중 고르라고 짧게 안내합니다.
@@ -1075,7 +1286,8 @@ intent 선택 규칙:
 - "고양이 그림 그려줘", "로고 아이콘 만들어줘"처럼 그림만 생성이면 generate_clipart입니다.
 - "템플릿 만들어줘", "이 사진으로 라벨 디자인 만들어줘"면 generate_template입니다.
 - 이미지만 보냈거나 "이거 참고해서"처럼 목적이 모호하면 ask_image_mode입니다. 추측으로 바로 그리지 마세요.
-- product_id는 카탈로그에 있는 id만 사용합니다.
+- product_id는 카탈로그에 있는 id만 사용합니다. 용도를 다 외울 필요는 없고, 문장을 모양·크기·재질 제약으로 바꿔 카탈로그에서 고르면 됩니다.
+- 확신이 없으면 상품을 억지로 고르지 말고 크기/모양을 한 가지만 되묻습니다.
 - message는 불필요하게 길지 않게 핵심만 전달합니다.
 PROMPT;
     }

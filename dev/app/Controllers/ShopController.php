@@ -55,12 +55,31 @@ final class ShopController extends BaseController
         $category = $categorySlug !== '' ? $this->shop->categoryBySlug($categorySlug) : null;
         $list = $this->shop->listProducts($filters, $page, 12);
 
+        $home = $this->shop->homeData();
+        $rootCategories = $home['categories'];
+        $childCategories = [];
+        $parentCategory = null;
+        $selectedParentId = (int) ($category['parent_id'] ?? 0);
+        if ($category && $selectedParentId <= 0) {
+            $selectedParentId = (int) ($category['id'] ?? 0);
+            $parentCategory = $category;
+        }
+        foreach ($rootCategories as $root) {
+            if ((int) ($root['id'] ?? 0) === $selectedParentId) {
+                $parentCategory = $root;
+                $childCategories = is_array($root['children'] ?? null) ? $root['children'] : [];
+                break;
+            }
+        }
+
         $this->renderShop('shop/products', '상품 목록 — 라벨업 쇼핑몰', [
             'seoPage' => 'shop-products',
             'list' => $list,
             'filters' => $filters,
             'category' => $category,
-            'categories' => $this->shop->homeData()['categories'],
+            'parentCategory' => $parentCategory,
+            'categories' => $rootCategories,
+            'childCategories' => $childCategories,
             'q' => $q,
         ]);
     }
@@ -154,7 +173,8 @@ final class ShopController extends BaseController
 
     private function renderShop(string $template, string $title, array $data = []): void
     {
-        $categories = $data['categories'] ?? $this->shop->homeData()['categories'];
+        $home = $this->shop->homeData();
+        $categories = $data['categories'] ?? $home['categories'];
         view('shop/layout', array_merge($data, [
             'contentTemplate' => $template,
             'pageTitle' => $title,
@@ -162,7 +182,7 @@ final class ShopController extends BaseController
             'cartCount' => $this->shop->cartCount(),
             'activeNav' => 'shop',
             'shopService' => $this->shop,
-            'shopCategories' => $categories,
+            'shopCategories' => $data['shopCategories'] ?? $home['allCategories'],
             'shopSubNav' => $this->resolveShopSubNav($template, $data),
             'eventPopups' => (new EventPopupService())->activeForSite(),
         ]));

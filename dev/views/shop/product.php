@@ -12,8 +12,20 @@ $headerHtml = trim((string) ($pageLayout['header_html'] ?? ''));
 $footerHtml = trim((string) ($pageLayout['footer_html'] ?? ''));
 $headerImageUrl = trim((string) ($pageLayout['header_image_url'] ?? ''));
 $footerImageUrl = trim((string) ($pageLayout['footer_image_url'] ?? ''));
-$hasHeader = !empty($pageLayout['has_header']);
-$hasFooter = !empty($pageLayout['has_footer']);
+$headerBlocks = $pageLayout['header_blocks'] ?? [];
+$footerBlocks = $pageLayout['footer_blocks'] ?? [];
+if (!is_array($headerBlocks) || $headerBlocks === []) {
+    if ($headerHtml !== '' || $headerImageUrl !== '') {
+        $headerBlocks = [['html' => $headerHtml, 'image_url' => $headerImageUrl, 'kind' => 'header']];
+    }
+}
+if (!is_array($footerBlocks) || $footerBlocks === []) {
+    if ($footerHtml !== '' || $footerImageUrl !== '') {
+        $footerBlocks = [['html' => $footerHtml, 'image_url' => $footerImageUrl, 'kind' => 'footer']];
+    }
+}
+$hasHeader = $headerBlocks !== [];
+$hasFooter = $footerBlocks !== [];
 $hasEditable = $shopService->hasEditableSpec($product);
 $compatFormtec = \App\Helpers\ShopCompatHelper::parse($product['compat_formtec'] ?? null);
 $compatIlabel = \App\Helpers\ShopCompatHelper::parse($product['compat_ilabel'] ?? null);
@@ -127,16 +139,9 @@ $hasDetailBody = $detailHtml !== '' || $description !== '';
 <?php if ($hasHeader || $hasDetailBody || $hasFooter): ?>
 <section class="shop-detail-longform" aria-label="상품 상세 내용">
   <?php if ($hasHeader): ?>
-  <div class="shop-detail-page-block shop-detail-page-block--header">
-    <?php if ($headerImageUrl !== ''): ?>
-    <div class="shop-detail-page-media">
-      <img src="<?= e($headerImageUrl) ?>" alt="상품 상세 헤더 이미지">
-    </div>
-    <?php endif; ?>
-    <?php if ($headerHtml !== ''): ?>
-    <div class="shop-detail-page-html"><?= $headerHtml ?></div>
-    <?php endif; ?>
-  </div>
+    <?php foreach ($headerBlocks as $block): ?>
+      <?php $kind = 'header'; require view_path('shop/partials/page-layout-block.php'); ?>
+    <?php endforeach; ?>
   <?php endif; ?>
 
   <?php if ($hasDetailBody): ?>
@@ -179,16 +184,9 @@ $hasDetailBody = $detailHtml !== '' || $description !== '';
   <?php endif; ?>
 
   <?php if ($hasFooter): ?>
-  <div class="shop-detail-page-block shop-detail-page-block--footer">
-    <?php if ($footerHtml !== ''): ?>
-    <div class="shop-detail-page-html"><?= $footerHtml ?></div>
-    <?php endif; ?>
-    <?php if ($footerImageUrl !== ''): ?>
-    <div class="shop-detail-page-media">
-      <img src="<?= e($footerImageUrl) ?>" alt="상품 상세 푸터 이미지">
-    </div>
-    <?php endif; ?>
-  </div>
+    <?php foreach ($footerBlocks as $block): ?>
+      <?php $kind = 'footer'; require view_path('shop/partials/page-layout-block.php'); ?>
+    <?php endforeach; ?>
   <?php endif; ?>
 </section>
 <?php endif; ?>

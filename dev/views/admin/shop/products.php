@@ -15,12 +15,10 @@ $statuses = ['active', 'soldout', 'hidden', 'draft'];
 </div>
 <form class="admin-filter-bar" method="get" action="<?= url('admin/shop/products') ?>">
   <input class="admin-input admin-input--search" type="search" name="q" value="<?= e($filters['q'] ?? '') ?>" placeholder="<?= "\u{C0C1}\u{D488}\u{BA85}, SKU \u{AC80}\u{C0C9}" ?>">
-  <select class="admin-select" name="category_id">
-    <option value=""><?= "\u{C804}\u{CCB4} \u{CE74}\u{D14C}\u{ACE0}\u{B9AC}" ?></option>
-    <?php foreach ($categories as $cat): ?>
-    <option value="<?= (int) $cat['id'] ?>"<?= ((int) ($filters['category_id'] ?? 0) === (int) $cat['id']) ? ' selected' : '' ?>><?= e((string) $cat['name']) ?></option>
-    <?php endforeach; ?>
-  </select>
+  <?php
+    $selectedId = (int) ($filters['category_id'] ?? 0);
+    require view_path('admin/partials/category-filter.php');
+  ?>
   <select class="admin-select" name="spec_id">
     <option value=""><?= "\u{C804}\u{CCB4} \u{ADC0}\u{ACA9}" ?></option>
     <?php foreach ($specs as $spec): ?>
@@ -67,7 +65,11 @@ $statuses = ['active', 'soldout', 'hidden', 'draft'];
         </form>
       </td>
       <td><code><?= e($row['sku']) ?></code></td>
-      <td><?= e($row['category_name'] ?? '-') ?></td>
+      <td><?php
+        $parentCat = trim((string) ($row['parent_category_name'] ?? ''));
+        $catName = trim((string) ($row['category_name'] ?? ''));
+        echo e($parentCat !== '' && $catName !== '' ? $parentCat . ' / ' . $catName : ($catName !== '' ? $catName : '-'));
+      ?></td>
       <td><?= e($row['spec_name'] ?? '-') ?></td>
       <td><?= number_format((int) $row['price']) ?>원<?php if (!empty($row['sale_price'])): ?> <small class="admin-muted">→ <?= number_format((int) $row['sale_price']) ?>원</small><?php endif; ?></td>
       <td><?= number_format((int) $row['stock_qty']) ?></td>

@@ -32,10 +32,21 @@ $pageTitle = '미리보기 · ' . (string) ($product['name'] ?? '상품');
       font:inherit;font-weight:700;cursor:pointer;text-decoration:none;color:#1f2430;background:#fff;
     }
     .preview-banner a.is-muted{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35)}
-    .preview-wrap{width:100%;max-width:100%;margin:0;padding:20px 16px 40px;box-sizing:border-box}
+    /* 실제 상품 페이지와 본문 폭을 맞추기 위해 좌측 사이드바(232px)·우측 사이드 패널(240px) 자리를 그대로 비워 둔다 */
+    .preview-stage{margin-left:232px}
+    .preview-wrap{
+      display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:24px;
+      padding:20px 31px 40px 39px;box-sizing:border-box;
+    }
+    .preview-aside{min-width:0}
+    @media (max-width:1080px){
+      .preview-stage{margin-left:0}
+      .preview-wrap{grid-template-columns:1fr;padding:16px 16px 40px}
+      .preview-aside{display:none}
+    }
   </style>
 </head>
-<body>
+<body class="shop-page">
   <div class="preview-banner">
     <div>
       <strong>상품 상세 미리보기</strong>
@@ -50,8 +61,13 @@ $pageTitle = '미리보기 · ' . (string) ($product['name'] ?? '상품');
       <button type="button" onclick="window.close()">닫기</button>
     </div>
   </div>
-  <div class="preview-wrap shop-content">
-    <?php require view_path('shop/product.php'); ?>
+  <div class="preview-stage">
+    <div class="preview-wrap">
+      <div class="shop-content">
+        <?php require view_path('shop/product.php'); ?>
+      </div>
+      <div class="preview-aside" aria-hidden="true"></div>
+    </div>
   </div>
 </body>
 </html>

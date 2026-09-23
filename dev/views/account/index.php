@@ -85,10 +85,12 @@ $usagePct = $usageLimit > 0 ? min(100, (int) round(($usageUsed / max(1, $usageLi
       <?php foreach ($dash['recentDesigns'] as $d): ?>
       <a class="account-design-card" href="<?= e((string) ($d['href'] ?? url('editor/'))) ?>">
         <div class="account-design-thumb">
-          <?php if (!empty($d['thumb'])): ?>
-          <img src="<?= e((string) $d['thumb']) ?>" alt="<?= e((string) $d['name']) ?>">
+          <?php if (!empty($d['preview_svg'])): ?>
+          <span class="tpl-preview"><?= $d['preview_svg'] ?></span>
+          <?php elseif (!empty($d['thumb'])): ?>
+          <img src="<?= e((string) $d['thumb']) ?>" alt="">
           <?php else: ?>
-          <span class="account-design-fallback">라벨</span>
+          <span class="account-design-fallback"><?= e(mb_substr((string) ($d['name'] ?? '라벨'), 0, 10)) ?></span>
           <?php endif; ?>
         </div>
         <span class="account-design-status is-editing">편집중</span>

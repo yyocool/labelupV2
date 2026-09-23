@@ -23,13 +23,53 @@ final class ShopService
 
     public function homeData(): array
     {
+        $tree = $this->repo->activeCategories();
+        $roots = [];
+        foreach (self::groupCategoryTree($tree) as $group) {
+            $parent = $group['parent'];
+            $parent['children'] = $group['children'];
+            $roots[] = $parent;
+        }
+
         return [
             'banners' => $this->repo->activeBanners(),
-            'categories' => $this->repo->activeCategories(),
+            'categories' => $roots,
+            'allCategories' => $tree,
             'specs' => $this->repo->activeSpecs(8),
             'materialProducts' => $this->repo->productsGroupedByMaterial(4),
             'featuredProducts' => $this->repo->activeProducts([], 1, 8)['items'],
         ];
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $categories
+     * @return list<array{parent: array<string, mixed>, children: list<array<string, mixed>>}>
+     */
+    public static function groupCategoryTree(array $categories): array
+    {
+        $groups = [];
+        $current = null;
+        foreach ($categories as $cat) {
+            $depth = (int) ($cat['depth'] ?? 0);
+            $parentId = (int) ($cat['parent_id'] ?? 0);
+            if ($depth === 0 || $parentId <= 0) {
+                if ($current !== null) {
+                    $groups[] = $current;
+                }
+                $current = ['parent' => $cat, 'children' => []];
+                continue;
+            }
+            if ($current === null) {
+                $current = ['parent' => $cat, 'children' => []];
+                continue;
+            }
+            $current['children'][] = $cat;
+        }
+        if ($current !== null) {
+            $groups[] = $current;
+        }
+
+        return $groups;
     }
 
     /** @return array{items: array<int, array<string, mixed>>, total: int, page: int, pages: int} */
@@ -199,11 +239,14 @@ final class ShopService
             $items[] = $this->presentPublicProduct($row);
         }
         $categories = [];
-        foreach ($this->homeData()['categories'] as $cat) {
+        foreach ($this->repo->activeCategories() as $cat) {
             $categories[] = [
                 'id' => (int) ($cat['id'] ?? 0),
                 'name' => (string) ($cat['name'] ?? ''),
                 'slug' => (string) ($cat['slug'] ?? ''),
+                'parent_id' => (int) ($cat['parent_id'] ?? 0),
+                'depth' => (int) ($cat['depth'] ?? 0),
+                'parent_name' => (string) ($cat['parent_name'] ?? ''),
             ];
         }
         return [
@@ -580,60 +623,156 @@ final class ShopService
     }
 
     /**
+     * 상품 상세 레이아웃 순서:
+     * 공통 헤더 → 카테고리 헤더(1차→2차) → 상세 내용 → 카테고리 푸터(2차→1차) → 공통 푸터
+     *
      * @return array{
      *   header_html:string,footer_html:string,header_image:string,footer_image:string,
      *   header_image_url:string,footer_image_url:string,has_header:bool,has_footer:bool,
-     *   source:string,category_id:int
+     *   source:string,category_id:int,category_ids:list<int>,
+     *   header_blocks:list<array<string,mixed>>,footer_blocks:list<array<string,mixed>>
      * }
      */
     public function productPageLayout(?int $categoryId = null): array
     {
         $global = (new ShopProductPageSettingsRepository())->get();
-        $headerHtml = trim($global['header_html']);
-        $footerHtml = trim($global['footer_html']);
-        $headerImage = trim($global['header_image']);
-        $footerImage = trim($global['footer_image']);
-        $source = 'global';
         $cid = $categoryId !== null && $categoryId > 0 ? $categoryId : 0;
+        $chain = $this->categoryLayoutChain($cid);
 
-        if ($cid > 0) {
+        $headerBlocks = [];
+        $categoryFooters = [];
+        $settingsRepo = new ShopProductPageCategorySettingsRepository();
+
+        $globalMeta = ['id' => 0, 'name' => '', 'depth' => -1];
+        $globalHeader = $this->pageLayoutBlockFromSettings($global, 'header', $globalMeta, 'global');
+        if ($globalHeader !== null) {
+            $headerBlocks[] = $globalHeader;
+        }
+
+        foreach ($chain as $cat) {
+            $id = (int) ($cat['id'] ?? 0);
+            if ($id <= 0) {
+                continue;
+            }
             try {
-                $custom = (new ShopProductPageCategorySettingsRepository())->findByCategoryId($cid);
+                $custom = $settingsRepo->findByCategoryId($id);
             } catch (\Throwable) {
                 $custom = null;
             }
-            if (is_array($custom)) {
-                $cHeaderHtml = trim($custom['header_html']);
-                $cFooterHtml = trim($custom['footer_html']);
-                $cHeaderImage = trim($custom['header_image']);
-                $cFooterImage = trim($custom['footer_image']);
-                $hasAny = $cHeaderHtml !== '' || $cFooterHtml !== '' || $cHeaderImage !== '' || $cFooterImage !== '';
-                if ($hasAny) {
-                    // 카테고리 값이 있으면 해당 필드만 덮어쓰고, 비어 있으면 공통 설정 유지
-                    if ($cHeaderHtml !== '' || $cHeaderImage !== '') {
-                        $headerHtml = $cHeaderHtml;
-                        $headerImage = $cHeaderImage;
-                    }
-                    if ($cFooterHtml !== '' || $cFooterImage !== '') {
-                        $footerHtml = $cFooterHtml;
-                        $footerImage = $cFooterImage;
-                    }
-                    $source = 'category';
-                }
+            if (!is_array($custom)) {
+                continue;
+            }
+            $header = $this->pageLayoutBlockFromSettings($custom, 'header', $cat);
+            if ($header !== null) {
+                $headerBlocks[] = $header;
+            }
+            $footer = $this->pageLayoutBlockFromSettings($custom, 'footer', $cat);
+            if ($footer !== null) {
+                $categoryFooters[] = $footer;
             }
         }
 
+        $footerBlocks = array_reverse($categoryFooters);
+        $globalFooter = $this->pageLayoutBlockFromSettings($global, 'footer', $globalMeta, 'global');
+        if ($globalFooter !== null) {
+            $footerBlocks[] = $globalFooter;
+        }
+
+        $hasCategory = false;
+        foreach (array_merge($headerBlocks, $footerBlocks) as $block) {
+            if (($block['source'] ?? '') === 'category') {
+                $hasCategory = true;
+                break;
+            }
+        }
+        $source = 'none';
+        if ($headerBlocks !== [] || $footerBlocks !== []) {
+            $source = $hasCategory ? 'stack' : 'global';
+        }
+
+        $firstHeader = $headerBlocks[0] ?? null;
+        $firstFooter = $footerBlocks[0] ?? null;
+
         return [
-            'header_html' => $headerHtml,
-            'footer_html' => $footerHtml,
-            'header_image' => $headerImage,
-            'footer_image' => $footerImage,
-            'header_image_url' => ShopProductImageService::resolveUrl($headerImage),
-            'footer_image_url' => ShopProductImageService::resolveUrl($footerImage),
-            'has_header' => $headerHtml !== '' || $headerImage !== '',
-            'has_footer' => $footerHtml !== '' || $footerImage !== '',
+            'header_blocks' => $headerBlocks,
+            'footer_blocks' => $footerBlocks,
+            'header_html' => (string) ($firstHeader['html'] ?? ''),
+            'footer_html' => (string) ($firstFooter['html'] ?? ''),
+            'header_image' => (string) ($firstHeader['image'] ?? ''),
+            'footer_image' => (string) ($firstFooter['image'] ?? ''),
+            'header_image_url' => (string) ($firstHeader['image_url'] ?? ''),
+            'footer_image_url' => (string) ($firstFooter['image_url'] ?? ''),
+            'has_header' => $headerBlocks !== [],
+            'has_footer' => $footerBlocks !== [],
             'source' => $source,
             'category_id' => $cid,
+            'category_ids' => array_values(array_map(
+                static fn (array $row): int => (int) ($row['id'] ?? 0),
+                $chain
+            )),
+        ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function categoryLayoutChain(int $categoryId): array
+    {
+        if ($categoryId <= 0) {
+            return [];
+        }
+
+        $seen = [];
+        $stack = [];
+        $id = $categoryId;
+        for ($i = 0; $i < 3 && $id > 0; $i++) {
+            if (isset($seen[$id])) {
+                break;
+            }
+            $seen[$id] = true;
+            $cat = $this->repo->findCategoryById($id);
+            if (!$cat) {
+                break;
+            }
+            array_unshift($stack, $cat);
+            $id = (int) ($cat['parent_id'] ?? 0);
+        }
+
+        foreach ($stack as $index => $row) {
+            $stack[$index]['depth'] = $index;
+        }
+
+        return $stack;
+    }
+
+    /**
+     * @param array<string, mixed> $settings
+     * @param array<string, mixed> $category
+     * @return array<string, mixed>|null
+     */
+    private function pageLayoutBlockFromSettings(
+        array $settings,
+        string $kind,
+        array $category,
+        string $source = 'category'
+    ): ?array {
+        $htmlKey = $kind === 'footer' ? 'footer_html' : 'header_html';
+        $imageKey = $kind === 'footer' ? 'footer_image' : 'header_image';
+        $html = trim((string) ($settings[$htmlKey] ?? ''));
+        $image = trim((string) ($settings[$imageKey] ?? ''));
+        if ($html === '' && $image === '') {
+            return null;
+        }
+
+        return [
+            'kind' => $kind,
+            'source' => $source,
+            'html' => $html,
+            'image' => $image,
+            'image_url' => ShopProductImageService::resolveUrl($image),
+            'category_id' => (int) ($category['id'] ?? 0),
+            'category_name' => (string) ($category['name'] ?? ''),
+            'depth' => (int) ($category['depth'] ?? 0),
         ];
     }
 

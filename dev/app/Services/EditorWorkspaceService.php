@@ -70,19 +70,41 @@ final class EditorWorkspaceService
     private function present(array $row, bool $withDocument): array
     {
         $id = (int) ($row['id'] ?? 0);
-        $preview = $this->previewUrl((string) ($row['preview_path'] ?? ''));
+        $doc = null;
+        $docJson = (string) ($row['document_json'] ?? '');
+        if ($docJson !== '') {
+            $decoded = json_decode($docJson, true);
+            $doc = is_array($decoded) ? $decoded : null;
+        }
+        $previewSvg = '';
+        if ($doc !== null) {
+            $previewDoc = $doc;
+            $uid = (int) ($row['user_id'] ?? 0);
+            if ($uid > 0) {
+                $this->walkDocumentMedia($previewDoc, $uid, true);
+            }
+            $previewSvg = LabelTemplatePreview::svgFromRow($row, $previewDoc);
+        }
+        $previewUrl = $this->previewUrl((string) ($row['preview_path'] ?? ''));
+        if ($previewUrl === '' && $previewSvg !== '') {
+            $previewUrl = $this->storeSvgPreview(
+                (int) ($row['user_id'] ?? 0),
+                $id,
+                $previewSvg
+            );
+        }
         $out = [
             'id' => $id,
             'title' => (string) ($row['title'] ?? '새 라벨 디자인'),
-            'preview_url' => $preview,
+            'preview_url' => $previewUrl,
+            'preview_svg' => $previewSvg,
             'updated_at' => $row['updated_at'] ?? null,
             'updated_label' => $this->formatUpdated((string) ($row['updated_at'] ?? '')),
             'editor_url' => url('editor/') . ($id > 0 ? '?project=' . $id : ''),
         ];
         if ($withDocument) {
-            $doc = json_decode((string) ($row['document_json'] ?? ''), true);
             $ui = json_decode((string) ($row['ui_json'] ?? ''), true);
-            $out['document'] = is_array($doc) ? $doc : null;
+            $out['document'] = $doc;
             $out['ui'] = is_array($ui) ? $ui : null;
         }
         return $out;
@@ -99,9 +121,37 @@ final class EditorWorkspaceService
         }
         $rel = ltrim($path, '/');
         if (str_starts_with($rel, 'assets/')) {
-            return asset(substr($rel, strlen('assets/')));
+            $rel = substr($rel, strlen('assets/'));
+        }
+        $full = public_path('assets/' . $rel);
+        if (!is_file($full) || filesize($full) < 32) {
+            return '';
         }
         return asset($rel);
+    }
+
+    private function storeSvgPreview(int $userId, int $id, string $svg): string
+    {
+        if ($userId <= 0 || $id <= 0 || trim($svg) === '') {
+            return '';
+        }
+        $svg = LabelTemplatePreview::withInlinedImages($svg);
+        $dir = public_path('assets/editor-previews/' . $userId);
+        if (!is_dir($dir) && !@mkdir($dir, 0777, true) && !is_dir($dir)) {
+            return '';
+        }
+        @chmod($dir, 0777);
+        $rel = 'editor-previews/' . $userId . '/' . $id . '.svg';
+        $full = public_path('assets/' . $rel);
+        if (@file_put_contents($full, $svg) === false) {
+            // 파일이 안 써져도 data URL은 반환한다.
+        } else {
+            @chmod($full, 0666);
+        }
+        if (strlen($svg) > 1_200_000) {
+            return asset($rel);
+        }
+        return 'data:image/svg+xml;charset=utf-8;base64,' . base64_encode($svg);
     }
 
     private function formatUpdated(string $at): string
@@ -172,34 +222,34 @@ final class EditorWorkspaceService
     /**
      * @param array<string, mixed>|list<mixed> $node
      */
-    private function walkDocumentMedia(array &$node, int $userId): void
+    private function walkDocumentMedia(array &$node, int $userId, bool $force = false): void
     {
         foreach ($node as $key => &$value) {
             if (is_string($value)
                 && (strcasecmp((string) $key, 'imageData') === 0 || strcasecmp((string) $key, 'image_data') === 0)
             ) {
-                $replaced = $this->storeMediaDataUrl($userId, $value);
+                $replaced = $this->storeMediaDataUrl($userId, $value, $force);
                 if ($replaced !== null) {
                     $value = $replaced;
                 }
                 continue;
             }
             if (is_array($value)) {
-                $this->walkDocumentMedia($value, $userId);
+                $this->walkDocumentMedia($value, $userId, $force);
             }
         }
         unset($value);
     }
 
-    private function storeMediaDataUrl(int $userId, string $dataUrl): ?string
+    private function storeMediaDataUrl(int $userId, string $dataUrl, bool $force = false): ?string
     {
         $dataUrl = trim($dataUrl);
         // 이미 URL/경로면 그대로 둔다.
         if ($dataUrl === '' || !str_starts_with(strtolower($dataUrl), 'data:image/')) {
             return null;
         }
-        // 작은 인라인(아이콘 등)은 유지. 임계값 초과만 파일화.
-        if (strlen($dataUrl) < 24_000) {
+        // 작은 인라인(아이콘 등)은 유지. 미리보기 강제 시에는 파일로 뺀다.
+        if (!$force && strlen($dataUrl) < 24_000) {
             return null;
         }
         if (!preg_match('#^data:image/(png|jpeg|jpg|webp|gif);base64,([A-Za-z0-9+/=\s]+)$#i', $dataUrl, $m)) {

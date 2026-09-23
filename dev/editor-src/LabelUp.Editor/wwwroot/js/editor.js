@@ -2986,7 +2986,6 @@ window.labelUpEditor = {
       if (!box) return;
       var bal = box.querySelector('[data-credit-balance]');
       var list = box.querySelector('[data-credit-list]');
-      var more = box.querySelector('[data-credit-more]');
       if (bal) bal.textContent = fmt(state.balance);
       if (list) {
         if (!state.items.length) {
@@ -2995,7 +2994,6 @@ window.labelUpEditor = {
           list.innerHTML = state.items.map(rowHtml).join('');
         }
       }
-      if (more) more.hidden = state.page >= state.pages;
     };
 
     var openModal = function () {
@@ -3008,9 +3006,8 @@ window.labelUpEditor = {
         '<div class="ed-modal__head"><div><h3 id="lu-credit-title">크레딧 사용 이력</h3>' +
         '<p>남은 크레딧 <strong data-credit-balance>0 C</strong></p></div>' +
         '<button type="button" class="ed-modal__close" data-credit-close aria-label="닫기">×</button></div>' +
-        '<div class="ed-modal__body"><div class="ed-credit-list" data-credit-list></div>' +
-        '<button type="button" class="ed-credit-more" data-credit-more hidden>더 보기</button></div>' +
-        '<div class="ed-modal__foot"><a class="ed-btn" href="/account#credits">내 계정에서 보기</a>' +
+        '<div class="ed-modal__body"><div class="ed-credit-list" data-credit-list></div></div>' +
+        '<div class="ed-modal__foot"><a class="ed-btn" href="/account#credits">마이페이지에서 보기</a>' +
         '<button type="button" class="ed-btn ed-btn--primary" data-credit-close>닫기</button></div></div>';
       document.body.appendChild(root);
       renderModal();
@@ -3018,7 +3015,6 @@ window.labelUpEditor = {
       var close = function () { root.remove(); };
       root.addEventListener('click', function (e) {
         if (e.target === root || (e.target.closest && e.target.closest('[data-credit-close]'))) close();
-        if (e.target.closest && e.target.closest('[data-credit-more]')) load(state.page + 1, false);
       });
     };
 

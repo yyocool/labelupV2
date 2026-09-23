@@ -1,3 +1,4 @@
+@using System.Linq
 @using System.Text.Json
 @using System.Text.Json.Serialization
 @using LabelUp.Editor.Models
@@ -32,13 +33,29 @@
         <input class="ed-paper-search" type="search" placeholder="상품명, 규격, SKU 검색"
                @bind="_query" @bind:event="oninput" @onkeydown="OnSearchKey" />
         <button type="button" class="ed-btn" @onclick="() => LoadCatalogAsync(1)">검색</button>
-        <select class="ed-paper-select" @bind="_category" @bind:after="() => LoadCatalogAsync(1)">
-          <option value="">전체 카테고리</option>
-          @foreach (var cat in _categories)
-          {
-            <option value="@cat.Slug">@cat.Name</option>
-          }
-        </select>
+        <label class="ed-shop-cat">
+          <span>1차</span>
+          <select class="ed-paper-select" @bind="_parentCategory" @bind:after="OnParentCategoryChanged">
+            <option value="">전체</option>
+            @foreach (var cat in RootCategories)
+            {
+              <option value="@cat.Slug">@cat.Name</option>
+            }
+          </select>
+        </label>
+        @if (ChildCategories.Count > 0)
+        {
+          <label class="ed-shop-cat ed-shop-cat--child">
+            <span>2차</span>
+            <select class="ed-paper-select" @bind="_childCategory" @bind:after="OnChildCategoryChanged">
+              <option value="">전체</option>
+              @foreach (var cat in ChildCategories)
+              {
+                <option value="@cat.Slug">@cat.Name</option>
+              }
+            </select>
+          </label>
+        }
         <span class="ed-paper-count">@_total 개</span>
       </div>
 
@@ -385,6 +402,8 @@
     private bool _busy;
     private string _query = "";
     private string _category = "";
+    private string _parentCategory = "";
+    private string _childCategory = "";
     private string _error = "";
     private string _flash = "";
     private int _page = 1;
@@ -482,6 +501,33 @@
         _query = paperNo ?? paper.PaperNo ?? "";
         if (string.IsNullOrWhiteSpace(_flash) && string.IsNullOrWhiteSpace(_error))
             _flash = "현재 용지에 연결된 판매 상품이 없습니다. 상품관리에 등록된 용지를 목록에서 선택해 주세요.";
+        await LoadCatalogAsync(1);
+    }
+
+    private List<ShopCategoryDto> RootCategories =>
+        _categories.Where(c => c.ParentId <= 0).ToList();
+
+    private List<ShopCategoryDto> ChildCategories
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(_parentCategory)) return [];
+            var parent = _categories.FirstOrDefault(c => c.ParentId <= 0 && c.Slug == _parentCategory);
+            if (parent is null) return [];
+            return _categories.Where(c => c.ParentId == parent.Id).ToList();
+        }
+    }
+
+    private async Task OnParentCategoryChanged()
+    {
+        _childCategory = "";
+        _category = _parentCategory;
+        await LoadCatalogAsync(1);
+    }
+
+    private async Task OnChildCategoryChanged()
+    {
+        _category = string.IsNullOrWhiteSpace(_childCategory) ? _parentCategory : _childCategory;
         await LoadCatalogAsync(1);
     }
 
@@ -763,6 +809,9 @@
         public int Id { get; set; }
         public string Name { get; set; } = "";
         public string Slug { get; set; } = "";
+        [JsonPropertyName("parent_id")]
+        public int ParentId { get; set; }
+        public int Depth { get; set; }
     }
 
     private sealed class ShopProductDto

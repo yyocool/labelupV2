@@ -19,6 +19,9 @@ final class LabelTemplatePreview
         $objects = self::firstObjects($document);
 
         $parts = [self::shapeFill($kind, $w, $h, $radius, $bg)];
+        $clipId = 'lp' . preg_replace('/[^a-zA-Z0-9]/', '', (string) ($row['id'] ?? ''))
+            . substr(md5($w . 'x' . $h . $kind . ($row['title'] ?? '') . ($row['updated_at'] ?? '')), 0, 8);
+        $inner = [];
         foreach ($objects as $obj) {
             if (!is_array($obj)) {
                 continue;
@@ -28,13 +31,50 @@ final class LabelTemplatePreview
             }
             $drawn = self::objectSvg($obj);
             if ($drawn !== '') {
-                $parts[] = $drawn;
+                $inner[] = $drawn;
             }
         }
 
-        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' . self::n($w) . ' ' . self::n($h) . '" preserveAspectRatio="xMidYMid meet" role="img">'
+        $clipDef = '<defs><clipPath id="' . $clipId . '">' . self::shapeFill($kind, $w, $h, $radius, '#fff') . '</clipPath></defs>';
+        $body = $inner === []
+            ? ''
+            : '<g clip-path="url(#' . $clipId . ')">' . implode('', $inner) . '</g>';
+
+        return '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="' . self::n($w) . '" height="' . self::n($h) . '" viewBox="0 0 ' . self::n($w) . ' ' . self::n($h) . '" preserveAspectRatio="xMidYMid meet" role="img">'
+            . $clipDef
             . implode('', $parts)
+            . $body
             . '</svg>';
+    }
+
+    /** img src로 쓸 수 있게 로컬 이미지를 data URI로 넣는다. */
+    public static function withInlinedImages(string $svg): string
+    {
+        $out = preg_replace_callback(
+            '#((?:href|xlink:href)=")(/assets/[^"]+)(")#',
+            static function (array $m): string {
+                $full = public_path(ltrim($m[2], '/'));
+                if (!is_file($full)) {
+                    return $m[1] . $m[2] . $m[3];
+                }
+                $ext = strtolower((string) pathinfo($full, PATHINFO_EXTENSION));
+                $mime = match ($ext) {
+                    'jpg', 'jpeg' => 'image/jpeg',
+                    'gif' => 'image/gif',
+                    'webp' => 'image/webp',
+                    'svg' => 'image/svg+xml',
+                    default => 'image/png',
+                };
+                $bin = @file_get_contents($full);
+                if (!is_string($bin) || $bin === '') {
+                    return $m[1] . $m[2] . $m[3];
+                }
+                return $m[1] . 'data:' . $mime . ';base64,' . base64_encode($bin) . $m[3];
+            },
+            $svg
+        );
+
+        return is_string($out) ? $out : $svg;
     }
 
     /** @param array<string, mixed> $document */
@@ -50,12 +90,20 @@ final class LabelTemplatePreview
             return [];
         }
         $objects = $cells[0]['objects'] ?? [];
-        return is_array($objects) ? $objects : [];
+        if (!is_array($objects)) {
+            return [];
+        }
+        usort($objects, static function ($a, $b): int {
+            $za = (int) (is_array($a) ? ($a['zIndex'] ?? 0) : 0);
+            $zb = (int) (is_array($b) ? ($b['zIndex'] ?? 0) : 0);
+            return $za <=> $zb;
+        });
+        return $objects;
     }
 
     private static function shapeFill(string $kind, float $w, float $h, float $radius, string $fill): string
     {
-        $attr = ' fill="' . self::color($fill) . '"';
+        $attr = ' fill="' . self::color($fill) . '" stroke="#e4ddd6" stroke-width="' . self::n(max(0.18, min($w, $h) * 0.012)) . '"';
         if ($kind === 'ellipse') {
             return '<ellipse cx="' . self::n($w / 2) . '" cy="' . self::n($h / 2) . '" rx="' . self::n($w / 2) . '" ry="' . self::n($h / 2) . '"' . $attr . '/>';
         }
@@ -66,7 +114,7 @@ final class LabelTemplatePreview
     /** @param array<string, mixed> $obj */
     private static function objectSvg(array $obj): string
     {
-        $type = strtolower((string) ($obj['type'] ?? 'rect'));
+        $type = self::typeName($obj['type'] ?? 'rect');
         $x = (float) ($obj['x'] ?? 0);
         $y = (float) ($obj['y'] ?? 0);
         $w = max(0.2, (float) ($obj['width'] ?? 1));
@@ -78,7 +126,8 @@ final class LabelTemplatePreview
 
         return match ($type) {
             'ellipse' => '<ellipse cx="' . self::n($x + $w / 2) . '" cy="' . self::n($y + $h / 2) . '" rx="' . self::n($w / 2) . '" ry="' . self::n($h / 2) . '" fill="' . $fill . '"' . $strokeAttr . '/>',
-            'shape' => self::shapeSvg($obj, $x, $y, $w, $h, $fill, $strokeAttr),
+            'line' => '<line x1="' . self::n($x) . '" y1="' . self::n($y) . '" x2="' . self::n($x + $w) . '" y2="' . self::n($y + $h) . '" stroke="' . ($stroke === 'none' ? $fill : $stroke) . '" stroke-width="' . self::n(max(0.2, $sw)) . '"/>',
+            'shape', 'gradient' => self::shapeSvg($obj, $x, $y, $w, $h, $fill, $strokeAttr),
             'text' => self::textSvg($obj, $x, $y, $w, $h, $fill),
             'barcode' => self::barcodeSvg($x, $y, $w, $h, $fill),
             'qr' => self::qrSvg($x, $y, $w, $h, $fill),
@@ -87,6 +136,29 @@ final class LabelTemplatePreview
             'image', 'clipart' => self::imageSvg($obj, $x, $y, $w, $h),
             default => '<rect x="' . self::n($x) . '" y="' . self::n($y) . '" width="' . self::n($w) . '" height="' . self::n($h) . '" fill="' . $fill . '"' . $strokeAttr . '/>',
         };
+    }
+
+    private static function typeName(mixed $type): string
+    {
+        if (is_int($type) || (is_string($type) && is_numeric($type))) {
+            return match ((int) $type) {
+                0 => 'text',
+                1 => 'rect',
+                2 => 'ellipse',
+                3 => 'line',
+                4 => 'shape',
+                5 => 'image',
+                6 => 'barcode',
+                7 => 'qr',
+                8 => 'table',
+                9 => 'clipart',
+                10 => 'icon',
+                11 => 'gradient',
+                default => 'rect',
+            };
+        }
+
+        return strtolower(trim((string) $type));
     }
 
     /** @param array<string, mixed> $obj */
@@ -135,11 +207,21 @@ final class LabelTemplatePreview
             // data URL은 미리보기에서 생략하고 플레이스홀더
             return '<rect x="' . self::n($x) . '" y="' . self::n($y) . '" width="' . self::n($w) . '" height="' . self::n($h) . '" fill="#f3f1ef" rx="1"/>';
         }
-        if (!str_starts_with($src, 'http') && !str_starts_with($src, '/')) {
+        if (str_starts_with($src, '//')) {
+            $src = 'https:' . $src;
+        } elseif (!str_starts_with($src, 'http') && !str_starts_with($src, '/')) {
             $src = '/' . ltrim($src, '/');
         }
+        if (str_starts_with($src, '/') && !str_starts_with($src, '//')) {
+            $full = public_path(ltrim($src, '/'));
+            if (!is_file($full)) {
+                return '';
+            }
+        }
         $href = htmlspecialchars($src, ENT_QUOTES, 'UTF-8');
-        return '<image href="' . $href . '" xlink:href="' . $href . '" x="' . self::n($x) . '" y="' . self::n($y) . '" width="' . self::n($w) . '" height="' . self::n($h) . '" preserveAspectRatio="xMidYMid meet"/>';
+        $fit = strtolower((string) ($obj['imageFit'] ?? 'contain'));
+        $par = $fit === 'cover' ? 'xMidYMid slice' : 'xMidYMid meet';
+        return '<image href="' . $href . '" xlink:href="' . $href . '" x="' . self::n($x) . '" y="' . self::n($y) . '" width="' . self::n($w) . '" height="' . self::n($h) . '" preserveAspectRatio="' . $par . '"/>';
     }
 
     /** @param array<string, mixed> $obj */

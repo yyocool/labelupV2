@@ -6,6 +6,8 @@ const PageSettingsAPI = {
     categoryList: '/api/admin/shop/product-page-category-settings',
     categoryOne: '/api/admin/shop/product-page-category-settings/one',
     categorySave: '/api/admin/shop/product-page-category-settings/save',
+    detailGet: '/api/admin/shop/product-detail-page',
+    detailSave: '/api/admin/shop/product-detail-page/save',
   },
   async post(path, body) {
     const res = await fetch(path, {
@@ -263,11 +265,14 @@ function renderCategoryList(activeId) {
     return;
   }
   box.innerHTML = rows.map((cat) => {
+    const depth = Number(cat.depth || 0);
+    const depthClass = depth > 0 ? ' is-child' : ' is-parent';
     const active = Number(cat.id) === Number(activeId) ? ' is-active' : '';
     const inactive = cat.is_active ? '' : ' is-inactive';
     const badge = cat.has_custom ? '<span class="badge">설정됨</span>' : '';
-    return `<button type="button" class="admin-page-category-item${active}${inactive}" data-category-id="${Number(cat.id)}">
-      <span>${pageSettingsEscHtml(cat.name || '')}${cat.is_active ? '' : ' (비활성)'}</span>
+    const level = depth > 0 ? '2차' : '1차';
+    return `<button type="button" class="admin-page-category-item${depthClass}${active}${inactive}" data-category-id="${Number(cat.id)}">
+      <span><em class="admin-page-category-item__level">${level}</em>${pageSettingsEscHtml(cat.name || '')}${cat.is_active ? '' : ' (비활성)'}</span>
       ${badge}
     </button>`;
   }).join('');
@@ -292,6 +297,8 @@ async function selectCategory(categoryId) {
     pageCategoryState.footer_image = settings.footer_image || '';
     if (idEl) idEl.value = String(pageCategoryState.category_id);
     if (nameEl) nameEl.textContent = settings.category_name || '카테고리';
+    const hintEl = document.getElementById('pageCategoryStackHint');
+    if (hintEl) hintEl.hidden = Number(settings.depth || 0) <= 0;
     if (saveBtn) saveBtn.disabled = false;
     renderCategoryList(pageCategoryState.category_id);
     renderImagePreview('header', 'category');
@@ -329,9 +336,11 @@ async function openProductPageCategorySettingsModal() {
   const nameEl = document.getElementById('pageCategoryName');
   const idEl = document.getElementById('pageCategoryId');
   const saveBtn = document.getElementById('pageCategorySaveBtn');
+  const hintEl = document.getElementById('pageCategoryStackHint');
   if (nameEl) nameEl.textContent = '카테고리를 선택하세요';
   if (idEl) idEl.value = '';
   if (saveBtn) saveBtn.disabled = true;
+  if (hintEl) hintEl.hidden = true;
   destroyPageCategoryEditors();
   renderCategoryList(0);
   renderImagePreview('header', 'category');
@@ -474,3 +483,136 @@ document.querySelectorAll('.js-product-detail-preview').forEach((btn) => {
 document.querySelectorAll('.js-product-detail-preview-close').forEach((el) => {
   el.addEventListener('click', () => closeProductDetailPreviewModal());
 });
+
+const DETAIL_HTML_EDITOR_OPTS = {
+  lang: 'ko-KR',
+  height: 520,
+  placeholder: '상품 상세페이지에 표시할 내용을 입력하세요.',
+  dialogsInBody: true,
+  toolbar: [
+    ['style', ['style']],
+    ['font', ['bold', 'italic', 'underline', 'clear']],
+    ['fontsize', ['fontsize']],
+    ['color', ['color']],
+    ['para', ['ul', 'ol', 'paragraph']],
+    ['insert', ['link', 'picture', 'table', 'hr']],
+    ['view', ['fullscreen', 'codeview']],
+  ],
+  callbacks: {
+    onImageUpload(files) {
+      uploadDetailHtmlImages(files);
+    },
+  },
+};
+
+function destroyDetailHtmlEditor() {
+  destroyEditors(['.js-product-detail-html']);
+}
+
+function initDetailHtmlEditor(html = '') {
+  if (!window.jQuery || !jQuery.fn.summernote) return;
+  const ta = document.querySelector('.js-product-detail-html');
+  if (!ta) return;
+  const $el = jQuery(ta);
+  if ($el.next('.note-editor').length) $el.summernote('destroy');
+  $el.val(html || '');
+  $el.summernote(DETAIL_HTML_EDITOR_OPTS);
+  $el.summernote('code', html || '');
+}
+
+async function uploadDetailHtmlImages(files) {
+  try {
+    const data = await PageSettingsAPI.uploadImages(files);
+    const urls = data.data?.urls || [];
+    const $el = window.jQuery && jQuery('.js-product-detail-html');
+    if (!$el || !$el.length) return;
+    urls.forEach((path) => {
+      $el.summernote('insertImage', pageSettingsResolveUrl(path), function ($image) {
+        $image.css({ maxWidth: '100%', height: 'auto' });
+      });
+    });
+  } catch (err) {
+    if (typeof showAdminAlert === 'function') showAdminAlert(err.message, 'error');
+  }
+}
+
+function updateDetailStatusBadge(productId, registered) {
+  const row = document.querySelector(`tr[data-product-id="${Number(productId)}"]`);
+  const cell = row?.querySelector('.js-detail-status');
+  if (!cell) return;
+  cell.innerHTML = registered
+    ? '<span class="admin-badge admin-badge--ok">등록</span>'
+    : '<span class="admin-badge admin-badge--pending">미등록</span>';
+}
+
+function closeProductDetailHtmlModal() {
+  const modal = document.getElementById('productDetailHtmlModal');
+  if (!modal) return;
+  destroyDetailHtmlEditor();
+  modal.hidden = true;
+}
+
+async function openProductDetailHtmlModal(productId, fallbackName) {
+  const modal = document.getElementById('productDetailHtmlModal');
+  const idEl = document.getElementById('productDetailHtmlProductId');
+  const titleEl = document.getElementById('productDetailHtmlTitle');
+  const metaEl = document.getElementById('productDetailHtmlMeta');
+  const saveBtn = document.getElementById('productDetailHtmlSaveBtn');
+  if (!modal || !productId) return;
+  try {
+    const data = await PageSettingsAPI.get(
+      `${PageSettingsAPI.endpoints.detailGet}?product_id=${encodeURIComponent(productId)}`
+    );
+    const detail = data.data || {};
+    if (idEl) idEl.value = String(detail.product_id || productId);
+    const name = detail.product_name || fallbackName || '상품';
+    if (titleEl) titleEl.textContent = `상품 상세 내용 수정 · ${name}`;
+    if (metaEl) {
+      const sku = detail.sku ? `SKU ${detail.sku}` : '';
+      const cat = detail.category_name || '';
+      metaEl.innerHTML = `<strong>${pageSettingsEscHtml(name)}</strong>${sku ? ` · ${pageSettingsEscHtml(sku)}` : ''}${cat ? ` · ${pageSettingsEscHtml(cat)}` : ''}`;
+    }
+    destroyDetailHtmlEditor();
+    modal.hidden = false;
+    if (saveBtn) saveBtn.disabled = false;
+    setTimeout(() => initDetailHtmlEditor(detail.html_content || ''), 30);
+  } catch (err) {
+    if (typeof showAdminAlert === 'function') showAdminAlert(err.message, 'error');
+  }
+}
+
+document.querySelectorAll('.js-product-detail-edit').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    openProductDetailHtmlModal(Number(btn.dataset.productId || 0), btn.dataset.productName || '');
+  });
+});
+
+document.querySelectorAll('.js-product-detail-html-close').forEach((el) => {
+  el.addEventListener('click', () => closeProductDetailHtmlModal());
+});
+
+const detailHtmlForm = document.getElementById('productDetailHtmlForm');
+if (detailHtmlForm) {
+  detailHtmlForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const idEl = document.getElementById('productDetailHtmlProductId');
+    const saveBtn = document.getElementById('productDetailHtmlSaveBtn');
+    const productId = Number(idEl?.value || 0);
+    if (!productId) return;
+    if (saveBtn) saveBtn.disabled = true;
+    try {
+      const saved = await PageSettingsAPI.post(PageSettingsAPI.endpoints.detailSave, {
+        product_id: productId,
+        html_content: getPageSettingsEditorCode('.js-product-detail-html'),
+      });
+      const detail = saved.data || {};
+      updateDetailStatusBadge(productId, !!detail.has_detail_page);
+      if (typeof showAdminAlert === 'function') showAdminAlert(saved.message || '저장되었습니다.', 'success');
+      closeProductDetailHtmlModal();
+    } catch (err) {
+      if (typeof showAdminAlert === 'function') showAdminAlert(err.message, 'error');
+    } finally {
+      if (saveBtn) saveBtn.disabled = false;
+    }
+  });
+}

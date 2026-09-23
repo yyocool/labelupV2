@@ -147,6 +147,7 @@ final class AdminAccessService
             '/admin/content/product-detail-pages' => 'content-product-detail-pages',
             '/api/admin/shop/product-page-settings' => 'content-product-detail-pages',
             '/api/admin/shop/product-page-category-settings' => 'content-product-detail-pages',
+            '/api/admin/shop/product-detail-page' => 'content-product-detail-pages',
             '/admin/shop/categories' => 'shop-categories',
             '/api/admin/shop/category' => 'shop-categories',
             '/admin/shop/specs' => 'shop-specs',

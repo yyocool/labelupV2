@@ -135,11 +135,13 @@
           <?php foreach ($recentWorks as $work): ?>
           <article class="card recent-work-card">
             <a class="recent-work-link" href="<?= e((string) $work['editor_url']) ?>">
-              <div class="card-img recent-work-img">
-                <?php if (!empty($work['preview_url'])): ?>
-                <img src="<?= e((string) $work['preview_url']) ?>" alt="<?= e((string) $work['title']) ?>">
+              <div class="card-img tpl-img recent-work-img">
+                <?php if (!empty($work['preview_svg'])): ?>
+                <span class="tpl-preview"><?= $work['preview_svg'] ?></span>
+                <?php elseif (!empty($work['preview_url'])): ?>
+                <img src="<?= e((string) $work['preview_url']) ?>" alt="" loading="lazy">
                 <?php else: ?>
-                <span class="recent-work-fallback">라벨</span>
+                <span class="tpl-fallback"><?= e(mb_substr((string) ($work['title'] ?? '라벨'), 0, 10)) ?></span>
                 <?php endif; ?>
               </div>
               <div class="meta">

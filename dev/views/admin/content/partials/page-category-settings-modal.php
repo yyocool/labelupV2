@@ -9,13 +9,14 @@
       <aside class="admin-page-category-list" aria-label="쇼핑몰 카테고리">
         <div class="admin-page-category-list__head">
           <strong>카테고리</strong>
-          <span class="admin-muted">설정할 카테고리를 선택하세요</span>
+          <span class="admin-muted">1차·2차를 각각 저장하면 상품 상세에 둘 다 표시됩니다</span>
         </div>
         <div id="pageCategoryList" class="admin-page-category-list__items"></div>
       </aside>
       <form id="productPageCategorySettingsForm" class="admin-product-form admin-page-category-form">
         <input type="hidden" name="category_id" id="pageCategoryId" value="">
         <p class="admin-page-category-current">선택: <strong id="pageCategoryName">카테고리를 선택하세요</strong></p>
+        <p class="admin-muted" id="pageCategoryStackHint" hidden>2차 카테고리입니다. 1차 카테고리에 저장한 헤더/푸터와 이 설정이 상품 상세·미리보기에 함께 표시됩니다.</p>
         <section>
           <h4 class="admin-product-section-title">카테고리 헤더</h4>
           <div class="admin-product-form-grid">
@@ -54,7 +55,7 @@
             </div>
           </div>
         </section>
-        <p class="admin-muted">카테고리에 헤더/푸터를 저장하면 해당 카테고리 상품에 우선 적용되고, 비워 두면 공통 헤더/푸터를 사용합니다.</p>
+        <p class="admin-muted">표시 순서: 공통 헤더 → 카테고리 헤더(1차·2차) → 상품 상세 → 카테고리 푸터(2차·1차) → 공통 푸터. 비어 있는 단계는 건너뜁니다.</p>
       </form>
     </div>
     <div class="admin-modal-foot">

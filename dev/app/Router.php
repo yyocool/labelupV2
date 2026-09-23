@@ -411,6 +411,8 @@ final class Router
         $router->get('/api/admin/shop/product-page-category-settings', [$shopApi, 'productPageCategorySettingsList']);
         $router->get('/api/admin/shop/product-page-category-settings/one', [$shopApi, 'productPageCategorySettings']);
         $router->post('/api/admin/shop/product-page-category-settings/save', [$shopApi, 'saveProductPageCategorySettings']);
+        $router->get('/api/admin/shop/product-detail-page', [$shopApi, 'productDetailPage']);
+        $router->post('/api/admin/shop/product-detail-page/save', [$shopApi, 'saveProductDetailPage']);
 
         $router->get('/api/shop/editor-papers', [$shopPublicApi, 'editorPapers']);
         $router->get('/api/shop/catalog', [$shopPublicApi, 'catalog']);

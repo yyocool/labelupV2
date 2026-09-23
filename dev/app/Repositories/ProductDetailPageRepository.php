@@ -25,6 +25,78 @@ final class ProductDetailPageRepository extends BaseModel
         return $html !== '' ? $html : null;
     }
 
+    /** @return array<string, mixed>|null */
+    public function findByProductId(int $productId): ?array
+    {
+        if ($productId <= 0) {
+            return null;
+        }
+        $row = $this->fetchOne(
+            'SELECT * FROM shop_product_detail_pages WHERE product_id = :product_id LIMIT 1',
+            ['product_id' => $productId]
+        );
+        return $row ?: null;
+    }
+
+    public function saveForProduct(int $productId, string $html, string $status = 'published'): void
+    {
+        if ($productId <= 0) {
+            return;
+        }
+        $now = date('Y-m-d H:i:s');
+        $html = $this->normalizeHtml($html);
+        if ($html === null) {
+            $this->execute(
+                'DELETE FROM shop_product_detail_pages WHERE product_id = :product_id',
+                ['product_id' => $productId]
+            );
+            return;
+        }
+
+        $existing = $this->findByProductId($productId);
+        if ($existing) {
+            $this->execute(
+                'UPDATE shop_product_detail_pages
+                 SET html_content = :html_content,
+                     status = :status,
+                     generated_at = :generated_at,
+                     updated_at = :updated_at
+                 WHERE product_id = :product_id',
+                [
+                    'html_content' => $html,
+                    'status' => $status,
+                    'generated_at' => $now,
+                    'updated_at' => $now,
+                    'product_id' => $productId,
+                ]
+            );
+            return;
+        }
+
+        $this->execute(
+            'INSERT INTO shop_product_detail_pages
+             (product_id, status, title, html_content, generated_at, created_at, updated_at)
+             VALUES (:product_id, :status, NULL, :html_content, :generated_at, :created_at, :updated_at)',
+            [
+                'product_id' => $productId,
+                'status' => $status,
+                'html_content' => $html,
+                'generated_at' => $now,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]
+        );
+    }
+
+    private function normalizeHtml(string $html): ?string
+    {
+        $html = trim($html);
+        if ($html === '' || $html === '<p><br></p>' || $html === '<p></p>') {
+            return null;
+        }
+        return $html;
+    }
+
     /**
      * @param array{q?:string,registered?:string,category_id?:int,product_status?:string} $filters
      * @return array{items: array<int, array<string, mixed>>, total: int, page: int, pages: int}
@@ -117,8 +189,9 @@ final class ProductDetailPageRepository extends BaseModel
 
         $categoryId = (int) ($filters['category_id'] ?? 0);
         if ($categoryId > 0) {
-            $where .= ' AND p.category_id = :category_id';
+            $where .= ' AND (p.category_id = :category_id OR c.parent_id = :category_id_parent)';
             $params['category_id'] = $categoryId;
+            $params['category_id_parent'] = $categoryId;
         }
 
         $productStatus = trim((string) ($filters['product_status'] ?? ''));

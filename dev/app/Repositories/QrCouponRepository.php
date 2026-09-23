@@ -26,7 +26,7 @@ final class QrCouponRepository
                            SELECT COUNT(*)
                            FROM shop_products p
                            INNER JOIN shop_categories pc ON pc.id = p.category_id
-                           WHERE pc.slug = g.category_slug
+                           WHERE (pc.slug = g.category_slug OR pc.parent_id = c.id)
                              AND COALESCE(
                                  NULLIF(CAST(JSON_UNQUOTE(JSON_EXTRACT(IFNULL(p.meta_json, \'{}\'), \'$.sheets_per_pack\')) AS UNSIGNED), 0),
                                  CAST(SUBSTRING_INDEX(p.sku, \'-\', -1) AS UNSIGNED)
@@ -59,7 +59,7 @@ final class QrCouponRepository
                             SELECT COUNT(*)
                             FROM shop_products p
                             INNER JOIN shop_categories pc ON pc.id = p.category_id
-                            WHERE pc.slug = g.category_slug
+                            WHERE (pc.slug = g.category_slug OR pc.parent_id = c.id)
                               AND CAST(SUBSTRING_INDEX(p.sku, \'-\', -1) AS UNSIGNED) = g.sheets_per_pack
                         ) AS product_count,
                         (
@@ -139,7 +139,7 @@ final class QrCouponRepository
                 FROM shop_products p
                 INNER JOIN shop_categories c ON c.id = p.category_id
                 LEFT JOIN label_specs s ON s.id = p.spec_id
-                WHERE c.slug = :slug
+                WHERE (c.slug = :slug OR c.parent_id = (SELECT scp.id FROM shop_categories scp WHERE scp.slug = :slug_parent LIMIT 1))
                   AND p.status = 'active'
                   AND COALESCE(
                       NULLIF(CAST(JSON_UNQUOTE(JSON_EXTRACT(IFNULL(p.meta_json, '{}'), '$.sheets_per_pack')) AS UNSIGNED), 0),
@@ -149,7 +149,7 @@ final class QrCouponRepository
                 LIMIT {$limit}";
         try {
             $stmt = $this->db->prepare($sql);
-            $stmt->execute(['slug' => $categorySlug, 'sheets' => $sheetsPerPack]);
+            $stmt->execute(['slug' => $categorySlug, 'slug_parent' => $categorySlug, 'sheets' => $sheetsPerPack]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } catch (\Throwable $e) {
             $stmt = $this->db->prepare(
