@@ -40,19 +40,88 @@ final class UserAiClipartRepository extends BaseModel
     {
         return $this->fetchAll(
             'SELECT * FROM user_ai_cliparts
-             WHERE user_id = :uid AND review_status <> :rej
+             WHERE user_id = :uid AND review_status <> :rej AND trashed_at IS NULL
              ORDER BY id DESC LIMIT ' . max(1, min(120, $limit)),
             ['uid' => $userId, 'rej' => 'rejected']
+        );
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function listTrashedByUser(int $userId, int $limit = 120): array
+    {
+        return $this->fetchAll(
+            'SELECT * FROM user_ai_cliparts
+             WHERE user_id = :uid AND trashed_at IS NOT NULL
+             ORDER BY trashed_at DESC, id DESC LIMIT ' . max(1, min(200, $limit)),
+            ['uid' => $userId]
         );
     }
 
     public function countByUser(int $userId): int
     {
         $row = $this->fetchOne(
-            'SELECT COUNT(*) AS cnt FROM user_ai_cliparts WHERE user_id = :uid AND review_status <> :rej',
+            'SELECT COUNT(*) AS cnt FROM user_ai_cliparts
+             WHERE user_id = :uid AND review_status <> :rej AND trashed_at IS NULL',
             ['uid' => $userId, 'rej' => 'rejected']
         );
         return (int) ($row['cnt'] ?? 0);
+    }
+
+    public function findByIdForUser(int $userId, int $id, bool $includeTrashed = false): ?array
+    {
+        if ($id <= 0 || $userId <= 0) {
+            return null;
+        }
+        $trash = $includeTrashed ? '' : ' AND trashed_at IS NULL';
+        return $this->fetchOne(
+            "SELECT * FROM user_ai_cliparts WHERE id = :id AND user_id = :uid{$trash} LIMIT 1",
+            ['id' => $id, 'uid' => $userId]
+        );
+    }
+
+    public function trashForUser(int $id, int $userId): bool
+    {
+        if (!$this->findByIdForUser($userId, $id, false)) {
+            return false;
+        }
+        $now = date('Y-m-d H:i:s');
+        $this->execute(
+            'UPDATE user_ai_cliparts
+             SET trashed_at = :now, updated_at = :now
+             WHERE id = :id AND user_id = :uid AND trashed_at IS NULL',
+            ['now' => $now, 'id' => $id, 'uid' => $userId]
+        );
+        return true;
+    }
+
+    public function restoreForUser(int $id, int $userId): bool
+    {
+        $row = $this->findByIdForUser($userId, $id, true);
+        if (!$row || empty($row['trashed_at'])) {
+            return false;
+        }
+        $now = date('Y-m-d H:i:s');
+        $this->execute(
+            'UPDATE user_ai_cliparts
+             SET trashed_at = NULL, updated_at = :now
+             WHERE id = :id AND user_id = :uid AND trashed_at IS NOT NULL',
+            ['now' => $now, 'id' => $id, 'uid' => $userId]
+        );
+        return true;
+    }
+
+    public function purgeForUser(int $id, int $userId): ?array
+    {
+        $row = $this->findByIdForUser($userId, $id, true);
+        if (!$row || empty($row['trashed_at'])) {
+            return null;
+        }
+        $this->clearUsageClipart($id);
+        $this->execute(
+            'DELETE FROM user_ai_cliparts WHERE id = :id AND user_id = :uid AND trashed_at IS NOT NULL',
+            ['id' => $id, 'uid' => $userId]
+        );
+        return $row;
     }
 
     public function find(int $id): ?array

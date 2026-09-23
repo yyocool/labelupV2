@@ -3611,6 +3611,23 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   object-fit: contain;
   display: block;
 }
+.ed-project-card {
+  position: relative;
+}
+.ed-project-card__trash {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255,255,255,.94);
+  color: #9b1c1c;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+}
 .ed-theme-hero {
   display: grid;
   grid-template-columns: minmax(200px, 280px) minmax(0, 1fr);

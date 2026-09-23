@@ -7,8 +7,15 @@ $isHomeActive = $activeNav === 'home' || $path === '/' || $path === '';
 $isDesignActive = str_starts_with($path, '/editor');
 $isShopBuyActive = $activeNav === 'shop' && !str_contains($path, '/cart');
 $isCartActive = str_contains($path, '/shop/cart');
-$isAccountActive = $activeNav === 'account';
+$isAccountActive = $activeNav === 'account' && $path === '/account';
 $isFaqActive = $activeNav === 'faq';
+$isProjectsActive = $path === '/projects';
+$isLockerActive = $path === '/locker';
+$isTrashActive = $path === '/trash';
+$sidebarLoggedIn = !empty($authUser);
+$loginFor = static function (string $dest): string {
+    return url('login') . '?redirect=' . rawurlencode(url($dest));
+};
 ?>
 <aside class="sidebar">
   <div class="brand">
@@ -41,9 +48,9 @@ $isFaqActive = $activeNav === 'faq';
     <nav class="menu">
       <a class="<?= $isAccountActive ? 'is-account-active' : '' ?>" href="<?= url('account') ?>"><span class="ico">◎</span>마이페이지</a>
       <a class="<?= $isFaqActive ? 'is-account-active' : '' ?>" href="<?= url('faq') ?>"><span class="ico">?</span>FAQ</a>
-      <a href="#"><span class="ico">▱</span>프로젝트</a>
-      <a href="#"><span class="ico">▱</span>내 보관함</a>
-      <a href="#"><span class="ico">♲</span>휴지통</a>
+      <a class="<?= $isProjectsActive ? 'is-account-active' : '' ?>" href="<?= $sidebarLoggedIn ? url('projects') : e($loginFor('projects')) ?>"<?= $sidebarLoggedIn ? '' : ' title="로그인 후 이용할 수 있습니다"' ?>><span class="ico">▱</span>프로젝트</a>
+      <a class="<?= $isLockerActive ? 'is-account-active' : '' ?>" href="<?= $sidebarLoggedIn ? url('locker') : e($loginFor('locker')) ?>"<?= $sidebarLoggedIn ? '' : ' title="로그인 후 이용할 수 있습니다"' ?>><span class="ico">▱</span>내 보관함</a>
+      <a class="<?= $isTrashActive ? 'is-account-active' : '' ?>" href="<?= $sidebarLoggedIn ? url('trash') : e($loginFor('trash')) ?>"<?= $sidebarLoggedIn ? '' : ' title="로그인 후 이용할 수 있습니다"' ?>><span class="ico">♲</span>휴지통</a>
     </nav>
   </div>
 

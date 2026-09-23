@@ -56,6 +56,12 @@ public sealed class EditorCloudStorage(IJSRuntime js)
         return id;
     }
 
+    public async Task TrashWorkspaceAsync(int id)
+    {
+        if (id <= 0) return;
+        await js.InvokeVoidAsync("labelUpEditor.trashWorkspace", id);
+    }
+
     public async Task<IReadOnlyList<EditorWorkspaceListItem>> ListWorkspacesAsync(int limit = 24)
     {
         try

@@ -256,6 +256,25 @@ body.lu-postcode-open,body.lu-addr-book-open{overflow:hidden}
 .account-clip-lb-meta strong{flex:1 1 160px;font-size:15px}
 .account-clip-lb-close{position:absolute;top:10px;right:10px;width:34px;height:34px;border:0;border-radius:50%;background:#fff;cursor:pointer;font-size:20px;box-shadow:0 4px 12px rgba(0,0,0,.12)}
 
+.lib-hero{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:16px}
+.lib-kicker{margin:0 0 6px;font-size:12px;font-weight:800;color:var(--accent)}
+.lib-hero h1{margin:0 0 8px;font-size:24px;font-weight:900}
+.lib-hero p{margin:0;font-size:13px;color:var(--muted);line-height:1.55;max-width:560px}
+.lib-panel .account-panel-head em{margin-left:6px;font-style:normal;font-size:13px;color:var(--muted)}
+.lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.lib-card{position:relative;display:flex;flex-direction:column;border:1px solid #ececf2;border-radius:16px;overflow:hidden;background:#fff}
+.lib-card__thumb{display:grid;place-items:center;aspect-ratio:1.15/1;background:var(--ivory);border:0;padding:0;cursor:pointer;color:#b8b0a6;font-weight:800}
+.lib-card__thumb img{width:100%;height:100%;object-fit:contain;padding:10px;box-sizing:border-box}
+.lib-card strong{display:block;padding:10px 12px 0;font-size:13px}
+.lib-card em{display:block;padding:2px 12px 10px;font-size:11px;font-style:normal;color:var(--muted)}
+.lib-card__kind{position:absolute;top:10px;left:10px;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.92);font-size:10px;font-weight:800;color:var(--accent)}
+.lib-card__actions{display:flex;gap:6px;padding:0 10px 12px}
+.lib-card__actions .account-btn{height:34px;padding:0 10px;font-size:12px;flex:1}
+.account-design-card{position:relative}
+.account-design-card > a{display:block;color:inherit}
+.account-design-del{position:absolute;top:8px;right:8px;z-index:2;width:28px;height:28px;border:0;border-radius:50%;background:rgba(255,255,255,.92);color:#9b1c1c;cursor:pointer;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.account-clip-actions .account-btn--outline.js-lib-act{flex:0 0 auto}
+
 @media (max-width:1280px){
   .account-hero{grid-template-columns:1fr 1fr}
   .account-hero-user{grid-row:auto}

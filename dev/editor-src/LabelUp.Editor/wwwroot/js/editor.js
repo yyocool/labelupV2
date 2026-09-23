@@ -1436,6 +1436,75 @@ window.labelUpEditor = {
     return json.data || { items: [] };
   },
 
+  trashWorkspace: async function (id) {
+    var res = await fetch(this.apiUrl('/api/library/trash'), {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ type: 'workspace', id: id })
+    });
+    var json = await res.json().catch(function () { return null; });
+    if (!res.ok || !json || json.success === false) {
+      throw new Error((json && json.message) || '휴지통으로 보내지 못했습니다.');
+    }
+    return json.data || {};
+  },
+
+  bindProjectTrash: function () {
+    if (this._projectTrashBound) return;
+    this._projectTrashBound = true;
+    var self = this;
+    var enhance = function () {
+      var cards = document.querySelectorAll('.ed-project-card');
+      if (!cards.length) return;
+      self.listWorkspaces(48).then(function (data) {
+        var items = (data && data.items) || [];
+        cards.forEach(function (card, i) {
+          if (card.querySelector('.ed-project-card__trash')) return;
+          var id = Number(card.getAttribute('data-workspace-id') || 0);
+          if (!id) {
+            var img = card.querySelector('img');
+            var src = img ? (img.getAttribute('src') || '') : '';
+            var m = src.match(/editor-previews\/\d+\/(\d+)\./);
+            if (m) id = parseInt(m[1], 10);
+          }
+          if (!id) {
+            var title = ((card.querySelector('strong') || {}).textContent || '').trim();
+            var found = items.filter(function (it) { return (it.title || '') === title; });
+            if (found.length === 1) id = Number(found[0].id || 0);
+            else if (items[i]) id = Number(items[i].id || 0);
+          }
+          if (!id) return;
+          card.setAttribute('data-workspace-id', String(id));
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'ed-project-card__trash';
+          btn.title = '휴지통으로';
+          btn.setAttribute('aria-label', '삭제');
+          btn.textContent = '🗑';
+          btn.addEventListener('click', function (ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (!window.confirm('이 디자인을 휴지통으로 보낼까요?')) return;
+            self.trashWorkspace(id).then(function () {
+              card.remove();
+              try {
+                var u = new URL(window.location.href);
+                if (u.searchParams.get('project') === String(id)) self.setProjectId(0);
+              } catch (e) { /* ignore */ }
+            }).catch(function (err) {
+              window.alert(err.message || '삭제하지 못했습니다.');
+            });
+          });
+          card.appendChild(btn);
+        });
+      });
+    };
+    var mo = new MutationObserver(function () { enhance(); });
+    mo.observe(document.documentElement, { childList: true, subtree: true });
+    enhance();
+  },
+
   listMyCliparts: async function () {
     var res = await fetch(this.apiUrl('/api/editor/my-cliparts'), {
       method: 'GET',
@@ -3589,4 +3658,7 @@ window.labelUpEditor = {
     document.addEventListener('DOMContentLoaded', apply);
   else
     apply();
+  if (window.labelUpEditor && typeof window.labelUpEditor.bindProjectTrash === 'function') {
+    window.labelUpEditor.bindProjectTrash();
+  }
 })();

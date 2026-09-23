@@ -25,6 +25,8 @@ SKIP_FILES = {'.env'}
 # PHPS 호스팅용 .htaccess는 서버에 유지 (로컬 단순 규칙으로 덮지 않음)
 SKIP_REMOTE_OVERWRITE = {
     REMOTE_PUBLIC + '/.htaccess',
+    # PHPS: /editor/ 안 .htaccess 가 있으면 편집기 500
+    REMOTE_PUBLIC + '/editor/.htaccess',
 }
 
 
