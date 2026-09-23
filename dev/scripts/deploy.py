@@ -32,6 +32,8 @@ SKIP_FILES = {'.env'}
 SKIP_REMOTE_OVERWRITE = {
     REMOTE_PUBLIC + '/.htaccess',
     REMOTE_PUBLIC + '/.user.ini',
+    # PHPS: /editor/ 안 .htaccess 가 있으면 편집기 500
+    REMOTE_PUBLIC + '/editor/.htaccess',
 }
 
 

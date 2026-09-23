@@ -33,7 +33,8 @@ final class AuthMiddleware
             if ($this->isApi()) {
                 ApiResponse::error('로그인이 필요합니다.', null, 401);
             }
-            redirect('/login');
+            $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+            redirect('/login?redirect=' . rawurlencode($path));
         }
     }
 

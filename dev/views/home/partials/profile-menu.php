@@ -38,14 +38,13 @@ $memberGrade = $isLoggedIn ? member_grade_for_user($authUser) : null;
         <span class="profile-dropdown-ic">✎</span>
         <span>회원정보 수정</span>
       </a>
-      <a class="profile-dropdown-item is-disabled" href="#" tabindex="-1" aria-disabled="true" onclick="return false">
+      <a class="profile-dropdown-item" href="<?= url('projects') ?>">
         <span class="profile-dropdown-ic">▣</span>
         <span>내 프로젝트</span>
-        <em>준비중</em>
       </a>
-      <a class="profile-dropdown-item" href="<?= url('account') ?>#cliparts">
+      <a class="profile-dropdown-item" href="<?= url('locker') ?>">
         <span class="profile-dropdown-ic">★</span>
-        <span>내 클립아트</span>
+        <span>내 보관함</span>
       </a>
       <a class="profile-dropdown-item" href="<?= url('account') ?>#orders">
         <span class="profile-dropdown-ic">▧</span>

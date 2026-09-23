@@ -16,22 +16,45 @@ final class EditorWorkspaceService
         $this->repo = new EditorWorkspaceRepository();
     }
 
-    public function findForUser(int $userId, int $id = 0): ?array
+    public function findForUser(int $userId, int $id = 0, bool $includeTrashed = false): ?array
     {
         $row = $id > 0
-            ? $this->repo->findByIdForUser($userId, $id)
+            ? $this->repo->findByIdForUser($userId, $id, $includeTrashed)
             : $this->repo->findLatestByUserId($userId);
         return $row ? $this->present($row, true) : null;
     }
 
     /** @return array<int, array<string, mixed>> */
-    public function recentForUser(int $userId, int $limit = 6): array
+    public function recentForUser(int $userId, int $limit = 6, bool $trashed = false): array
     {
         $items = [];
-        foreach ($this->repo->listByUserId($userId, $limit) as $row) {
+        foreach ($this->repo->listByUserId($userId, $limit, $trashed) as $row) {
             $items[] = $this->present($row, false);
         }
         return $items;
+    }
+
+    public function trashForUser(int $userId, int $id): void
+    {
+        if ($id <= 0 || !$this->repo->trash($id, $userId)) {
+            throw new RuntimeException('휴지통으로 보낼 디자인을 찾지 못했습니다.');
+        }
+    }
+
+    public function restoreForUser(int $userId, int $id): void
+    {
+        if ($id <= 0 || !$this->repo->restore($id, $userId)) {
+            throw new RuntimeException('복원할 디자인을 찾지 못했습니다.');
+        }
+    }
+
+    public function purgeForUser(int $userId, int $id): void
+    {
+        $row = $this->repo->purge($id, $userId);
+        if (!$row) {
+            throw new RuntimeException('완전 삭제할 디자인을 찾지 못했습니다. 휴지통에서만 삭제할 수 있습니다.');
+        }
+        $this->deletePreviewFile((string) ($row['preview_path'] ?? ''));
     }
 
     /**
@@ -93,13 +116,17 @@ final class EditorWorkspaceService
                 $previewSvg
             );
         }
+        $trashedAt = (string) ($row['trashed_at'] ?? '');
         $out = [
             'id' => $id,
+            'type' => 'workspace',
             'title' => (string) ($row['title'] ?? '새 라벨 디자인'),
             'preview_url' => $previewUrl,
             'preview_svg' => $previewSvg,
             'updated_at' => $row['updated_at'] ?? null,
             'updated_label' => $this->formatUpdated((string) ($row['updated_at'] ?? '')),
+            'trashed_at' => $trashedAt !== '' ? $trashedAt : null,
+            'trashed_label' => $trashedAt !== '' ? $this->formatUpdated($trashedAt) : '',
             'editor_url' => url('editor/') . ($id > 0 ? '?project=' . $id : ''),
         ];
         if ($withDocument) {
@@ -152,6 +179,25 @@ final class EditorWorkspaceService
             return asset($rel);
         }
         return 'data:image/svg+xml;charset=utf-8;base64,' . base64_encode($svg);
+    }
+
+    private function deletePreviewFile(string $path): void
+    {
+        $path = trim($path);
+        if ($path === '' || str_contains($path, '..')) {
+            return;
+        }
+        $rel = ltrim($path, '/');
+        if (str_starts_with($rel, 'assets/')) {
+            $rel = substr($rel, strlen('assets/'));
+        }
+        if (!preg_match('#^editor-previews/\d+/\d+\.(png|jpe?g|webp|svg)$#i', $rel)) {
+            return;
+        }
+        $full = public_path('assets/' . $rel);
+        if (is_file($full)) {
+            @unlink($full);
+        }
     }
 
     private function formatUpdated(string $at): string

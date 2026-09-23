@@ -76,29 +76,32 @@ $usagePct = $usageLimit > 0 ? min(100, (int) round(($usageUsed / max(1, $usageLi
   <section class="account-panel card account-panel--wide">
     <div class="account-panel-head">
       <h2>최근 디자인</h2>
-      <a href="<?= url('editor/') ?>">전체 보기 →</a>
+      <a href="<?= url('projects') ?>">전체 보기 →</a>
     </div>
     <div class="account-design-grid">
       <?php if (empty($dash['recentDesigns'])): ?>
       <p class="account-empty account-design-empty">아직 저장된 디자인이 없습니다. 편집기에서 저장하면 여기에 미리보기가 표시됩니다.</p>
       <?php endif; ?>
       <?php foreach ($dash['recentDesigns'] as $d): ?>
-      <a class="account-design-card" href="<?= e((string) ($d['href'] ?? url('editor/'))) ?>">
-        <div class="account-design-thumb">
-          <?php if (!empty($d['preview_svg'])): ?>
-          <span class="tpl-preview"><?= $d['preview_svg'] ?></span>
-          <?php elseif (!empty($d['thumb'])): ?>
-          <img src="<?= e((string) $d['thumb']) ?>" alt="">
-          <?php else: ?>
-          <span class="account-design-fallback"><?= e(mb_substr((string) ($d['name'] ?? '라벨'), 0, 10)) ?></span>
+      <div class="account-design-card">
+        <button type="button" class="account-design-del js-lib-act" data-act="trash" data-type="workspace" data-id="<?= (int) ($d['id'] ?? 0) ?>" title="휴지통으로" aria-label="삭제">🗑</button>
+        <a href="<?= e((string) ($d['href'] ?? url('editor/'))) ?>">
+          <div class="account-design-thumb">
+            <?php if (!empty($d['preview_svg'])): ?>
+            <span class="tpl-preview"><?= $d['preview_svg'] ?></span>
+            <?php elseif (!empty($d['thumb'])): ?>
+            <img src="<?= e((string) $d['thumb']) ?>" alt="<?= e((string) $d['name']) ?>">
+            <?php else: ?>
+            <span class="account-design-fallback"><?= e(mb_substr((string) ($d['name'] ?? '라벨'), 0, 10)) ?></span>
+            <?php endif; ?>
+          </div>
+          <span class="account-design-status is-editing">편집중</span>
+          <strong><?= e((string) $d['name']) ?></strong>
+          <?php if (!empty($d['updated_label'])): ?>
+          <em class="account-design-updated"><?= e((string) $d['updated_label']) ?></em>
           <?php endif; ?>
-        </div>
-        <span class="account-design-status is-editing">편집중</span>
-        <strong><?= e((string) $d['name']) ?></strong>
-        <?php if (!empty($d['updated_label'])): ?>
-        <em class="account-design-updated"><?= e((string) $d['updated_label']) ?></em>
-        <?php endif; ?>
-      </a>
+        </a>
+      </div>
       <?php endforeach; ?>
       <a class="account-design-card account-design-new" href="<?= url('editor/') ?>">
         <span>＋</span>
@@ -130,7 +133,7 @@ $usagePct = $usageLimit > 0 ? min(100, (int) round(($usageUsed / max(1, $usageLi
 <section class="account-panel card" id="cliparts">
   <div class="account-panel-head">
     <h2>내 클립아트</h2>
-    <a href="<?= url('/') ?>">AI로 더 만들기 →</a>
+    <a href="<?= url('locker') ?>">보관함 보기 →</a>
   </div>
   <?php $myCliparts = $dash['cliparts'] ?? []; ?>
   <?php if (empty($myCliparts)): ?>
@@ -154,6 +157,7 @@ $usagePct = $usageLimit > 0 ? min(100, (int) round(($usageUsed / max(1, $usageLi
       <div class="account-clip-actions">
         <button type="button" class="account-btn account-btn--outline js-clip-preview" data-src="<?= e($clipUrl) ?>" data-title="<?= e($clipTitle) ?>" data-edit="<?= e($clipEdit) ?>">확대보기</button>
         <a class="account-btn account-btn--primary" href="<?= e($clipEdit) ?>">바로편집</a>
+        <button type="button" class="account-btn account-btn--outline js-lib-act" data-act="trash" data-type="clipart" data-id="<?= (int) ($clip['id'] ?? 0) ?>">삭제</button>
       </div>
     </article>
     <?php endforeach; ?>
