@@ -40,6 +40,22 @@ def apply_icu_bin_workaround(out: Path) -> None:
     print("Applied ICU .bin workaround")
 
 
+def write_charset_shim(out: Path) -> None:
+    """Serve index.html through PHP so the charset header is right.
+
+    The host sends .html without a charset and we cannot use .htaccess here,
+    so DirectoryIndex lands on this file instead. Publishing wipes
+    public/editor, so it has to be written again every time.
+    """
+    (out / "index.php").write_text(
+        "<?php\n"
+        "header('Content-Type: text/html; charset=utf-8');\n"
+        "readfile(__DIR__ . '/index.html');\n",
+        encoding="utf-8",
+    )
+    print("Wrote index.php charset shim")
+
+
 def main() -> int:
     if not PROJECT.exists():
         print(f"Missing project: {PROJECT}", file=sys.stderr)
@@ -91,6 +107,8 @@ def main() -> int:
     htaccess = OUT / ".htaccess"
     if htaccess.exists():
         htaccess.unlink()
+
+    write_charset_shim(OUT)
 
     print(f"Published to {OUT}")
     return 0
