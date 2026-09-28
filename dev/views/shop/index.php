@@ -45,16 +45,26 @@ $categoryIcons = [
 
 <nav class="shop-cat-icons" aria-label="카테고리">
   <?php foreach ($categories as $cat): ?>
-  <a class="shop-cat-icon" href="<?= url('shop/products') ?>?category=<?= e($cat['slug']) ?>">
-    <span class="shop-cat-icon-box">
-      <?php if (!empty($cat['image_path'])): ?>
-      <img src="<?= e(\App\Services\ShopProductImageService::resolveUrl((string) $cat['image_path'])) ?>" alt="<?= e($cat['name']) ?>" loading="lazy" decoding="async">
-      <?php else: ?>
-      <span class="shop-cat-icon-fallback"><?= e($categoryIcons[$cat['slug']] ?? $categoryIcons['default']) ?></span>
-      <?php endif; ?>
-    </span>
-    <span><?= e($cat['name']) ?></span>
-  </a>
+  <?php $children = is_array($cat['children'] ?? null) ? $cat['children'] : []; ?>
+  <div class="shop-cat-tile">
+    <a class="shop-cat-icon" href="<?= url('shop/products') ?>?category=<?= e($cat['slug']) ?>">
+      <span class="shop-cat-icon-box">
+        <?php if (!empty($cat['image_path'])): ?>
+        <img src="<?= e(\App\Services\ShopProductImageService::resolveUrl((string) $cat['image_path'])) ?>" alt="<?= e($cat['name']) ?>" loading="lazy" decoding="async">
+        <?php else: ?>
+        <span class="shop-cat-icon-fallback"><?= e($categoryIcons[$cat['slug']] ?? $categoryIcons['default']) ?></span>
+        <?php endif; ?>
+      </span>
+      <span class="shop-cat-icon-name"><?= e($cat['name']) ?></span>
+    </a>
+    <?php if ($children !== []): ?>
+    <div class="shop-cat-icon-subs">
+      <?php foreach ($children as $child): ?>
+      <a href="<?= url('shop/products') ?>?category=<?= e($child['slug']) ?>"><?= e($child['name']) ?></a>
+      <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+  </div>
   <?php endforeach; ?>
 </nav>
 

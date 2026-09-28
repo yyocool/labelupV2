@@ -7,6 +7,7 @@ namespace App\Controllers\Api;
 use App\Controllers\BaseController;
 use App\Middleware\AuthMiddleware;
 use App\Services\AuthService;
+use App\Services\ProductDetailPageService;
 use App\Services\ShopAdminService;
 use RuntimeException;
 
@@ -14,11 +15,13 @@ final class ShopAdminApiController extends BaseController
 {
     private AuthService $auth;
     private ShopAdminService $shop;
+    private ProductDetailPageService $detailPages;
 
     public function __construct()
     {
         $this->auth = new AuthService();
         $this->shop = new ShopAdminService();
+        $this->detailPages = new ProductDetailPageService();
     }
 
     public function saveCategory(): never
@@ -286,6 +289,35 @@ final class ShopAdminApiController extends BaseController
             $this->jsonSuccess(['urls' => $urls], '이미지가 업로드되었습니다.');
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage());
+        }
+    }
+
+    public function productDetailPage(): never
+    {
+        $this->guard();
+        try {
+            $productId = (int) ($_GET['product_id'] ?? 0);
+            if ($productId <= 0) {
+                $productId = (int) (request_json()['product_id'] ?? 0);
+            }
+            $this->jsonSuccess($this->detailPages->getForEdit($productId));
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
+        }
+    }
+
+    public function saveProductDetailPage(): never
+    {
+        $this->guard();
+        try {
+            $payload = request_json();
+            $saved = $this->detailPages->save(
+                (int) ($payload['product_id'] ?? 0),
+                (string) ($payload['html_content'] ?? '')
+            );
+            $this->jsonSuccess($saved, $saved['has_detail_page'] ? '상품 상세 내용이 저장되었습니다.' : '상품 상세 내용을 비워 등록을 해제했습니다.');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
         }
     }
 

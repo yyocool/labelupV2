@@ -114,7 +114,7 @@ foreach ($catalog['categories'] as $cat) {
         }
 
         $prompt = $style . ' Subject: ' . (string) ($it['subject'] ?? $it['title'] ?? $id)
-            . ' CRITICAL: perfectly pure white background only, never black, never dark, never gray backdrop.';
+            . ' CRITICAL: fully transparent background (PNG alpha), never white, never black, never gray backdrop.';
         $ok = false;
         $lastError = '';
         for ($try = 1; $try <= 8; $try++) {

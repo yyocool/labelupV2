@@ -25,10 +25,15 @@ if (!is_array($rows)) {
 /** @var array<string, string> */
 $groupSlugs = [
     '물류관리용/주소용/바코드용/인덱스용' => 'logistics-label',
-    '물류관리용 라벨' => 'logistics-label',
-    '인덱스용라벨' => 'logistics-label',
-    '주소용라벨' => 'logistics-label',
-    '바코드용라벨' => 'logistics-label',
+    '다용도라벨' => 'logistics-label',
+    '물류관리용 라벨' => 'logistics-use',
+    '물류관리용' => 'logistics-use',
+    '인덱스용라벨' => 'index-label',
+    '인덱스용' => 'index-label',
+    '주소용라벨' => 'address-label',
+    '주소용' => 'address-label',
+    '바코드용라벨' => 'barcode-label',
+    '바코드용' => 'barcode-label',
     '정부문서화일 라벨' => 'government-doc',
     '정부문서' => 'government-doc',
     '광택 라벨' => 'gloss-label',
@@ -50,7 +55,11 @@ $groupSlugs = [
 
 /** slug → 표시명 (정렬용) */
 $canonicalNames = [
-    'logistics-label' => '물류관리용/주소용/바코드용/인덱스용',
+    'logistics-label' => '다용도라벨',
+    'logistics-use' => '물류관리용',
+    'address-label' => '주소용',
+    'barcode-label' => '바코드용',
+    'index-label' => '인덱스용',
     'government-doc' => '정부문서화일 라벨',
     'gloss-label' => '광택 라벨',
     'waterproof-label' => '방수 라벨',

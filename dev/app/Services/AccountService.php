@@ -118,6 +118,7 @@ final class AccountService
                 'name' => (string) ($work['title'] ?? '새 라벨 디자인'),
                 'status' => 'editing',
                 'thumb' => (string) ($work['preview_url'] ?? ''),
+                'preview_svg' => (string) ($work['preview_svg'] ?? ''),
                 'updated_label' => (string) ($work['updated_label'] ?? ''),
                 'href' => (string) ($work['editor_url'] ?? url('editor/')),
             ];

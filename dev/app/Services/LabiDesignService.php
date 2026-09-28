@@ -126,7 +126,7 @@ final class LabiDesignService
             $reply = '첨부하신 이미지를 봤어요. 라벨에 넣을 클립아트를 그릴까요, 아니면 완성된 라벨 템플릿을 만들까요?';
             $choices = self::imageModeChoices();
         } elseif ($intent === 'recommend_product') {
-            $product = $this->resolveProduct($structured, $catalog);
+            $product = $this->resolveProduct($structured, $catalog, $this->lastUserText($messages));
             if ($product === null) {
                 $intent = 'chat';
                 $reply .= "\n\n지금은 딱 맞는 등록 상품을 찾지 못했어요. 용도·모양·크기를 조금 더 알려주시면 다시 찾아볼게요.";
@@ -165,7 +165,9 @@ final class LabiDesignService
                     );
                 }
             }
-            $size = $this->resolveTemplateSize($structured, $catalog);
+            $userText = $this->lastUserText($messages);
+            $product = $this->resolveProduct($structured, $catalog, $userText);
+            $size = $this->resolveTemplateSize($structured, $catalog, $userText, $product);
             $layout = null;
             $translateToKo = $translateChoice === 'translate_yes';
 
@@ -184,8 +186,10 @@ final class LabiDesignService
                         $messages,
                         $translateToKo,
                         trim((string) ($structured['clipart_prompt'] ?? '')) !== ''
-                            ? (string) $structured['message'] . ' ' . $this->lastUserText($messages)
-                            : $this->lastUserText($messages)
+                            ? (string) $structured['message'] . ' ' . $userText
+                            : $userText,
+                        $size['width_mm'],
+                        $size['height_mm']
                     );
                 } catch (RuntimeException) {
                     $layout = null;
@@ -198,7 +202,7 @@ final class LabiDesignService
                     'height_mm' => $size['height_mm'],
                     'background_prompt' => '',
                     'texts' => [[
-                        'text' => trim(mb_substr($this->lastUserText($messages) !== '' ? $this->lastUserText($messages) : '상품명', 0, 24)),
+                        'text' => trim(mb_substr($userText !== '' ? $userText : '상품명', 0, 24)),
                         'x' => 0.08,
                         'y' => 0.28,
                         'w' => 0.84,
@@ -211,13 +215,35 @@ final class LabiDesignService
                 ];
             }
 
-            $lw = (float) ($layout['width_mm'] ?? 0);
-            $lh = (float) ($layout['height_mm'] ?? 0);
-            if ($lw >= 15 && $lh >= 15) {
-                $size = [
-                    'width_mm' => $this->clampMm($lw, 20, 210),
-                    'height_mm' => $this->clampMm($lh, 15, 297),
-                ];
+            // 이미 용도를 맞춰 고른 용지가 있으면 레이아웃이 70×36 같은 기본값으로 덮지 않는다.
+            if ($product === null) {
+                $lw = (float) ($layout['width_mm'] ?? 0);
+                $lh = (float) ($layout['height_mm'] ?? 0);
+                if ($lw >= 15 && $lh >= 15) {
+                    $size = [
+                        'width_mm' => $this->clampMm($lw, 20, 210),
+                        'height_mm' => $this->clampMm($lh, 15, 297),
+                    ];
+                    $near = $this->bestCatalogMatch(
+                        $catalog,
+                        $this->inferPaperNeed($userText),
+                        $size['width_mm'],
+                        $size['height_mm'],
+                        $this->hintTokens($userText)
+                    );
+                    if ($near !== null) {
+                        $found = $this->shop->findActiveProduct((int) $near['id']);
+                        if ($found && ($found['status'] ?? '') === 'active') {
+                            $product = $this->presentProduct($found);
+                            if (($product['width_mm'] ?? null) && ($product['height_mm'] ?? null)) {
+                                $size = [
+                                    'width_mm' => (float) $product['width_mm'],
+                                    'height_mm' => (float) $product['height_mm'],
+                                ];
+                            }
+                        }
+                    }
+                }
             }
 
             $texts = is_array($layout['texts'] ?? null) ? $layout['texts'] : [];
@@ -232,9 +258,10 @@ final class LabiDesignService
                 . ' Full-bleed print-ready label BACKGROUND only, filling the entire canvas edge to edge.'
                 . ' Absolutely NO letters, NO numbers, NO digits, NO punctuation, NO words, NO watermarks, NO barcodes as text.'
                 . ' Keep colors, shapes, ornaments, patterns, borders, and blank areas where text belonged.'
-                . ' No mockup, no table, no torn paper, no extra background around the label.';
+                . ' No mockup, no table, no torn paper, no extra background around the label.'
+                . ' Transparent PNG: any area that is not printed artwork must be alpha-transparent.';
 
-            $image = $this->openai->generateClipart($prompt);
+            $image = $this->openai->generateClipart($prompt, false);
             $title = trim((string) ($layout['title'] ?? ''));
             if ($title === '') {
                 $title = '라비가 만든 라벨 템플릿';
@@ -248,12 +275,25 @@ final class LabiDesignService
                 $image,
                 $size['width_mm'],
                 $size['height_mm'],
-                $texts
+                $texts,
+                $product
             );
             if ($translateChoice === 'translate_yes') {
                 $reply = '이미지의 외국어를 한국어로 번역해, 글자는 편집 가능한 텍스트로 분리한 라벨 템플릿을 만들었어요. 바로편집에서 문구를 바꿔 보세요.';
             } else {
                 $reply = '글자·숫자·특수문자는 편집 가능한 텍스트로, 배경만 이미지로 만든 라벨 템플릿이에요. 바로편집에서 문구를 바꿔 보세요.';
+            }
+            if ($product) {
+                $paperLabel = trim((string) ($product['name'] ?? ''));
+                $spec = trim((string) ($product['spec'] ?? ''));
+                $why = $paperLabel !== '' ? $paperLabel : $spec;
+                if ($why !== '') {
+                    $need = $this->inferPaperNeed($userText);
+                    $reason = $need['kind'] === 'food_container'
+                        ? '반찬통·용기처럼 작은 스티커에 맞춰'
+                        : '요청하신 용도에 맞춰';
+                    $reply .= "\n\n{$reason} 「{$why}」 용지를 골랐어요.";
+                }
             }
         }
 
@@ -631,6 +671,9 @@ final class LabiDesignService
                 'shape' => (string) ($row['shape'] ?? ''),
                 'size' => $size,
                 'material' => (string) ($row['material'] ?? ''),
+                'width_mm' => $w !== null ? (float) $w : 0.0,
+                'height_mm' => $h !== null ? (float) $h : 0.0,
+                'labels_per_sheet' => isset($row['labels_per_sheet']) ? (int) $row['labels_per_sheet'] : 0,
             ];
         }
 
@@ -642,35 +685,359 @@ final class LabiDesignService
      * @param array<int, array{id:int, name:string, sku:string, category:string, shape:string, size:string, material:string}> $catalog
      * @return ?array<string, mixed>
      */
-    private function resolveProduct(array $structured, array $catalog): ?array
+    private function resolveProduct(array $structured, array $catalog, string $hint = ''): ?array
     {
-        $productId = (int) ($structured['product_id'] ?? 0);
-        if ($productId > 0) {
-            $product = $this->shop->findActiveProduct($productId);
-            if ($product && ($product['status'] ?? '') === 'active') {
-                return $this->presentProduct($product);
-            }
+        $hint = trim($hint . ' ' . (string) ($structured['search_query'] ?? ''));
+        $need = $this->inferPaperNeed($hint);
+        $tokens = $this->hintTokens($hint);
+        $mentioned = $this->mentionedSizeMm($hint);
+        $wantW = $mentioned[0] ?? ((float) ($structured['width_mm'] ?? 0) ?: null);
+        $wantH = $mentioned[1] ?? ((float) ($structured['height_mm'] ?? 0) ?: null);
+        if ($wantW !== null && $wantW < 8) {
+            $wantW = null;
+        }
+        if ($wantH !== null && $wantH < 8) {
+            $wantH = null;
         }
 
-        $query = trim((string) ($structured['search_query'] ?? ''));
-        if ($query !== '') {
-            $found = $this->shop->activeProducts(['q' => $query], 1, 5);
-            foreach ($found['items'] as $row) {
-                if (($row['status'] ?? '') === 'active') {
-                    return $this->presentProduct($row);
+        $ranked = [];
+        foreach ($catalog as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $ranked[] = [
+                'item' => $item,
+                'score' => $this->scorePaper($item, $need, $wantW, $wantH, $tokens),
+            ];
+        }
+        usort($ranked, static fn (array $a, array $b): int => $b['score'] <=> $a['score']);
+        $best = $ranked[0] ?? null;
+
+        $productId = (int) ($structured['product_id'] ?? 0);
+        $gptRank = null;
+        if ($productId > 0) {
+            foreach ($ranked as $row) {
+                if ((int) ($row['item']['id'] ?? 0) === $productId) {
+                    $gptRank = $row;
+                    break;
                 }
             }
         }
 
-        if ($catalog !== []) {
-            $pick = $catalog[array_rand($catalog)];
-            $product = $this->shop->findActiveProduct((int) $pick['id']);
-            if ($product) {
-                return $this->presentProduct($product);
+        $pick = null;
+        if ($gptRank !== null && ($best === null || (int) $gptRank['score'] >= (int) $best['score'] - 8)) {
+            $pick = $gptRank['item'];
+        } elseif ($best !== null && (int) $best['score'] >= 5) {
+            $pick = $best['item'];
+        } elseif ($gptRank !== null) {
+            $pick = $gptRank['item'];
+        }
+
+        if ($pick === null) {
+            $query = trim((string) ($structured['search_query'] ?? ''));
+            if ($query !== '') {
+                $found = $this->shop->activeProducts(['q' => $query], 1, 12);
+                $bestRow = null;
+                $bestScore = 4;
+                foreach ($found['items'] as $row) {
+                    if (($row['status'] ?? '') !== 'active') {
+                        continue;
+                    }
+                    $score = $this->scorePaper($row, $need, $wantW, $wantH, $tokens);
+                    if ($score > $bestScore) {
+                        $bestScore = $score;
+                        $bestRow = $row;
+                    }
+                }
+                if ($bestRow !== null) {
+                    return $this->presentProduct($bestRow);
+                }
             }
+            return null;
+        }
+
+        $product = $this->shop->findActiveProduct((int) $pick['id']);
+        if ($product && ($product['status'] ?? '') === 'active') {
+            return $this->presentProduct($product);
         }
 
         return null;
+    }
+
+    /**
+     * @return array{
+     *   kind:string,
+     *   prefer_round:bool,
+     *   prefer_waterproof:bool,
+     *   min_mm:float,
+     *   max_mm:float,
+     *   default_w:float,
+     *   default_h:float
+     * }
+     */
+    private function inferPaperNeed(string $text): array
+    {
+        $t = trim($text);
+        $foodContainer = (bool) preg_match('/반찬통|밀폐|용기|뚜껑|병뚜껑|잼병|도시락|김치통|원형|동그란|원스티커|인덱싱/u', $t);
+        $food = $foodContainer || (bool) preg_match('/반찬|식품|음식|냉장고|냉동|주방|키친/u', $t);
+        $shipping = (bool) preg_match('/주소|택배|배송|수취|송장/u', $t);
+        $barcode = (bool) preg_match('/바코드|피킹|SKU|sku|재고/u', $t);
+
+        if ($shipping && !$food) {
+            return [
+                'kind' => 'shipping',
+                'prefer_round' => false,
+                'prefer_waterproof' => false,
+                'min_mm' => 40,
+                'max_mm' => 120,
+                'default_w' => 100.0,
+                'default_h' => 50.0,
+            ];
+        }
+        if ($barcode && !$food) {
+            return [
+                'kind' => 'barcode',
+                'prefer_round' => false,
+                'prefer_waterproof' => false,
+                'min_mm' => 25,
+                'max_mm' => 80,
+                'default_w' => 70.0,
+                'default_h' => 36.0,
+            ];
+        }
+        if ($foodContainer || $food) {
+            $round = $foodContainer || (bool) preg_match('/원형|동그란|뚜껑|병/u', $t);
+            return [
+                'kind' => 'food_container',
+                'prefer_round' => $round,
+                'prefer_waterproof' => true,
+                'min_mm' => 28,
+                'max_mm' => 70,
+                'default_w' => $round ? 40.0 : 47.0,
+                'default_h' => $round ? 40.0 : 26.9,
+            ];
+        }
+
+        return [
+            'kind' => 'general',
+            'prefer_round' => false,
+            'prefer_waterproof' => false,
+            'min_mm' => 20,
+            'max_mm' => 120,
+            'default_w' => 50.0,
+            'default_h' => 30.0,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @param array{kind:string,prefer_round:bool,prefer_waterproof:bool,min_mm:float,max_mm:float,default_w:float,default_h:float} $need
+     * @param array<int, string> $tokens
+     */
+    private function scorePaper(array $row, array $need, ?float $wantW = null, ?float $wantH = null, array $tokens = []): int
+    {
+        $name = (string) ($row['name'] ?? '');
+        $sku = (string) ($row['sku'] ?? '');
+        $cat = (string) ($row['category'] ?? $row['category_name'] ?? '');
+        $shape = strtolower((string) ($row['shape'] ?? ''));
+        $mat = (string) ($row['material'] ?? '');
+        [$w, $h] = $this->rowSizeMm($row);
+        $hay = $name . ' ' . $sku . ' ' . $cat . ' ' . $shape . ' ' . $mat;
+        $score = $this->lexicalScore($hay, $tokens, $w, $h, $sku, $shape);
+
+        if ($wantW !== null && $wantH !== null && $w > 0 && $h > 0) {
+            $dw = abs($w - $wantW);
+            $dh = abs($h - $wantH);
+            if ($dw <= 1.2 && $dh <= 1.2) {
+                $score += 12;
+            } elseif ($dw <= 4 && $dh <= 4) {
+                $score += 6;
+            }
+        } elseif ($wantW !== null && $w > 0 && abs($w - $wantW) <= 1.5) {
+            $score += 5;
+        }
+
+        if ($need['kind'] === 'food_container') {
+            if (preg_match('/주소|택배|배송|바코드|송장/u', $hay)) {
+                $score -= 12;
+            }
+            $isRound = (bool) preg_match('/R\d|R-|-R/i', $sku)
+                || in_array($shape, ['ellipse', 'circle', 'round'], true)
+                || ($w > 0 && $h > 0 && abs($w - $h) < 1.2);
+            if ($need['prefer_round'] && $isRound) {
+                $score += 10;
+            } elseif ($isRound) {
+                $score += 4;
+            }
+            if (preg_match('/방수|waterproof/iu', $hay)) {
+                $score += 6;
+            }
+            if (preg_match('/인덱싱/u', $hay)) {
+                $score += 4;
+            }
+            if ($w >= $need['min_mm'] && $h >= $need['min_mm'] && $w <= $need['max_mm'] && $h <= $need['max_mm']) {
+                $score += 5;
+            }
+            if (abs($w - 40) < 1.2 && abs($h - 40) < 1.2) {
+                $score += 8;
+            }
+            if (abs($w - 63.5) < 1.2 && abs($h - 63.5) < 1.2) {
+                $score += 5;
+            }
+            if ($w > 90 || $h > 90) {
+                $score -= 10;
+            }
+        } elseif ($need['kind'] === 'shipping') {
+            if (preg_match('/주소|택배|배송|물류/u', $hay)) {
+                $score += 8;
+            }
+            if (abs($w - 100) < 3 && abs($h - 50) < 3) {
+                $score += 8;
+            }
+            if (preg_match('/R\d/i', $sku)) {
+                $score -= 6;
+            }
+        } elseif ($need['kind'] === 'barcode') {
+            if (preg_match('/바코드|피킹/u', $hay)) {
+                $score += 6;
+            }
+            if (abs($w - 70) < 3 && abs($h - 36) < 3) {
+                $score += 6;
+            }
+        } elseif ($w >= 20 && $h >= 15 && $w <= 120 && $h <= 80) {
+            $score += 2;
+        }
+
+        if (preg_match('/-100(?:\b|$)/', $sku)) {
+            $score -= 1;
+        }
+        if (preg_match('/-(?:10|20)(?:\b|$)/', $sku)) {
+            $score += 1;
+        }
+
+        return $score;
+    }
+
+    /** @return array<int, string> */
+    private function hintTokens(string $text): array
+    {
+        $text = trim($text);
+        if ($text === '') {
+            return [];
+        }
+        $parts = preg_split('/[^\p{L}\p{N}.]+/u', $text) ?: [];
+        $stop = [
+            '그려줘', '그려', '달라', '주세요', '만들어줘', '만들어', '템플릿', '라벨', '스티커',
+            '디자인', '요청', '해줘', '해주세요', '완성', '전체', '이거', '저거', '좀', '용',
+            '걸로', '같은', '있는', '없는', '하고', '해서', '바로', '편집',
+        ];
+        $tokens = [];
+        foreach ($parts as $part) {
+            $part = trim((string) $part);
+            if ($part === '' || mb_strlen($part) < 2 || in_array($part, $stop, true)) {
+                continue;
+            }
+            $tokens[] = $part;
+            if (preg_match('/원형|동그란|뚜껑|원스티커/u', $part)) {
+                array_push($tokens, '원형', '인덱싱', 'R');
+            }
+            if (preg_match('/방수|젖|물묻는/u', $part)) {
+                $tokens[] = '방수';
+            }
+            if (preg_match('/투명|클리어/u', $part)) {
+                array_push($tokens, '투명', '클리어');
+            }
+            if (preg_match('/크라프트|크래프트/u', $part)) {
+                $tokens[] = '크라프트';
+            }
+            if (preg_match('/유광|광택/u', $part)) {
+                $tokens[] = '유광';
+            }
+        }
+
+        return array_values(array_unique($tokens));
+    }
+
+    /** @return array{0:?float,1:?float} */
+    private function mentionedSizeMm(string $text): array
+    {
+        if (preg_match('/([\d.]+)\s*[×xX]\s*([\d.]+)\s*(?:mm)?/u', $text, $m)) {
+            return [(float) $m[1], (float) $m[2]];
+        }
+        if (preg_match('/([\d.]+)\s*cm/u', $text, $m)) {
+            $n = (float) $m[1] * 10;
+            return [$n, $n];
+        }
+        if (preg_match('/([\d.]+)\s*mm/u', $text, $m)) {
+            $n = (float) $m[1];
+            return [$n, $n];
+        }
+        return [null, null];
+    }
+
+    /** @param array<int, string> $tokens */
+    private function lexicalScore(string $hay, array $tokens, float $w, float $h, string $sku, string $shape): int
+    {
+        if ($tokens === []) {
+            return 0;
+        }
+        $hayLower = mb_strtolower($hay);
+        $score = 0;
+        foreach ($tokens as $token) {
+            $t = mb_strtolower($token);
+            if ($t === '') {
+                continue;
+            }
+            if (mb_strlen($t) >= 2 && mb_strpos($hayLower, $t) !== false) {
+                $score += mb_strlen($t) >= 3 ? 4 : 2;
+            }
+        }
+        foreach ($tokens as $token) {
+            if (preg_match('/원형|동그란|R/u', $token)
+                && (preg_match('/R\d|R-|-R/i', $sku) || abs($w - $h) < 1.2 || in_array($shape, ['ellipse', 'circle', 'round'], true))) {
+                $score += 3;
+                break;
+            }
+        }
+        return $score;
+    }
+
+    /** @param array<string, mixed> $row
+     *  @return array{0:float,1:float} */
+    private function rowSizeMm(array $row): array
+    {
+        $w = (float) ($row['width_mm'] ?? 0);
+        $h = (float) ($row['height_mm'] ?? 0);
+        if ($w > 0 && $h > 0) {
+            return [$w, $h];
+        }
+        $size = (string) ($row['size'] ?? '');
+        if (preg_match('/([\d.]+)\s*[×xX]\s*([\d.]+)/u', $size, $m)) {
+            return [(float) $m[1], (float) $m[2]];
+        }
+        return [0.0, 0.0];
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $catalog
+     * @param array{kind:string,prefer_round:bool,prefer_waterproof:bool,min_mm:float,max_mm:float,default_w:float,default_h:float} $need
+     * @return ?array<string, mixed>
+     */
+    private function bestCatalogMatch(array $catalog, array $need, ?float $wantW = null, ?float $wantH = null, array $tokens = []): ?array
+    {
+        $best = null;
+        $bestScore = 3;
+        foreach ($catalog as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $score = $this->scorePaper($item, $need, $wantW, $wantH, $tokens);
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $best = $item;
+            }
+        }
+        return $best;
     }
 
     /** @param array<string, mixed> $product
@@ -771,7 +1138,7 @@ final class LabiDesignService
 
         $hint = trim(mb_substr($lastUser !== '' ? $lastUser : 'cute label decoration', 0, 120));
 
-        return "Simple clean label clipart illustration for sticker printing, white background, centered motif inspired by: {$hint}. Flat vector style, high contrast, no text, no watermark.";
+        return "Simple clean label clipart illustration for sticker printing, fully transparent background, isolated centered motif inspired by: {$hint}. Flat vector style, high contrast, no text, no watermark, no white or black studio backdrop.";
     }
 
     /** @param array<int, array{role:string, content:mixed}> $messages */
@@ -808,24 +1175,11 @@ final class LabiDesignService
     /**
      * @param array<string, mixed> $structured
      * @param array<int, array{id:int, name:string, sku:string, category:string, shape:string, size:string, material:string}> $catalog
+     * @param array<string, mixed>|null $product
      * @return array{width_mm:float, height_mm:float}
      */
-    private function resolveTemplateSize(array $structured, array $catalog): array
+    private function resolveTemplateSize(array $structured, array $catalog, string $hint = '', ?array $product = null): array
     {
-        $w = (float) ($structured['width_mm'] ?? 0);
-        $h = (float) ($structured['height_mm'] ?? 0);
-        if ($w >= 15 && $h >= 15) {
-            $w = $this->clampMm($w, 20, 210);
-            $h = $this->clampMm($h, 15, 297);
-            if ($w <= 120 && $h <= 120) {
-                return [
-                    'width_mm' => $w,
-                    'height_mm' => $h,
-                ];
-            }
-        }
-
-        $product = $this->resolveProduct($structured, $catalog);
         if ($product && ($product['width_mm'] ?? null) && ($product['height_mm'] ?? null)) {
             return [
                 'width_mm' => (float) $product['width_mm'],
@@ -833,7 +1187,42 @@ final class LabiDesignService
             ];
         }
 
-        return ['width_mm' => 70.0, 'height_mm' => 36.0];
+        $need = $this->inferPaperNeed($hint);
+        $w = (float) ($structured['width_mm'] ?? 0);
+        $h = (float) ($structured['height_mm'] ?? 0);
+        if ($w >= 15 && $h >= 15 && $this->sizeFitsNeed($w, $h, $need)) {
+            return [
+                'width_mm' => $this->clampMm($w, 20, 210),
+                'height_mm' => $this->clampMm($h, 15, 297),
+            ];
+        }
+
+        return [
+            'width_mm' => $need['default_w'],
+            'height_mm' => $need['default_h'],
+        ];
+    }
+
+    /** @param array{kind:string,min_mm:float,max_mm:float} $need */
+    private function sizeFitsNeed(float $w, float $h, array $need): bool
+    {
+        if ($need['kind'] === 'food_container') {
+            $max = max($w, $h);
+            $min = min($w, $h);
+            if ($max > $need['max_mm'] + 8) {
+                return false;
+            }
+            if ($min < 20) {
+                return false;
+            }
+            if (abs($w - 70) < 1.5 && abs($h - 36) < 1.5) {
+                return false;
+            }
+            if (abs($w - 100) < 2 && abs($h - 50) < 2) {
+                return false;
+            }
+        }
+        return $w <= 120 && $h <= 120;
     }
 
     private function clampMm(float $value, float $min, float $max): float
@@ -854,20 +1243,22 @@ final class LabiDesignService
      *   align:string,
      *   color:string
      * }> $texts
+     * @param array<string, mixed>|null $paper
      * @return array<string, mixed>
      */
-    private function presentTemplate(array $image, float $widthMm, float $heightMm, array $texts = []): array
+    private function presentTemplate(array $image, float $widthMm, float $heightMm, array $texts = [], ?array $paper = null): array
     {
         $title = (string) ($image['title'] ?? '라비가 만든 라벨 템플릿');
         $url = (string) ($image['url'] ?? '');
         $w = max(10.0, $widthMm);
         $h = max(10.0, $heightMm);
+        $paperMeta = $this->templatePaperMeta($paper, $w, $h);
 
         if ($texts !== [] && $url !== '') {
             $document = $this->buildEditableTemplateDocument($url, $title, $w, $h, $texts);
             $editorUrl = url('editor/') . '?labiDoc=1';
 
-            return [
+            return array_merge([
                 'url' => $url,
                 'prompt' => (string) ($image['prompt'] ?? ''),
                 'title' => $title,
@@ -877,7 +1268,7 @@ final class LabiDesignService
                 'editor_url' => $editorUrl,
                 'document' => $document,
                 'editable_texts' => count($texts),
-            ];
+            ], $paperMeta);
         }
 
         $query = [
@@ -887,9 +1278,12 @@ final class LabiDesignService
             'clipart' => $url,
             'fit' => 'cover',
         ];
+        if (($paperMeta['sku'] ?? '') !== '') {
+            $query['sku'] = $paperMeta['sku'];
+        }
         $editorUrl = url('editor/') . '?' . http_build_query($query);
 
-        return [
+        return array_merge([
             'url' => $url,
             'prompt' => (string) ($image['prompt'] ?? ''),
             'title' => $title,
@@ -897,6 +1291,29 @@ final class LabiDesignService
             'height_mm' => $h,
             'fit' => 'cover',
             'editor_url' => $editorUrl,
+        ], $paperMeta);
+    }
+
+    /**
+     * @param array<string, mixed>|null $paper
+     * @return array{paper_name:string, sku:string, labels_per_page:int, use_case_label:string}
+     */
+    private function templatePaperMeta(?array $paper, float $widthMm, float $heightMm): array
+    {
+        $name = trim((string) ($paper['name'] ?? ''));
+        $sku = trim((string) ($paper['sku'] ?? ''));
+        $labels = (int) ($paper['labels_per_sheet'] ?? 0);
+        $spec = trim((string) ($paper['spec'] ?? ''));
+        if ($name === '' && $widthMm > 0 && $heightMm > 0) {
+            $name = rtrim(rtrim(sprintf('%.1f', $widthMm), '0'), '.') . '×'
+                . rtrim(rtrim(sprintf('%.1f', $heightMm), '0'), '.') . 'mm';
+        }
+
+        return [
+            'paper_name' => $name !== '' ? $name : $spec,
+            'sku' => $sku,
+            'labels_per_page' => $labels,
+            'use_case_label' => '',
         ];
     }
 

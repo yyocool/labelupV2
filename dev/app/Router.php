@@ -43,6 +43,8 @@ use App\Controllers\Api\EditorSystemFontApiController;
 use App\Controllers\Api\EditorClipartApiController;
 use App\Controllers\Api\EditorPaperApiController;
 use App\Controllers\Api\EditorWorkspaceApiController;
+use App\Controllers\Api\LibraryApiController;
+use App\Controllers\LibraryController;
 use App\Controllers\Api\HealthController;
 use App\Controllers\Api\SeedController;
 use App\Controllers\Api\SystemController;
@@ -143,6 +145,8 @@ final class Router
         $seed = new SeedController();
         $authApi = new AuthApiController();
         $editorWorkspaceApi = new EditorWorkspaceApiController();
+        $library = new LibraryController();
+        $libraryApi = new LibraryApiController();
         $aiChatApi = new AiChatApiController();
         $aiPromptsPublic = new AiExamplePromptApiController();
         $aiAdmin = new AiAdminController();
@@ -218,6 +222,9 @@ final class Router
         $router->get('/register', [$auth, 'registerForm']);
         $router->get('/reset-password', [$auth, 'resetPasswordForm']);
         $router->get('/account', [$auth, 'account']);
+        $router->get('/projects', [$library, 'projects']);
+        $router->get('/locker', [$library, 'locker']);
+        $router->get('/trash', [$library, 'trash']);
         $router->get('/logout', [$auth, 'logout']);
         $router->get('/auth/{provider}', [$auth, 'oauthRedirect']);
         $router->get('/auth/{provider}/callback', [$auth, 'oauthCallback']);
@@ -310,6 +317,9 @@ final class Router
         $router->get('/api/editor/workspaces', [$editorWorkspaceApi, 'index']);
         $router->get('/api/editor/workspace', [$editorWorkspaceApi, 'show']);
         $router->post('/api/editor/workspace', [$editorWorkspaceApi, 'save']);
+        $router->post('/api/library/trash', [$libraryApi, 'trash']);
+        $router->post('/api/library/restore', [$libraryApi, 'restore']);
+        $router->post('/api/library/purge', [$libraryApi, 'purge']);
         $router->get('/api/editor/templates', [$editorTemplateApi, 'index']);
         $router->get('/api/editor/templates/{id}', [$editorTemplateApi, 'show']);
         $router->get('/api/editor/remote-image', [$editorRemoteImageApi, 'show']);
@@ -411,6 +421,8 @@ final class Router
         $router->get('/api/admin/shop/product-page-category-settings', [$shopApi, 'productPageCategorySettingsList']);
         $router->get('/api/admin/shop/product-page-category-settings/one', [$shopApi, 'productPageCategorySettings']);
         $router->post('/api/admin/shop/product-page-category-settings/save', [$shopApi, 'saveProductPageCategorySettings']);
+        $router->get('/api/admin/shop/product-detail-page', [$shopApi, 'productDetailPage']);
+        $router->post('/api/admin/shop/product-detail-page/save', [$shopApi, 'saveProductDetailPage']);
 
         $router->get('/api/shop/editor-papers', [$shopPublicApi, 'editorPapers']);
         $router->get('/api/shop/catalog', [$shopPublicApi, 'catalog']);

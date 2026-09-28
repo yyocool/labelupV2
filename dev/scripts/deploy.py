@@ -20,11 +20,20 @@ from remote_config import (
 
 LOCAL_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
-SKIP_DIRS = {'.git', 'node_modules', 'vendor', '.env', '__pycache__', 'editor-src'}
+SKIP_DIRS = {
+    '.git', 'node_modules', 'vendor', '.env', '__pycache__', 'editor-src',
+    # 로컬 전용: 배포 스크립트와 에디터 발행 작업 폴더
+    'scripts',
+    '_editor_publish', '_editor_publish_shop', '_editor_publish_tmp',
+    '_editor_publish_zorder', '_publish_vendor_ui', '_tmp_pw',
+}
 SKIP_FILES = {'.env'}
-# PHPS 호스팅용 .htaccess는 서버에 유지 (로컬 단순 규칙으로 덮지 않음)
+# PHPS 호스팅용 설정은 서버에 유지 (로컬 파일로 덮으면 open_basedir이 깨진다)
 SKIP_REMOTE_OVERWRITE = {
     REMOTE_PUBLIC + '/.htaccess',
+    REMOTE_PUBLIC + '/.user.ini',
+    # PHPS: /editor/ 안 .htaccess 가 있으면 편집기 500
+    REMOTE_PUBLIC + '/editor/.htaccess',
 }
 
 
@@ -140,7 +149,7 @@ def main():
     openai_model = pick_env(existing_env, 'OPENAI_MODEL', 'gpt-4o-mini')
     openai_max = pick_env(existing_env, 'OPENAI_MAX_TOKENS', '1800')
     openai_image = pick_env(existing_env, 'OPENAI_IMAGE_MODEL', 'gpt-image-1')
-    openai_image_quality = pick_env(existing_env, 'OPENAI_IMAGE_QUALITY', 'medium')
+    openai_image_quality = pick_env(existing_env, 'OPENAI_IMAGE_QUALITY', 'low')
     naver_id = pick_env(existing_env, 'NAVER_CLIENT_ID')
     naver_secret = pick_env(existing_env, 'NAVER_CLIENT_SECRET')
     kakao_rest = pick_env(existing_env, 'KAKAO_REST_API_KEY')

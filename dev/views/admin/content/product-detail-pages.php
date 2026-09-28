@@ -36,12 +36,10 @@ $queryParams = array_filter([
     <option value="yes"<?= (($f['registered'] ?? '') === 'yes') ? ' selected' : '' ?>>등록</option>
     <option value="no"<?= (($f['registered'] ?? '') === 'no') ? ' selected' : '' ?>>미등록</option>
   </select>
-  <select class="admin-select" name="category_id">
-    <option value="">전체 카테고리</option>
-    <?php foreach ($categories as $cat): ?>
-    <option value="<?= (int) $cat['id'] ?>"<?= ((int) ($f['category_id'] ?? 0) === (int) $cat['id']) ? ' selected' : '' ?>><?= e((string) $cat['name']) ?></option>
-    <?php endforeach; ?>
-  </select>
+  <?php
+    $selectedId = (int) ($f['category_id'] ?? 0);
+    require view_path('admin/partials/category-filter.php');
+  ?>
   <select class="admin-select" name="product_status">
     <option value="">상품상태 전체</option>
     <?php foreach ($statuses as $code): ?>
@@ -70,7 +68,7 @@ $queryParams = array_filter([
         <th>상품코드</th>
         <th>카테고리</th>
         <th>상품상태</th>
-        <th>미리보기</th>
+        <th>작업</th>
       </tr>
     </thead>
     <tbody>
@@ -82,8 +80,8 @@ $queryParams = array_filter([
         $registered = !empty($row['has_detail_page']);
         $previewUrl = url('admin/content/product-detail-pages/preview/' . (int) ($row['id'] ?? 0));
       ?>
-      <tr>
-        <td>
+      <tr data-product-id="<?= (int) ($row['id'] ?? 0) ?>">
+        <td class="js-detail-status">
           <?php if ($registered): ?>
           <span class="admin-badge admin-badge--ok">등록</span>
           <?php else: ?>
@@ -95,12 +93,20 @@ $queryParams = array_filter([
         <td><?= e((string) ($row['category_name'] ?? '-')) ?></td>
         <td><?= e(ShopAdminService::productStatusLabel((string) ($row['product_status'] ?? ''))) ?></td>
         <td>
-          <button
-            type="button"
-            class="admin-btn admin-btn--sm js-product-detail-preview"
-            data-preview-url="<?= e($previewUrl) ?>"
-            data-preview-title="<?= e((string) ($row['name'] ?? '상품 상세')) ?>"
-          >미리보기</button>
+          <div class="admin-table-actions">
+            <button
+              type="button"
+              class="admin-btn admin-btn--sm js-product-detail-edit"
+              data-product-id="<?= (int) ($row['id'] ?? 0) ?>"
+              data-product-name="<?= e((string) ($row['name'] ?? '상품')) ?>"
+            >수정</button>
+            <button
+              type="button"
+              class="admin-btn admin-btn--sm js-product-detail-preview"
+              data-preview-url="<?= e($previewUrl) ?>"
+              data-preview-title="<?= e((string) ($row['name'] ?? '상품 상세')) ?>"
+            >미리보기</button>
+          </div>
         </td>
       </tr>
       <?php endforeach; ?>
@@ -131,6 +137,28 @@ $queryParams = array_filter([
     </div>
     <div class="admin-modal-body admin-preview-frame-wrap">
       <iframe id="productDetailPreviewFrame" title="상품 상세 미리보기" src="about:blank"></iframe>
+    </div>
+  </div>
+</div>
+<div id="productDetailHtmlModal" class="admin-modal" hidden>
+  <div class="admin-modal-backdrop js-product-detail-html-close"></div>
+  <div class="admin-modal-dialog admin-modal-dialog--detail-html" role="dialog" aria-modal="true" aria-labelledby="productDetailHtmlTitle">
+    <div class="admin-modal-head">
+      <h3 id="productDetailHtmlTitle">상품 상세 내용 수정</h3>
+      <button type="button" class="admin-modal-close js-product-detail-html-close" aria-label="닫기">×</button>
+    </div>
+    <form id="productDetailHtmlForm" class="admin-modal-body admin-detail-html-form">
+      <input type="hidden" name="product_id" id="productDetailHtmlProductId" value="">
+      <p class="admin-detail-html-meta" id="productDetailHtmlMeta"></p>
+      <div class="admin-field admin-field--editor">
+        <label for="productDetailHtmlEditor">상품 상세 내용</label>
+        <textarea id="productDetailHtmlEditor" class="js-product-detail-html" rows="16" placeholder="상품 상세페이지에 표시할 내용을 입력하세요."></textarea>
+      </div>
+    </form>
+    <div class="admin-modal-foot">
+      <p class="admin-muted admin-detail-html-hint">카테고리 헤더/푸터와 별개로, 상품 본문에 표시됩니다. 이미지를 끌어다 놓거나 툴바에서 넣을 수 있습니다.</p>
+      <button type="button" class="admin-btn js-product-detail-html-close">취소</button>
+      <button type="submit" form="productDetailHtmlForm" class="admin-btn admin-btn--primary" id="productDetailHtmlSaveBtn">저장</button>
     </div>
   </div>
 </div>

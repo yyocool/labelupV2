@@ -2548,12 +2548,26 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 .ed-credit-modal {
   z-index: 420;
 }
-.ed-credit-modal__card {
+.ed-modal__card--confirm.ed-credit-modal__card {
   width: min(440px, 100%);
+  max-height: min(68vh, 520px);
+  overflow: hidden;
+}
+.ed-credit-modal__card .ed-modal__body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 .ed-credit-list {
   display: grid;
   gap: 8px;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: min(38vh, 280px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
 }
 .ed-credit-row {
   display: flex;
@@ -2586,20 +2600,6 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   color: var(--ed-muted, #8a7a7e);
   font-size: 13px;
   line-height: 1.5;
-}
-.ed-credit-more {
-  display: block;
-  width: 100%;
-  margin-top: 10px;
-  height: 36px;
-  border: 1px solid #e8d4db;
-  border-radius: 10px;
-  background: #fff;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--ed-primary, #7b2840);
-  cursor: pointer;
 }
 
 .ed-import__tab-labi {
@@ -3624,7 +3624,28 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   width: 100%;
   height: 128px;
   object-fit: contain;
+  object-position: center;
   display: block;
+  background: transparent;
+  padding: 8px;
+  box-sizing: border-box;
+}
+.ed-project-card {
+  position: relative;
+}
+.ed-project-card__trash {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255,255,255,.94);
+  color: #9b1c1c;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
 }
 .ed-theme-hero {
   display: grid;
@@ -4053,6 +4074,13 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 .ed-paper-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 18px 0}
 .ed-paper-search{flex:2 1 220px;height:36px;border:1px solid var(--ed-border);border-radius:10px;padding:0 12px;font:inherit}
 .ed-paper-select{height:36px;border:1px solid var(--ed-border);border-radius:10px;padding:0 10px;font:inherit;min-width:140px;background:#fff}
+.ed-shop-cat{
+  display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 6px 0 10px;
+  border:1px solid var(--ed-border);border-radius:10px;background:#faf7f3
+}
+.ed-shop-cat span{font-size:10px;font-weight:800;color:#8a6a4a;letter-spacing:.04em;white-space:nowrap}
+.ed-shop-cat--child{background:#fff4ec;border-color:#e4d5c4}
+.ed-shop-cat .ed-paper-select{border:0;min-width:132px;background:transparent;height:34px;padding:0 6px 0 0}
 .ed-paper-count{margin-left:auto;font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap}
 .ed-paper-empty{grid-column:1/-1;margin:24px 0;text-align:center;color:var(--muted);font-size:13px}
 .ed-paper-compat{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
@@ -5175,18 +5203,30 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 }
 .ed-btn--shop:hover { background: #f3ece3; border-color: #c4a574; }
 .ed-shop-modal { z-index: 320; }
-.ed-modal__card--shop { width: min(1120px, 100%); max-height: min(92vh, 980px); }
+.ed-modal__card--shop {
+  width: min(1120px, 100%);
+  max-height: min(92vh, calc(100dvh - 48px), 980px);
+  overflow: hidden;
+}
 .ed-shop-head-actions { display: flex; align-items: center; gap: 8px; }
 .ed-shop-cart-btn em {
   display: inline-flex; min-width: 18px; height: 18px; padding: 0 5px;
   border-radius: 999px; background: var(--burgundy); color: #fff;
   font-size: 10px; font-style: normal; align-items: center; justify-content: center;
 }
-.ed-shop-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px 18px 0; }
+.ed-shop-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px 18px 0; flex: 0 0 auto; }
 .ed-shop-modal:has(.ed-shop-cart) .ed-shop-toolbar,
 .ed-shop-modal:has(.ed-shop-checkout) .ed-shop-toolbar,
 .ed-shop-modal:has(.ed-shop-done) .ed-shop-toolbar { display: none; }
-.ed-shop-body { min-height: 360px; }
+.ed-shop-body { min-height: 0; }
+.ed-modal__card--shop .ed-shop-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
 .ed-shop-flash {
   margin: 0 0 12px; padding: 10px 12px; border-radius: 10px;
   background: #f3e8ec; color: var(--burgundy); font-weight: 700;
@@ -6002,6 +6042,9 @@ html.is-ed-mobile .ed-data-restore {
   width: calc(100% - 24px);
   margin: 0 12px 16px;
   border-radius: 16px;
+}
+.ed.is-mobile .ed-modal__card--confirm.ed-credit-modal__card {
+  max-height: min(72dvh, 520px);
 }
 .ed.is-mobile .ed-ctx {
   min-width: 180px;

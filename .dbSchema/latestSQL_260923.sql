@@ -1,4 +1,4 @@
--- latestSQL_260923.sql (MySQL 5.5 compatible) - label_specs 용지 배치 컬럼 추가본
+-- latestSQL_260827.sql (MySQL 5.5 compatible) ? Phase 1 + Phase 2
 
 CREATE TABLE IF NOT EXISTS migrations (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -149,20 +149,9 @@ CREATE TABLE IF NOT EXISTS label_specs (
     image_path VARCHAR(255) NULL,
     width_mm DECIMAL(8,2) NOT NULL,
     height_mm DECIMAL(8,2) NOT NULL,
-    paper_size VARCHAR(20) NULL COMMENT '용지 규격(A4/A3/A5 등)',
     material VARCHAR(80) NOT NULL DEFAULT '',
     shape ENUM('rect','round','custom') NOT NULL DEFAULT 'rect',
     labels_per_sheet INT UNSIGNED NULL,
-    top_margin_mm DECIMAL(7,3) NULL COMMENT '위쪽 여백(mm)',
-    left_margin_mm DECIMAL(7,3) NULL COMMENT '왼쪽 여백(mm)',
-    columns_count SMALLINT UNSIGNED NULL COMMENT '라벨 열수(가로 개수)',
-    rows_count SMALLINT UNSIGNED NULL COMMENT '라벨 행수(세로 개수)',
-    h_gap_mm DECIMAL(7,3) NULL COMMENT '라벨 좌우 간격(mm)',
-    v_gap_mm DECIMAL(7,3) NULL COMMENT '라벨 상하 간격(mm)',
-    corner_radius_x_mm DECIMAL(7,3) NULL COMMENT '모서리 가로 반경(mm)',
-    corner_radius_y_mm DECIMAL(7,3) NULL COMMENT '모서리 세로 반경(mm)',
-    label_color VARCHAR(7) NULL COMMENT '라벨 바탕색(#RRGGBB)',
-    custom_path_svg MEDIUMTEXT NULL COMMENT '커스텀 외곽 Path(SVG path d 또는 svg 마크업)',
     description VARCHAR(500) NULL,
     is_active TINYINT(1) NOT NULL DEFAULT 1,
     created_at DATETIME NULL,
@@ -574,8 +563,10 @@ CREATE TABLE IF NOT EXISTS user_editor_workspaces (
     preview_path VARCHAR(500) NULL,
     created_at DATETIME NULL,
     updated_at DATETIME NULL,
+    trashed_at DATETIME NULL,
     KEY idx_user_editor_workspaces_updated (updated_at),
-    KEY idx_user_editor_workspaces_user_updated (user_id, updated_at)
+    KEY idx_user_editor_workspaces_user_updated (user_id, updated_at),
+    KEY idx_user_editor_workspaces_user_trash (user_id, trashed_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 CREATE TABLE IF NOT EXISTS user_ai_cliparts (
@@ -591,8 +582,10 @@ CREATE TABLE IF NOT EXISTS user_ai_cliparts (
     reviewed_by BIGINT UNSIGNED NULL,
     created_at DATETIME NULL,
     updated_at DATETIME NULL,
+    trashed_at DATETIME NULL,
     KEY idx_user_ai_cliparts_user (user_id, id),
-    KEY idx_user_ai_cliparts_status (review_status, id)
+    KEY idx_user_ai_cliparts_status (review_status, id),
+    KEY idx_user_ai_cliparts_user_trash (user_id, trashed_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 CREATE TABLE IF NOT EXISTS label_templates (

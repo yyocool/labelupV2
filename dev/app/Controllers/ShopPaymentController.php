@@ -68,7 +68,7 @@ final class ShopPaymentController extends BaseController
             'cartCount' => $this->shop->cartCount(),
             'activeNav' => 'shop',
             'shopService' => $this->shop,
-            'shopCategories' => $this->shop->homeData()['categories'],
+            'shopCategories' => $this->shop->homeData()['allCategories'],
             'shopSubNav' => 'cart',
             'eventPopups' => (new EventPopupService())->activeForSite(),
             'orderNo' => $orderId,

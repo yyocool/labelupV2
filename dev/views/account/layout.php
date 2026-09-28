@@ -49,6 +49,7 @@
 <script src="<?= js('daum-address.js') ?>"></script>
 <script src="<?= js('address-book.js') ?>"></script>
 <script src="<?= js('account.js') ?>"></script>
+<script src="<?= js('library.js') ?>"></script>
 <script src="<?= asset('labi-assistant.js') ?>"></script>
 <?php require view_path('home/partials/event-popup.php'); ?>
 <?php marketing_render_body_end(); ?>

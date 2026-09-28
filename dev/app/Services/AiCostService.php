@@ -231,7 +231,7 @@ final class AiCostService
         if ($imageCount > 0) {
             $usd += self::imageUsd(
                 (string) ($usage['image_model'] ?? $usage['model'] ?? ''),
-                (string) ($usage['image_quality'] ?? env('OPENAI_IMAGE_QUALITY', 'medium')),
+                (string) ($usage['image_quality'] ?? env('OPENAI_IMAGE_QUALITY', 'low')),
                 $imageCount
             );
         }
@@ -274,7 +274,7 @@ final class AiCostService
     {
         $count = max(1, $count);
         $model = strtolower(trim($model));
-        $quality = strtolower(trim($quality ?: (string) env('OPENAI_IMAGE_QUALITY', 'medium')));
+        $quality = strtolower(trim($quality ?: (string) env('OPENAI_IMAGE_QUALITY', 'low')));
 
         if (str_starts_with($model, 'dall-e-3')) {
             $each = (float) env('OPENAI_PRICE_DALLE3_STANDARD', 0.04);

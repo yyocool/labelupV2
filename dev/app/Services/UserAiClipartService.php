@@ -45,17 +45,82 @@ final class UserAiClipartService
     {
         $items = [];
         foreach ($this->repo->listByUser($userId, $limit) as $row) {
-            $url = (string) ($row['image_url'] ?? '');
-            $title = (string) ($row['title'] ?? '라비가 그린 클립아트');
-            $qs = http_build_query(array_filter([
-                'clipart' => $url,
-                'name' => $title,
-            ]));
-            $items[] = $row + [
-                'editor_url' => url('editor/') . ($qs !== '' ? '?' . $qs : ''),
-            ];
+            $items[] = $this->presentUserItem($row);
         }
         return $items;
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function listTrashedForUser(int $userId, int $limit = 120): array
+    {
+        $items = [];
+        foreach ($this->repo->listTrashedByUser($userId, $limit) as $row) {
+            $items[] = $this->presentUserItem($row);
+        }
+        return $items;
+    }
+
+    public function trashForUser(int $userId, int $id): void
+    {
+        if ($id <= 0 || !$this->repo->trashForUser($id, $userId)) {
+            throw new \RuntimeException('휴지통으로 보낼 클립아트를 찾지 못했습니다.');
+        }
+    }
+
+    public function restoreForUser(int $userId, int $id): void
+    {
+        if ($id <= 0 || !$this->repo->restoreForUser($id, $userId)) {
+            throw new \RuntimeException('복원할 클립아트를 찾지 못했습니다.');
+        }
+    }
+
+    public function purgeForUser(int $userId, int $id): void
+    {
+        $row = $this->repo->purgeForUser($id, $userId);
+        if (!$row) {
+            throw new \RuntimeException('완전 삭제할 클립아트를 찾지 못했습니다. 휴지통에서만 삭제할 수 있습니다.');
+        }
+        $this->deleteLocalFile((string) ($row['image_url'] ?? ''), (string) ($row['file_name'] ?? ''));
+    }
+
+    /** @param array<string, mixed> $row */
+    private function presentUserItem(array $row): array
+    {
+        $url = (string) ($row['image_url'] ?? '');
+        $title = (string) ($row['title'] ?? '라비가 그린 클립아트');
+        $qs = http_build_query(array_filter([
+            'clipart' => $url,
+            'name' => $title,
+        ]));
+        $trashedAt = (string) ($row['trashed_at'] ?? '');
+        return $row + [
+            'type' => 'clipart',
+            'editor_url' => url('editor/') . ($qs !== '' ? '?' . $qs : ''),
+            'preview_url' => $url,
+            'trashed_label' => $trashedAt !== '' ? $this->formatUpdated($trashedAt) : '',
+        ];
+    }
+
+    private function formatUpdated(string $at): string
+    {
+        $ts = strtotime($at);
+        if ($ts === false) {
+            return '';
+        }
+        $diff = time() - $ts;
+        if ($diff < 60) {
+            return '방금';
+        }
+        if ($diff < 3600) {
+            return (int) floor($diff / 60) . '분 전';
+        }
+        if ($diff < 86400) {
+            return (int) floor($diff / 3600) . '시간 전';
+        }
+        if ($diff < 86400 * 7) {
+            return (int) floor($diff / 86400) . '일 전';
+        }
+        return date('Y.m.d', $ts);
     }
 
     /**

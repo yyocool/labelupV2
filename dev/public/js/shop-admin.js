@@ -194,6 +194,74 @@ function compatToMultiline(value) {
     .join('\n');
 }
 
+function initAdminCategoryFilter() {
+  document.querySelectorAll('.admin-cat-filter').forEach((wrap) => {
+    if (wrap.dataset.bound === '1') return;
+    wrap.dataset.bound = '1';
+    let tree = [];
+    try { tree = JSON.parse(wrap.getAttribute('data-tree') || '[]'); } catch (e) { tree = []; }
+    const parentSel = wrap.querySelector('.js-admin-cat-parent');
+    const childSel = wrap.querySelector('.js-admin-cat-child');
+    const childWrap = wrap.querySelector('.js-admin-cat-child-wrap');
+    if (!parentSel || !childSel) return;
+    const fillChildren = (parentId) => {
+      const group = tree.find((g) => String(g.id) === String(parentId));
+      const children = (group && Array.isArray(group.children)) ? group.children : [];
+      childSel.innerHTML = '';
+      if (!parentId) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = '전체';
+        childSel.appendChild(opt);
+        wrap.classList.remove('has-children');
+        if (childWrap) childWrap.hidden = true;
+        return;
+      }
+      const all = document.createElement('option');
+      all.value = String(parentId);
+      all.textContent = '전체';
+      childSel.appendChild(all);
+      children.forEach((child) => {
+        const opt = document.createElement('option');
+        opt.value = String(child.id);
+        opt.textContent = child.name || '';
+        childSel.appendChild(opt);
+      });
+      wrap.classList.toggle('has-children', children.length > 0);
+      if (childWrap) childWrap.hidden = children.length === 0;
+    };
+    parentSel.addEventListener('change', () => fillChildren(parentSel.value));
+  });
+}
+
+function buildCategorySelectOptions(categories, selected) {
+  const list = Array.isArray(categories) ? categories : [];
+  const sel = String(selected ?? '');
+  let html = '';
+  for (let i = 0; i < list.length; i++) {
+    const cat = list[i];
+    const depth = Number(cat.depth || 0);
+    const parentId = Number(cat.parent_id || 0);
+    if (depth > 0 && parentId > 0) continue;
+    const children = [];
+    for (let j = i + 1; j < list.length; j++) {
+      const next = list[j];
+      if (Number(next.parent_id || 0) === Number(cat.id)) children.push(next);
+      else if (Number(next.depth || 0) === 0) break;
+    }
+    const id = String(cat.id);
+    html += `<option value="${escHtml(id)}"${sel === id ? ' selected' : ''}>${escHtml(cat.name || '')}${children.length ? '  · 1차' : ''}</option>`;
+    if (!children.length) continue;
+    html += `<optgroup label="${escHtml(cat.name || '')} · 2차">`;
+    children.forEach((child) => {
+      const cid = String(child.id);
+      html += `<option value="${escHtml(cid)}"${sel === cid ? ' selected' : ''}>└ ${escHtml(child.name || '')}</option>`;
+    });
+    html += '</optgroup>';
+  }
+  return html;
+}
+
 function shopField(label, name, value = '', type = 'text', opts = {}) {
   const req = opts.required ? ' required' : '';
   const fullClass = opts.full ? ' admin-field--full' : '';
@@ -210,8 +278,10 @@ function shopField(label, name, value = '', type = 'text', opts = {}) {
     return `<div class="admin-field admin-field--editor${fullClass}"><label>${label}</label><textarea name="${name}" rows="${opts.rows || 3}"${cls}${req}>${safeValue}</textarea></div>`;
   }
   if (type === 'select') {
-    const options = (opts.options || []).map((o) => `<option value="${o.v}"${String(value) === String(o.v) ? ' selected' : ''}>${escHtml(o.t)}</option>`).join('');
-    return `<div class="admin-field${fullClass}"><label>${label}</label><select name="${name}" class="admin-select"${req}>${options}</select></div>`;
+    const options = opts.htmlOptions
+      || (opts.options || []).map((o) => `<option value="${o.v}"${String(value) === String(o.v) ? ' selected' : ''}>${escHtml(o.t)}</option>`).join('');
+    const extraClass = opts.selectClass ? ` ${opts.selectClass}` : '';
+    return `<div class="admin-field${fullClass}"><label>${label}</label><select name="${name}" class="admin-select${extraClass}"${req}>${options}</select></div>`;
   }
   if (type === 'list') {
     const listId = `${name}Options`;
@@ -413,7 +483,8 @@ function buildProductForm(row = {}) {
   html += shopField('SKU', 'sku', row.sku, 'text', { required: true });
   html += shopField('카테고리', 'category_id', row.category_id, 'select', {
     required: true,
-    options: shopMeta.categories.map((c) => ({ v: c.id, t: c.name })),
+    selectClass: 'admin-select--category',
+    htmlOptions: buildCategorySelectOptions(shopMeta.categories || [], row.category_id),
   });
   html += shopField('라벨 규격', 'spec_id', row.spec_id || '', 'select', {
     options: [{ v: '', t: '선택 안함' }, ...shopMeta.specs.map((s) => ({ v: s.id, t: s.name }))],
@@ -537,7 +608,15 @@ function buildShopForm(entity, row = {}) {
   const id = row.id || 0;
   let html = `<input type="hidden" name="id" value="${id}">`;
   if (entity === 'category') {
+    const parents = window.SHOP_CATEGORY_PARENTS || [];
+    const selfId = Number(row.id || 0);
+    const parentOpts = [{ v: '0', t: '없음 (1차 카테고리)' }].concat(
+      parents
+        .filter((p) => Number(p.id) !== selfId)
+        .map((p) => ({ v: String(p.id), t: p.name }))
+    );
     html += buildCategoryImageSection(row.image_path || '');
+    html += shopField('상위 카테고리', 'parent_id', row.parent_id || 0, 'select', { options: parentOpts });
     html += shopField('카테고리명', 'name', row.name, 'text', { required: true });
     html += shopField('슬러그', 'slug', row.slug, 'text', { required: true });
     html += shopField('정렬', 'sort_order', row.sort_order ?? 0, 'number');
@@ -750,7 +829,11 @@ function collectFormData(form) {
 }
 
 document.querySelectorAll('.js-shop-add').forEach((btn) => {
-  btn.addEventListener('click', () => openShopModal(btn.dataset.entity, {}));
+  btn.addEventListener('click', () => {
+    const row = {};
+    if (btn.dataset.parentId) row.parent_id = Number(btn.dataset.parentId);
+    openShopModal(btn.dataset.entity, row);
+  });
 });
 
 document.querySelectorAll('.js-shop-edit').forEach((btn) => {
@@ -932,6 +1015,8 @@ document.addEventListener('keydown', (e) => {
     closeShopModal();
   }
 });
+
+initAdminCategoryFilter();
 
 function ensureAdminLightbox() {
   let lightbox = document.getElementById('adminLightbox');

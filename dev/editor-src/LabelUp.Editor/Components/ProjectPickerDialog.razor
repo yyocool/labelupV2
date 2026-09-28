@@ -42,7 +42,7 @@
           @foreach (var item in Filtered)
           {
             var active = Session.WorkspaceId == item.Id;
-            <button type="button" class="ed-paper-card ed-project-card @(active ? "is-active" : null)" @onclick="() => OpenAsync(item)">
+            <button type="button" class="ed-paper-card ed-project-card @(active ? "is-active" : null)" data-workspace-id="@item.Id" @onclick="() => OpenAsync(item)">
               <div class="ed-project-card__preview">
                 @if (!string.IsNullOrWhiteSpace(item.PreviewUrl))
                 {

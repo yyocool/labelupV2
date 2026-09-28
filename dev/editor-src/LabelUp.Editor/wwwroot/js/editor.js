@@ -1437,6 +1437,75 @@ window.labelUpEditor = {
     return json.data || { items: [] };
   },
 
+  trashWorkspace: async function (id) {
+    var res = await fetch(this.apiUrl('/api/library/trash'), {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ type: 'workspace', id: id })
+    });
+    var json = await res.json().catch(function () { return null; });
+    if (!res.ok || !json || json.success === false) {
+      throw new Error((json && json.message) || '휴지통으로 보내지 못했습니다.');
+    }
+    return json.data || {};
+  },
+
+  bindProjectTrash: function () {
+    if (this._projectTrashBound) return;
+    this._projectTrashBound = true;
+    var self = this;
+    var enhance = function () {
+      var cards = document.querySelectorAll('.ed-project-card');
+      if (!cards.length) return;
+      self.listWorkspaces(48).then(function (data) {
+        var items = (data && data.items) || [];
+        cards.forEach(function (card, i) {
+          if (card.querySelector('.ed-project-card__trash')) return;
+          var id = Number(card.getAttribute('data-workspace-id') || 0);
+          if (!id) {
+            var img = card.querySelector('img');
+            var src = img ? (img.getAttribute('src') || '') : '';
+            var m = src.match(/editor-previews\/\d+\/(\d+)\./);
+            if (m) id = parseInt(m[1], 10);
+          }
+          if (!id) {
+            var title = ((card.querySelector('strong') || {}).textContent || '').trim();
+            var found = items.filter(function (it) { return (it.title || '') === title; });
+            if (found.length === 1) id = Number(found[0].id || 0);
+            else if (items[i]) id = Number(items[i].id || 0);
+          }
+          if (!id) return;
+          card.setAttribute('data-workspace-id', String(id));
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'ed-project-card__trash';
+          btn.title = '휴지통으로';
+          btn.setAttribute('aria-label', '삭제');
+          btn.textContent = '🗑';
+          btn.addEventListener('click', function (ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (!window.confirm('이 디자인을 휴지통으로 보낼까요?')) return;
+            self.trashWorkspace(id).then(function () {
+              card.remove();
+              try {
+                var u = new URL(window.location.href);
+                if (u.searchParams.get('project') === String(id)) self.setProjectId(0);
+              } catch (e) { /* ignore */ }
+            }).catch(function (err) {
+              window.alert(err.message || '삭제하지 못했습니다.');
+            });
+          });
+          card.appendChild(btn);
+        });
+      });
+    };
+    var mo = new MutationObserver(function () { enhance(); });
+    mo.observe(document.documentElement, { childList: true, subtree: true });
+    enhance();
+  },
+
   listMyCliparts: async function () {
     var res = await fetch(this.apiUrl('/api/editor/my-cliparts'), {
       method: 'GET',
@@ -2987,7 +3056,6 @@ window.labelUpEditor = {
       if (!box) return;
       var bal = box.querySelector('[data-credit-balance]');
       var list = box.querySelector('[data-credit-list]');
-      var more = box.querySelector('[data-credit-more]');
       if (bal) bal.textContent = fmt(state.balance);
       if (list) {
         if (!state.items.length) {
@@ -2996,7 +3064,6 @@ window.labelUpEditor = {
           list.innerHTML = state.items.map(rowHtml).join('');
         }
       }
-      if (more) more.hidden = state.page >= state.pages;
     };
 
     var openModal = function () {
@@ -3009,9 +3076,8 @@ window.labelUpEditor = {
         '<div class="ed-modal__head"><div><h3 id="lu-credit-title">크레딧 사용 이력</h3>' +
         '<p>남은 크레딧 <strong data-credit-balance>0 C</strong></p></div>' +
         '<button type="button" class="ed-modal__close" data-credit-close aria-label="닫기">×</button></div>' +
-        '<div class="ed-modal__body"><div class="ed-credit-list" data-credit-list></div>' +
-        '<button type="button" class="ed-credit-more" data-credit-more hidden>더 보기</button></div>' +
-        '<div class="ed-modal__foot"><a class="ed-btn" href="/account#credits">내 계정에서 보기</a>' +
+        '<div class="ed-modal__body"><div class="ed-credit-list" data-credit-list></div></div>' +
+        '<div class="ed-modal__foot"><a class="ed-btn" href="/account#credits">마이페이지에서 보기</a>' +
         '<button type="button" class="ed-btn ed-btn--primary" data-credit-close>닫기</button></div></div>';
       document.body.appendChild(root);
       renderModal();
@@ -3019,7 +3085,6 @@ window.labelUpEditor = {
       var close = function () { root.remove(); };
       root.addEventListener('click', function (e) {
         if (e.target === root || (e.target.closest && e.target.closest('[data-credit-close]'))) close();
-        if (e.target.closest && e.target.closest('[data-credit-more]')) load(state.page + 1, false);
       });
     };
 
@@ -3590,4 +3655,7 @@ window.labelUpEditor = {
     document.addEventListener('DOMContentLoaded', apply);
   else
     apply();
+  if (window.labelUpEditor && typeof window.labelUpEditor.bindProjectTrash === 'function') {
+    window.labelUpEditor.bindProjectTrash();
+  }
 })();

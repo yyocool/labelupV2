@@ -291,7 +291,7 @@ final class CreditRepository extends BaseModel
                     COALESCE(SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END), 0) AS used
              FROM credit_transactions
              GROUP BY source
-             ORDER BY (granted + used) DESC"
+             ORDER BY COALESCE(SUM(ABS(amount)), 0) DESC"
         );
         $out = [];
         foreach ($rows as $row) {

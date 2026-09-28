@@ -150,8 +150,26 @@ final class ShopAdminService
         if ($name === '' || $slug === '') {
             throw new RuntimeException('카테고리명과 슬러그를 입력해주세요.');
         }
+        $parentId = (int) ($data['parent_id'] ?? 0);
+        $id = (int) ($data['id'] ?? 0);
+        if ($parentId > 0) {
+            if ($id > 0 && $parentId === $id) {
+                throw new RuntimeException('자기 자신을 상위 카테고리로 지정할 수 없습니다.');
+            }
+            $parent = $this->repo->findCategoryById($parentId);
+            if (!$parent) {
+                throw new RuntimeException('상위 카테고리를 찾을 수 없습니다.');
+            }
+            if ((int) ($parent['parent_id'] ?? 0) > 0) {
+                throw new RuntimeException('카테고리는 2단계까지만 등록할 수 있습니다.');
+            }
+            if ($id > 0 && $this->repo->countCategoryChildren($id) > 0) {
+                throw new RuntimeException('하위 카테고리가 있는 항목은 1차로 유지해야 합니다.');
+            }
+        }
         return $this->repo->saveCategory([
-            'id' => (int) ($data['id'] ?? 0),
+            'id' => $id,
+            'parent_id' => $parentId,
             'name' => $name,
             'slug' => $slug,
             'sort_order' => (int) ($data['sort_order'] ?? 0),
@@ -170,6 +188,12 @@ final class ShopAdminService
     {
         if ($id <= 0) {
             throw new RuntimeException('잘못된 요청입니다.');
+        }
+        if ($this->repo->countCategoryChildren($id) > 0) {
+            throw new RuntimeException('하위 카테고리를 먼저 삭제해주세요.');
+        }
+        if ($this->repo->countProductsInCategory($id) > 0) {
+            throw new RuntimeException('이 카테고리에 상품이 있어 삭제할 수 없습니다.');
         }
         $this->repo->deleteCategory($id);
     }
@@ -714,7 +738,11 @@ final class ShopAdminService
             $categories[] = [
                 'id' => $id,
                 'name' => (string) ($cat['name'] ?? ''),
+                'label' => (string) ($cat['label'] ?? $cat['name'] ?? ''),
                 'slug' => (string) ($cat['slug'] ?? ''),
+                'parent_id' => (int) ($cat['parent_id'] ?? 0),
+                'parent_name' => (string) ($cat['parent_name'] ?? ''),
+                'depth' => (int) ($cat['depth'] ?? 0),
                 'is_active' => (int) ($cat['is_active'] ?? 0) === 1,
                 'has_custom' => !empty($custom['has_custom']),
                 'header_html' => (string) ($custom['header_html'] ?? ''),
@@ -751,9 +779,17 @@ final class ShopAdminService
             'footer_image' => '',
         ];
         $repo = new ShopProductPageCategorySettingsRepository();
+        $parentName = (string) ($cat['parent_name'] ?? '');
+        $name = (string) ($cat['name'] ?? '');
+        $depth = (int) ($cat['depth'] ?? 0);
+        $displayName = $parentName !== '' ? $parentName . ' › ' . $name : $name;
         return [
             'category_id' => $categoryId,
-            'category_name' => (string) ($cat['name'] ?? ''),
+            'category_name' => $displayName,
+            'category_own_name' => $name,
+            'parent_id' => (int) ($cat['parent_id'] ?? 0),
+            'parent_name' => $parentName,
+            'depth' => $depth,
             'header_html' => $custom['header_html'],
             'footer_html' => $custom['footer_html'],
             'header_image' => $custom['header_image'],

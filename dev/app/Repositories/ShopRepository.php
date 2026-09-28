@@ -65,96 +65,125 @@ final class ShopRepository extends BaseModel
 
 
     /** @return array<int, array<string, mixed>> */
-
     public function allCategories(): array
-
     {
-
-        return $this->fetchAll('SELECT * FROM shop_categories ORDER BY sort_order ASC, id ASC');
-
+        return $this->asCategoryTree(
+            $this->fetchAll('SELECT * FROM shop_categories ORDER BY sort_order ASC, id ASC')
+        );
     }
 
+    public function findCategoryById(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        return $this->fetchOne('SELECT * FROM shop_categories WHERE id = :id LIMIT 1', ['id' => $id]);
+    }
 
+    public function countCategoryChildren(int $id): int
+    {
+        $row = $this->fetchOne(
+            'SELECT COUNT(*) AS cnt FROM shop_categories WHERE parent_id = :id',
+            ['id' => $id]
+        );
+        return (int) ($row['cnt'] ?? 0);
+    }
+
+    public function countProductsInCategory(int $id): int
+    {
+        $row = $this->fetchOne(
+            'SELECT COUNT(*) AS cnt FROM shop_products WHERE category_id = :id',
+            ['id' => $id]
+        );
+        return (int) ($row['cnt'] ?? 0);
+    }
 
     public function saveCategory(array $data): int
-
     {
-
         $now = date('Y-m-d H:i:s');
-
         $id = (int) ($data['id'] ?? 0);
+        $parentId = (int) ($data['parent_id'] ?? 0);
+        $params = [
+            'name' => $data['name'],
+            'slug' => $data['slug'],
+            'image_path' => $data['image_path'] ?? null,
+            'sort_order' => (int) $data['sort_order'],
+            'is_active' => (int) !empty($data['is_active']),
+            'parent_id' => $parentId > 0 ? $parentId : null,
+        ];
 
         if ($id > 0) {
-
+            $params['now'] = $now;
+            $params['id'] = $id;
             $this->execute(
-
-                'UPDATE shop_categories SET name=:name, slug=:slug, image_path=:image_path, sort_order=:sort_order, is_active=:is_active, updated_at=:now WHERE id=:id',
-
-                [
-
-                    'name' => $data['name'],
-
-                    'slug' => $data['slug'],
-
-                    'image_path' => $data['image_path'] ?? null,
-
-                    'sort_order' => (int) $data['sort_order'],
-
-                    'is_active' => (int) !empty($data['is_active']),
-
-                    'now' => $now,
-
-                    'id' => $id,
-
-                ]
-
+                'UPDATE shop_categories SET parent_id=:parent_id, name=:name, slug=:slug, image_path=:image_path, sort_order=:sort_order, is_active=:is_active, updated_at=:now WHERE id=:id',
+                $params
             );
-
             return $id;
-
         }
 
+        $params['created_at'] = $now;
+        $params['updated_at'] = $now;
         $this->execute(
-
-            'INSERT INTO shop_categories (name, slug, image_path, sort_order, is_active, created_at, updated_at) VALUES (:name,:slug,:image_path,:sort_order,:is_active,:created_at,:updated_at)',
-
-            [
-
-                'name' => $data['name'],
-
-                'slug' => $data['slug'],
-
-                'image_path' => $data['image_path'] ?? null,
-
-                'sort_order' => (int) $data['sort_order'],
-
-                'is_active' => (int) !empty($data['is_active']),
-
-                'created_at' => $now,
-
-                'updated_at' => $now,
-
-            ]
-
+            'INSERT INTO shop_categories (parent_id, name, slug, image_path, sort_order, is_active, created_at, updated_at) VALUES (:parent_id,:name,:slug,:image_path,:sort_order,:is_active,:created_at,:updated_at)',
+            $params
         );
-
         return (int) $this->lastInsertId();
-
     }
 
-
-
     public function deleteCategory(int $id): void
-
     {
-
         $this->execute('DELETE FROM shop_categories WHERE id = :id', ['id' => $id]);
-
     }
 
     public function findCategoryBySlug(string $slug): ?array
     {
         return $this->fetchOne('SELECT * FROM shop_categories WHERE slug = :slug LIMIT 1', ['slug' => $slug]);
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $rows
+     * @return array<int, array<string, mixed>>
+     */
+    public function asCategoryTree(array $rows): array
+    {
+        $byParent = [];
+        $roots = [];
+        foreach ($rows as $row) {
+            $pid = (int) ($row['parent_id'] ?? 0);
+            $row['parent_id'] = $pid > 0 ? $pid : null;
+            if ($pid > 0) {
+                $byParent[$pid][] = $row;
+            } else {
+                $roots[] = $row;
+            }
+        }
+
+        $out = [];
+        $append = function (array $row, int $depth, ?string $parentName) use (&$out, &$byParent, &$append): void {
+            $id = (int) ($row['id'] ?? 0);
+            $name = (string) ($row['name'] ?? '');
+            $row['depth'] = $depth;
+            $row['parent_name'] = $parentName;
+            $row['label'] = $depth > 0 && $parentName !== null && $parentName !== ''
+                ? $parentName . ' / ' . $name
+                : $name;
+            $out[] = $row;
+            foreach ($byParent[$id] ?? [] as $child) {
+                $append($child, $depth + 1, $name);
+            }
+            unset($byParent[$id]);
+        };
+        foreach ($roots as $root) {
+            $append($root, 0, null);
+        }
+        foreach ($byParent as $orphans) {
+            foreach ($orphans as $orphan) {
+                $append($orphan, 1, null);
+            }
+        }
+
+        return $out;
     }
 
     public function findProductBySku(string $sku): ?array
@@ -420,9 +449,14 @@ final class ShopRepository extends BaseModel
         $offset = ($page - 1) * $perPage;
 
         $items = $this->fetchAll(
-            "SELECT p.*, c.name AS category_name, s.name AS spec_name
+            "SELECT p.*,
+                    c.name AS category_name,
+                    c.parent_id AS category_parent_id,
+                    pc.name AS parent_category_name,
+                    s.name AS spec_name
              FROM shop_products p
              LEFT JOIN shop_categories c ON c.id = p.category_id
+             LEFT JOIN shop_categories pc ON pc.id = c.parent_id
              LEFT JOIN label_specs s ON s.id = p.spec_id
              WHERE {$where}
              ORDER BY p.sort_order ASC, p.id DESC
@@ -862,9 +896,20 @@ final class ShopRepository extends BaseModel
     /** @return array<int, array<string, mixed>> */
     public function activeCategories(): array
     {
-        return $this->fetchAll(
-            'SELECT * FROM shop_categories WHERE is_active = 1 ORDER BY sort_order ASC, id ASC'
+        return $this->asCategoryTree(
+            $this->fetchAll(
+                'SELECT * FROM shop_categories WHERE is_active = 1 ORDER BY sort_order ASC, id ASC'
+            )
         );
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function activeRootCategories(): array
+    {
+        return array_values(array_filter(
+            $this->activeCategories(),
+            static fn (array $row): bool => (int) ($row['depth'] ?? 0) === 0
+        ));
     }
 
     /** @return array<int, array<string, mixed>> */
@@ -1327,12 +1372,16 @@ final class ShopRepository extends BaseModel
         $params = [];
 
         if (!empty($filters['category_id'])) {
-            $where .= ' AND p.category_id = :category_id';
+            $where .= ' AND (p.category_id = :category_id OR c.parent_id = :category_id_parent)';
             $params['category_id'] = (int) $filters['category_id'];
+            $params['category_id_parent'] = (int) $filters['category_id'];
         }
         if (!empty($filters['category_slug'])) {
-            $where .= ' AND c.slug = :category_slug';
+            $where .= ' AND (c.slug = :category_slug OR c.parent_id = (
+                SELECT sc_filter.id FROM shop_categories sc_filter WHERE sc_filter.slug = :category_slug_parent LIMIT 1
+            ))';
             $params['category_slug'] = (string) $filters['category_slug'];
+            $params['category_slug_parent'] = (string) $filters['category_slug'];
         }
         if (!empty($filters['material'])) {
             $where .= ' AND s.material LIKE :material';

@@ -1,7 +1,7 @@
 -- updateSQL_260928_1.sql
 -- 행·열(columns_count/rows_count)이 비어 있던 규격을 채운다.
 -- 값은 새로 만들지 않고, 서버 DB에 이미 들어 있는 "같은 치수·다른 재질" 형제 규격에서 그대로 복사한다.
---   updateSQL_260923_2.sql 는 (width, height, material, labels_per_sheet) 로 매칭했기 때문에
+--   updateSQL_260923_3.sql 는 (width, height, material, labels_per_sheet) 로 매칭했기 때문에
 --   재질명이 다르거나(광택백색·반투명) 칸수가 NULL 인 규격이 매칭에서 빠져 비어 있었다.
 -- 스키마 변경 없음. 데이터만 갱신한다.
 --

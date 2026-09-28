@@ -86,32 +86,11 @@ def main() -> int:
 
     apply_icu_bin_workaround(OUT)
 
-    # Keep Apache helper for MIME / SPA
+    # PHPS(www.labelup.co.kr) 500s if any .htaccess exists under /editor/.
+    # MIME/SPA rules live in the hosting www/.htaccess instead.
     htaccess = OUT / ".htaccess"
-    if not htaccess.exists():
-        htaccess.write_text(
-            """DirectoryIndex index.html
-<IfModule mod_mime.c>
-  AddType application/wasm .wasm
-  AddType application/octet-stream .dll
-</IfModule>
-<IfModule mod_headers.c>
-  Header set Permissions-Policy "local-fonts=*"
-  <FilesMatch "\\.(wasm|dll|json)$">
-    Header set Cache-Control "no-cache, must-revalidate"
-  </FilesMatch>
-</IfModule>
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteBase /editor/
-  RewriteCond %{REQUEST_FILENAME} -f [OR]
-  RewriteCond %{REQUEST_FILENAME} -d
-  RewriteRule ^ - [L]
-  RewriteRule ^ index.html [L]
-</IfModule>
-""",
-            encoding="utf-8",
-        )
+    if htaccess.exists():
+        htaccess.unlink()
 
     print(f"Published to {OUT}")
     return 0
