@@ -1022,80 +1022,84 @@ html[data-ed-save="off"] .ed-autosave:hover {
   animation: panelIn 0.5s var(--ed-ease) both;
 }
 .ed-props { top: 12px; bottom: 12px; max-height: none; }
-.ed-preview { left: 12px; right: auto; top: 12px; bottom: 12px; max-height: none; min-height: 360px; }
+.ed-preview { right: 12px; left: auto; top: 12px; bottom: 12px; max-height: none; min-height: 360px; }
 
-html.lu-right-stack .ed:not(.is-mobile) .ed__body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
-  grid-template-rows: minmax(280px, 63%) minmax(140px, 1fr);
-  column-gap: 12px;
-  row-gap: 8px;
-  padding: 12px 12px 12px 0;
-}
-html.lu-right-stack .ed:not(.is-mobile) .ed__workspace {
-  grid-column: 1;
-  grid-row: 1 / -1;
-  padding-right: 0;
-  width: auto;
-  min-width: 0;
-  height: auto;
-  min-height: 0;
-  align-self: stretch;
-  justify-self: stretch;
-}
-html.lu-right-stack .ed:not(.is-mobile) .ed__canvas-wrap,
-html.lu-right-stack .ed:not(.is-mobile) .ed__artboard-frame {
-  min-width: 0;
-  min-height: 0;
-}
-html.lu-right-stack .ed:not(.is-mobile) .ed-preview,
-html.lu-right-stack .ed:not(.is-mobile) .ed-props {
-  position: relative !important;
-  left: auto !important;
-  right: auto !important;
-  top: auto !important;
-  bottom: auto !important;
-  width: 100% !important;
-  max-width: none !important;
-  height: 100% !important;
-  max-height: none !important;
-  min-height: 0 !important;
-  transform: none !important;
-  z-index: 40;
-}
-html.lu-right-stack .ed:not(.is-mobile) .ed-preview {
-  grid-column: 2;
-  grid-row: 1;
-}
-html.lu-right-stack .ed:not(.is-mobile) .ed-props {
-  grid-column: 2;
-  grid-row: 2;
-}
-html.lu-right-stack .ed:not(.is-mobile) .ed-props__grip,
-html.lu-right-stack .ed:not(.is-mobile) .ed-preview .ed-props__grip,
-html.lu-right-stack .ed:not(.is-mobile) .ed-props__min {
-  display: none;
-}
-html.lu-right-stack .ed:not(.is-mobile) .ed-props__inner {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-html.lu-right-stack .ed:not(.is-mobile) .ed-props__body {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-html.lu-right-stack .ed:not(.is-mobile) .ed-props__layers {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: stretch;
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
+/* 데스크톱 폭에서는 오른쪽 열에 미리보기(위) + 레이어(아래)를 고정한다.
+   조건은 editor.js의 isMobileEditor()와 같은 기준이며, JS 클래스 없이도 같은 배치가 나온다. */
+@media (min-width: 1181px), (min-width: 901px) and (pointer: fine) {
+  .ed:not(.is-mobile) .ed__body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    grid-template-rows: minmax(280px, 63%) minmax(140px, 1fr);
+    column-gap: 12px;
+    row-gap: 8px;
+    padding: 12px 12px 12px 0;
+  }
+  .ed:not(.is-mobile) .ed__workspace {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    padding-right: 0;
+    width: auto;
+    min-width: 0;
+    height: auto;
+    min-height: 0;
+    align-self: stretch;
+    justify-self: stretch;
+  }
+  .ed:not(.is-mobile) .ed__canvas-wrap,
+  .ed:not(.is-mobile) .ed__artboard-frame {
+    min-width: 0;
+    min-height: 0;
+  }
+  .ed:not(.is-mobile) .ed-preview,
+  .ed:not(.is-mobile) .ed-props {
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: 100% !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    transform: none !important;
+    z-index: 40;
+  }
+  .ed:not(.is-mobile) .ed-preview {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .ed:not(.is-mobile) .ed-props {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .ed:not(.is-mobile) .ed-props__grip,
+  .ed:not(.is-mobile) .ed-preview .ed-props__grip,
+  .ed:not(.is-mobile) .ed-props__min {
+    display: none;
+  }
+  .ed:not(.is-mobile) .ed-props__inner {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .ed:not(.is-mobile) .ed-props__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .ed:not(.is-mobile) .ed-props__layers {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
 }
 .ed-props.is-minimized,
 .ed-preview.is-minimized {
@@ -1931,10 +1935,13 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   background: #fff;
   cursor: pointer;
 }
+.ed-preview__pager .ed-preview__order { min-width: 88px; }
 .ed-preview__pager .ed-preview__add,
+.ed-preview__pager .ed-preview__del { min-width: 72px; }
+.ed-preview__pager .ed-preview__add,
+.ed-preview__pager .ed-preview__del,
 .ed-preview__pager .ed-preview__order {
   width: auto;
-  min-width: 88px;
   height: 28px;
   padding: 0 10px;
   white-space: nowrap;
@@ -1943,6 +1950,14 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 }
 .ed-preview__pager .ed-preview__add {
   color: var(--burgundy);
+}
+.ed-preview__pager .ed-preview__del {
+  color: #8a5a5a;
+}
+.ed-preview__pager .ed-preview__del:disabled {
+  color: var(--ed-muted);
+  background: #f4f1ee;
+  cursor: not-allowed;
 }
 .ed-preview__pager .ed-preview__order {
   color: #fff;
@@ -3720,7 +3735,8 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   padding: 8px 12px 0;
 }
 .ed-preview__apply,
-.ed-preview__add {
+.ed-preview__add,
+.ed-preview__del {
   flex: 1 1 0;
   min-width: 0;
   border: 1px solid var(--ed-border);
@@ -3905,6 +3921,43 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 .ed-modal__card--wide { width: min(980px, 100%); }
 .ed-modal__card--papers { width: min(1080px, 100%); max-height: min(90vh, 920px); }
 .ed-modal__card--confirm { width: min(440px, 100%); max-height: none; }
+.ed-paper-change__sum {
+  margin: 0 0 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--charcoal);
+}
+.ed-paper-change__sum em { font-style: normal; color: var(--muted); }
+.ed-paper-change__note { margin: 0 0 12px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+.ed-paper-change__warn {
+  margin: 0 0 12px;
+  padding: 9px 12px 9px 26px;
+  border-radius: 8px;
+  background: #fdecec;
+  color: #9b1c1c;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.ed-paper-change__warn li + li { margin-top: 3px; }
+.ed-paper-change__opts { display: grid; gap: 8px; }
+.ed-paper-change__opt {
+  display: grid;
+  gap: 3px;
+  padding: 11px 12px;
+  border: 1px solid var(--ed-border);
+  border-radius: 10px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+.ed-paper-change__opt:hover { border-color: var(--ed-accent, #7b2840); background: #faf6f7; }
+.ed-paper-change__opt strong { font-size: 13px; color: var(--charcoal); }
+.ed-paper-change__opt span { font-size: 11px; color: var(--muted); line-height: 1.45; }
+.ed-paper-change__opt--primary { border-color: #7b2840; }
 .ed-error-dialog__msg {
   margin: 0;
   color: #7b2840;
@@ -4028,6 +4081,11 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   border: 1px solid var(--ed-border); border-radius: 8px; padding: 7px 8px; font: inherit; color: var(--charcoal);
 }
 .ed-form-grid__full { grid-column: 1 / -1; }
+/* 체크박스는 세로로 쌓지 않고 설명 글과 한 줄에 둔다. */
+.ed-form-grid__check { display: flex; align-items: center; gap: 8px; }
+.ed-form-grid__check input[type="checkbox"] {
+  flex: none; width: 16px; height: 16px; margin: 0; padding: 0; border-radius: 4px;
+}
 .ed-paper-maker__preview { margin-top: 12px; background: #f7f4f1; border-radius: 10px; padding: 12px; display: grid; place-items: center; }
 .ed-map-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .ed-map-table th, .ed-map-table td { border-bottom: 1px solid var(--ed-border); padding: 6px; }
@@ -4130,6 +4188,16 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   background: #fff;
 }
 .ed-print__controls { display: grid; gap: 10px; align-content: start; }
+.ed-print__hint { margin: 0; font-size: 11px; line-height: 1.5; color: var(--ed-muted); }
+.ed-print__check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--charcoal);
+}
+.ed-print__check input[type="checkbox"] { flex: none; width: 16px; height: 16px; margin: 0; }
 .ed-print__pad { display: grid; grid-template-columns: 36px 1fr 36px; gap: 6px; justify-items: center; }
 .ed-print__pad button { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--ed-border); background: #fff; cursor: pointer; }
 .ed-print__xy { font-weight: 800; font-size: 12px; }
@@ -4341,8 +4409,8 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   .ed-import__ai-cards { grid-template-columns: 1fr; }
   .ed-import__tab { font-size: 12px; padding: 12px 4px; }
 }
-@media (max-width: 1280px) {
-  html:not(.lu-right-stack) .ed-preview { display: none; }
+@media (max-width: 1180px) and (pointer: coarse) {
+  html:not(.is-ed-mobile) .ed-preview { display: none; }
 }
 @media (max-width: 1100px) {
   .ed-import__ai-cards { grid-template-columns: 1fr; }
@@ -5852,6 +5920,7 @@ html.is-ed-mobile .ed-props.is-m-open,
   height: 40px;
 }
 .ed.is-mobile .ed-preview__pager .ed-preview__add,
+.ed.is-mobile .ed-preview__pager .ed-preview__del,
 .ed.is-mobile .ed-preview__pager .ed-preview__order {
   min-width: 0;
   height: 44px;

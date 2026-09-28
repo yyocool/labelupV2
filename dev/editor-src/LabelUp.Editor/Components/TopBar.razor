@@ -9,6 +9,7 @@
 @inject IJSRuntime Js
 @inject DesignSaveService Save
 @inject DraftStorage Drafts
+@inject ExportService Export
 @implements IDisposable
 
 <div class="ed-topbar-dock @(Session.TopBarPinned ? "is-pinned" : "is-auto")" data-ed-topbar-dock>
@@ -83,6 +84,10 @@
   <div class="ed-m-scrim @(_mobileMenu ? "is-open" : null)" @onclick="CloseMobileMenu"></div>
   <div class="ed-topbar__actions @(_mobileMenu ? "is-open" : null)" data-tut="topbar-actions">
     <button type="button" class="ed-m-drawer-close" @onclick="CloseMobileMenu">메뉴 닫기</button>
+    <button type="button" class="ed-btn" data-tut="save-file" title="라벨 파일(.lbu)로 내 PC에 저장" @onclick="SaveToFile">
+      <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M7.3 1.8h1.4v6.1l1.8-1.8 1 1-3.5 3.5L4.5 7.1l1-1 1.8 1.8V1.8ZM2.6 11.2H4v1.6h8v-1.6h1.4v2a1 1 0 0 1-1 1H3.6a1 1 0 0 1-1-1v-2Z"/></svg>
+      저장
+    </button>
     <button type="button" class="ed-btn ed-btn--shop" data-tut="shop" title="라벨 상품 구매" @onclick="OpenShop">
       <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M5.2 2.2 4.4 5H2.6a.6.6 0 0 0-.6.7l.9 6.2A1.6 1.6 0 0 0 4.5 14h7a1.6 1.6 0 0 0 1.6-1.1l.9-6.2a.6.6 0 0 0-.6-.7h-1.8l-.8-2.8A1.4 1.4 0 0 0 9.5 1.8H6.5c-.6 0-1.1.4-1.3.9Zm1.4.8h2.8l.6 2H6l.6-2ZM5 8.2a.7.7 0 0 1 1.4 0v2.4a.7.7 0 1 1-1.4 0V8.2Zm4.6 0a.7.7 0 0 1 1.4 0v2.4a.7.7 0 1 1-1.4 0V8.2Z"/></svg>
       라벨쇼핑
@@ -313,6 +318,41 @@
         Session.PanY = 0;
         Session.PendingFit = true;
         Session.Notify();
+    }
+
+    /// <summary>편집 중인 라벨 데이터를 .lbu(JSON) 파일로 내 PC에 저장한다.</summary>
+    private async Task SaveToFile()
+    {
+        CloseMobileMenu();
+        try
+        {
+            Session.Document.EnsureStructure();
+            var json = System.Text.Json.JsonSerializer.Serialize(Session.Document, LabelDocumentJson.Options);
+            var saved = await Export.SaveTextAsAsync(json, LabelFileName(Session.Document.Name));
+            if (string.IsNullOrEmpty(saved))
+            {
+                Session.Status = "파일 저장을 취소했습니다";
+            }
+            else
+            {
+                await Drafts.SaveAsync(Session.Document);
+                Session.Status = $"{saved} 파일로 저장했습니다";
+            }
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error("라벨 파일 저장 실패", ex);
+            Session.Status = "파일 저장 실패: " + ex.Message;
+        }
+        Session.Notify();
+    }
+
+    private static string LabelFileName(string? name)
+    {
+        var text = string.IsNullOrWhiteSpace(name) ? "labelup-design" : name!.Trim();
+        foreach (var c in Path.GetInvalidFileNameChars())
+            text = text.Replace(c, '_');
+        return text + ".lbu";
     }
 
     private Task SaveDesign() => SaveDesign(auto: false);

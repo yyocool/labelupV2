@@ -386,7 +386,8 @@ public sealed class DesignObject
                 o.StrokeWidth = 0.2f;
                 o.TableRows = 2;
                 o.TableCols = 2;
-                o.TableCells = ["항목", "값", "A", "1"];
+                // 표는 선만 넣는다. 예시 글자를 채워 두면 쓰는 사람이 일일이 지워야 한다.
+                o.TableCells = ["", "", "", ""];
                 o.FontSize = 2.8f;
                 o.BackgroundFill = "transparent";
                 o.BackgroundTransparent = true;

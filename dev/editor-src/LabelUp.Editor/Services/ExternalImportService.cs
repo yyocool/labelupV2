@@ -12,11 +12,15 @@ namespace LabelUp.Editor.Services;
 
 /// <summary>
 /// 애니라벨 .lbl / 폼텍 .dgz·.dgf / 아이라벨 .idf 를 LabelUp 문서로 변환한다.
+/// 우리 포맷 .lbu(JSON)도 같은 경로로 받아 드래그로 열 수 있게 한다.
 /// 애니라벨은 AniLabelImporter, 아이라벨은 ILabelImporter, 폼텍은 FormtecImporter.
 /// </summary>
 public sealed class ExternalImportService(PaperCatalog papers)
 {
-    public static readonly string[] VendorExtensions = [".lbl", ".idf", ".xml", ".dgz", ".dgf", ".fmt", ".fdx", ".zip"];
+    public static readonly string[] VendorExtensions =
+        [".lbl", ".idf", ".xml", ".dgz", ".dgf", ".fmt", ".fdx", ".zip", ".lbu", ".json"];
+
+    private const string SupportedHint = "지원 포맷: 라벨업 .lbu, 애니라벨 .lbl, 폼텍 .dgz/.dgf, 아이라벨 .idf";
 
     public static bool IsVendorFileName(string? fileName)
     {
@@ -70,7 +74,8 @@ public sealed class ExternalImportService(PaperCatalog papers)
                 "ilabel" => ILabelImporter.Import(payload, name, papers, excelSidecar),
                 "anylabel" => await AniLabelImporter.ImportAsync(payload, name, papers, progress),
                 "formtec" => FormtecImporter.Import(payload, name, papers),
-                _ => throw new NotSupportedException("지원 포맷: 애니라벨 .lbl, 폼텍 .dgz/.dgf, 아이라벨 .idf")
+                "labelup" => ImportLabelUp(payload, name),
+                _ => throw new NotSupportedException(SupportedHint)
             };
             if (vendor == "ilabel")
                 await ILabelImporter.TryAttachSidecarExcelAsync(doc);
@@ -100,8 +105,21 @@ public sealed class ExternalImportService(PaperCatalog papers)
         "anylabel" => "애니라벨",
         "ilabel" => "아이라벨",
         "formtec" => "폼텍 디자인프로",
+        "labelup" => "라벨업",
         _ => vendor
     };
+
+    /// <summary>우리 포맷(.lbu JSON). 저장할 때와 같은 스키마를 그대로 되읽는다.</summary>
+    private static LabelDocument ImportLabelUp(byte[] payload, string fallbackName)
+    {
+        var json = Encoding.UTF8.GetString(payload);
+        if (json.Length > 0 && json[0] == '\uFEFF')
+            json = json[1..];
+        var doc = LabelDocumentJson.Parse(json);
+        if (string.IsNullOrWhiteSpace(doc.Name))
+            doc.Name = fallbackName;
+        return doc;
+    }
 
     public bool BindILabelExcel(VendorImportResult result, string fileName, byte[] bytes)
     {
@@ -203,13 +221,28 @@ public sealed class ExternalImportService(PaperCatalog papers)
     private static string DetectVendor(byte[] data, string ext, string innerName)
     {
         var innerExt = Path.GetExtension(innerName).ToLowerInvariant();
+        // 우리 포맷은 확장자와 무관하게 내용(JSON)으로 먼저 가려낸다.
+        if (LooksLikeLabelUp(data)) return "labelup";
         if (Jet4Database.LooksLikeJet(data) || ext is ".idf" || innerExt is ".idf") return "ilabel";
         if (LooksLikeLbl(data) || ext is ".lbl" || innerExt is ".lbl") return "anylabel";
         if (LooksLikeXml(data) && (ext is ".xml" || innerExt is ".xml")) return "ilabel";
         if (LooksLikeDgf(data) || ext is ".dgf" or ".dgz" or ".fmt" or ".fdx" || innerExt is ".dgf" or ".fmt" or ".fdx")
             return "formtec";
         if (LooksLikeXml(data)) return "ilabel";
-        throw new NotSupportedException("지원 포맷: 애니라벨 .lbl, 폼텍 .dgz/.dgf, 아이라벨 .idf");
+        throw new NotSupportedException(SupportedHint);
+    }
+
+    /// <summary>라벨업 .lbu(JSON) 인지. 용지·페이지 키가 있어야 우리 문서로 본다.</summary>
+    internal static bool LooksLikeLabelUp(byte[] data)
+    {
+        var i = 0;
+        if (data.Length >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF) i = 3;
+        while (i < data.Length && data[i] <= 32) i++;
+        if (i >= data.Length || data[i] != (byte)'{') return false;
+        var head = Encoding.UTF8.GetString(data, i, Math.Min(8192, data.Length - i));
+        return head.Contains("\"pages\"", StringComparison.OrdinalIgnoreCase)
+               || head.Contains("\"paper\"", StringComparison.OrdinalIgnoreCase)
+               || head.Contains("\"document\"", StringComparison.OrdinalIgnoreCase);
     }
 
     internal static bool LooksLikeLbl(byte[] data)

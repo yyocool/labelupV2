@@ -23,6 +23,120 @@ final class ShopAdminService
         return $this->repo->dashboardStats();
     }
 
+    /** 표준 용지 크기(mm). 편집기 PaperCatalog.StandardPaperSizes 와 같은 값이어야 한다. */
+    private const PAPER_SIZES_MM = [
+        'A3' => [297.0, 420.0],
+        'A4' => [210.0, 297.0],
+        'A5' => [148.0, 210.0],
+        'A6' => [105.0, 148.0],
+        'B4' => [257.0, 364.0],
+        'B5' => [182.0, 257.0],
+        'B6' => [128.0, 182.0],
+        'LETTER' => [215.9, 279.4],
+        'LEGAL' => [215.9, 355.6],
+    ];
+
+    /** 용지 크기 오차 허용치(mm). 소수점 반올림 차이를 오류로 보지 않기 위한 값. */
+    private const SIZE_TOLERANCE_MM = 0.5;
+
+    /**
+     * 편집기 배치에 쓰는 규격값이 서로 어긋나는 항목을 찾는다.
+     * 상품이 걸려 있는 규격을 먼저 보여 준다.
+     *
+     * @return array<int, array{id:int, name:string, sku:string, products:int, messages:array<int,string>}>
+     */
+    public function specGeometryIssues(): array
+    {
+        $issues = [];
+        foreach ($this->repo->specsForGeometryCheck() as $row) {
+            $messages = $this->specGeometryMessages($row);
+            if ($messages === []) {
+                continue;
+            }
+            $issues[] = [
+                'id' => (int) $row['id'],
+                'name' => (string) ($row['name'] ?? ''),
+                'sku' => (string) ($row['sample_sku'] ?? ''),
+                'products' => (int) ($row['product_count'] ?? 0),
+                'messages' => $messages,
+            ];
+        }
+        return $issues;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return array<int, string>
+     */
+    private function specGeometryMessages(array $row): array
+    {
+        $cols = (int) ($row['columns_count'] ?? 0);
+        $rows = (int) ($row['rows_count'] ?? 0);
+        $products = (int) ($row['product_count'] ?? 0);
+
+        // 상품이 걸리지 않은 규격은 편집기에 뜨지 않으므로 경고하지 않는다.
+        if ($cols <= 0 || $rows <= 0) {
+            return $products > 0
+                ? ['열·행 값이 없습니다. 편집기가 칸 배치를 추정하므로 실제 용지와 어긋날 수 있습니다.']
+                : [];
+        }
+
+        $messages = [];
+        $labelW = (float) ($row['width_mm'] ?? 0);
+        $labelH = (float) ($row['height_mm'] ?? 0);
+        $hGap = max(0.0, (float) ($row['h_gap_mm'] ?? 0));
+        $vGap = max(0.0, (float) ($row['v_gap_mm'] ?? 0));
+        $left = max(0.0, (float) ($row['left_margin_mm'] ?? 0));
+        $top = max(0.0, (float) ($row['top_margin_mm'] ?? 0));
+
+        $needW = $left + $labelW * $cols + $hGap * ($cols - 1);
+        $needH = $top + $labelH * $rows + $vGap * ($rows - 1);
+        [$pageW, $pageH] = $this->paperSizeMm((string) ($row['paper_size'] ?? ''));
+
+        if ($needW > $pageW + self::SIZE_TOLERANCE_MM || $needH > $pageH + self::SIZE_TOLERANCE_MM) {
+            $messages[] = sprintf(
+                '용지 여백과 라벨 크기의 합이 용지 규격보다 큽니다. 필요 %s×%smm > 용지 %s×%smm',
+                $this->mm($needW),
+                $this->mm($needH),
+                $this->mm($pageW),
+                $this->mm($pageH)
+            );
+        }
+
+        $perSheet = $row['labels_per_sheet'] === null ? 0 : (int) $row['labels_per_sheet'];
+        if ($perSheet > 0 && $cols * $rows !== $perSheet) {
+            $messages[] = sprintf(
+                '열 × 행 수가 칸수와 맞지 않습니다. %d열 × %d행 = %d칸 ≠ %d칸',
+                $cols,
+                $rows,
+                $cols * $rows,
+                $perSheet
+            );
+        }
+
+        return $messages;
+    }
+
+    /** @return array{0: float, 1: float} */
+    private function paperSizeMm(string $paperSize): array
+    {
+        $key = strtoupper(trim($paperSize));
+        $landscape = false;
+        foreach (['가로', 'LANDSCAPE', '-L'] as $marker) {
+            if ($key !== '' && str_contains($key, $marker)) {
+                $landscape = true;
+                $key = trim(str_replace($marker, '', $key));
+            }
+        }
+        $size = self::PAPER_SIZES_MM[$key] ?? self::PAPER_SIZES_MM['A4'];
+        return $landscape ? [$size[1], $size[0]] : $size;
+    }
+
+    private function mm(float $value): string
+    {
+        return rtrim(rtrim(number_format($value, 1, '.', ''), '0'), '.');
+    }
+
     /** @return array<int, array<string, mixed>> */
     public function categories(): array
     {
@@ -72,19 +186,109 @@ final class ShopAdminService
         if ($name === '') {
             throw new RuntimeException('규격명을 입력해주세요.');
         }
+        $width = (float) ($data['width_mm'] ?? 0);
+        $height = (float) ($data['height_mm'] ?? 0);
+        $radiusLimit = $width > 0 && $height > 0 ? min($width, $height) / 2 : null;
+
         return $this->repo->saveSpec([
             'id' => (int) ($data['id'] ?? 0),
             'name' => $name,
             'kind' => $data['kind'] ?? null,
             'image_path' => ShopProductImageService::normalizePublicPath((string) ($data['image_path'] ?? '')) ?: null,
-            'width_mm' => (float) ($data['width_mm'] ?? 0),
-            'height_mm' => (float) ($data['height_mm'] ?? 0),
+            'width_mm' => $width,
+            'height_mm' => $height,
+            'paper_size' => self::normalizePaperSize($data['paper_size'] ?? null),
             'material' => trim((string) ($data['material'] ?? '')),
             'shape' => (string) ($data['shape'] ?? 'rect'),
             'labels_per_sheet' => $data['labels_per_sheet'] ?? null,
+            'top_margin_mm' => self::normalizeMm($data['top_margin_mm'] ?? null),
+            'left_margin_mm' => self::normalizeMm($data['left_margin_mm'] ?? null),
+            'columns_count' => $data['columns_count'] ?? null,
+            'rows_count' => $data['rows_count'] ?? null,
+            'h_gap_mm' => self::normalizeMm($data['h_gap_mm'] ?? null),
+            'v_gap_mm' => self::normalizeMm($data['v_gap_mm'] ?? null),
+            'corner_radius_x_mm' => self::normalizeMm($data['corner_radius_x_mm'] ?? null, $radiusLimit),
+            'corner_radius_y_mm' => self::normalizeMm($data['corner_radius_y_mm'] ?? null, $radiusLimit),
+            'label_color' => self::normalizeHexColor($data['label_color'] ?? null),
+            'custom_path_svg' => self::sanitizeSvgPath($data['custom_path_svg'] ?? null),
             'description' => trim((string) ($data['description'] ?? '')),
             'is_active' => !empty($data['is_active']),
         ]);
+    }
+
+    /** 용지 규격은 목록 밖 값도 받되 기호는 막는다. 예: A4, A3, Letter, 100x150. */
+    private static function normalizePaperSize(mixed $value): ?string
+    {
+        $text = strtoupper(trim((string) ($value ?? '')));
+        if ($text === '') {
+            return null;
+        }
+        $text = preg_replace('/[^A-Z0-9 ._\-×X]/u', '', $text) ?? '';
+        $text = trim($text);
+        return $text === '' ? null : mb_substr($text, 0, 20);
+    }
+
+    /** mm 값은 소수 셋째 자리까지. 모서리 반경은 min(가로, 세로)/2를 넘을 수 없다. */
+    private static function normalizeMm(mixed $value, ?float $limit = null): ?float
+    {
+        if ($value === null || $value === '' || !is_numeric($value)) {
+            return null;
+        }
+        $mm = max(0.0, min(9999.999, (float) $value));
+        if ($limit !== null && $limit > 0) {
+            $mm = min($mm, $limit);
+        }
+        return round($mm, 3);
+    }
+
+    private static function normalizeHexColor(mixed $value): ?string
+    {
+        $text = trim((string) ($value ?? ''));
+        if ($text === '') {
+            return null;
+        }
+        if (preg_match('/^#?([0-9a-fA-F]{3})$/', $text, $m)) {
+            $short = $m[1];
+            $text = '#' . $short[0] . $short[0] . $short[1] . $short[1] . $short[2] . $short[2];
+        }
+        return preg_match('/^#[0-9a-fA-F]{6}$/', $text) ? strtoupper($text) : null;
+    }
+
+    /**
+     * 커스텀 외곽선은 SVG path 데이터(d 속성) 또는 svg 마크업을 받는다.
+     * 관리자 입력이라도 편집기·상점 화면에 그대로 그려지므로 스크립트 실행 경로는 걷어낸다.
+     */
+    private static function sanitizeSvgPath(mixed $value): ?string
+    {
+        $svg = trim((string) ($value ?? ''));
+        if ($svg === '') {
+            return null;
+        }
+        if (mb_strlen($svg) > 200000) {
+            throw new RuntimeException('커스텀 외곽 Path가 너무 깁니다. (최대 200,000자)');
+        }
+
+        // path 데이터만 들어온 경우: 명령 문자와 숫자만 허용.
+        if (!str_contains($svg, '<')) {
+            if (!preg_match('/^[MmLlHhVvCcSsQqTtAaZz0-9.,\-+eE\s]+$/', $svg)) {
+                throw new RuntimeException('Path 데이터에 허용되지 않는 문자가 있습니다.');
+            }
+            return $svg;
+        }
+
+        $patterns = [
+            '#<\s*(script|foreignObject|iframe|object|embed)\b[^>]*>.*?<\s*/\s*\1\s*>#is' => '',
+            '#<\s*(script|foreignObject|iframe|object|embed)\b[^>]*/?>#is' => '',
+            '#\son[a-z]+\s*=\s*(".*?"|\'.*?\'|[^\s>]+)#is' => '',
+            '#(href|xlink:href|src)\s*=\s*([\'"])\s*(javascript|data)\s*:[^\'"]*\2#is' => '',
+        ];
+        $clean = preg_replace(array_keys($patterns), array_values($patterns), $svg);
+        if ($clean === null) {
+            throw new RuntimeException('커스텀 외곽 Path를 처리하지 못했습니다.');
+        }
+
+        $clean = trim($clean);
+        return $clean === '' ? null : $clean;
     }
 
     /** @return array<int, string> */

@@ -132,16 +132,97 @@ public sealed class LabelDocument
         }
     }
 
-    public void ApplyPaper(PaperSpec paper, bool keepDesign = true)
+    /// <summary>용지를 바꿀 때 만들 수 있는 최대 페이지 수. 1칸짜리 용지로 바꿔도 여기서 멈춘다.</summary>
+    public const int MaxPagesOnPaperChange = 300;
+
+    /// <summary>라벨 상자 밖으로 완전히 벗어나 화면에 그려지지 않는 항목인지.</summary>
+    public static bool IsOutsideLabel(DesignObject obj, float widthMm, float heightMm)
+        => obj.X >= widthMm || obj.Y >= heightMm
+           || obj.X + obj.Width <= 0f || obj.Y + obj.Height <= 0f;
+
+    /// <summary>
+    /// 용지를 바꾼다. 칸 내용은 전역 라벨 번호를 그대로 유지한다(1번 라벨 내용은 새 용지의 1번 라벨로).
+    /// 페이지당 칸 수가 달라지면 내용이 들어 있는 마지막 칸까지 담을 만큼 페이지를 다시 만든다.
+    ///
+    /// <paramref name="scaleObjects"/> 가 true 면 라벨 크기가 바뀐 비율만큼 항목의 위치·크기·글자도 함께 바꾼다.
+    /// false 면 위치를 그대로 두므로, 라벨이 작아지면 밖으로 나간 부분은 그려지지 않는다.
+    ///
+    /// <paramref name="dropHiddenObjects"/> 가 true 면 바꾸기 전 라벨 밖에 있어 보이지 않던 항목을 지운다.
+    /// 그대로 두면 새 라벨이 더 클 때 없던 항목이 튀어나온 것처럼 보인다.
+    /// </summary>
+    public void ApplyPaper(
+        PaperSpec paper,
+        bool keepDesign = true,
+        bool scaleObjects = false,
+        bool dropHiddenObjects = false)
     {
-        var prototype = keepDesign && Pages.Count > 0 && Pages[0].Cells.Count > 0
-            ? Pages[0].Cells[0].Objects.Select(o => o.Clone()).ToList()
-            : null;
-        var pageCount = Math.Max(1, Pages.Count);
+        var oldWidth = Paper.LabelWidthMm;
+        var oldHeight = Paper.LabelHeightMm;
+        var kept = keepDesign
+            ? Pages.SelectMany(p => p.Cells).Select(c => c.Objects).ToList()
+            : [];
+        var oldPageCount = Math.Max(1, Pages.Count);
+
+        if (dropHiddenObjects && oldWidth > 0.01f && oldHeight > 0.01f)
+        {
+            foreach (var objects in kept)
+                objects.RemoveAll(obj => IsOutsideLabel(obj, oldWidth, oldHeight));
+        }
+
         Paper = paper.Clone();
+        var perPage = Math.Max(1, paper.LabelsPerPage);
+
+        if (scaleObjects && oldWidth > 0.01f && oldHeight > 0.01f)
+        {
+            var sx = paper.LabelWidthMm / oldWidth;
+            var sy = paper.LabelHeightMm / oldHeight;
+            if (Math.Abs(sx - 1f) > 0.001f || Math.Abs(sy - 1f) > 0.001f)
+            {
+                foreach (var obj in kept.SelectMany(objects => objects))
+                    ScaleObject(obj, sx, sy);
+            }
+        }
+
+        var filled = kept.FindLastIndex(objects => objects.Count > 0) + 1;
+        var pageCount = filled > 0
+            ? Math.Clamp((filled + perPage - 1) / perPage, 1, MaxPagesOnPaperChange)
+            : Math.Clamp(oldPageCount, 1, MaxPagesOnPaperChange);
+
         Pages.Clear();
         for (var i = 0; i < pageCount; i++)
-            Pages.Add(LabelPage.Create(i, paper.LabelsPerPage, i == 0 ? prototype : null));
+        {
+            var page = LabelPage.Create(i, perPage);
+            for (var c = 0; c < page.Cells.Count; c++)
+            {
+                var global = i * perPage + c;
+                if (global < filled)
+                    page.Cells[c].Objects = kept[global];
+            }
+            Pages.Add(page);
+        }
+    }
+
+    /// <summary>
+    /// 라벨 크기가 바뀐 비율만큼 항목을 줄이고 늘린다.
+    /// 글자와 선 굵기는 찌그러져 보이지 않도록 가로·세로 중 작은 배율을 쓴다.
+    /// </summary>
+    private static void ScaleObject(DesignObject obj, float sx, float sy)
+    {
+        var uniform = Math.Min(sx, sy);
+        obj.X *= sx;
+        obj.Y *= sy;
+        obj.Width *= sx;
+        obj.Height *= sy;
+        obj.FontSize *= uniform;
+        obj.StrokeWidth *= uniform;
+        obj.LetterSpacing *= uniform;
+        obj.TextPaddingXMm *= sx;
+        obj.TableBorderWidth *= uniform;
+        if (obj.RichText is { Count: > 0 })
+        {
+            foreach (var span in obj.RichText.SelectMany(p => p.Spans))
+                span.FontSize *= uniform;
+        }
     }
 
     public LabelPage AddPage(IReadOnlyList<DesignObject>? prototype = null)
@@ -150,6 +231,18 @@ public sealed class LabelDocument
         var page = LabelPage.Create(Pages.Count, Paper.LabelsPerPage, prototype);
         Pages.Add(page);
         return page;
+    }
+
+    /// <summary>페이지 삭제. 마지막 한 장은 남긴다.</summary>
+    public bool RemovePage(int pageIndex)
+    {
+        EnsureStructure();
+        if (Pages.Count <= 1 || pageIndex < 0 || pageIndex >= Pages.Count)
+            return false;
+        Pages.RemoveAt(pageIndex);
+        for (var i = 0; i < Pages.Count; i++)
+            Pages[i].Index = i;
+        return true;
     }
 
     public void ApplyDesignToPage(int pageIndex, IReadOnlyList<DesignObject> prototype)

@@ -89,7 +89,7 @@ let productImagesState = [];
 let categoryImagePath = '';
 let specImagePath = '';
 
-function buildEntityImageSection(imagePath = '', entity = 'category') {
+function buildEntityImageSection(imagePath = '', entity = 'category', full = true) {
   const prefix = entity === 'spec' ? 'shopSpec' : 'shopCategory';
   const label = entity === 'spec' ? '규격 이미지' : '카테고리 이미지';
   const src = imagePath ? resolveImageUrl(imagePath) : '';
@@ -97,7 +97,7 @@ function buildEntityImageSection(imagePath = '', entity = 'category') {
     ? `<img src="${src}" alt="${label}" class="admin-category-image-preview">`
     : '<span class="admin-muted">등록된 이미지가 없습니다.</span>';
   return `
-    <div class="admin-field admin-field--images admin-field--full">
+    <div class="admin-field admin-field--images${full ? ' admin-field--full' : ''}">
       <label>${label}</label>
       <div class="admin-category-image-wrap" id="${prefix}ImagePreview">${preview}</div>
       <input type="file" id="${prefix}ImageInput" accept="image/jpeg,image/png,image/gif,image/webp" hidden>
@@ -213,8 +213,180 @@ function shopField(label, name, value = '', type = 'text', opts = {}) {
     const options = (opts.options || []).map((o) => `<option value="${o.v}"${String(value) === String(o.v) ? ' selected' : ''}>${escHtml(o.t)}</option>`).join('');
     return `<div class="admin-field${fullClass}"><label>${label}</label><select name="${name}" class="admin-select"${req}>${options}</select></div>`;
   }
-  const extra = opts.step ? ` step="${opts.step}"` : '';
-  return `<div class="admin-field${fullClass}"><label>${label}</label><input type="${type}" name="${name}" value="${safeValue}"${req}${extra}></div>`;
+  if (type === 'list') {
+    const listId = `${name}Options`;
+    const options = (opts.options || []).map((o) => `<option value="${escHtml(o)}"></option>`).join('');
+    const hint = opts.hint ? `<small>${escHtml(opts.hint)}</small>` : '';
+    return `<div class="admin-field${fullClass}"><label>${label}</label>`
+      + `<input type="text" name="${name}" value="${safeValue}" list="${listId}" autocomplete="off"${req}>`
+      + `<datalist id="${listId}">${options}</datalist>${hint}</div>`;
+  }
+  const extra = (opts.step ? ` step="${opts.step}"` : '')
+    + (opts.min !== undefined ? ` min="${opts.min}"` : '')
+    + (opts.max !== undefined ? ` max="${opts.max}"` : '')
+    + (opts.placeholder ? ` placeholder="${escHtml(opts.placeholder)}"` : '');
+  const hint = opts.hint ? `<small>${escHtml(opts.hint)}</small>` : '';
+  return `<div class="admin-field${fullClass}"><label>${label}</label><input type="${type}" name="${name}" value="${safeValue}"${req}${extra}>${hint}</div>`;
+}
+
+const PAPER_SIZE_OPTIONS = ['A3', 'A4', 'A5', 'A6', 'B4', 'B5', 'Letter', 'Legal'];
+const DEFAULT_LABEL_COLOR = '#FFFFFF';
+
+/** DECIMAL(7,3)은 '7.620'처럼 돌아와서 입력칸에 그대로 넣으면 지저분하다. */
+function trimDecimal(value) {
+  if (value === null || value === undefined || value === '') return '';
+  const num = Number(value);
+  if (!Number.isFinite(num)) return '';
+  return String(Number(num.toFixed(3)));
+}
+
+function normalizeHexColor(value) {
+  const text = String(value ?? '').trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(text)) return text.toUpperCase();
+  if (/^[0-9a-fA-F]{6}$/.test(text)) return `#${text.toUpperCase()}`;
+  return '';
+}
+
+function buildColorField(label, name, value) {
+  const hex = normalizeHexColor(value);
+  return `
+    <div class="admin-field admin-field--color">
+      <label>${label}</label>
+      <div class="admin-color-row">
+        <input type="color" id="${name}Picker" value="${hex || DEFAULT_LABEL_COLOR}" aria-label="${label} 선택">
+        <input type="text" name="${name}" id="${name}Text" value="${escHtml(hex)}" placeholder="${DEFAULT_LABEL_COLOR}" maxlength="7" autocomplete="off">
+      </div>
+      <small>비워 두면 흰색으로 인쇄됩니다.</small>
+    </div>`;
+}
+
+function buildCustomPathField(value) {
+  return `
+    <div class="admin-field admin-field--full">
+      <label>커스텀 외곽 Path (SVG)</label>
+      <textarea name="custom_path_svg" id="shopSpecCustomPath" rows="4" class="admin-spec-path" placeholder="M0,0 H100 V50 H0 Z 또는 &lt;svg&gt;…&lt;/svg&gt;">${escHtml(value || '')}</textarea>
+      <div class="admin-spec-path-actions">
+        <button type="button" class="admin-btn admin-btn--sm" id="shopSpecPathLoad">SVG 파일 불러오기</button>
+        <button type="button" class="admin-btn admin-btn--sm" id="shopSpecPathClear">지우기</button>
+        <input type="file" id="shopSpecPathFile" accept=".svg,image/svg+xml" hidden>
+      </div>
+      <small>형태를 ‘맞춤’으로 둘 때만 사용합니다. path 데이터(d) 또는 svg 마크업을 넣으세요.</small>
+    </div>`;
+}
+
+function buildSpecForm(row = {}) {
+  let html = '<div class="admin-product-form admin-product-form--spec">';
+
+  html += '<section class="admin-product-section"><h4 class="admin-product-section-title">기본 정보</h4><div class="admin-product-form-grid">';
+  html += shopField('규격명', 'name', row.name, 'text', { required: true, full: true });
+  html += shopField('용지 종류', 'kind', row.kind || 'label', 'select', {
+    options: [{ v: 'label', t: '라벨용지' }, { v: 'tag', t: '태그용지' }],
+  });
+  html += shopField('용지 규격', 'paper_size', row.paper_size || '', 'list', {
+    options: PAPER_SIZE_OPTIONS,
+    hint: '목록에 없으면 직접 입력할 수 있습니다.',
+  });
+  html += shopField('가로(mm)', 'width_mm', trimDecimal(row.width_mm), 'number', { required: true, step: '0.01', min: 0 });
+  html += shopField('세로(mm)', 'height_mm', trimDecimal(row.height_mm), 'number', { required: true, step: '0.01', min: 0 });
+  html += shopField('재질', 'material', row.material);
+  html += shopField('시트당 칸수', 'labels_per_sheet', row.labels_per_sheet ?? '', 'number', { min: 0 });
+  html += '</div></section>';
+
+  html += '<section class="admin-product-section"><h4 class="admin-product-section-title">라벨 배치</h4><div class="admin-product-form-grid">';
+  html += shopField('라벨 열수(가로 개수)', 'columns_count', row.columns_count ?? '', 'number', { min: 0 });
+  html += shopField('라벨 행수(세로 개수)', 'rows_count', row.rows_count ?? '', 'number', { min: 0 });
+  html += shopField('왼쪽 여백(mm)', 'left_margin_mm', trimDecimal(row.left_margin_mm), 'number', { step: '0.001', min: 0 });
+  html += shopField('위쪽 여백(mm)', 'top_margin_mm', trimDecimal(row.top_margin_mm), 'number', { step: '0.001', min: 0 });
+  html += shopField('라벨 좌우 간격(mm)', 'h_gap_mm', trimDecimal(row.h_gap_mm), 'number', { step: '0.001', min: 0 });
+  html += shopField('라벨 상하 간격(mm)', 'v_gap_mm', trimDecimal(row.v_gap_mm), 'number', { step: '0.001', min: 0 });
+  html += '<div class="admin-field admin-field--full admin-field--readonly"><label>배치 확인</label>'
+    + `<input type="text" id="shopSpecGridSummary" value="${escHtml(gridSummary(row))}" readonly tabindex="-1"></div>`;
+  html += '</div></section>';
+
+  html += '<section class="admin-product-section"><h4 class="admin-product-section-title">라벨 모양</h4><div class="admin-product-form-grid">';
+  html += shopField('형태', 'shape', row.shape || 'rect', 'select', {
+    options: [{ v: 'rect', t: '사각' }, { v: 'round', t: '원형' }, { v: 'custom', t: '맞춤' }],
+  });
+  html += buildColorField('라벨 바탕색', 'label_color', row.label_color);
+  html += shopField('모서리 가로 반경(mm)', 'corner_radius_x_mm', trimDecimal(row.corner_radius_x_mm), 'number', { step: '0.001', min: 0 });
+  html += shopField('모서리 세로 반경(mm)', 'corner_radius_y_mm', trimDecimal(row.corner_radius_y_mm), 'number', { step: '0.001', min: 0 });
+  html += buildCustomPathField(row.custom_path_svg);
+  html += shopField('사용', 'is_active', row.id ? row.is_active : 1, 'checkbox');
+  html += '</div></section>';
+
+  html += '<section class="admin-product-section"><h4 class="admin-product-section-title">이미지 · 설명</h4><div class="admin-product-form-grid">';
+  html += buildEntityImageSection(row.image_path || '', 'spec', false);
+  html += shopField('설명', 'description', row.description, 'textarea', { rows: 3 });
+  html += '</div></section>';
+
+  html += '</div>';
+  return html;
+}
+
+function gridSummary(row = {}) {
+  const cols = Number(row.columns_count || 0);
+  const rows = Number(row.rows_count || 0);
+  const labels = Number(row.labels_per_sheet || 0);
+  if (!cols || !rows) return '배치 미입력';
+  const total = cols * rows;
+  return `${cols} × ${rows} = ${total}칸${labels && labels !== total ? ` (시트당 칸수 ${labels}과 다름)` : ''}`;
+}
+
+function initSpecFormControls() {
+  const form = document.getElementById('shopModalForm');
+  const summary = document.getElementById('shopSpecGridSummary');
+  if (form && summary) {
+    const refresh = () => {
+      summary.value = gridSummary({
+        columns_count: form.querySelector('[name="columns_count"]')?.value,
+        rows_count: form.querySelector('[name="rows_count"]')?.value,
+        labels_per_sheet: form.querySelector('[name="labels_per_sheet"]')?.value,
+      });
+    };
+    ['columns_count', 'rows_count', 'labels_per_sheet'].forEach((name) => {
+      form.querySelector(`[name="${name}"]`)?.addEventListener('input', refresh);
+    });
+  }
+
+  const picker = document.getElementById('label_colorPicker');
+  const text = document.getElementById('label_colorText');
+  if (picker && text) {
+    picker.addEventListener('input', () => { text.value = picker.value.toUpperCase(); });
+    text.addEventListener('change', () => {
+      const hex = normalizeHexColor(text.value);
+      text.value = hex;
+      if (hex) picker.value = hex;
+    });
+  }
+
+  const pathInput = document.getElementById('shopSpecCustomPath');
+  const loadBtn = document.getElementById('shopSpecPathLoad');
+  const clearBtn = document.getElementById('shopSpecPathClear');
+  const fileInput = document.getElementById('shopSpecPathFile');
+  if (!pathInput || !loadBtn || !clearBtn || !fileInput) return;
+
+  loadBtn.onclick = () => fileInput.click();
+  clearBtn.onclick = () => { pathInput.value = ''; };
+  fileInput.onchange = () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      if (typeof showAdminAlert === 'function') showAdminAlert('SVG 파일은 2MB까지 불러올 수 있습니다.', 'error');
+      fileInput.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      pathInput.value = String(reader.result || '').trim();
+      fileInput.value = '';
+      if (typeof showAdminAlert === 'function') showAdminAlert('SVG를 불러왔습니다. 저장을 눌러야 반영됩니다.', 'success');
+    };
+    reader.onerror = () => {
+      fileInput.value = '';
+      if (typeof showAdminAlert === 'function') showAdminAlert('SVG 파일을 읽지 못했습니다.', 'error');
+    };
+    reader.readAsText(file);
+  };
 }
 
 function buildProductMetaFields(meta = {}) {
@@ -371,20 +543,7 @@ function buildShopForm(entity, row = {}) {
     html += shopField('정렬', 'sort_order', row.sort_order ?? 0, 'number');
     html += shopField('사용', 'is_active', row.id ? row.is_active : 1, 'checkbox');
   } else if (entity === 'spec') {
-    html += buildEntityImageSection(row.image_path || '', 'spec');
-    html += shopField('규격명', 'name', row.name, 'text', { required: true });
-    html += shopField('용지 종류', 'kind', row.kind || 'label', 'select', {
-      options: [{ v: 'label', t: '라벨용지' }, { v: 'tag', t: '태그용지' }],
-    });
-    html += shopField('가로(mm)', 'width_mm', row.width_mm ?? '', 'number', { required: true, step: '0.01' });
-    html += shopField('세로(mm)', 'height_mm', row.height_mm ?? '', 'number', { required: true, step: '0.01' });
-    html += shopField('재질', 'material', row.material);
-    html += shopField('형태', 'shape', row.shape || 'rect', 'select', {
-      options: [{ v: 'rect', t: '사각' }, { v: 'round', t: '원형' }, { v: 'custom', t: '맞춤' }],
-    });
-    html += shopField('시트당 칸수', 'labels_per_sheet', row.labels_per_sheet ?? '', 'number');
-    html += shopField('설명', 'description', row.description, 'textarea');
-    html += shopField('사용', 'is_active', row.is_active, 'checkbox');
+    html += buildSpecForm(row);
   } else if (entity === 'product') {
     html += buildProductForm(row);
   } else if (entity === 'order') {
@@ -549,7 +708,8 @@ function openShopModal(entity, row = {}) {
 
   destroyProductSummernote();
   dialog?.classList.toggle('admin-modal-dialog--product', entity === 'product');
-  dialog?.classList.toggle('admin-modal-dialog--wide', entity === 'category' || entity === 'spec');
+  dialog?.classList.toggle('admin-modal-dialog--wide', entity === 'category');
+  dialog?.classList.toggle('admin-modal-dialog--spec', entity === 'spec');
   dialog?.classList.toggle('admin-modal-dialog--order', entity === 'order');
 
   const labels = { category: '카테고리', spec: '규격', product: '상품', order: '주문', coupon: '쿠폰', banner: '배너' };
@@ -568,6 +728,7 @@ function openShopModal(entity, row = {}) {
     initCategoryImage(row.image_path || '');
   } else if (entity === 'spec') {
     initEntityImage('spec', row.image_path || '');
+    initSpecFormControls();
   }
 }
 

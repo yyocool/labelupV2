@@ -380,7 +380,7 @@ window.labelUpEditor = {
         var pair = values();
         var d = Math.max(8, dist(pair[0], pair[1]));
         var m = mid(pair[0], pair[1]);
-        var zoom = Math.max(0.25, Math.min(8, gesture.zoom * (d / gesture.startDist)));
+        var zoom = Math.max(0.25, Math.min(4, gesture.zoom * (d / gesture.startDist)));
         var panX = gesture.panX + (m.x - gesture.startMid.x);
         var panY = gesture.panY + (m.y - gesture.startMid.y);
         dotnet.invokeMethodAsync('OnGestureZoomPan', zoom, panX, panY);
@@ -692,6 +692,7 @@ window.labelUpEditor = {
     var imgs = urls.map(function (u, i) {
       return '<img class="p" src="' + u + '" alt="print ' + (i + 1) + '" />';
     }).join('');
+    // 용지 규격 그대로 1:1 로만 보낸다. 여기서 배율을 건드리면 용지 설정과 어긋난다.
     // PNG는 이미 용지 전체(여백 포함) 1:1이다. @page 8mm + width:100% 하면
     // 3189처럼 칸이 많은 용지가 줄어들고 아래로 밀린다.
     var html = '<!doctype html><html><head><title>' + (title || '인쇄') + '</title>'
@@ -745,7 +746,7 @@ window.labelUpEditor = {
     var el = document.querySelector(selector);
     if (!el || el.__luVendorDrop || !dotnet) return;
     el.__luVendorDrop = true;
-    var exts = ['.lbl', '.idf', '.xml', '.dgz', '.dgf', '.fmt', '.fdx', '.zip'];
+    var exts = ['.lbl', '.idf', '.xml', '.dgz', '.dgf', '.fmt', '.fdx', '.zip', '.lbu', '.json'];
     var depth = 0;
     function hasFiles(e) {
       var types = e.dataTransfer && e.dataTransfer.types;
@@ -1584,7 +1585,7 @@ window.labelUpEditor = {
     if (this._zoomSliderBound) return;
     this._zoomSliderBound = true;
     var MIN = 25;
-    var MAX = 800;
+    var MAX = 400;
     var dragging = false;
 
     function readPct(box) {
@@ -1595,7 +1596,7 @@ window.labelUpEditor = {
 
     function applyZoom(percent, end) {
       var host = window.labelUpEditor._canvasHost;
-      var zoom = Math.max(0.25, Math.min(8, percent / 100));
+      var zoom = Math.max(0.25, Math.min(4, percent / 100));
       if (!host) return;
       Promise.resolve(host.invokeMethodAsync('GetViewState')).then(function (st) {
         var panX = st && st.length > 1 ? Number(st[1]) || 0 : 0;

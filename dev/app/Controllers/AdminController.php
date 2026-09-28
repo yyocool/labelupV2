@@ -29,13 +29,15 @@ final class AdminController extends BaseController
     {
         $this->requireAdmin();
         $user = $this->auth->admin();
+        $shopAdmin = new ShopAdminService();
 
         $this->renderAdmin('admin/dashboard', [
             'pageTitle' => '관리자 대시보드 — 라벨업',
             'activeMenu' => 'dashboard',
             'user' => $user,
-            'stats' => array_merge($this->admin->dashboardStats(), (new ShopAdminService())->dashboardStats()),
+            'stats' => array_merge($this->admin->dashboardStats(), $shopAdmin->dashboardStats()),
             'recentLogins' => $this->admin->recentLoginLogs(),
+            'specIssues' => $shopAdmin->specGeometryIssues(),
         ]);
     }
 

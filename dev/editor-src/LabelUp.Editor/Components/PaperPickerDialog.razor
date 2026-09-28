@@ -277,9 +277,23 @@
     {
         var paper = Papers.FromShopProduct(item);
         Papers.Upsert(paper);
+        var shopProductId = item.Id > 0 ? item.Id : (int?)null;
+
+        // 칸 수가 달라지는데 옮길 내용이 있으면, 항목을 그대로 둘지 비율대로 줄일지 먼저 묻는다.
+        if (Session.NeedsPaperChangeChoice(paper))
+        {
+            Session.PendingPaper = paper;
+            Session.PendingPaperShopId = shopProductId;
+            Session.OpenDialog(EditorDialog.PaperChange);
+            return;
+        }
+
         History.Push(Session.Document);
-        Session.ApplyPaper(paper, item.Id > 0 ? item.Id : null);
+        Session.ApplyPaper(paper, shopProductId);
         Session.CloseDialog();
+        // 규격값이 어긋나면 적용은 하되 바로 알린다. 모르고 인쇄하면 잘려 나온다.
+        if (!string.IsNullOrEmpty(paper.LayoutIssue))
+            Session.ShowError("용지 규격 이상", paper.LayoutIssue);
     }
 
     private static ShopPaperItem ToFallbackItem(PaperSpec paper, int index) => new()

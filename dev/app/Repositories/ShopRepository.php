@@ -232,13 +232,18 @@ final class ShopRepository extends BaseModel
 
             'now' => $now,
 
-        ];
+        ] + self::specLayoutParams($data);
 
         if ($id > 0) {
 
             $this->execute(
 
-                'UPDATE label_specs SET name=:name,kind=:kind,image_path=:image_path,width_mm=:width_mm,height_mm=:height_mm,material=:material,shape=:shape,labels_per_sheet=:labels_per_sheet,description=:description,is_active=:is_active,updated_at=:now WHERE id=:id',
+                'UPDATE label_specs SET name=:name,kind=:kind,image_path=:image_path,width_mm=:width_mm,height_mm=:height_mm,'
+                . 'paper_size=:paper_size,material=:material,shape=:shape,labels_per_sheet=:labels_per_sheet,'
+                . 'top_margin_mm=:top_margin_mm,left_margin_mm=:left_margin_mm,columns_count=:columns_count,rows_count=:rows_count,'
+                . 'h_gap_mm=:h_gap_mm,v_gap_mm=:v_gap_mm,corner_radius_x_mm=:corner_radius_x_mm,corner_radius_y_mm=:corner_radius_y_mm,'
+                . 'label_color=:label_color,custom_path_svg=:custom_path_svg,'
+                . 'description=:description,is_active=:is_active,updated_at=:now WHERE id=:id',
 
                 $params + ['id' => $id]
 
@@ -261,11 +266,18 @@ final class ShopRepository extends BaseModel
             'is_active' => $params['is_active'],
             'created_at' => $now,
             'updated_at' => $now,
-        ];
+        ] + self::specLayoutParams($data);
 
         $this->execute(
 
-            'INSERT INTO label_specs (name,kind,image_path,width_mm,height_mm,material,shape,labels_per_sheet,description,is_active,created_at,updated_at) VALUES (:name,:kind,:image_path,:width_mm,:height_mm,:material,:shape,:labels_per_sheet,:description,:is_active,:created_at,:updated_at)',
+            'INSERT INTO label_specs (name,kind,image_path,width_mm,height_mm,paper_size,material,shape,labels_per_sheet,'
+            . 'top_margin_mm,left_margin_mm,columns_count,rows_count,h_gap_mm,v_gap_mm,'
+            . 'corner_radius_x_mm,corner_radius_y_mm,label_color,custom_path_svg,'
+            . 'description,is_active,created_at,updated_at) '
+            . 'VALUES (:name,:kind,:image_path,:width_mm,:height_mm,:paper_size,:material,:shape,:labels_per_sheet,'
+            . ':top_margin_mm,:left_margin_mm,:columns_count,:rows_count,:h_gap_mm,:v_gap_mm,'
+            . ':corner_radius_x_mm,:corner_radius_y_mm,:label_color,:custom_path_svg,'
+            . ':description,:is_active,:created_at,:updated_at)',
 
             $insertParams
 
@@ -273,6 +285,58 @@ final class ShopRepository extends BaseModel
 
         return (int) $this->lastInsertId();
 
+    }
+
+    /**
+     * 용지 배치 컬럼은 상품 일괄 임포트처럼 값을 안 넘기는 호출도 있어서 빠진 키는 NULL로 채운다.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private static function specLayoutParams(array $data): array
+    {
+        return [
+            'paper_size' => self::nullableString($data['paper_size'] ?? null, 20),
+            'top_margin_mm' => self::nullableDecimal($data['top_margin_mm'] ?? null),
+            'left_margin_mm' => self::nullableDecimal($data['left_margin_mm'] ?? null),
+            'columns_count' => self::nullableCount($data['columns_count'] ?? null),
+            'rows_count' => self::nullableCount($data['rows_count'] ?? null),
+            'h_gap_mm' => self::nullableDecimal($data['h_gap_mm'] ?? null),
+            'v_gap_mm' => self::nullableDecimal($data['v_gap_mm'] ?? null),
+            'corner_radius_x_mm' => self::nullableDecimal($data['corner_radius_x_mm'] ?? null),
+            'corner_radius_y_mm' => self::nullableDecimal($data['corner_radius_y_mm'] ?? null),
+            'label_color' => self::nullableString($data['label_color'] ?? null, 7),
+            'custom_path_svg' => self::nullableString($data['custom_path_svg'] ?? null),
+        ];
+    }
+
+    private static function nullableString(mixed $value, ?int $maxLength = null): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        $text = trim((string) $value);
+        if ($text === '') {
+            return null;
+        }
+        return $maxLength !== null ? mb_substr($text, 0, $maxLength) : $text;
+    }
+
+    private static function nullableDecimal(mixed $value): ?float
+    {
+        if ($value === null || $value === '' || !is_numeric($value)) {
+            return null;
+        }
+        return round(max(0.0, min(9999.999, (float) $value)), 3);
+    }
+
+    private static function nullableCount(mixed $value): ?int
+    {
+        if ($value === null || $value === '' || !is_numeric($value)) {
+            return null;
+        }
+        $count = (int) $value;
+        return $count > 0 ? min($count, 9999) : null;
     }
 
 
@@ -283,6 +347,27 @@ final class ShopRepository extends BaseModel
 
         $this->execute('DELETE FROM label_specs WHERE id = :id', ['id' => $id]);
 
+    }
+
+    /**
+     * 편집기 배치에 쓰는 규격값 전수 + 연결 상품 수.
+     * 값이 어긋나면 미리보기·인쇄가 잘리므로 관리자 대시보드에서 점검한다.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function specsForGeometryCheck(): array
+    {
+        return $this->fetchAll(
+            "SELECT s.id, s.name, s.paper_size, s.width_mm, s.height_mm, s.labels_per_sheet,
+                    s.columns_count, s.rows_count, s.top_margin_mm, s.left_margin_mm,
+                    s.h_gap_mm, s.v_gap_mm,
+                    COUNT(p.id) AS product_count, MIN(p.sku) AS sample_sku
+             FROM label_specs s
+             LEFT JOIN shop_products p ON p.spec_id = s.id
+             WHERE s.is_active = 1
+             GROUP BY s.id
+             ORDER BY product_count DESC, s.id ASC"
+        );
     }
 
 
@@ -1010,7 +1095,10 @@ final class ShopRepository extends BaseModel
             "SELECT p.id, p.name, p.sku, p.thumbnail, p.category_id, p.spec_id, p.status,
                     p.compat_formtec, p.compat_ilabel, p.compat_anylabel,
                     c.name AS category_name,
-                    s.name AS spec_name, s.kind AS spec_kind, s.width_mm, s.height_mm, s.material, s.shape, s.labels_per_sheet
+                    s.name AS spec_name, s.kind AS spec_kind, s.width_mm, s.height_mm, s.material, s.shape, s.labels_per_sheet,
+                    s.paper_size, s.top_margin_mm, s.left_margin_mm, s.columns_count, s.rows_count,
+                    s.h_gap_mm, s.v_gap_mm, s.corner_radius_x_mm, s.corner_radius_y_mm,
+                    s.label_color, s.custom_path_svg
              FROM shop_products p
              LEFT JOIN shop_categories c ON c.id = p.category_id
              LEFT JOIN label_specs s ON s.id = p.spec_id
@@ -1045,6 +1133,18 @@ final class ShopRepository extends BaseModel
                 'shape' => (string) ($row['shape'] ?? ''),
                 'labelsPerSheet' => (int) ($row['labels_per_sheet'] ?? 0),
                 'material' => (string) ($row['material'] ?? ''),
+                // 편집기 미리보기·인쇄가 쓰는 실제 배치값. 값이 없으면 null로 내려서 편집기가 추정하게 둔다.
+                'paperSize' => self::nullableString($row['paper_size'] ?? null, 20),
+                'topMarginMm' => self::nullableDecimal($row['top_margin_mm'] ?? null),
+                'leftMarginMm' => self::nullableDecimal($row['left_margin_mm'] ?? null),
+                'columnsCount' => self::nullableCount($row['columns_count'] ?? null),
+                'rowsCount' => self::nullableCount($row['rows_count'] ?? null),
+                'hGapMm' => self::nullableDecimal($row['h_gap_mm'] ?? null),
+                'vGapMm' => self::nullableDecimal($row['v_gap_mm'] ?? null),
+                'cornerRadiusXMm' => self::nullableDecimal($row['corner_radius_x_mm'] ?? null),
+                'cornerRadiusYMm' => self::nullableDecimal($row['corner_radius_y_mm'] ?? null),
+                'labelColor' => self::nullableString($row['label_color'] ?? null, 7),
+                'customPathSvg' => self::nullableString($row['custom_path_svg'] ?? null),
                 'compatFormtec' => (string) ($row['compat_formtec'] ?? ''),
                 'compatIlabel' => (string) ($row['compat_ilabel'] ?? ''),
                 'compatAnylabel' => (string) ($row['compat_anylabel'] ?? ''),

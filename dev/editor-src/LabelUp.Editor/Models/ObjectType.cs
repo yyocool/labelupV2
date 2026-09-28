@@ -84,7 +84,8 @@ public enum EditorDialog
     LabelShop,
     ProjectPicker,
     UnsavedChanges,
-    Error
+    Error,
+    PaperChange
 }
 
 public enum TextMode

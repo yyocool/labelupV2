@@ -120,7 +120,12 @@ public sealed class ExportService(IJSRuntime js)
         await PrintImagesAsync([pngBytes], title);
     }
 
-    public async Task PrintImagesAsync(IReadOnlyList<byte[]> pages, string title, float pageWidthMm = 210f, float pageHeightMm = 297f)
+    /// <summary>용지 규격 그대로 1:1 인쇄한다. 배율 보정은 하지 않는다.</summary>
+    public async Task PrintImagesAsync(
+        IReadOnlyList<byte[]> pages,
+        string title,
+        float pageWidthMm = 210f,
+        float pageHeightMm = 297f)
     {
         var urls = pages
             .Where(p => p is { Length: > 0 })

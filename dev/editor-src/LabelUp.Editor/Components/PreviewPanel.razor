@@ -4,9 +4,10 @@
 @inject EditorSession Session
 @inject FontCatalog Fonts
 @inject HistoryService History
+@inject IJSRuntime Js
 @implements IDisposable
 
-<aside class="ed-preview @(Session.PreviewMinimized ? "is-minimized" : null)" data-ed-preview-panel data-ed-snap-id="tl" data-tut="preview" aria-label="미리보기">
+<aside class="ed-preview @(Session.PreviewMinimized ? "is-minimized" : null)" data-ed-preview-panel data-ed-snap-id="tr" data-tut="preview" aria-label="미리보기">
   <div class="ed-props__chrome" data-ed-preview-handle>
     <span class="ed-props__grip" aria-hidden="true">⋮⋮</span>
     <span class="ed-props__title">미리보기</span>
@@ -59,6 +60,8 @@
         <button type="button" @onclick="NextPage">›</button>
         <button type="button" @onclick="LastPage">»</button>
         <button type="button" class="ed-preview__add" @onclick="AddPage">페이지 추가</button>
+        <button type="button" class="ed-preview__del" title="현재 페이지 삭제"
+                disabled="@(Session.Document.Pages.Count <= 1)" @onclick="RemovePageAsync">페이지 삭제</button>
         <button type="button" class="ed-preview__order" @onclick="OrderCurrentLabel">이 라벨 주문</button>
       </div>
     </div>
@@ -93,7 +96,20 @@
             "top:", (slot.Y / ph * 100f).ToString("0.###", inv), "%;",
             "width:", (slot.W / pw * 100f).ToString("0.###", inv), "%;",
             "height:", (slot.H / ph * 100f).ToString("0.###", inv), "%;",
+            SlotRadiusStyle(slot),
             "background:", bg, ";");
+    }
+
+    /// <summary>규격의 모서리 반경(mm)을 칸 크기 대비 비율로 바꿔 미리보기에도 적용한다.</summary>
+    private string SlotRadiusStyle(LabelSlot slot)
+    {
+        var shape = Session.Document.Paper.ShapeFor(slot);
+        if (shape.Kind != "roundrect" || shape.CornerRadiusMm <= 0f || slot.W <= 0f || slot.H <= 0f)
+            return "";
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        var rx = Math.Clamp(shape.CornerRadiusMm / slot.W * 100f, 0f, 50f);
+        var ry = Math.Clamp(shape.RadiusYMm / slot.H * 100f, 0f, 50f);
+        return $"border-radius:{rx.ToString("0.##", inv)}% / {ry.ToString("0.##", inv)}%;";
     }
 
     private string PaperFill()
@@ -227,6 +243,33 @@
         Session.Document.AddPage();
         Session.SelectCell(Session.Document.Pages.Count - 1, 0);
         Session.Status = "페이지 추가됨";
+        Session.Dirty = true;
+        Session.Notify();
+    }
+
+    private async Task RemovePageAsync()
+    {
+        var doc = Session.Document;
+        doc.EnsureStructure();
+        if (doc.Pages.Count <= 1)
+        {
+            Session.Status = "페이지가 한 장뿐이라 삭제할 수 없습니다";
+            Session.Notify();
+            return;
+        }
+
+        var target = Math.Clamp(Session.PageIndex, 0, doc.Pages.Count - 1);
+        // 내용이 있는 페이지만 되묻는다. 실수로 지워도 되돌리기(Ctrl+Z)로 복구된다.
+        if (doc.Pages[target].Cells.Any(c => c.Objects.Count > 0)
+            && !await Js.InvokeAsync<bool>("confirm", $"{target + 1}페이지의 라벨 내용이 모두 삭제됩니다. 삭제할까요?"))
+            return;
+
+        History.Push(doc);
+        if (!doc.RemovePage(target))
+            return;
+
+        Session.SelectCell(Math.Min(target, doc.Pages.Count - 1), Session.LabelIndex);
+        Session.Status = $"{target + 1}페이지 삭제됨";
         Session.Dirty = true;
         Session.Notify();
     }

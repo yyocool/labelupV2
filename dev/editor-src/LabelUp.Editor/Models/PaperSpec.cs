@@ -34,6 +34,12 @@ public sealed class PaperSpec
     public string LabelColor { get; set; } = "#FFFFFF";
     /// <summary>WMF 용지 모양이 없을 때 사용자에게 보여줄 안내.</summary>
     public string? ShapeWarning { get; set; }
+    /// <summary>
+    /// DB 규격값이 서로 어긋날 때(여백+라벨이 용지보다 크거나 칸수가 안 맞을 때) 보여줄 경고.
+    /// 문서에 저장할 값이 아니라 선택 시점에만 쓰는 안내라 직렬화하지 않는다.
+    /// </summary>
+    [JsonIgnore]
+    public string? LayoutIssue { get; set; }
     public PaperShape Shape { get; set; } = new();
     public string? DesignImageUrl { get; set; }
     /// <summary>불규칙 용지. 있으면 격자 대신 이 좌표를 쓴다 (X/Y/H/W 순으로 저장된 배열).</summary>
@@ -67,6 +73,7 @@ public sealed class PaperSpec
             VGapMm = VGapMm,
             LabelColor = LabelColor,
             ShapeWarning = ShapeWarning,
+            LayoutIssue = LayoutIssue,
             Shape = Shape.Clone(),
             DesignImageUrl = DesignImageUrl,
             CustomSlots = CustomSlots is { Count: > 0 }
@@ -145,6 +152,8 @@ public sealed class PaperShape
     /// <summary>rect | roundrect | ellipse | svg</summary>
     public string Kind { get; set; } = "rect";
     public float CornerRadiusMm { get; set; } = 1.2f;
+    /// <summary>세로 모서리 반경. 없으면 <see cref="CornerRadiusMm"/>과 같은 정원 모서리.</summary>
+    public float? CornerRadiusYMm { get; set; }
     public string? Svg { get; set; }
     /// <summary>구버전: 가이드를 한 path 문자열로 둔 경우(선만).</summary>
     public string? GuideSvg { get; set; }
@@ -158,10 +167,14 @@ public sealed class PaperShape
     public bool HasGuides =>
         Guides is { Count: > 0 } || !string.IsNullOrWhiteSpace(GuideSvg);
 
+    [JsonIgnore]
+    public float RadiusYMm => CornerRadiusYMm ?? CornerRadiusMm;
+
     public PaperShape Clone() => new()
     {
         Kind = Kind,
         CornerRadiusMm = CornerRadiusMm,
+        CornerRadiusYMm = CornerRadiusYMm,
         Svg = Svg,
         GuideSvg = GuideSvg,
         Guides = Guides?.Select(g => g.Clone()).ToList(),
@@ -184,7 +197,7 @@ public sealed class PaperShape
             "ellipse" or "circle" =>
                 $"<ellipse cx='{x + w / 2f}' cy='{y + h / 2f}' rx='{w / 2f}' ry='{h / 2f}' fill='{fillEsc}' stroke='{stroke}' stroke-width='0.25'/>",
             "roundrect" =>
-                $"<rect x='{x}' y='{y}' width='{w}' height='{h}' rx='{CornerRadiusMm}' ry='{CornerRadiusMm}' fill='{fillEsc}' stroke='{stroke}' stroke-width='0.25'/>",
+                $"<rect x='{x}' y='{y}' width='{w}' height='{h}' rx='{CornerRadiusMm}' ry='{RadiusYMm}' fill='{fillEsc}' stroke='{stroke}' stroke-width='0.25'/>",
             "svg" when !string.IsNullOrWhiteSpace(Svg) =>
                 $"<g transform='translate({x.ToString("0.###", CultureInfo.InvariantCulture)},{y.ToString("0.###", CultureInfo.InvariantCulture)})'>{WrapShapeSvg(Svg!, w, h, fillEsc)}{WrapGuides(this, w, h)}</g>",
             _ =>

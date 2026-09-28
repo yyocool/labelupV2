@@ -6,9 +6,9 @@
 <div id="adminAlert" class="admin-alert"></div>
 <div class="admin-table-wrap">
   <table class="admin-table">
-    <thead><tr><th>ID</th><th>이미지</th><th>규격명</th><th>종류</th><th>크기(mm)</th><th>재질</th><th>형태</th><th>칸수</th><th>상태</th><th>관리</th></tr></thead>
+    <thead><tr><th>ID</th><th>이미지</th><th>규격명</th><th>종류</th><th>용지</th><th>크기(mm)</th><th>재질</th><th>형태</th><th>칸수</th><th>배치(열×행)</th><th>상태</th><th>관리</th></tr></thead>
     <tbody>
-    <?php if (empty($items)): ?><tr><td colspan="10" class="empty">등록된 규격이 없습니다.</td></tr><?php else: ?>
+    <?php if (empty($items)): ?><tr><td colspan="12" class="empty">등록된 규격이 없습니다.</td></tr><?php else: ?>
     <?php foreach ($items as $row): ?>
     <tr>
       <td><?= (int) $row['id'] ?></td>
@@ -19,10 +19,16 @@
       </td>
       <td><?= e($row['name']) ?></td>
       <td><?= (($row['kind'] ?? 'label') === 'tag') ? '태그' : '라벨' ?></td>
+      <td><?= e($row['paper_size'] ?? '') ?: '<span class="admin-muted">-</span>' ?></td>
       <td><?= e($row['width_mm']) ?> × <?= e($row['height_mm']) ?></td>
       <td><?= e($row['material'] ?? '-') ?></td>
       <td><?= e($row['shape'] ?? 'rect') ?></td>
       <td><?= e($row['labels_per_sheet'] ?? '-') ?></td>
+      <td>
+        <?php if (!empty($row['columns_count']) && !empty($row['rows_count'])): ?>
+        <?= (int) $row['columns_count'] ?> × <?= (int) $row['rows_count'] ?>
+        <?php else: ?><span class="admin-muted">-</span><?php endif; ?>
+      </td>
       <td><?= ($row['is_active'] ?? false) ? '<span class="admin-badge admin-badge--ok">사용</span>' : '<span class="admin-badge admin-badge--err">중지</span>' ?></td>
       <td>
         <button type="button" class="admin-btn admin-btn--sm js-shop-edit" data-entity="spec" data-row='<?= e(json_encode($row, JSON_UNESCAPED_UNICODE)) ?>'>수정</button>

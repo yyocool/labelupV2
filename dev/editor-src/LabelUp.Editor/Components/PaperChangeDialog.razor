@@ -1,0 +1,122 @@
+@using LabelUp.Editor.Models
+@using LabelUp.Editor.Services
+@inject EditorSession Session
+@inject HistoryService History
+@implements IDisposable
+
+@if (Session.Dialog == EditorDialog.PaperChange && Session.PendingPaper is { } next)
+{
+  <div class="ed-modal" role="alertdialog" aria-label="용지 변경 방식" @onclick="Cancel">
+    <div class="ed-modal__card ed-modal__card--confirm" @onclick:stopPropagation="true">
+      <header class="ed-modal__head">
+        <div>
+          <h3>페이지당 라벨 개수가 다릅니다</h3>
+          <p>라벨 내부의 데이터 위치 및 모양을 확인해주세요.</p>
+        </div>
+        <button type="button" class="ed-modal__close" @onclick="Cancel">×</button>
+      </header>
+      <div class="ed-modal__body">
+        <p class="ed-paper-change__sum">
+          <span>@PaperSummary(Session.Document.Paper)</span>
+          <em>→</em>
+          <span>@PaperSummary(next)</span>
+        </p>
+        <p class="ed-paper-change__note">
+          라벨 내용은 번호 그대로 옮깁니다. 1번 라벨 내용은 새 용지의 1번 라벨로 들어갑니다.
+        </p>
+        @{
+            var hidden = Session.HiddenObjectCount();
+            var clipped = Session.ClippedObjectCount(next);
+        }
+        @if (hidden > 0 || clipped > 0)
+        {
+          <ul class="ed-paper-change__warn">
+            @if (hidden > 0)
+            {
+              <li>
+                A를 고르면, 지금 라벨 밖에 있어 안 보이던 항목 @(hidden)개를 지웁니다.
+                되돌리기(Ctrl+Z)로 복구할 수 있습니다.
+              </li>
+            }
+            @if (clipped > 0)
+            {
+              <li>A를 고르면, 지금 보이는 항목 @(clipped)개가 새 라벨 밖으로 나가 보이지 않게 됩니다.</li>
+            }
+          </ul>
+        }
+        <div class="ed-paper-change__opts">
+          <button type="button" class="ed-paper-change__opt" @onclick="() => Apply(false)">
+            <strong>A. 라벨 내 현재 위치 유지</strong>
+            <span>라벨이 작을 경우 데이터가 잘립니다. 지금 라벨 밖에 있는 항목은 지웁니다.</span>
+          </button>
+          <button type="button" class="ed-paper-change__opt ed-paper-change__opt--primary" @onclick="() => Apply(true)">
+            <strong>B. 라벨 비율에 따라서 항목 크기 변환</strong>
+            <span>@ScaleHint(next)</span>
+          </button>
+        </div>
+      </div>
+      <footer class="ed-modal__foot">
+        <button type="button" class="ed-btn" @onclick="Cancel">취소</button>
+      </footer>
+    </div>
+  </div>
+}
+
+@code {
+    protected override void OnInitialized() => Session.Changed += OnChanged;
+    public void Dispose() => Session.Changed -= OnChanged;
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private static string PaperSummary(PaperSpec paper)
+        => $"{paper.PaperNo} · {paper.LabelsPerPage}칸 · {paper.LabelWidthMm:0.#}×{paper.LabelHeightMm:0.#}mm";
+
+    /// <summary>B를 고르면 항목이 몇 배로 바뀌는지 미리 알려 준다.</summary>
+    private string ScaleHint(PaperSpec next)
+    {
+        var current = Session.Document.Paper;
+        if (current.LabelWidthMm <= 0.01f || current.LabelHeightMm <= 0.01f)
+            return "라벨 크기에 맞춰 항목의 위치와 크기를 바꿉니다.";
+        var sx = next.LabelWidthMm / current.LabelWidthMm;
+        var sy = next.LabelHeightMm / current.LabelHeightMm;
+        return $"가로 {sx:0.##}배 · 세로 {sy:0.##}배로 위치와 크기를 함께 바꿉니다.";
+    }
+
+    private void Apply(bool scaleObjects)
+    {
+        var paper = Session.PendingPaper;
+        if (paper is null)
+        {
+            Cancel();
+            return;
+        }
+
+        var shopProductId = Session.PendingPaperShopId;
+        Session.PendingPaper = null;
+        Session.PendingPaperShopId = null;
+
+        var hidden = scaleObjects ? 0 : Session.HiddenObjectCount();
+        History.Push(Session.Document);
+        // A(위치 유지)에서는 이미 안 보이던 항목을 지운다. 새 라벨이 크면 없던 항목처럼 튀어나온다.
+        Session.ApplyPaper(paper, shopProductId, scaleObjects, dropHiddenObjects: !scaleObjects);
+        Session.CloseDialog();
+        Session.Status = scaleObjects
+            ? $"용지 {paper.PaperNo} 적용 · 라벨 비율에 맞춰 항목 크기를 바꿨습니다"
+            : hidden > 0
+                ? $"용지 {paper.PaperNo} 적용 · 항목 위치 유지, 라벨 밖 항목 {hidden}개 삭제"
+                : $"용지 {paper.PaperNo} 적용 · 항목 위치를 그대로 두었습니다";
+        Session.Notify();
+
+        // 규격값 자체가 어긋난 용지면 적용 뒤에 따로 알린다.
+        if (!string.IsNullOrEmpty(paper.LayoutIssue))
+            Session.ShowError("용지 규격 이상", paper.LayoutIssue);
+    }
+
+    private void Cancel()
+    {
+        Session.PendingPaper = null;
+        Session.PendingPaperShopId = null;
+        Session.CloseDialog();
+        Session.Status = "용지 변경을 취소했습니다";
+        Session.Notify();
+    }
+}

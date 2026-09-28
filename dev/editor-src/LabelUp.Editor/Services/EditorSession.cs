@@ -65,7 +65,7 @@ public sealed class EditorSession
     /// <summary>룰러와 라벨 사이 간격. CSS 픽셀(장치 독립)이라 DPI가 달라도 시각적 거리가 같습니다.</summary>
     public const float RulerGapPx = 20f;
     public const float MinZoom = 0.25f;
-    public const float MaxZoom = 8f;
+    public const float MaxZoom = 4f;
 
     /// <summary>첫 페인트·용지 변경·화면 맞춤 시 라벨을 워크스페이스에 맞춥니다.</summary>
     public bool PendingFit { get; set; } = true;
@@ -644,10 +644,47 @@ public sealed class EditorSession
         Notify();
     }
 
-    public void ApplyPaper(PaperSpec paper, int? shopProductId = null)
+    /// <summary>용지 변경 방식을 묻는 팝업이 들고 있는 용지.</summary>
+    public PaperSpec? PendingPaper { get; set; }
+
+    /// <summary>위 용지의 상점 상품 번호. 팝업에서 적용할 때 같이 넘긴다.</summary>
+    public int? PendingPaperShopId { get; set; }
+
+    /// <summary>
+    /// 페이지당 칸 수가 달라지는데 옮길 내용이 있으면, 항목을 그대로 둘지 비율대로 줄일지 물어야 한다.
+    /// </summary>
+    public bool NeedsPaperChangeChoice(PaperSpec next)
+        => Document.Paper.LabelsPerPage != next.LabelsPerPage
+           && Document.Pages.Any(page => page.Cells.Any(cell => cell.Objects.Count > 0));
+
+    private IEnumerable<DesignObject> AllObjects()
+        => Document.Pages.SelectMany(page => page.Cells).SelectMany(cell => cell.Objects);
+
+    /// <summary>지금 라벨 밖에 있어 화면에 안 그려지는 항목 수. 용지를 키우면 튀어나올 후보다.</summary>
+    public int HiddenObjectCount()
+    {
+        var cur = Document.Paper;
+        return AllObjects().Count(obj =>
+            LabelDocument.IsOutsideLabel(obj, cur.LabelWidthMm, cur.LabelHeightMm));
+    }
+
+    /// <summary>위치를 그대로 두고 용지를 바꿀 때, 새 라벨 밖으로 나가 안 보이게 되는 항목 수.</summary>
+    public int ClippedObjectCount(PaperSpec next)
+    {
+        var cur = Document.Paper;
+        return AllObjects().Count(obj =>
+            !LabelDocument.IsOutsideLabel(obj, cur.LabelWidthMm, cur.LabelHeightMm)
+            && LabelDocument.IsOutsideLabel(obj, next.LabelWidthMm, next.LabelHeightMm));
+    }
+
+    public void ApplyPaper(
+        PaperSpec paper,
+        int? shopProductId = null,
+        bool scaleObjects = false,
+        bool dropHiddenObjects = false)
     {
         CurrentShopProductId = shopProductId is > 0 ? shopProductId : null;
-        Document.ApplyPaper(paper, keepDesign: true);
+        Document.ApplyPaper(paper, keepDesign: true, scaleObjects, dropHiddenObjects);
         Document.Background = paper.LabelColor;
         DocumentEpoch++;
         PageIndex = 0;

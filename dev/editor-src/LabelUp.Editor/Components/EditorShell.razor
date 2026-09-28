@@ -43,6 +43,7 @@
   </div>
   <ImportFab />
   <PaperPickerDialog />
+  <PaperChangeDialog />
   <ThemePickerDialog />
   <PaperMakerDialog />
   <PaperMapDialog />
@@ -84,6 +85,8 @@
     private bool _bootReady;
     private DotNetObjectReference<EditorShell>? _self;
     private object? _pendingUiLayout;
+    /// <summary>부트 중 적용한 규격의 이상. 첫 렌더가 끝난 뒤 팝업으로 알린다.</summary>
+    private string? _pendingPaperIssue;
     private int _fontEpoch = -1;
     private int _localFontOfferEpoch = -1;
     private bool _warmingFonts;
@@ -494,6 +497,7 @@
         Session.Dirty = false;
         Session.Status = $"「{doc.Name}」 규격으로 편집을 시작합니다";
         Session.DataPanelVisible = false;
+        _pendingPaperIssue = paper.LayoutIssue;
         return true;
     }
 
@@ -730,6 +734,13 @@
             try { await Js.InvokeVoidAsync("labelUpEditor.watchLocalFonts", _self); } catch { }
             try { await Js.InvokeVoidAsync("labelUpEditor.hideErrorUi"); } catch { }
             try { await TryApplyPendingVendorAsync(); } catch { }
+            // 상점 링크로 들어온 규격이 어긋나면, 초기화가 끝난 뒤에 알린다.
+            // 초기화 중에 띄우면 뒤이어 열리는 다이얼로그에 덮인다.
+            if (_pendingPaperIssue is { Length: > 0 } issue && Session.Dialog == EditorDialog.None)
+            {
+                _pendingPaperIssue = null;
+                Session.ShowError("용지 규격 이상", issue);
+            }
         }
 
         if (_panelsReady) return;
@@ -883,6 +894,8 @@
                 Session.Document.Name = name!;
             Session.Status = $"라비 추천 규격 「{paper.Name}」을 적용했습니다";
             Session.CloseDialog();
+            if (!string.IsNullOrEmpty(paper.LayoutIssue))
+                Session.ShowError("용지 규격 이상", paper.LayoutIssue);
         }
         catch (Exception ex)
         {

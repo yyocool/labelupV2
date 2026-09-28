@@ -8,6 +8,35 @@
   </div>
 </div>
 
+<?php $specIssues = $specIssues ?? []; ?>
+<?php if ($specIssues !== []): ?>
+  <section class="admin-specwarn" aria-label="용지 규격 이상">
+    <h2 class="admin-specwarn__head">
+      용지 규격에 이상이 있습니다 · <?= count($specIssues) ?>건
+    </h2>
+    <p class="admin-specwarn__desc">
+      아래 규격은 편집기 미리보기·인쇄가 실제 용지와 어긋날 수 있습니다.
+      <a href="<?= url('admin/shop/specs') ?>">규격 관리에서 수정</a>
+    </p>
+    <ul class="admin-specwarn__list">
+      <?php foreach ($specIssues as $issue): ?>
+        <li>
+          <span class="admin-specwarn__id">
+            #<?= (int) $issue['id'] ?><?= $issue['sku'] !== '' ? ' · ' . e($issue['sku']) : '' ?>
+          </span>
+          <span class="admin-specwarn__name"><?= e($issue['name']) ?></span>
+          <?php if ($issue['products'] > 0): ?>
+            <span class="admin-specwarn__count">상품 <?= (int) $issue['products'] ?>개</span>
+          <?php endif; ?>
+          <?php foreach ($issue['messages'] as $message): ?>
+            <span class="admin-specwarn__msg"><?= e($message) ?></span>
+          <?php endforeach; ?>
+        </li>
+      <?php endforeach; ?>
+    </ul>
+  </section>
+<?php endif; ?>
+
 <div class="admin-kpis">
   <div class="admin-kpi">
     <div class="lbl-row"><span class="lbl">활성 회원</span><span class="ic-badge">◎</span></div>

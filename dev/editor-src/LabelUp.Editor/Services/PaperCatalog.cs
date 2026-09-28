@@ -128,6 +128,10 @@ public sealed class PaperCatalog
 
     public PaperSpec FromShopProduct(ShopPaperItem item)
     {
+        // DB(label_specs)에 열·행·여백·간격이 있으면 추정하지 않고 그대로 쓴다.
+        if (item.HasLayout)
+            return FromShopLayout(item);
+
         PaperSpec? paper = null;
         if (!string.IsNullOrWhiteSpace(item.Sku))
             paper = Find(item.Sku)?.Clone();
@@ -177,6 +181,174 @@ public sealed class PaperCatalog
         if (!string.IsNullOrWhiteSpace(item.Shape))
             paper.Shape.Kind = MapShapeKind(item.Shape);
         return paper;
+    }
+
+    /// <summary>
+    /// 상점 규격(label_specs)의 배치값으로 용지를 만든다.
+    /// 미리보기·인쇄가 모두 이 PaperSpec의 슬롯을 쓰므로 여기 값이 곧 출력 결과가 된다.
+    /// </summary>
+    private static PaperSpec FromShopLayout(ShopPaperItem item)
+    {
+        var cols = Math.Max(1, item.ColumnsCount ?? 1);
+        var rows = Math.Max(1, item.RowsCount ?? 1);
+        var lw = Math.Max(1f, item.WidthMm);
+        var lh = Math.Max(1f, item.HeightMm);
+        var hGap = Math.Max(0f, item.HGapMm ?? 0f);
+        var vGap = Math.Max(0f, item.VGapMm ?? 0f);
+        var left = item.LeftMarginMm is { } l && l >= 0f ? l : (float?)null;
+        var top = item.TopMarginMm is { } t && t >= 0f ? t : (float?)null;
+
+        var usedW = lw * cols + hGap * (cols - 1);
+        var usedH = lh * rows + vGap * (rows - 1);
+        var (pageW, pageH) = ResolvePaperSizeMm(item.PaperSize, usedW, usedH);
+
+        // 규격이 시트를 넘치면 잘려 인쇄되므로 시트를 늘리고 사용자에게 알린다.
+        var needW = usedW + (left ?? 0f);
+        var needH = usedH + (top ?? 0f);
+        string? issue = null;
+        if (needW > pageW + 0.5f || needH > pageH + 0.5f)
+        {
+            issue = "용지 규격에 이상이 있습니다. 용지 여백과 라벨 크기의 합이 용지 규격보다 큽니다.\n"
+                    + $"용지번호 {(string.IsNullOrWhiteSpace(item.Sku) ? $"P{item.Id}" : item.Sku.Trim())} · "
+                    + $"{cols}열 × {rows}행 · 필요 {needW:0.#}×{needH:0.#}mm > 용지 {pageW:0.#}×{pageH:0.#}mm";
+            EditorLog.Warn($"규격 배치가 용지를 넘칩니다: {item.Sku} {cols}×{rows} "
+                           + $"({needW:0.#}×{needH:0.#}mm > {pageW:0.#}×{pageH:0.#}mm)");
+            pageW = Math.Max(pageW, needW);
+            pageH = Math.Max(pageH, needH);
+        }
+
+        if (item.LabelsPerSheet > 0 && cols * rows != item.LabelsPerSheet)
+        {
+            var mismatch = "용지 규격에 이상이 있습니다. 열 × 행 수가 칸수와 맞지 않습니다.\n"
+                           + $"용지번호 {(string.IsNullOrWhiteSpace(item.Sku) ? $"P{item.Id}" : item.Sku.Trim())} · "
+                           + $"{cols}열 × {rows}행 = {cols * rows}칸 ≠ {item.LabelsPerSheet}칸";
+            issue = issue is null ? mismatch : issue + "\n\n" + mismatch;
+            EditorLog.Warn($"규격 칸수 불일치: {item.Sku} {cols}×{rows}={cols * rows} ≠ {item.LabelsPerSheet}칸");
+        }
+
+        var paper = new PaperSpec
+        {
+            PaperNo = string.IsNullOrWhiteSpace(item.Sku) ? $"P{item.Id}" : item.Sku.Trim(),
+            Name = string.IsNullOrWhiteSpace(item.Name) ? $"{lw:0.#}×{lh:0.#} mm" : item.Name,
+            Category = string.IsNullOrWhiteSpace(item.CategoryName)
+                ? (string.IsNullOrWhiteSpace(item.PaperSize) ? "A4" : item.PaperSize!.Trim())
+                : item.CategoryName!,
+            PaperWidthMm = pageW,
+            PaperHeightMm = pageH,
+            LabelWidthMm = lw,
+            LabelHeightMm = lh,
+            Columns = cols,
+            Rows = rows,
+            HGapMm = hGap,
+            VGapMm = vGap,
+            LabelColor = NormalizeLabelColor(item.LabelColor),
+            Shape = BuildShopShape(item, lw, lh),
+            LayoutIssue = issue
+        };
+
+        // 여백이 비어 있으면 가운데 정렬, 있으면 DB 값을 왼쪽·위 기준으로 삼는다.
+        paper.RecalcMarginsFromGaps();
+        if (left is { } lm)
+        {
+            paper.LeftMarginMm = lm;
+            paper.RightMarginMm = Math.Max(0f, pageW - usedW - lm);
+        }
+        if (top is { } tm)
+        {
+            paper.TopMarginMm = tm;
+            paper.BottomMarginMm = Math.Max(0f, pageH - usedH - tm);
+        }
+
+        return paper;
+    }
+
+    private static readonly Dictionary<string, (float W, float H)> StandardPaperSizes =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["A3"] = (297f, 420f),
+            ["A4"] = (210f, 297f),
+            ["A5"] = (148f, 210f),
+            ["A6"] = (105f, 148f),
+            ["B4"] = (257f, 364f),
+            ["B5"] = (182f, 257f),
+            ["B6"] = (128f, 182f),
+            ["LETTER"] = (215.9f, 279.4f),
+            ["LEGAL"] = (215.9f, 355.6f)
+        };
+
+    /// <summary>용지 규격 이름을 mm로 바꾼다. "210x297" 같은 직접 입력도 받는다.</summary>
+    private static (float W, float H) ResolvePaperSizeMm(string? name, float needW, float needH)
+    {
+        var key = (name ?? "").Trim();
+        if (key.Length > 0)
+        {
+            var landscape = false;
+            foreach (var word in new[] { "가로", "landscape", "LANDSCAPE" })
+            {
+                if (!key.Contains(word, StringComparison.OrdinalIgnoreCase)) continue;
+                landscape = true;
+                key = key.Replace(word, "", StringComparison.OrdinalIgnoreCase);
+            }
+            key = key.Replace("세로", "", StringComparison.OrdinalIgnoreCase).Trim();
+
+            if (StandardPaperSizes.TryGetValue(key, out var hit))
+                return landscape ? (hit.H, hit.W) : hit;
+
+            var parts = key.Split(['x', 'X', '×', '*'], 2);
+            if (parts.Length == 2
+                && TryParseMm(parts[0], out var w)
+                && TryParseMm(parts[1], out var h))
+                return (w, h);
+        }
+
+        // 규격을 모르면 A4 기준으로 두되, 배치가 넘치면 배치에 맞춘다.
+        return (Math.Max(210f, needW), Math.Max(297f, needH));
+    }
+
+    private static bool TryParseMm(string raw, out float value)
+    {
+        var text = new string(raw.Where(c => char.IsDigit(c) || c == '.').ToArray());
+        return float.TryParse(text, System.Globalization.NumberStyles.Float,
+                   System.Globalization.CultureInfo.InvariantCulture, out value)
+               && value > 0f;
+    }
+
+    private static string NormalizeLabelColor(string? raw)
+    {
+        var text = (raw ?? "").Trim();
+        if (text.Length == 0) return "#FFFFFF";
+        if (!text.StartsWith('#')) text = "#" + text;
+        if (text.Length == 4 && IsHex(text[1..]))
+            return $"#{text[1]}{text[1]}{text[2]}{text[2]}{text[3]}{text[3]}".ToUpperInvariant();
+        return text.Length == 7 && IsHex(text[1..]) ? text.ToUpperInvariant() : "#FFFFFF";
+
+        static bool IsHex(string s) => s.All(Uri.IsHexDigit);
+    }
+
+    /// <summary>DB의 형태·모서리반경·커스텀 Path를 편집기 도형으로 바꾼다.</summary>
+    private static PaperShape BuildShopShape(ShopPaperItem item, float lw, float lh)
+    {
+        var limit = Math.Min(lw, lh) / 2f;
+        var rx = Math.Clamp(item.CornerRadiusXMm ?? 0f, 0f, limit);
+        var ry = Math.Clamp(item.CornerRadiusYMm ?? rx, 0f, limit);
+        var svg = (item.CustomPathSvg ?? "").Trim();
+        var kind = MapShapeKind(item.Shape);
+
+        if (svg.Length > 0)
+            kind = "svg";
+        else if (kind == "svg")
+            kind = rx > 0f ? "roundrect" : "rect"; // 맞춤인데 Path가 없으면 사각으로 낮춘다.
+        else if (kind is "rect" or "roundrect")
+            kind = rx > 0f ? "roundrect" : "rect";
+
+        return new PaperShape
+        {
+            Kind = kind,
+            CornerRadiusMm = rx,
+            CornerRadiusYMm = Math.Abs(ry - rx) > 0.005f ? ry : null,
+            Svg = svg.Length > 0 ? svg : null,
+            SvgIsLabelMm = false
+        };
     }
 
     public PaperSpec? Find(string? paperNo)
@@ -372,9 +544,11 @@ public sealed class PaperCatalog
         var s = (shape ?? "").Trim().ToLowerInvariant();
         return s switch
         {
-            "circle" or "원형" or "ellipse" => "ellipse",
-            "round" or "roundrect" or "라운드" => "roundrect",
-            "heart" or "하트" => "svg",
+            // DB shape ENUM: rect(사각) / round(원형) / custom(맞춤)
+            "circle" or "원형" or "ellipse" or "round" => "ellipse",
+            "rect" or "사각" or "사각형" => "rect",
+            "roundrect" or "라운드" => "roundrect",
+            "heart" or "하트" or "custom" or "맞춤" => "svg",
             _ => "roundrect"
         };
     }

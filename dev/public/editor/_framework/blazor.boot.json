@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "LabelUp.Editor",
   "resources": {
-    "hash": "sha256-lfrcq3Jfr2ViqsbiPQuzZxlgErFuaJaZFYMPQew2zZ4=",
+    "hash": "sha256-l5QRb4j6zNqkT1LQkwF2Tvsj2PsxqGZh5+y3Ku4g4nQ=",
     "jsModuleNative": {
       "dotnet.native.8.0.30.ozmvmdktbp.js": "sha256-h7DWn5hRj8s2oKK/k/JBnPtlONbB92KHy/ari4lLAoI="
     },
@@ -9,7 +9,7 @@
       "dotnet.runtime.8.0.30.dweckncnnt.js": "sha256-Iz92tEdLDz6hULg8toBVTeVi4QRnFEbFBy3lo3dbmEw="
     },
     "wasmNative": {
-      "dotnet.native.wasm": "sha256-RjSprFQNRd3ByKqXQqJmyANq4+idLP3dMn5tVXgNb9A="
+      "dotnet.native.wasm": "sha256-fumZgTaZnjGKK3X9vxZUGRTDu5fGgKmJLixRXtZkV90="
     },
     "icu": {
       "icudt.bin": "sha256-tO5O5YzMTVSaKBboxAqezOQL9ewmupzV2JrB5Rkc8a4="
@@ -17,7 +17,7 @@
     "assembly": {
       "ExcelDataReader.DataSet.wasm": "sha256-eM/Vt4GxUiQsxVwPh3KKAke/LL9EnUPuS5ajIFktgqQ=",
       "ExcelDataReader.wasm": "sha256-p2z9GHuyV5pTFXT+GKmexXTO4ltRggPcT9q47Kjwzvg=",
-      "LabelUp.Editor.wasm": "sha256-zSXHQAsN+Hf1+ux07+PUEaQwh0f7NdIHyRsc1nDsM6Q=",
+      "LabelUp.Editor.wasm": "sha256-HRhBytpwLHOq7LYa3sRNJ7DCEPFcMlvMFT888NNOl/k=",
       "Microsoft.AspNetCore.Components.wasm": "sha256-SiHWtHabxBHJsGjDSDPIEjlIXadQcURL1rbPnfvUIx8=",
       "Microsoft.AspNetCore.Components.Web.wasm": "sha256-tBZe0S3eL9L1K2RwcDpBXinSDZGGH6euWQReL2uJKu4=",
       "Microsoft.AspNetCore.Components.WebAssembly.wasm": "sha256-BHFT8xwXxM3u+e8p0HWOiON7USro2WnDrjjGSzpOSPA=",
@@ -56,8 +56,8 @@
       "System.Net.Http.wasm": "sha256-5TiIywoaIzLz9qz4SQfxrohNHw0QMAT8wUgPTUx9nDI=",
       "System.Net.Primitives.wasm": "sha256-uuRdQK1Zat/amw6FuLmSWjGxRiqo4iLuGm7N3eMKm+0=",
       "System.ObjectModel.wasm": "sha256-JKw1AlEHPVHbl3ZUU0miJcwN5HIY4m7PLwaOAEyO6gE=",
-      "System.Private.CoreLib.wasm": "sha256-JUF5tUsMsL5j00yq0qG5q6/A5uNifLQI2dpz3xYni48=",
-      "System.Private.Uri.wasm": "sha256-/RzR5clN3otWLEdhdH+NetHdYHVL7X1EByxnDjzsGp4=",
+      "System.Private.CoreLib.wasm": "sha256-tksgy/Kn1CYixgmavsSfTEt8ARep7uQEaMG6pjgj4xY=",
+      "System.Private.Uri.wasm": "sha256-N9qliGTatQqF0VzeqpNPvKuQaA2P8K+D4JuaKDtbGZ4=",
       "System.Private.Xml.Linq.wasm": "sha256-pt8oDiEyxeb9ekvPGEXzJyYiXDOH5a82yb9VXZWehAM=",
       "System.Private.Xml.wasm": "sha256-z4gTZlDeaLVRolIOfDVkCO67kWabv2VbHBQLyUXDMY4=",
       "System.Runtime.InteropServices.JavaScript.wasm": "sha256-H+z7oqe3TVMrSbnhkfbRP/BYr6cv/45Me3w62gmUJv4=",

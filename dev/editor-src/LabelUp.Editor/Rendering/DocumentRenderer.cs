@@ -107,6 +107,18 @@ public static class DocumentRenderer
         return font;
     }
 
+    /// <summary>
+    /// 글꼴·굵기·기울임을 한 번에 반영한 폰트. 이탤릭 전용 서체가 없는 글꼴은
+    /// SkewX 로 기울여 흉내낸다. 이게 없으면 기울임을 켜도 라벨에 아무 변화가 없다.
+    /// </summary>
+    internal static SKFont MakeStyledFont(string? family, bool bold, bool italic, float size)
+    {
+        var font = MakeTextFont(ResolveTypeface(family, bold, italic), size);
+        if (italic && !HasItalicFace(family))
+            font.SkewX = -0.25f;
+        return font;
+    }
+
     private static void PrepareTextFont(SKFont font)
     {
         font.Hinting = SKFontHinting.None;
@@ -234,7 +246,7 @@ public static class DocumentRenderer
                 path.AddOval(new SKRect(0, 0, w, h));
                 break;
             case "roundrect":
-                path.AddRoundRect(new SKRoundRect(new SKRect(0, 0, w, h), shape.CornerRadiusMm, shape.CornerRadiusMm));
+                path.AddRoundRect(new SKRoundRect(new SKRect(0, 0, w, h), shape.CornerRadiusMm, shape.RadiusYMm));
                 break;
             case "svg" when !string.IsNullOrWhiteSpace(shape.Svg):
                 using (var parsed = SvgPathParser.Parse(ExtractPath(shape.Svg!), w, h, fitToBounds: !shape.SvgIsLabelMm))
@@ -862,9 +874,8 @@ public static class DocumentRenderer
         canvas.Save();
         ApplyContentFlip(canvas, obj);
 
-        if (obj.Italic && !HasItalicFace(obj.FontFamily))
-            canvas.Skew(-0.25f, 0);
-
+        // 기울임은 MakeStyledFont 의 SkewX 로 처리한다. 캔버스를 기울이면
+        // 여러 줄일 때 줄마다 좌우로 밀린다.
         var style = obj.TextMode == TextMode.WordArt ? obj.WordArtStyle : WordArtStyle.None;
         var vertical = string.Equals(obj.TextDirection, "vertical", StringComparison.OrdinalIgnoreCase);
         if (obj.TextMode == TextMode.WordArt && style != WordArtStyle.Stretch)
@@ -872,7 +883,7 @@ public static class DocumentRenderer
             if (vertical && style == WordArtStyle.None)
             {
                 using var vPaint = new SKPaint { Color = ColorUtil.Parse(obj.Fill, alpha), IsAntialias = true };
-                using var vFont = MakeTextFont(ResolveTypeface(obj.FontFamily, obj.Bold, obj.Italic), obj.FontSize);
+                using var vFont = MakeStyledFont(obj.FontFamily, obj.Bold, obj.Italic, obj.FontSize);
                 DrawVerticalText(canvas, obj, text, vFont, vPaint, alpha);
             }
             else
@@ -882,7 +893,7 @@ public static class DocumentRenderer
         }
 
         using var paint = new SKPaint { Color = ColorUtil.Parse(obj.Fill, alpha), IsAntialias = true };
-        using var font = MakeTextFont(ResolveTypeface(obj.FontFamily, obj.Bold, obj.Italic), TextEmSize(obj));
+        using var font = MakeStyledFont(obj.FontFamily, obj.Bold, obj.Italic, TextEmSize(obj));
 
         if (obj.TextDirection == "vertical")
         {
@@ -995,7 +1006,7 @@ public static class DocumentRenderer
             foreach (var frag in line.Frags)
             {
                 using var paint = new SKPaint { Color = ColorUtil.Parse(frag.Span.Fill, alpha), IsAntialias = true };
-                using var font = MakeTextFont(ResolveTypeface(frag.Span.FontFamily, frag.Span.Bold, frag.Span.Italic), frag.Span.FontSize);
+                using var font = MakeStyledFont(frag.Span.FontFamily, frag.Span.Bold, frag.Span.Italic, frag.Span.FontSize);
                 if (justify && frag.Text.Length > 1)
                 {
                     foreach (var rune in frag.Text.EnumerateRunes())
@@ -1076,7 +1087,7 @@ public static class DocumentRenderer
             {
                 var text = span.Text ?? "";
                 if (text.Length == 0) continue;
-                using var font = MakeTextFont(ResolveTypeface(span.FontFamily, span.Bold, span.Italic), span.FontSize);
+                using var font = MakeStyledFont(span.FontFamily, span.Bold, span.Italic, span.FontSize);
                 var i = 0;
                 while (i < text.Length)
                 {
@@ -1145,7 +1156,7 @@ public static class DocumentRenderer
             {
                 var text = span.Text ?? "";
                 if (text.Length == 0) continue;
-                using var font = MakeTextFont(ResolveTypeface(span.FontFamily, span.Bold, span.Italic), span.FontSize);
+                using var font = MakeStyledFont(span.FontFamily, span.Bold, span.Italic, span.FontSize);
                 var w = MeasureLine(font, span.FontFamily, span.Bold, text);
                 line.Frags.Add(new RichFrag(span, text, w));
                 line.Width += w;
@@ -1168,7 +1179,7 @@ public static class DocumentRenderer
         var max = 0f;
         foreach (var frag in line.Frags)
         {
-            using var font = MakeTextFont(ResolveTypeface(frag.Span.FontFamily, frag.Span.Bold, frag.Span.Italic), frag.Span.FontSize);
+            using var font = MakeStyledFont(frag.Span.FontFamily, frag.Span.Bold, frag.Span.Italic, frag.Span.FontSize);
             max = Math.Max(max, VisualAscent(font, frag.Text, frag.Span.FontSize));
         }
         return max > 0.2f ? max : line.Height * 0.72f;
@@ -1532,6 +1543,7 @@ public static class DocumentRenderer
         {
             if (buf.Length == 0) return;
             using var face = MakeTextFont(runFace ?? font.Typeface, font.Size);
+            face.SkewX = font.SkewX;
             width += Math.Max(0.05f, face.MeasureText(buf.ToString()));
             buf.Clear();
         }
@@ -1584,6 +1596,7 @@ public static class DocumentRenderer
             var piece = buf.ToString();
             buf.Clear();
             using var face = MakeTextFont(runFace ?? font.Typeface, font.Size);
+            face.SkewX = font.SkewX;
             canvas.DrawText(piece, x, y, SKTextAlign.Left, face, paint);
             x += Math.Max(0.05f, face.MeasureText(piece));
         }
@@ -1948,7 +1961,7 @@ public static class DocumentRenderer
     private static void DrawWordArt(SKCanvas canvas, DesignObject obj, string text, byte alpha, WordArtStyle style)
     {
         using var paint = new SKPaint { Color = ColorUtil.Parse(obj.Fill, alpha), IsAntialias = true };
-        using var font = MakeTextFont(ResolveTypeface(obj.FontFamily, obj.Bold, obj.Italic), obj.FontSize);
+        using var font = MakeStyledFont(obj.FontFamily, obj.Bold, obj.Italic, obj.FontSize);
         var chars = text.Replace("\n", "").ToCharArray();
         if (chars.Length == 0) return;
 
@@ -2482,7 +2495,7 @@ public static class DocumentRenderer
         for (var c = 0; c <= cols; c++)
             canvas.DrawLine(c * cw, 0, c * cw, obj.Height, stroke);
         using var tp = new SKPaint { Color = ColorUtil.Parse(obj.Fill, alpha), IsAntialias = true };
-        using var font = MakeTextFont(ResolveTypeface(obj.FontFamily, obj.Bold, obj.Italic), Math.Min(obj.FontSize, rh * 0.55f));
+        using var font = MakeStyledFont(obj.FontFamily, obj.Bold, obj.Italic, Math.Min(obj.FontSize, rh * 0.55f));
         for (var r = 0; r < rows; r++)
         {
             for (var c = 0; c < cols; c++)
