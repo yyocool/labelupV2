@@ -18,7 +18,9 @@
 @inject IJSRuntime Js
 @implements IDisposable
 
-<div class="ed @(Session.TopBarPinned ? "is-topbar-pinned" : "is-topbar-auto")" data-ed-root>
+<div class="ed @(Session.TopBarPinned ? "is-topbar-pinned" : "is-topbar-auto")"
+     data-ed-root
+     style="--ed-ui-scale: @(Session.UiScale.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))">
   <TopBar />
 <ErrorBoundary @ref="_errorBoundary">
   <ChildContent>
@@ -587,22 +589,17 @@
     {
         var pw = Math.Max(10f, Session.Document.WidthMm);
         var ph = Math.Max(10f, Session.Document.HeightMm);
-        DesignObject img;
-        if (fillLabel)
-        {
-            img = DesignObject.CreateDefault(ObjectType.Image, 0, 0);
-            img.Width = pw;
-            img.Height = ph;
-            img.ImageFit = "cover";
-        }
-        else
-        {
-            var (w, h) = Session.ImageBoxMm(RasterImage.TryReadDataUrl(dataUrl));
-            img = DesignObject.CreateDefault(ObjectType.Image, (pw - w) / 2f, (ph - h) / 2f);
-            img.Width = w;
-            img.Height = h;
-            img.LockAspectRatio = true;
-        }
+        var bytes = RasterImage.TryReadDataUrl(dataUrl);
+        // 템플릿(fill)은 거의 꽉 채우고, 클립아트는 여유를 둔 contain 배치
+        var fillRatio = fillLabel
+            ? 0.96f
+            : (Session.CurrentCell.Objects.Count == 0 ? 0.78f : 0.48f);
+        var (w, h) = Session.FitImageInLabelMm(bytes, fillRatio);
+        var img = DesignObject.CreateDefault(ObjectType.Image, (pw - w) / 2f, (ph - h) / 2f);
+        img.Width = w;
+        img.Height = h;
+        img.LockAspectRatio = true;
+        img.ImageFit = "contain";
         img.Fill = "transparent";
         img.StrokeWidth = 0;
         img.ImageData = dataUrl;
@@ -932,23 +929,7 @@
             History.Push(Session.Document);
             Session.Document.EnsureStructure();
             var fillLabel = IsFillFit(ReadString(root, "fit", "mode"));
-            if (!fillLabel)
-            {
-                var pw = Math.Max(10f, Session.Document.WidthMm);
-                var ph = Math.Max(10f, Session.Document.HeightMm);
-                var size = Math.Min(pw, ph) * (Session.CurrentCell.Objects.Count == 0 ? 0.62f : 0.42f);
-                var img = DesignObject.CreateDefault(ObjectType.Image, (pw - size) / 2f, (ph - size) / 2f);
-                img.Width = size;
-                img.Height = size;
-                img.Fill = "transparent";
-                img.StrokeWidth = 0;
-                img.ImageData = dataUrl;
-                Session.AddObject(img);
-            }
-            else
-            {
-                PlaceLabiImage(dataUrl, true);
-            }
+            PlaceLabiImage(dataUrl, fillLabel);
             Session.Status = string.IsNullOrWhiteSpace(title)
                 ? "라비 클립아트를 편집기에 넣었습니다"
                 : $"「{title}」 클립아트를 편집기에 넣었습니다";

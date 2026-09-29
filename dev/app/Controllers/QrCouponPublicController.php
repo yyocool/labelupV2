@@ -43,15 +43,25 @@ final class QrCouponPublicController extends BaseController
             $sheets > 0 ? $sheets : null
         );
 
-        // 관리자 미리보기는 쿠폰번호 없이 그룹 안내만 표시
-        if ($isPreview && !empty($page['should_close']) && $groupNo > 0) {
-            $group = (new QrCouponRepository())->findByGroupNo($groupNo);
+        // 관리자 미리보기: 쿠폰번호 없이 그룹 안내 표시 (g 없으면 첫 그룹으로 폴백)
+        if ($isPreview && (empty($page['group']) || !empty($page['should_close']))) {
+            $repo = new QrCouponRepository();
+            $group = $groupNo > 0 ? $repo->findByGroupNo($groupNo) : null;
+            if (!$group) {
+                $groups = $repo->allGroups();
+                $group = $groups[0] ?? null;
+                if ($group) {
+                    $groupNo = (int) ($group['group_no'] ?? 0);
+                    $cat = (string) ($group['category_slug'] ?? '');
+                    $sheets = (int) ($group['sheets_per_pack'] ?? 0);
+                }
+            }
             if ($group) {
                 $page['mode'] = 'group';
                 $page['error'] = null;
                 $page['should_close'] = false;
                 $page['group'] = $group;
-                $page['products'] = (new QrCouponRepository())->productsForGroup(
+                $page['products'] = $repo->productsForGroup(
                     (string) $group['category_slug'],
                     (int) $group['sheets_per_pack']
                 );

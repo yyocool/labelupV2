@@ -19,6 +19,10 @@ public sealed class EditorSession
     public bool Dirty { get; set; }
     public bool ShowGrid { get; set; } = true;
     public bool TopBarPinned { get; set; } = true;
+    /// <summary>편집기 크롬 UI(버튼·패널·다이얼로그) 글자/컨트롤 배율. 캔버스 디자인 줌과 별개.</summary>
+    public float UiScale { get; set; } = 1f;
+    public const float MinUiScale = 0.8f;
+    public const float MaxUiScale = 1.4f;
     public bool AutoSaveEnabled { get; set; }
     public string Status { get; set; } = "준비됨";
     public string PropsTab { get; set; } = "layers";
@@ -345,45 +349,52 @@ public sealed class EditorSession
         return obj;
     }
 
-    /// <summary>그림 상자 여백(mm). 상자가 그림보다 이만큼씩 크다.</summary>
+    /// <summary>그림 상자 최소 여백(mm).</summary>
     private const float ImagePadMm = 0.4f;
-    /// <summary>새로 넣는 그림의 긴 변이 차지할 라벨 짧은 변의 비율.</summary>
-    private const float ImageFillRatio = 0.60f;
     private const float ImageMinMm = 2f;
 
     /// <summary>
-    /// 새로 넣는 그림 상자 크기(mm). 원본 화소 비를 지키고 긴 변을 라벨 짧은 변의 60%에 맞춘 뒤
-    /// 사방 0.4mm 여백을 두르고, 라벨을 넘치면 비를 지킨 채 줄인다.
-    /// 화소 크기를 못 읽으면 예전처럼 정사각으로 둔다.
+    /// 원본 화소 비율을 유지한 채 라벨(캔버스) 안에 들어가도록 맞춤(contain).
+    /// maxFillRatio: 여백을 뺀 가용 영역 중 사용할 최대 비율(0~1).
     /// </summary>
-    public (float W, float H) ImageBoxMm(byte[]? bytes)
+    public (float W, float H) FitImageInLabelMm(byte[]? bytes, float maxFillRatio = 0.78f)
     {
         var labelW = Math.Max(ImageMinMm, Document.WidthMm);
         var labelH = Math.Max(ImageMinMm, Document.HeightMm);
-        var target = Math.Max(ImageMinMm, Math.Min(labelW, labelH) * ImageFillRatio);
+        var margin = Math.Max(ImagePadMm, Math.Min(labelW, labelH) * 0.04f);
+        var availW = Math.Max(ImageMinMm, labelW - margin * 2);
+        var availH = Math.Max(ImageMinMm, labelH - margin * 2);
+        maxFillRatio = Math.Clamp(maxFillRatio, 0.15f, 1f);
+        availW *= maxFillRatio;
+        availH *= maxFillRatio;
 
-        float cw = target, ch = target;
+        float aspect = 1f;
         if (bytes is { Length: > 0 } && RasterImage.TryMeasure(bytes, out var px, out var py) && px > 0 && py > 0)
+            aspect = (float)px / py;
+
+        float cw;
+        float ch;
+        if (availW / availH > aspect)
         {
-            if (px >= py)
-            {
-                cw = target;
-                ch = target * py / px;
-            }
-            else
-            {
-                ch = target;
-                cw = target * px / py;
-            }
+            ch = availH;
+            cw = ch * aspect;
+        }
+        else
+        {
+            cw = availW;
+            ch = cw / aspect;
         }
 
-        var availW = Math.Max(ImageMinMm, labelW - ImagePadMm * 2);
-        var availH = Math.Max(ImageMinMm, labelH - ImagePadMm * 2);
-        var shrink = Math.Min(1f, Math.Min(availW / cw, availH / ch));
-        cw = Math.Max(ImageMinMm, cw * shrink);
-        ch = Math.Max(ImageMinMm, ch * shrink);
+        return (Math.Max(ImageMinMm, cw), Math.Max(ImageMinMm, ch));
+    }
 
-        return (cw + ImagePadMm * 2, ch + ImagePadMm * 2);
+    /// <summary>
+    /// 새로 넣는 그림 상자 크기(mm). 캔버스에 맞게 비율을 유지한다.
+    /// </summary>
+    public (float W, float H) ImageBoxMm(byte[]? bytes)
+    {
+        var fill = CurrentCell.Objects.Count == 0 ? 0.78f : 0.52f;
+        return FitImageInLabelMm(bytes, fill);
     }
 
     /// <summary>
@@ -613,6 +624,12 @@ public sealed class EditorSession
     public void SetZoom(float zoom)
     {
         Zoom = Math.Clamp(zoom, MinZoom, MaxZoom);
+        Notify();
+    }
+
+    public void SetUiScale(float scale)
+    {
+        UiScale = Math.Clamp(MathF.Round(scale * 20f) / 20f, MinUiScale, MaxUiScale);
         Notify();
     }
 

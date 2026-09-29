@@ -46,10 +46,13 @@ function showAdminAlert(message, type = 'success') {
   const el = document.getElementById('adminToast') || document.getElementById('adminAlert');
   if (!el) return;
   el.textContent = message;
-  el.className = `admin-alert show ${type}`;
+  const isToast = el.id === 'adminToast' || el.classList.contains('admin-alert--toast');
+  el.className = isToast
+    ? `admin-alert admin-alert--toast show ${type}`
+    : `admin-alert show ${type}`;
   window.clearTimeout(showAdminAlert._timer);
   showAdminAlert._timer = window.setTimeout(() => {
-    el.className = 'admin-alert';
+    el.className = isToast ? 'admin-alert admin-alert--toast' : 'admin-alert';
   }, 4000);
 }
 

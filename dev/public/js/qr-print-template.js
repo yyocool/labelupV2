@@ -14,6 +14,7 @@
     dirty: false,
     drag: null,
     templateKey: 'default',
+    groupNo: 0,
     categoryNo: 0,
     templateName: '공통 출력템플릿',
   };
@@ -627,32 +628,33 @@
     }
   }
 
-  function templateKeyForCategory(categoryNo) {
-    categoryNo = Number(categoryNo || 0);
-    return categoryNo > 0 ? ('cat-' + categoryNo) : 'default';
+  function templateKeyForGroup(groupNo) {
+    groupNo = Number(groupNo || 0);
+    return groupNo > 0 ? ('group-' + groupNo) : 'default';
   }
 
-  function templateTitle(categoryNo, categoryName) {
-    categoryNo = Number(categoryNo || 0);
-    if (categoryNo > 0) {
+  function templateTitle(groupNo, categoryName) {
+    groupNo = Number(groupNo || 0);
+    if (groupNo > 0) {
       var name = String(categoryName || '').trim();
       return name
-        ? ('분류 ' + categoryNo + ' 출력템플릿 · ' + name)
-        : ('분류 ' + categoryNo + ' 출력템플릿');
+        ? ('그룹 ' + groupNo + ' 출력템플릿 · ' + name)
+        : ('그룹 ' + groupNo + ' 출력템플릿');
     }
     return '공통 출력템플릿';
   }
 
   function setTemplateContext(opts) {
     opts = opts || {};
-    var categoryNo = Number(opts.categoryNo || 0);
-    state.categoryNo = categoryNo;
-    state.templateKey = opts.key || templateKeyForCategory(categoryNo);
+    var groupNo = Number(opts.groupNo || 0);
+    state.groupNo = groupNo;
+    state.categoryNo = Number(opts.categoryNo || 0);
+    state.templateKey = opts.key || templateKeyForGroup(groupNo);
     state.templateName = opts.name || (
-      categoryNo > 0 ? ('분류 ' + categoryNo + ' 출력템플릿') : '공통 출력템플릿'
+      groupNo > 0 ? ('그룹 ' + groupNo + ' 출력템플릿') : '공통 출력템플릿'
     );
     if (els.title) {
-      els.title.textContent = templateTitle(categoryNo, opts.categoryName || '');
+      els.title.textContent = templateTitle(groupNo, opts.categoryName || '');
     }
   }
 
@@ -678,6 +680,7 @@
       var res = await AdminAPI.get(loadUrlForKey(state.templateKey));
       var data = (res && res.data) || {};
       if (data.key) state.templateKey = data.key;
+      if (data.group_no != null) state.groupNo = Number(data.group_no || 0);
       if (data.category_no != null) state.categoryNo = Number(data.category_no || 0);
       if (data.name) state.templateName = data.name;
       applyTemplate(data, false);
@@ -686,7 +689,9 @@
         els.status.textContent = els.status.dataset.saved;
       } else if (data.fallback_from) {
         els.status.dataset.saved = '';
-        els.status.textContent = '공통 템플릿 기준 · 저장 전';
+        els.status.textContent = data.fallback_from === 'default'
+          ? '공통 템플릿 기준 · 저장 전'
+          : '이전 분류 템플릿 기준 · 저장 전';
       } else {
         els.status.dataset.saved = '';
         els.status.textContent = '기본 레이아웃';
@@ -718,7 +723,7 @@
     try {
       var res = await AdminAPI.post(cfg.saveUrl, {
         key: state.templateKey || 'default',
-        category_no: state.categoryNo || 0,
+        group_no: state.groupNo || 0,
         name: state.templateName || 'QR 출력템플릿',
         paper: state.paper,
         objects: state.objects,
@@ -737,7 +742,7 @@
   }
 
   function openModal(opts) {
-    setTemplateContext(opts || { key: 'default', categoryNo: 0 });
+    setTemplateContext(opts || { key: 'default', groupNo: 0 });
     els.modal.hidden = false;
     loadPapers();
     loadTemplate().then(function () {
@@ -750,12 +755,13 @@
 
   if (els.openBtn) {
     els.openBtn.addEventListener('click', function () {
-      openModal({ key: 'default', categoryNo: 0, name: '공통 출력템플릿' });
+      openModal({ key: 'default', groupNo: 0, name: '공통 출력템플릿' });
     });
   }
-  document.querySelectorAll('.js-qr-category-template').forEach(function (btn) {
+  document.querySelectorAll('.js-qr-group-template').forEach(function (btn) {
     btn.addEventListener('click', function () {
       openModal({
+        groupNo: Number(btn.getAttribute('data-group-no') || 0),
         categoryNo: Number(btn.getAttribute('data-category-no') || 0),
         categoryName: btn.getAttribute('data-category-name') || '',
       });

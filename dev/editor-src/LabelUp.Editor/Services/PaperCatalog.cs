@@ -383,6 +383,7 @@ public sealed class PaperCatalog
 
     /// <summary>
     /// 치수 매칭 실패 시 임시 커스텀 용지를 만든다.
+    /// 칸수(labelsPerSheet)와 열×행이 일치하도록 잡고, A4에 실제로 들어가는 최대 열·행만 쓴다.
     /// </summary>
     public PaperSpec CreateFromSize(float widthMm, float heightMm, int labelsPerSheet = 1, string? shape = null, string? name = null)
     {
@@ -394,34 +395,52 @@ public sealed class PaperCatalog
         paper.LabelWidthMm = Math.Max(1f, widthMm);
         paper.LabelHeightMm = Math.Max(1f, heightMm);
         var labels = Math.Max(1, labelsPerSheet);
-        const float pageW = 210f, pageH = 297f, margin = 5f, gap = 3f;
+        const float pageW = 210f, pageH = 297f;
+        // 주소용(~99mm) 2열이 들어가도록 여백·간격은 실측 규격에 가깝게 잡는다.
+        const float gap = 2.5f;
+        const float minMargin = 2f;
         var lw = paper.LabelWidthMm;
         var lh = paper.LabelHeightMm;
-        var maxCols = Math.Max(1, (int)Math.Floor((pageW - margin * 2 + gap) / (lw + gap)));
-        var maxRows = Math.Max(1, (int)Math.Floor((pageH - margin * 2 + gap) / (lh + gap)));
-        int cols;
-        int rows;
-        if (labels == 1)
+        var maxCols = MaxLabelsAlong(pageW, lw, gap, minMargin);
+        var maxRows = MaxLabelsAlong(pageH, lh, gap, minMargin);
+        if (!TryPickExactGrid(labels, maxCols, maxRows, out var cols, out var rows))
         {
-            cols = 1;
-            rows = 1;
-        }
-        else
-        {
+            // 나누어떨어지지 않으면 폭을 우선해 맞추되, 칸수를 초과하는 격자는 만들지 않는다.
             cols = Math.Min(labels, Math.Max(1, maxCols));
             rows = Math.Max(1, (int)Math.Ceiling(labels / (double)cols));
-            while (rows > maxRows && cols < labels)
+            if (rows > maxRows)
             {
-                cols++;
-                rows = Math.Max(1, (int)Math.Ceiling(labels / (double)cols));
+                rows = Math.Max(1, maxRows);
+                cols = Math.Max(1, (int)Math.Ceiling(labels / (double)rows));
+            }
+            // 여전히 초과 칸이 생기면 칸수에 맞는 약수로 내린다.
+            if (cols * rows != labels && !TryPickExactGrid(labels, Math.Max(cols, maxCols), Math.Max(rows, maxRows), out cols, out rows))
+            {
+                // 최후: 1×N 또는 N×1 (용지가 늘어날 수 있음)
+                if (labels <= maxRows)
+                {
+                    cols = 1;
+                    rows = labels;
+                }
+                else if (labels <= maxCols)
+                {
+                    cols = labels;
+                    rows = 1;
+                }
+                else
+                {
+                    cols = Math.Min(labels, Math.Max(1, maxCols));
+                    rows = Math.Max(1, (int)Math.Ceiling(labels / (double)cols));
+                }
             }
         }
+
         paper.Columns = cols;
         paper.Rows = rows;
         paper.HGapMm = gap;
         paper.VGapMm = gap;
-        var needW = cols * lw + Math.Max(0, cols - 1) * gap + margin * 2;
-        var needH = rows * lh + Math.Max(0, rows - 1) * gap + margin * 2;
+        var needW = cols * lw + Math.Max(0, cols - 1) * gap + minMargin * 2;
+        var needH = rows * lh + Math.Max(0, rows - 1) * gap + minMargin * 2;
         paper.PaperWidthMm = Math.Max(pageW, needW);
         paper.PaperHeightMm = Math.Max(pageH, needH);
         paper.Shape.Kind = MapShapeKind(shape);
@@ -431,6 +450,37 @@ public sealed class PaperCatalog
         }
         paper.RecalcMarginsFromGaps();
         return paper;
+    }
+
+    /// <summary>용지 한 변에 실제로 들어가는 최대 라벨 개수.</summary>
+    private static int MaxLabelsAlong(float pageMm, float labelMm, float gapMm, float minMarginMm)
+    {
+        var usable = pageMm - minMarginMm * 2f;
+        if (usable < labelMm - 0.05f)
+            return 1;
+        // n*label + (n-1)*gap <= usable  →  n <= (usable + gap) / (label + gap)
+        var n = (int)Math.Floor((usable + gapMm) / (labelMm + gapMm) + 1e-3f);
+        return Math.Max(1, n);
+    }
+
+    /// <summary>labels = cols×rows 인 배치를 고른다. 가능한 한 열 수를 크게(폭 활용).</summary>
+    private static bool TryPickExactGrid(int labels, int maxCols, int maxRows, out int cols, out int rows)
+    {
+        cols = 1;
+        rows = labels;
+        var found = false;
+        var limit = Math.Min(Math.Max(1, maxCols), labels);
+        for (var c = limit; c >= 1; c--)
+        {
+            if (labels % c != 0) continue;
+            var r = labels / c;
+            if (r > Math.Max(1, maxRows)) continue;
+            cols = c;
+            rows = r;
+            found = true;
+            break;
+        }
+        return found;
     }
 
     public ShopPaperItem? FindMatchingShopProduct(PaperSpec paper)

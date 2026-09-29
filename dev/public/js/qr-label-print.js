@@ -26,9 +26,9 @@
     btn.addEventListener('click', closeModal);
   });
 
-  async function loadTemplate(categoryNo) {
+  async function loadTemplate(groupNo) {
     var base = cfg.loadUrl || '/api/admin/qr-coupons/print-template';
-    var key = Number(categoryNo || 0) > 0 ? ('cat-' + Number(categoryNo)) : 'default';
+    var key = Number(groupNo || 0) > 0 ? ('group-' + Number(groupNo)) : 'default';
     var sep = base.indexOf('?') >= 0 ? '&' : '?';
     var res = await AdminAPI.get(base + sep + 'key=' + encodeURIComponent(key));
     return (res && res.data) || {};
@@ -173,11 +173,11 @@
       return;
     }
     pendingIds = coupons.map(function (c) { return Number(c.id || 0); }).filter(function (id) { return id > 0; });
-    var categoryNo = Number(opts.categoryNo || 0);
-    if (!categoryNo && coupons[0] && coupons[0].category_no) {
-      categoryNo = Number(coupons[0].category_no || 0);
+    var groupNo = Number(opts.groupNo || 0);
+    if (!groupNo && coupons[0] && coupons[0].group_no) {
+      groupNo = Number(coupons[0].group_no || 0);
     }
-    var tpl = await loadTemplate(categoryNo);
+    var tpl = await loadTemplate(groupNo);
     var paper = tpl.paper || {
       labelWidthMm: 70, labelHeightMm: 36, columns: 2, rows: 7,
       leftMarginMm: 32.5, topMarginMm: 13.5, hGapMm: 5, vGapMm: 3,
@@ -189,7 +189,7 @@
       meta.textContent = coupons.length.toLocaleString() + '개 · A4 ' + pages + '장 · ' +
         (paper.name || paper.sku || '라벨지') + ' · ' +
         (Number(paper.columns) || 0) + '×' + (Number(paper.rows) || 0) +
-        (categoryNo ? (' · 분류 ' + categoryNo) : '');
+        (groupNo ? (' · 그룹 ' + groupNo) : '');
     }
     var html = printDocument(coupons, paper, objects);
     var doc = frame.contentDocument;

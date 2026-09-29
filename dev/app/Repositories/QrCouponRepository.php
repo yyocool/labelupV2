@@ -321,24 +321,107 @@ final class QrCouponRepository
         return $stmt->rowCount();
     }
 
+    /**
+     * 미사용(unused) 쿠폰만 삭제. 사용·중지 코드는 건너뜀.
+     *
+     * @param list<int> $ids
+     * @return array{deleted:int, skipped:int, deleted_ids:list<int>, group_nos:list<int>}
+     */
+    public function deleteUnusedByIds(array $ids): array
+    {
+        $ids = array_values(array_unique(array_filter(
+            array_map(static fn ($id) => (int) $id, $ids),
+            static fn (int $id) => $id > 0
+        )));
+        if ($ids === []) {
+            return ['deleted' => 0, 'skipped' => 0, 'deleted_ids' => [], 'group_nos' => []];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $this->db->prepare(
+            "SELECT id, group_no, status FROM qr_coupon_codes WHERE id IN ({$placeholders})"
+        );
+        $stmt->execute($ids);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $deletable = [];
+        $groupNos = [];
+        $skipped = 0;
+        foreach ($rows as $row) {
+            $id = (int) ($row['id'] ?? 0);
+            $status = (string) ($row['status'] ?? '');
+            if ($status !== 'unused') {
+                $skipped++;
+                continue;
+            }
+            $deletable[] = $id;
+            $groupNos[(int) ($row['group_no'] ?? 0)] = true;
+        }
+        $missing = count($ids) - count($rows);
+        $skipped += max(0, $missing);
+
+        if ($deletable === []) {
+            return [
+                'deleted' => 0,
+                'skipped' => $skipped,
+                'deleted_ids' => [],
+                'group_nos' => [],
+            ];
+        }
+
+        $delPlaceholders = implode(',', array_fill(0, count($deletable), '?'));
+        $del = $this->db->prepare(
+            "DELETE FROM qr_coupon_codes WHERE id IN ({$delPlaceholders}) AND status = 'unused'"
+        );
+        $del->execute($deletable);
+        // MySQL PDO rowCount()가 0을 반환하는 환경이 있어 삭제 대상 수로 확정
+        $deleted = count($deletable);
+
+        return [
+            'deleted' => $deleted,
+            'skipped' => $skipped,
+            'deleted_ids' => $deletable,
+            'group_nos' => array_values(array_filter(array_map('intval', array_keys($groupNos)), static fn (int $n) => $n > 0)),
+        ];
+    }
+
+    /** @return array{generated:int, printed:int} */
+    public function groupCodeCounts(int $groupNo): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT
+                COUNT(*) AS `generated`,
+                SUM(CASE WHEN printed_at IS NOT NULL THEN 1 ELSE 0 END) AS `printed`
+             FROM qr_coupon_codes
+             WHERE group_no = :group_no"
+        );
+        $stmt->execute(['group_no' => $groupNo]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+        return [
+            'generated' => (int) ($row['generated'] ?? 0),
+            'printed' => (int) ($row['printed'] ?? 0),
+        ];
+    }
+
     /** @return list<array<string, mixed>> */
     public function usageByGroup(int $groupNo, int $limit = 100): array
     {
         $limit = max(1, min(500, $limit));
-        $stmt = $this->db->prepare(
-            "SELECT qc.*, g.category_name, g.sheets_per_pack, g.credit_amount,
-                    u.name AS used_by_name, u.email AS used_by_email
-             FROM qr_coupon_codes qc
-             LEFT JOIN qr_coupon_groups g ON g.group_no = qc.group_no
-             LEFT JOIN users u ON u.id = qc.used_by
-             WHERE qc.group_no = :group_no AND qc.status = 'used'
-             ORDER BY qc.used_at DESC, qc.id DESC
-             LIMIT {$limit}"
-        );
         try {
+            $stmt = $this->db->prepare(
+                "SELECT qc.*, g.category_name, g.sheets_per_pack, g.credit_amount,
+                        p.name AS used_by_name, u.email AS used_by_email
+                 FROM qr_coupon_codes qc
+                 LEFT JOIN qr_coupon_groups g ON g.group_no = qc.group_no
+                 LEFT JOIN users u ON u.id = qc.used_by
+                 LEFT JOIN user_profiles p ON p.user_id = u.id AND p.deleted_at IS NULL
+                 WHERE qc.group_no = :group_no AND qc.status = 'used'
+                 ORDER BY qc.used_at DESC, qc.id DESC
+                 LIMIT {$limit}"
+            );
             $stmt->execute(['group_no' => $groupNo]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             $stmt = $this->db->prepare(
                 "SELECT * FROM qr_coupon_codes
                  WHERE group_no = :group_no AND status = 'used'
@@ -368,7 +451,7 @@ final class QrCouponRepository
                 qc.code LIKE :q
                 OR g.category_name LIKE :q
                 OR g.category_slug LIKE :q
-                OR u.name LIKE :q
+                OR p.name LIKE :q
                 OR u.email LIKE :q
                 OR CAST(qc.group_no AS CHAR) = :q_exact
             )';
@@ -381,16 +464,18 @@ final class QrCouponRepository
                          FROM qr_coupon_codes qc
                          LEFT JOIN qr_coupon_groups g ON g.group_no = qc.group_no
                          LEFT JOIN users u ON u.id = qc.used_by
+                         LEFT JOIN user_profiles p ON p.user_id = u.id AND p.deleted_at IS NULL
                          WHERE {$where}";
             $countStmt = $this->db->prepare($countSql);
             $countStmt->execute($params);
             $total = (int) ($countStmt->fetch(PDO::FETCH_ASSOC)['cnt'] ?? 0);
 
             $sql = "SELECT qc.*, g.category_name, g.category_slug, g.sheets_per_pack, g.credit_amount, g.list_price,
-                           u.id AS user_id, u.name AS used_by_name, u.email AS used_by_email
+                           u.id AS user_id, p.name AS used_by_name, u.email AS used_by_email
                     FROM qr_coupon_codes qc
                     LEFT JOIN qr_coupon_groups g ON g.group_no = qc.group_no
                     LEFT JOIN users u ON u.id = qc.used_by
+                    LEFT JOIN user_profiles p ON p.user_id = u.id AND p.deleted_at IS NULL
                     WHERE {$where}
                     ORDER BY qc.used_at DESC, qc.id DESC
                     LIMIT {$perPage} OFFSET {$offset}";
