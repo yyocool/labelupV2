@@ -980,13 +980,29 @@
 
             var w = ReadFloat(root, "width_mm", "widthMm", "w", "width");
             var h = ReadFloat(root, "height_mm", "heightMm", "h", "height");
+            var sku = ReadString(root, "sku", "paper", "paperNo", "paper_no");
             History.Push(Session.Document);
             if (w is > 0 && h is > 0)
             {
                 await Papers.EnsureLoadedAsync();
-                var paper = Papers.FindBestMatch(w.Value, h.Value, 1)
-                            ?? Papers.CreateFromSize(w.Value, h.Value, 1, ReadString(root, "shape"), title);
-                Session.ApplyPaper(paper);
+                await Papers.EnsureShopPapersAsync();
+                ShopPaperItem? shop = null;
+                if (!string.IsNullOrWhiteSpace(sku))
+                {
+                    shop = Papers.ShopPapers.FirstOrDefault(p =>
+                        string.Equals(p.Sku, sku, StringComparison.OrdinalIgnoreCase));
+                }
+                PaperSpec? paper = shop is not null ? Papers.FromShopProduct(shop) : null;
+                if (paper is null && !string.IsNullOrWhiteSpace(sku))
+                    paper = Papers.Find(sku)?.Clone();
+                paper ??= Papers.FindBestMatch(w.Value, h.Value, 1)
+                          ?? Papers.CreateFromSize(w.Value, h.Value, 1, ReadString(root, "shape"), title);
+                if (!string.IsNullOrWhiteSpace(sku))
+                    paper.PaperNo = sku!;
+                if (shop is not null)
+                    Session.ApplyPaper(paper, shop.Id);
+                else
+                    Session.ApplyPaper(paper);
                 BindCurrentPaperToShop(false);
             }
 
@@ -1009,7 +1025,7 @@
     }
 
     [JSInvokable]
-    public Task ApplyLabiDocument(string json)
+    public async Task ApplyLabiDocument(string json)
     {
         try
         {
@@ -1018,7 +1034,7 @@
             doc.EnsurePagesForData();
             History.Push(Session.Document);
             Session.ReplaceDocument(doc);
-            BindCurrentPaperToShop(false);
+            await BindLabiDocumentToShopAsync(doc.Paper.PaperNo);
             Session.Dirty = true;
             Session.Status = string.IsNullOrWhiteSpace(doc.Name)
                 ? "라비 데이터 템플릿을 편집기에 넣었습니다"
@@ -1031,7 +1047,31 @@
             Session.Status = "데이터 템플릿을 적용하지 못했습니다";
             Session.Notify();
         }
-        return Task.CompletedTask;
+    }
+
+    private async Task BindLabiDocumentToShopAsync(string? paperNo)
+    {
+        try
+        {
+            await Papers.EnsureLoadedAsync();
+            await Papers.EnsureShopPapersAsync();
+            if (!string.IsNullOrWhiteSpace(paperNo) && !string.Equals(paperNo, "LU-AI", StringComparison.OrdinalIgnoreCase))
+            {
+                var shop = Papers.ShopPapers.FirstOrDefault(p =>
+                    string.Equals(p.Sku, paperNo, StringComparison.OrdinalIgnoreCase));
+                if (shop is not null)
+                {
+                    Session.CurrentShopProductId = shop.Id;
+                    Session.Notify();
+                    return;
+                }
+            }
+            BindCurrentPaperToShop(false);
+        }
+        catch
+        {
+            BindCurrentPaperToShop(false);
+        }
     }
 
     private static string? ReadString(JsonElement el, params string[] keys)

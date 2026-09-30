@@ -459,10 +459,13 @@ window.LabelUpLabiChat = {
     if (template && template.document) {
       if (template.editor_url) return ensureLabiDocUrl(template.editor_url);
       const projectId = Number(template.project_id || 0);
-      if (projectId > 0) {
-        return ensureLabiDocUrl(`${editorBaseUrl}${editorBaseUrl.includes('?') ? '&' : '?'}project=${projectId}`);
-      }
-      return `${editorBaseUrl}${editorBaseUrl.includes('?') ? '&' : '?'}labiDoc=1`;
+      const params = new URLSearchParams();
+      params.set('labiDoc', '1');
+      if (projectId > 0) params.set('project', String(projectId));
+      if (template.sku) params.set('sku', String(template.sku));
+      if (template.width_mm != null) params.set('w', String(template.width_mm));
+      if (template.height_mm != null) params.set('h', String(template.height_mm));
+      return `${editorBaseUrl}${editorBaseUrl.includes('?') ? '&' : '?'}${params.toString()}`;
     }
     stashPendingClipart({
       url: template && template.url,
@@ -475,6 +478,7 @@ window.LabelUpLabiChat = {
     if (template && template.title) params.set('name', String(template.title));
     if (template && template.width_mm != null) params.set('w', String(template.width_mm));
     if (template && template.height_mm != null) params.set('h', String(template.height_mm));
+    if (template && template.sku) params.set('sku', String(template.sku));
     params.set('fit', (template && template.fit) || 'cover');
     const qs = params.toString();
     return qs ? `${editorBaseUrl}${editorBaseUrl.includes('?') ? '&' : '?'}${qs}` : editorBaseUrl;

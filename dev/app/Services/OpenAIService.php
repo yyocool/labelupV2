@@ -140,11 +140,11 @@ final class OpenAIService
   "paper_no": "LU-3102|LU-3230|LU-3659|LU-3775 중 하나",
   "width_mm": 라벨 가로 mm,
   "height_mm": 라벨 세로 mm,
-  "fields": [{"column":"표의 열 이름 그대로","kind":"text|barcode|qr"}]
+  "fields": [{"column":"표의 열 이름 그대로","kind":"text|barcode|qr|date|serial"}]
 }
 규칙:
 - fields는 라벨에 넣을 열만, 최대 7개, column은 아래 표에 있는 이름만. URL·단가·이메일은 제외.
-- 이름/수취인/상품명은 text, 바코드·SKU는 barcode.
+- 이름/수취인/상품명은 text, 바코드·SKU는 barcode, 날짜·일자·유통기한은 date, 시리얼·일련번호·로트는 serial.
 - 반드시 A4 다칸 용지. 한 장 1칸 금지. width/height는 paper_no에 맞출 것.
 용도→용지:
 - shipping(배송·수취·주소·택배): LU-3102 (A4 100×50mm 10칸)
@@ -192,7 +192,7 @@ PROMPT;
                 continue;
             }
             $kind = strtolower(trim((string) ($item['kind'] ?? 'text')));
-            if (!in_array($kind, ['text', 'barcode', 'qr'], true)) {
+            if (!in_array($kind, ['text', 'barcode', 'qr', 'date', 'serial'], true)) {
                 $kind = 'text';
             }
             $fields[] = ['column' => $col, 'kind' => $kind];
@@ -313,6 +313,7 @@ PROMPT;
                 'height_mm' => 0.0,
                 'background_prompt' => '',
                 'texts' => [],
+                'codes' => [],
             ];
         }
 
@@ -326,17 +327,20 @@ PROMPT;
                 . "스키마: {\"title\":\"짧은 템플릿 제목\",\"width_mm\":숫자또는0,\"height_mm\":숫자또는0,"
                 . "\"background_prompt\":\"텍스트를 제외한 배경·장식·도형·패턴·색만 영어로 묘사\","
                 . "\"texts\":[{\"text\":\"문자열\",\"x\":0~1,\"y\":0~1,\"w\":0~1,\"h\":0~1,"
-                . "\"font_size_mm\":1.5~14,\"bold\":true/false,\"align\":\"left|center|right\",\"color\":\"#RRGGBB\"}]}\n"
+                . "\"font_size_mm\":1.5~14,\"bold\":true/false,\"align\":\"left|center|right\",\"color\":\"#RRGGBB\"}],"
+                . "\"codes\":[{\"kind\":\"qr|barcode\",\"value\":\"URL또는코드값\",\"x\":0~1,\"y\":0~1,\"w\":0~1,\"h\":0~1,\"show_text\":true/false}]}\n"
                 . "규칙:\n"
                 . "1) CRITICAL: 사용자가 편집기에서 바꿀 수 있어야 하는 모든 글자·숫자·특수문자·가격·성분·날짜·용량·브랜드명·슬로건은 반드시 texts에 넣는다. "
-                . "이미지에 남을 텍스트는 없다. 한 줄(또는 한 블록)씩 분리. "
-                . "바코드 막대·QR 패턴·글자 없는 순수 그래픽 마크만 texts에서 제외한다.\n"
-                . "2) x,y는 박스 왼쪽 위(라벨 전체 대비 0~1 정규화), w,h는 박스 너비·높이(0~1). "
-                . "박스는 글자를 넉넉히 감싸되 서로 심하게 겹치지 않게.\n"
-                . "3) background_prompt에는 글자/숫자/문장/가격을 절대 쓰지 말고, 배경색·그라데이션·테두리·장식·일러스트만 묘사. 흰 스튜디오나 목업은 넣지 말고 인쇄 영역만.\n"
+                . "이미지에 남을 텍스트는 없다. 한 줄(또는 한 블록)씩 분리.\n"
+                . "2) QR·바코드 패턴 자체는 texts에 넣지 말고 codes로 분리한다. "
+                . "옆에 보이는 URL·SKU·EAN 등 인코딩 값이 있으면 codes.value에 넣고 kind는 qr 또는 barcode. "
+                . "값을 전혀 모를 때만 codes를 비운다.\n"
+                . "3) x,y는 박스 왼쪽 위(라벨 전체 대비 0~1 정규화), w,h는 박스 너비·높이(0~1). "
+                . "박스는 글자를 넉넉히 감싸되 서로 심하게 겹치지 않게. QR은 정사각에 가깝게.\n"
+                . "4) background_prompt에는 글자/숫자/문장/가격/바코드막대/QR패턴을 절대 쓰지 말고, 배경색·그라데이션·테두리·장식·일러스트만 묘사. 흰 스튜디오나 목업은 넣지 말고 인쇄 영역만.\n"
                 . $translateRule . "\n"
-                . "5) font_size_mm는 라벨 높이 기준 추정(제목은 크게, 본문은 작게). color는 실제 글자색에 가까운 #hex.\n"
-                . "6) 읽을 수 있는 글자가 하나라도 있으면 texts는 비우지 말 것. 정말 그래픽만이면 texts는 [].",
+                . "6) font_size_mm는 라벨 높이 기준 추정(제목은 크게, 본문은 작게). color는 실제 글자색에 가까운 #hex.\n"
+                . "7) 읽을 수 있는 글자가 하나라도 있으면 texts는 비우지 말 것. 정말 그래픽만이면 texts는 [].",
         ];
 
         $response = $this->chatRequest([
@@ -359,6 +363,7 @@ PROMPT;
                 'height_mm' => 0.0,
                 'background_prompt' => '',
                 'texts' => [],
+                'codes' => [],
             ];
         }
 
@@ -444,13 +449,17 @@ PROMPT;
                     . "{\"title\":\"짧은 제목\",\"width_mm\":{$exampleW},\"height_mm\":{$exampleH},"
                     . "\"background_prompt\":\"글자 없는 배경·장식만 영어 묘사\","
                     . "\"texts\":[{\"text\":\"문구\",\"x\":0~1,\"y\":0~1,\"w\":0~1,\"h\":0~1,"
-                    . "\"font_size_mm\":1.5~14,\"bold\":true/false,\"align\":\"left|center|right\",\"color\":\"#RRGGBB\"}]}\n"
+                    . "\"font_size_mm\":1.5~14,\"bold\":true/false,\"align\":\"left|center|right\",\"color\":\"#RRGGBB\"}],"
+                    . "\"codes\":[{\"kind\":\"qr|barcode\",\"value\":\"인코딩할 값\",\"x\":0~1,\"y\":0~1,\"w\":0~1,\"h\":0~1,\"show_text\":false}]}\n"
                     . "규칙:\n"
                     . "1) CRITICAL: 상품명·가격·용량·날짜·슬로건·설명 등 사용자가 수정할 문구는 전부 texts. "
-                    . "이미지(background)에는 글자·숫자·특수문자를 절대 넣지 말 것.\n"
-                    . "2) texts는 최소 1개(보통 2~6개). 제목/본문/부가정보를 분리.\n"
-                    . "3) background_prompt는 색·패턴·테두리·일러스트만. 워드/숫자 금지. 흰 스튜디오·목업 금지.\n"
-                    . "4) {$translateRule}\n"
+                    . "이미지(background)에는 글자·숫자·특수문자·바코드 막대·QR 패턴을 절대 넣지 말 것.\n"
+                    . "2) 사용자가 QR/바코드를 요청했고 URL·SKU·EAN·코드 값이 있으면 codes에 넣는다. "
+                    . "kind=qr(URL·링크·카카오·네이버 등), kind=barcode(상품코드·EAN·숫자열). "
+                    . "값 없는 장식용 QR/바코드는 만들지 말 것.\n"
+                    . "3) texts는 보통 1~6개. QR/바코드만 요청해도 짧은 안내 문구 1개는 texts에 둘 수 있다.\n"
+                    . "4) background_prompt는 색·패턴·테두리·일러스트만. 워드/숫자/바코드/QR 금지. 흰 스튜디오·목업 금지.\n"
+                    . "5) {$translateRule}\n"
                     . "{$sizeRule}\n"
                     . "사용자 요청: {$userHint}",
             ],
@@ -469,7 +478,7 @@ PROMPT;
             $layout['width_mm'] = $tw;
             $layout['height_mm'] = $th;
         }
-        if ($layout['texts'] === []) {
+        if ($layout['texts'] === [] && ($layout['codes'] ?? []) === []) {
             return $this->defaultEditableLayout($userHint, $layout);
         }
         return $layout;
@@ -498,8 +507,20 @@ PROMPT;
     private function normalizeEditableLayout(array $decoded): array
     {
         $texts = [];
+        $codes = [];
         foreach ($decoded['texts'] ?? [] as $row) {
             if (!is_array($row)) {
+                continue;
+            }
+            $kind = strtolower(trim((string) ($row['kind'] ?? 'text')));
+            if ($kind === 'qrcode') {
+                $kind = 'qr';
+            }
+            if (in_array($kind, ['qr', 'barcode'], true)) {
+                $code = $this->normalizeEditableCode($row, $kind);
+                if ($code !== null) {
+                    $codes[] = $code;
+                }
                 continue;
             }
             $text = trim((string) ($row['text'] ?? ''));
@@ -542,6 +563,29 @@ PROMPT;
             }
         }
 
+        foreach (array_merge(
+            is_array($decoded['codes'] ?? null) ? $decoded['codes'] : [],
+            is_array($decoded['marks'] ?? null) ? $decoded['marks'] : []
+        ) as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $kind = strtolower(trim((string) ($row['kind'] ?? $row['type'] ?? '')));
+            if ($kind === 'qrcode') {
+                $kind = 'qr';
+            }
+            if (!in_array($kind, ['qr', 'barcode'], true)) {
+                continue;
+            }
+            $code = $this->normalizeEditableCode($row, $kind);
+            if ($code !== null) {
+                $codes[] = $code;
+            }
+            if (count($codes) >= 12) {
+                break;
+            }
+        }
+
         $bg = trim((string) ($decoded['background_prompt'] ?? ''));
         if (mb_strlen($bg) > 700) {
             $bg = mb_substr($bg, 0, 700);
@@ -553,6 +597,46 @@ PROMPT;
             'height_mm' => (float) ($decoded['height_mm'] ?? 0),
             'background_prompt' => $bg,
             'texts' => $texts,
+            'codes' => $codes,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return array{kind:string,value:string,x:float,y:float,w:float,h:float,show_text:bool}|null
+     */
+    private function normalizeEditableCode(array $row, string $kind): ?array
+    {
+        $value = trim((string) ($row['value'] ?? $row['text'] ?? $row['url'] ?? $row['data'] ?? ''));
+        if ($value === '') {
+            return null;
+        }
+        if (mb_strlen($value) > 500) {
+            $value = mb_substr($value, 0, 500);
+        }
+        $x = max(0.0, min(0.95, (float) ($row['x'] ?? 0.7)));
+        $y = max(0.0, min(0.95, (float) ($row['y'] ?? 0.65)));
+        if ($kind === 'qr') {
+            $w = max(0.12, min(1.0 - $x, (float) ($row['w'] ?? 0.22)));
+            $h = max(0.12, min(1.0 - $y, (float) ($row['h'] ?? $w)));
+            // QR은 정사각에 가깝게
+            $side = min($w, $h);
+            $w = $side;
+            $h = $side;
+        } else {
+            $w = max(0.2, min(1.0 - $x, (float) ($row['w'] ?? 0.55)));
+            $h = max(0.08, min(1.0 - $y, (float) ($row['h'] ?? 0.16)));
+        }
+        return [
+            'kind' => $kind,
+            'value' => $value,
+            'x' => $x,
+            'y' => $y,
+            'w' => $w,
+            'h' => $h,
+            'show_text' => array_key_exists('show_text', $row)
+                ? !empty($row['show_text'])
+                : ($kind === 'barcode'),
         ];
     }
 
@@ -626,6 +710,7 @@ PROMPT;
                     'color' => '#2E2A27',
                 ],
             ],
+            'codes' => is_array($base['codes'] ?? null) ? $base['codes'] : [],
         ];
     }
 
@@ -1286,7 +1371,8 @@ intent 선택 규칙:
 - 단순 "라벨 추천/주소라벨/바코드라벨"처럼 상품(용지) 선택이면 recommend_product를 우선합니다.
 - "고양이 그림 그려줘", "로고 아이콘 만들어줘"처럼 그림만 생성이면 generate_clipart입니다.
 - "꽃그림에 '이름' 넣어서 이미지 만들어줘"처럼 그림·이미지 안에 글자를 넣으라는 요청도 generate_clipart입니다(문구를 clipart_prompt에 포함).
-- "템플릿 만들어줘", "이 사진으로 라벨 디자인 만들어줘"면 generate_template입니다.
+- "템플릿 만들어줘", "이 사진으로 라벨 디자인 만들어줘", "문구 넣어서 라벨 템플릿 만들어줘"면 generate_template입니다. (편집 가능 텍스트+배경+카탈로그 용지 추천)
+- 템플릿 요청에는 product_id를 카탈로그에서 반드시 고르려 하고, clipart_prompt에는 글자 없는 배경만 넣습니다.
 - 이미지만 보냈거나 "이거 참고해서"처럼 목적이 모호하면 ask_image_mode입니다. 추측으로 바로 그리지 마세요.
 - product_id는 카탈로그에 있는 id만 사용합니다. 용도를 다 외울 필요는 없고, 문장을 모양·크기·재질 제약으로 바꿔 카탈로그에서 고르면 됩니다.
 - 확신이 없으면 상품을 억지로 고르지 말고 크기/모양을 한 가지만 되묻습니다.

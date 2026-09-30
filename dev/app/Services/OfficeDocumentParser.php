@@ -182,6 +182,7 @@ final class OfficeDocumentParser
     {
         $zip = $this->openZip($bin, '엑셀');
         $strings = $this->xlsxSharedStrings($zip);
+        $dateStyles = $this->xlsxDateStyleIndexes($zip);
         $candidates = $this->xlsxSheetCandidates($zip);
         if ($candidates === []) {
             $zip->close();
@@ -199,7 +200,7 @@ final class OfficeDocumentParser
             if (!$sheet instanceof SimpleXMLElement) {
                 continue;
             }
-            $grid = $this->xlsxSheetToGrid($sheet, $strings);
+            $grid = $this->xlsxSheetToGrid($sheet, $strings, $dateStyles);
             if ($grid === []) {
                 continue;
             }
@@ -222,9 +223,10 @@ final class OfficeDocumentParser
 
     /**
      * @param array<int, string> $strings
+     * @param array<int, true> $dateStyles style index => true
      * @return array<int, array<int, string>>
      */
-    private function xlsxSheetToGrid(SimpleXMLElement $sheet, array $strings): array
+    private function xlsxSheetToGrid(SimpleXMLElement $sheet, array $strings, array $dateStyles = []): array
     {
         $rows = $this->xpathLocal($sheet, './/*[local-name()="sheetData"]/*[local-name()="row"]');
         $grid = [];
@@ -242,7 +244,7 @@ final class OfficeDocumentParser
                 if ($col >= self::MAX_COLS) {
                     continue;
                 }
-                $line[$col] = $this->xlsxCellValue($cell, $strings);
+                $line[$col] = $this->xlsxCellValue($cell, $strings, $dateStyles);
             }
             if ($line !== [] && !self::rowEmpty($line)) {
                 $grid[] = $line;
@@ -542,8 +544,10 @@ final class OfficeDocumentParser
         return $out;
     }
 
-    /** @param array<int, string> $strings */
-    private function xlsxCellValue(SimpleXMLElement $cell, array $strings): string
+    /** @param array<int, string> $strings
+     * @param array<int, true> $dateStyles
+     */
+    private function xlsxCellValue(SimpleXMLElement $cell, array $strings, array $dateStyles = []): string
     {
         $type = (string) ($cell['t'] ?? '');
         $vNodes = $this->xpathLocal($cell, './*[local-name()="v"]');
@@ -560,7 +564,65 @@ final class OfficeDocumentParser
             }
             return trim($buf);
         }
+        $style = (string) ($cell['s'] ?? '');
+        if ($raw !== '' && $style !== '' && isset($dateStyles[(int) $style]) && is_numeric($raw)) {
+            $n = (float) $raw;
+            if ($n >= 1 && $n < 1000000) {
+                $unix = (int) round(($n - 25569) * 86400);
+                if ($unix > 0) {
+                    // 소수점이 있으면 날짜+시간, 없으면 날짜만
+                    if (abs($n - floor($n)) > 0.00001) {
+                        return gmdate('Y-m-d H:i:s', $unix);
+                    }
+                    return gmdate('Y-m-d', $unix);
+                }
+            }
+        }
         return $raw;
+    }
+
+    /**
+     * 날짜/시간 표시 서식이 걸린 cellXfs 인덱스를 수집한다.
+     *
+     * @return array<int, true>
+     */
+    private function xlsxDateStyleIndexes(OfficeZipReader $zip): array
+    {
+        $xml = $zip->get('xl/styles.xml');
+        if (!is_string($xml) || $xml === '') {
+            return [];
+        }
+        $styles = @simplexml_load_string($xml);
+        if (!$styles instanceof SimpleXMLElement) {
+            return [];
+        }
+
+        $dateNumFmts = [];
+        // 내장 날짜/시간 numFmtId
+        foreach ([14, 15, 16, 17, 18, 19, 20, 21, 22, 27, 30, 36, 45, 46, 47, 50, 57] as $id) {
+            $dateNumFmts[$id] = true;
+        }
+        foreach ($this->xpathLocal($styles, './/*[local-name()="numFmts"]/*[local-name()="numFmt"]') as $fmt) {
+            $id = (int) ($fmt['numFmtId'] ?? -1);
+            $code = strtolower((string) ($fmt['formatCode'] ?? ''));
+            if ($id < 0 || $code === '') {
+                continue;
+            }
+            // 날짜 토큰이 있고 순수 숫자/통화만 아니면 날짜로 본다
+            if (preg_match('/[ymdhs]/', $code) && !preg_match('/^[#0.,%\s\\\\]+$/', $code)) {
+                $dateNumFmts[$id] = true;
+            }
+        }
+
+        $out = [];
+        $xfNodes = $this->xpathLocal($styles, './/*[local-name()="cellXfs"]/*[local-name()="xf"]');
+        foreach ($xfNodes as $i => $xf) {
+            $numFmtId = (int) ($xf['numFmtId'] ?? 0);
+            if (isset($dateNumFmts[$numFmtId])) {
+                $out[$i] = true;
+            }
+        }
+        return $out;
     }
 
     /** @return array<int, SimpleXMLElement> */

@@ -38,6 +38,7 @@ final class LabiDataTemplateService
             $use = $kind;
         }
         $fields = $this->resolveFields($columns, $layout['fields'] ?? null, $use);
+        $sheet = $this->normalizeSheetForFields($sheet, $fields);
         $paper = $this->resolvePaper($use, $fields, $layout, count($sheet['rows']));
         $w = (float) $paper['labelWidthMm'];
         $h = (float) $paper['labelHeightMm'];
@@ -558,6 +559,9 @@ final class LabiDataTemplateService
         foreach ($fields as $field) {
             $si = $colIndex[mb_strtolower($field['column'])] ?? null;
             $val = $si === null ? '' : trim((string) ($sample[$si] ?? ''));
+            if ($field['kind'] === 'date') {
+                $val = $this->normalizeDateValue($val);
+            }
             $roles[] = [
                 'column' => $field['column'],
                 'kind' => $field['kind'],
@@ -820,7 +824,9 @@ final class LabiDataTemplateService
             $weights[$i] = match ($field['kind']) {
                 'barcode' => 2.2,
                 'qr' => 2.6,
-                default => in_array($field['role'], ['recipient', 'name', 'product'], true) ? 1.7 : 1.0,
+                'date' => 1.1,
+                'serial' => 1.2,
+                default => in_array($field['role'], ['recipient', 'name', 'product', 'serial'], true) ? 1.7 : 1.0,
             };
         }
         $sum = array_sum($weights) ?: 1;
@@ -836,7 +842,8 @@ final class LabiDataTemplateService
                 $size = min($fh, $innerW * 0.34);
                 $objects[] = $this->qrObject($id, $padX + ($innerW - $size) / 2, $y, $size, $field['column'], $field['sample'], $z++);
             } else {
-                $title = in_array($field['role'], ['recipient', 'name', 'product'], true);
+                $title = in_array($field['role'], ['recipient', 'name', 'product', 'serial'], true)
+                    || $field['kind'] === 'serial';
                 $objects[] = $this->textObject(
                     $id,
                     $padX,
@@ -848,7 +855,8 @@ final class LabiDataTemplateService
                     $title ? max(4.0, min(7.0, $fh * 0.5)) : max(2.6, min(4.2, $fh * 0.4)),
                     $title,
                     $z++,
-                    'left'
+                    'left',
+                    $field['kind']
                 );
             }
             $y += $fh + $gap;
@@ -878,8 +886,20 @@ final class LabiDataTemplateService
         if ($kind === 'qr') {
             return 'qr';
         }
+        if ($kind === 'date') {
+            return 'date';
+        }
+        if ($kind === 'serial') {
+            return 'serial';
+        }
         if ($kind === 'barcode' || preg_match('/sku|바코드|barcode|상품코드|품번/i', $column)) {
             return 'sku';
+        }
+        if (preg_match('/시리얼|일련|serial|lot\b|로트|제조번호/i', $column)) {
+            return 'serial';
+        }
+        if (preg_match('/날짜|일자|date|납기|출고일|입고일|주문일|제조일|유통기한|유효|만료|배송일/i', $column)) {
+            return 'date';
         }
         if (preg_match('/수취|recipient|받는|수령/i', $column)) {
             return 'recipient';
@@ -912,15 +932,19 @@ final class LabiDataTemplateService
             'id' => $id,
             'type' => 'rect',
             'zIndex' => $z,
+            'locked' => false,
             'visible' => true,
-            'x' => $x,
-            'y' => $y,
-            'width' => $w,
-            'height' => $h,
+            'x' => round($x, 2),
+            'y' => round($y, 2),
+            'width' => round($w, 2),
+            'height' => round($h, 2),
+            'rotation' => 0,
             'fill' => '#7B2840',
+            'stroke' => 'transparent',
             'strokeWidth' => 0,
             'opacity' => 1,
-            'cornerRadius' => 0.6,
+            'shapeKind' => 'rect',
+            'cornerRadiusMm' => 0.6,
             'backgroundTransparent' => false,
         ];
     }
@@ -937,37 +961,76 @@ final class LabiDataTemplateService
         float $fontSize,
         bool $bold,
         int $z,
-        string $align = 'left'
+        string $align = 'left',
+        string $kind = 'text'
     ): array {
-        $display = trim($text);
-        if ($display === '') {
-            $display = '[' . $column . ']';
-        } elseif (mb_strlen($display) > 48) {
-            $display = mb_substr($display, 0, 47) . '…';
+        if ($kind === 'text') {
+            $detected = $this->guessKind($column);
+            if (in_array($detected, ['date', 'serial'], true)) {
+                $kind = $detected;
+            }
         }
-        return [
+
+        $raw = trim($text);
+        $dateFormat = 'yyyy-MM-dd';
+        if ($kind === 'date') {
+            $raw = $this->normalizeDateValue($raw);
+            $dateFormat = $this->inferDateFormat($column, $raw);
+            $formatted = $this->formatDateValue($raw, $dateFormat);
+            $display = $formatted !== '' ? $formatted : ($raw !== '' ? $raw : '[' . $column . ']');
+        } else {
+            $display = $raw;
+            if ($display === '') {
+                $display = '[' . $column . ']';
+            } elseif (mb_strlen($display) > 48) {
+                $display = mb_substr($display, 0, 47) . '…';
+            }
+        }
+
+        $obj = [
             'id' => $id,
             'type' => 'text',
             'zIndex' => $z,
+            'locked' => false,
             'visible' => true,
-            'x' => $x,
-            'y' => $y,
-            'width' => $w,
-            'height' => $h,
+            'x' => round($x, 2),
+            'y' => round($y, 2),
+            'width' => round($w, 2),
+            'height' => round($h, 2),
+            'rotation' => 0,
             'fill' => $bold ? '#7B2840' : '#2E2A27',
+            'stroke' => 'transparent',
             'strokeWidth' => 0,
             'opacity' => 1,
             'dataBound' => true,
             'dataColumn' => $column,
+            'dataDisplayKind' => $kind === 'date' ? 'date' : 'text',
             'text' => $display,
             'fontSize' => $fontSize,
             'fontFamily' => 'Pretendard',
             'bold' => $bold,
+            'italic' => false,
+            'underline' => false,
             'textAlign' => $align,
             'verticalAlign' => 'middle',
+            'lineHeight' => 1.15,
+            'letterSpacing' => 0,
+            'textDirection' => 'horizontal',
+            'textWrap' => 'char',
             'backgroundTransparent' => true,
+            'backgroundFill' => 'transparent',
             'textMode' => 'normal',
+            'wordArtStyle' => 'none',
+            'customKind' => 'none',
         ];
+        if ($kind === 'date') {
+            $obj['dataDateFormat'] = $dateFormat;
+        }
+        if ($kind === 'serial') {
+            // 시리얼·일련번호도 자료 연결 텍스트(행마다 Excel/CSV 값 사용)
+            $obj['dataDisplayKind'] = 'text';
+        }
+        return $obj;
     }
 
     /** @return array<string, mixed> */
@@ -977,12 +1040,15 @@ final class LabiDataTemplateService
             'id' => $id,
             'type' => 'barcode',
             'zIndex' => $z,
+            'locked' => false,
             'visible' => true,
-            'x' => $x,
-            'y' => $y,
-            'width' => $w,
-            'height' => $h,
+            'x' => round($x, 2),
+            'y' => round($y, 2),
+            'width' => round($w, 2),
+            'height' => round($h, 2),
+            'rotation' => 0,
             'fill' => '#2E2A27',
+            'stroke' => 'transparent',
             'strokeWidth' => 0,
             'opacity' => 1,
             'dataBound' => true,
@@ -1003,12 +1069,15 @@ final class LabiDataTemplateService
             'id' => $id,
             'type' => 'qr',
             'zIndex' => $z,
+            'locked' => false,
             'visible' => true,
-            'x' => $x,
-            'y' => $y,
-            'width' => $size,
-            'height' => $size,
+            'x' => round($x, 2),
+            'y' => round($y, 2),
+            'width' => round($size, 2),
+            'height' => round($size, 2),
+            'rotation' => 0,
             'fill' => '#2E2A27',
+            'stroke' => 'transparent',
             'strokeWidth' => 0,
             'opacity' => 1,
             'dataBound' => true,
@@ -1016,6 +1085,9 @@ final class LabiDataTemplateService
             'text' => '[' . $column . ']',
             'barcodeFormat' => 'QR_CODE',
             'barcodeValue' => $sample !== '' ? $sample : 'https://labelup.kr',
+            'barcodeShowText' => false,
+            'qrEcc' => 'M',
+            'qrKind' => 'url',
             'backgroundTransparent' => true,
         ];
     }
@@ -1040,11 +1112,23 @@ final class LabiDataTemplateService
         if (in_array($kind, ['qr', 'qrcode'], true)) {
             return 'qr';
         }
+        if (in_array($kind, ['date', 'datetime', 'day'], true)) {
+            return 'date';
+        }
+        if (in_array($kind, ['serial', 'serialno', 'sequence', 'seq', 'lot'], true)) {
+            return 'serial';
+        }
         return $this->guessKind($column);
     }
 
     private function guessKind(string $column): string
     {
+        if (preg_match('/날짜|일자|date|datetime|납기|출고일|입고일|주문일|제조일|유통기한|유효기간|만료|배송일|생산일/i', $column)) {
+            return 'date';
+        }
+        if (preg_match('/시리얼|일련번호|일련\s*번호|serial\s*(no|number|#)?|s\/?n\b|lot\s*(no|number)?|로트\s*번호|제조번호/i', $column)) {
+            return 'serial';
+        }
         if (preg_match('/qr|링크|url|homepage|홈페이지/i', $column)) {
             return 'qr';
         }
@@ -1052,6 +1136,128 @@ final class LabiDataTemplateService
             return 'barcode';
         }
         return 'text';
+    }
+
+    /**
+     * 날짜·시리얼 열 값을 편집기 자료연결에 맞게 정규화한다.
+     *
+     * @param array{source_name:string, source_kind:string, columns:array<int,string>, rows:array<int,array<int,string>>, summary?:string} $sheet
+     * @param array<int, array{column:string, kind:string}> $fields
+     * @return array{source_name:string, source_kind:string, columns:array<int,string>, rows:array<int,array<int,string>>, summary?:string}
+     */
+    private function normalizeSheetForFields(array $sheet, array $fields): array
+    {
+        $colIndex = [];
+        foreach ($sheet['columns'] as $i => $name) {
+            $colIndex[mb_strtolower((string) $name)] = $i;
+        }
+        $dateCols = [];
+        $serialCols = [];
+        foreach ($fields as $field) {
+            $idx = $colIndex[mb_strtolower($field['column'])] ?? null;
+            if ($idx === null) {
+                continue;
+            }
+            if ($field['kind'] === 'date') {
+                $dateCols[$idx] = true;
+            } elseif ($field['kind'] === 'serial') {
+                $serialCols[$idx] = true;
+            }
+        }
+        // 필드에 없어도 열 이름으로 날짜/시리얼 후보 보강
+        foreach ($sheet['columns'] as $i => $name) {
+            $kind = $this->guessKind((string) $name);
+            if ($kind === 'date') {
+                $dateCols[$i] = true;
+            } elseif ($kind === 'serial') {
+                $serialCols[$i] = true;
+            }
+        }
+        if ($dateCols === [] && $serialCols === []) {
+            return $sheet;
+        }
+
+        $rows = [];
+        foreach ($sheet['rows'] as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            foreach ($dateCols as $i => $_) {
+                if (!array_key_exists($i, $row)) {
+                    continue;
+                }
+                $row[$i] = $this->normalizeDateValue((string) $row[$i]);
+            }
+            foreach ($serialCols as $i => $_) {
+                if (!array_key_exists($i, $row)) {
+                    continue;
+                }
+                $row[$i] = trim((string) $row[$i]);
+            }
+            $rows[] = $row;
+        }
+        $sheet['rows'] = $rows;
+        return $sheet;
+    }
+
+    private function normalizeDateValue(string $raw): string
+    {
+        $raw = trim($raw);
+        if ($raw === '') {
+            return '';
+        }
+        // Excel 날짜 시리얼(대략 1954~2064)
+        if (preg_match('/^\d{5}(?:\.\d+)?$/', $raw)) {
+            $n = (float) $raw;
+            if ($n >= 20000 && $n <= 60000) {
+                $unix = (int) round(($n - 25569) * 86400);
+                if ($unix > 0) {
+                    return gmdate('Y-m-d', $unix);
+                }
+            }
+        }
+        if (preg_match('/^(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/', $raw, $m)) {
+            return sprintf('%04d-%02d-%02d', (int) $m[1], (int) $m[2], (int) $m[3]);
+        }
+        if (preg_match('/^(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/', $raw, $m)) {
+            return sprintf('%04d-%02d-%02d', (int) $m[1], (int) $m[2], (int) $m[3]);
+        }
+        $ts = strtotime($raw);
+        if ($ts !== false) {
+            return date('Y-m-d', $ts);
+        }
+        return $raw;
+    }
+
+    private function inferDateFormat(string $column, string $sample): string
+    {
+        if (preg_match('/년|월|일/u', $column) || preg_match('/년|월|일/u', $sample)) {
+            return 'yyyy년 M월 d일';
+        }
+        if (preg_match('/\d{4}\.\d{1,2}\.\d{1,2}/', $sample)) {
+            return 'yyyy.MM.dd';
+        }
+        return 'yyyy-MM-dd';
+    }
+
+    private function formatDateValue(string $raw, string $format): string
+    {
+        $raw = trim($raw);
+        if ($raw === '') {
+            return '';
+        }
+        $ts = strtotime($raw);
+        if ($ts === false) {
+            return '';
+        }
+        return match ($format) {
+            'yyyy년 M월 d일' => date('Y년 n월 j일', $ts),
+            'yyyy.MM.dd' => date('Y.m.d', $ts),
+            'yy-MM-dd' => date('y-m-d', $ts),
+            'MM/dd/yyyy' => date('m/d/Y', $ts),
+            'dd/MM/yyyy' => date('d/m/Y', $ts),
+            default => date('Y-m-d', $ts),
+        };
     }
 
     private function isTitleColumn(string $column): bool
