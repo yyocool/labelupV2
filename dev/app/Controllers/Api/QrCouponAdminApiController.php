@@ -105,6 +105,30 @@ final class QrCouponAdminApiController extends BaseController
         }
     }
 
+    public function deleteCodes(): never
+    {
+        $this->guard();
+        try {
+            $payload = request_json();
+            $ids = $payload['ids'] ?? [];
+            if (!is_array($ids)) {
+                $ids = [];
+            }
+            $result = $this->service->deleteCodes($ids);
+            $deleted = (int) ($result['deleted'] ?? 0);
+            $skipped = (int) ($result['skipped'] ?? 0);
+            $msg = $deleted . '개 미사용 QR을 삭제했습니다.';
+            if ($skipped > 0) {
+                $msg .= ' (사용·중지 ' . $skipped . '개는 제외)';
+            }
+            $this->jsonSuccess($result, $msg);
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage());
+        } catch (Throwable $e) {
+            $this->jsonError(APP_DEBUG ? $e->getMessage() : 'QR 삭제에 실패했습니다.');
+        }
+    }
+
     public function usageHistory(): never
     {
         $this->guard();
@@ -124,6 +148,7 @@ final class QrCouponAdminApiController extends BaseController
         try {
             $key = $this->service->resolveTemplateKeyFromRequest(
                 isset($_GET['key']) ? (string) $_GET['key'] : null,
+                $_GET['group_no'] ?? null,
                 $_GET['category_no'] ?? null
             );
             $this->jsonSuccess($this->service->getPrintTemplate($key));

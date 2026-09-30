@@ -84,14 +84,15 @@ function absolute_url(string $path = ''): string
 
     $path = trim(str_replace('\\', '/', $path), '/');
 
-    $base = rtrim((string) app_config('url', ''), '/');
-    if ($base === '') {
-        $host = (string) ($_SERVER['HTTP_HOST'] ?? '');
-        if ($host !== '') {
-            $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-                || ((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-            $base = ($https ? 'https://' : 'http://') . $host;
-        } else {
+    // 브라우저 요청이 있으면 그 스킴·호스트를 우선 (HTTPS 관리자에서 HTTP iframe 차단 방지)
+    $host = (string) ($_SERVER['HTTP_HOST'] ?? '');
+    if ($host !== '') {
+        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || ((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+        $base = ($https ? 'https://' : 'http://') . $host;
+    } else {
+        $base = rtrim((string) app_config('url', ''), '/');
+        if ($base === '') {
             $base = 'http://localhost';
         }
     }

@@ -292,7 +292,7 @@
 .admin-alert.show{display:block}
 .admin-alert.success{background:#eaf8ef;color:#176b3a;border:1px solid #bfe8cc}
 .admin-alert.error{background:#fdecec;color:#9b1c1c;border:1px solid #f5c2c2}
-.admin-alert--toast{position:fixed;top:18px;right:18px;z-index:320;margin:0;min-width:220px;box-shadow:0 10px 28px rgba(46,42,39,.14)}
+.admin-alert--toast{position:fixed;top:18px;right:18px;z-index:1200;margin:0;min-width:220px;max-width:min(420px,90vw);box-shadow:0 10px 28px rgba(46,42,39,.14)}
 .admin-staff-mode{display:flex;gap:16px;margin-bottom:14px}
 .admin-staff-email-row{display:flex;gap:8px;align-items:center}
 .admin-staff-email-row .admin-input{flex:1;min-width:0}
@@ -824,6 +824,7 @@
   font-size:18px;
   font-weight:800;
   min-width:84px;
+  text-align:center;
   text-shadow:0 1px 1px rgba(0,0,0,.25);
   vertical-align:middle;
 }
@@ -835,7 +836,9 @@
   gap:8px;
   padding:4px 0;
 }
-.qr-catno-wrap > strong{font-size:20px;line-height:1}
+.qr-catno-wrap > strong,
+.qr-group-table .qr-catno > strong{font-size:20px;line-height:1}
+.qr-group-tpl-btn,
 .qr-cat-tpl-btn{
   height:28px;
   padding:0 10px;
@@ -847,6 +850,7 @@
   font-weight:700;
   box-shadow:0 1px 2px rgba(0,0,0,.18);
 }
+.qr-group-tpl-btn:hover,
 .qr-cat-tpl-btn:hover{
   background:#fff;
 }
@@ -898,8 +902,15 @@
 .qr-group-notes ul{margin:8px 0 0;padding-left:1.2em;line-height:1.65;color:var(--muted)}
 .qr-group-notes li{margin:0 0 4px}
 .qr-codes-dialog{width:min(1180px,100%);max-height:min(94vh,980px)}
-.qr-codes-dialog .admin-modal-body{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+.qr-codes-dialog .admin-modal-body{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:8px}
+.qr-codes-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:2px 0 4px}
+.qr-codes-toolbar-hint{font-size:12px;color:var(--muted)}
+.qr-codes-msg{margin:0;padding:8px 10px;border-radius:8px;font-size:12px;font-weight:600}
+.qr-codes-msg.is-error{background:#fdecec;color:#9b1c1c;border:1px solid #f5c2c2}
+.qr-codes-msg.is-ok{background:#eaf8ef;color:#176b3a;border:1px solid #bfe8cc}
 .qr-codes-wrap{flex:1;min-height:0;overflow:auto}
+.qr-codes-check{width:36px;text-align:center;vertical-align:middle}
+.qr-codes-check input{width:16px;height:16px;cursor:pointer}
 .qr-codes-qr{width:72px;vertical-align:middle}
 .qr-codes-qr img{display:block;width:56px;height:56px}
 .qr-codes-url{word-break:break-all;font-size:12px;max-width:420px}

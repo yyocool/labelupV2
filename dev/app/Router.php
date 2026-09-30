@@ -263,6 +263,7 @@ final class Router
         $router->post('/api/admin/qr-coupons/batch-codes', [$qrCouponAdminApi, 'batchCodes']);
         $router->post('/api/admin/qr-coupons/group-codes', [$qrCouponAdminApi, 'groupCodes']);
         $router->post('/api/admin/qr-coupons/mark-printed', [$qrCouponAdminApi, 'markPrinted']);
+        $router->post('/api/admin/qr-coupons/delete-codes', [$qrCouponAdminApi, 'deleteCodes']);
         $router->post('/api/admin/qr-coupons/usage-history', [$qrCouponAdminApi, 'usageHistory']);
         $router->get('/api/admin/qr-coupons/print-template', [$qrCouponAdminApi, 'printTemplate']);
         $router->post('/api/admin/qr-coupons/print-template/save', [$qrCouponAdminApi, 'savePrintTemplate']);

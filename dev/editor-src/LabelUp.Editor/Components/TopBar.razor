@@ -76,6 +76,19 @@
         }
       </svg>
     </button>
+    <div class="ed-ui-scale" data-tut="ui-scale" title="편집기 UI 글자 크기 (캔버스 확대와 별개)">
+      <button type="button"
+              class="ed-ui-scale__btn"
+              disabled="@(Session.UiScale <= EditorSession.MinUiScale + 0.001f)"
+              aria-label="UI 글자 작게"
+              @onclick="DecreaseUiScale">A−</button>
+      <span class="ed-ui-scale__pct">@UiScalePercent%</span>
+      <button type="button"
+              class="ed-ui-scale__btn"
+              disabled="@(Session.UiScale >= EditorSession.MaxUiScale - 0.001f)"
+              aria-label="UI 글자 크게"
+              @onclick="IncreaseUiScale">A+</button>
+    </div>
   </div>
 
   <button type="button" class="ed-chip ed-m-more" title="메뉴" aria-label="메뉴" aria-expanded="@_mobileMenu" @onclick="ToggleMobileMenu">☰</button>
@@ -123,6 +136,7 @@
 
 @code {
     private string ZoomPercent => $"{Session.Zoom * 100:0}";
+    private string UiScalePercent => $"{Session.UiScale * 100:0}";
     private bool _mobileMenu;
     private bool _pinLoaded;
     private bool _autoSaveLoop;
@@ -144,6 +158,9 @@
         {
             Session.TopBarPinned = await Js.InvokeAsync<bool>("labelUpEditor.getTopBarPinned");
             Session.AutoSaveEnabled = await Js.InvokeAsync<bool>("labelUpEditor.getAutoSave");
+            var uiScale = await Js.InvokeAsync<float>("labelUpEditor.getUiScale");
+            Session.SetUiScale(uiScale);
+            try { await Js.InvokeVoidAsync("labelUpEditor.setUiScale", Session.UiScale); } catch { }
             if (Session.AutoSaveEnabled)
                 StartAutoSave();
             Session.Notify();
@@ -158,6 +175,17 @@
         Session.Status = Session.TopBarPinned
             ? "헤더를 고정했습니다"
             : "헤더를 숨겼습니다 · 상단에 마우스를 올리면 다시 표시됩니다";
+        Session.Notify();
+    }
+
+    private async Task DecreaseUiScale() => await ChangeUiScale(Session.UiScale - 0.1f);
+    private async Task IncreaseUiScale() => await ChangeUiScale(Session.UiScale + 0.1f);
+
+    private async Task ChangeUiScale(float next)
+    {
+        Session.SetUiScale(next);
+        try { await Js.InvokeVoidAsync("labelUpEditor.setUiScale", Session.UiScale); } catch { }
+        Session.Status = $"UI 글자 크기 {UiScalePercent}%";
         Session.Notify();
     }
 

@@ -1655,6 +1655,30 @@ window.labelUpEditor = {
   setAutoSave: function (on) {
     try { localStorage.setItem('labelup.autosave', on ? '1' : '0'); } catch (e) { /* ignore */ }
   },
+  clampUiScale: function (scale) {
+    var n = Number(scale);
+    if (!isFinite(n)) n = 1;
+    n = Math.max(0.8, Math.min(1.4, Math.round(n * 20) / 20));
+    return n;
+  },
+  getUiScale: function () {
+    try {
+      var v = parseFloat(localStorage.getItem('labelup.uiScale'));
+      return window.labelUpEditor.clampUiScale(isFinite(v) ? v : 1);
+    } catch (e) {
+      return 1;
+    }
+  },
+  setUiScale: function (scale) {
+    var n = window.labelUpEditor.clampUiScale(scale);
+    try { localStorage.setItem('labelup.uiScale', String(n)); } catch (e) { /* ignore */ }
+    try {
+      document.documentElement.style.setProperty('--ed-ui-scale', String(n));
+      var root = document.querySelector('[data-ed-root]');
+      if (root) root.style.setProperty('--ed-ui-scale', String(n));
+    } catch (e) { /* ignore */ }
+    return n;
+  },
   bindZoomSlider: function () {
     if (this._zoomSliderBound) return;
     this._zoomSliderBound = true;
@@ -3608,6 +3632,10 @@ window.labelUpEditor = {
 };
 
 (function () {
+  try {
+    if (window.labelUpEditor && typeof window.labelUpEditor.setUiScale === 'function')
+      window.labelUpEditor.setUiScale(window.labelUpEditor.getUiScale());
+  } catch (e) { /* ignore */ }
   var apply = function () {
     if (window.labelUpEditor && typeof window.labelUpEditor.applyMobileChrome === 'function')
       window.labelUpEditor.applyMobileChrome();

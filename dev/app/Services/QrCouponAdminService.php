@@ -29,11 +29,13 @@ final class QrCouponAdminService
 
     public function previewGroupUrl(array $group): string
     {
-        $url = absolute_url($this->couponPagePath());
+        // iframe 미리보기는 동일 출처 상대경로 (APP_URL이 http여도 HTTPS 관리자에서 혼합콘텐츠 차단 안 됨)
+        $url = url($this->couponPagePath());
         $query = [
             'g' => (int) ($group['group_no'] ?? 0),
             'cat' => (string) ($group['category_slug'] ?? ''),
             'sheets' => (int) ($group['sheets_per_pack'] ?? 0),
+            'preview' => 1,
         ];
         return $url . (str_contains($url, '?') ? '&' : '?') . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
     }
@@ -300,6 +302,47 @@ final class QrCouponAdminService
     }
 
     /**
+     * 미사용 QR만 삭제 (사용·중지 코드는 삭제 불가).
+     *
+     * @param list<int> $ids
+     * @return array{
+     *   deleted:int,
+     *   skipped:int,
+     *   deleted_ids:list<int>,
+     *   groups:list<array{group_no:int, generated:int, printed:int}>
+     * }
+     */
+    public function deleteCodes(array $ids): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn (int $id) => $id > 0)));
+        if ($ids === []) {
+            throw new RuntimeException('삭제할 쿠폰을 선택해 주세요.');
+        }
+
+        $result = $this->repo->deleteUnusedByIds($ids);
+        if ((int) ($result['deleted'] ?? 0) <= 0) {
+            throw new RuntimeException('삭제할 수 있는 미사용 쿠폰이 없습니다. (사용·중지 코드는 삭제할 수 없습니다)');
+        }
+
+        $groups = [];
+        foreach ($result['group_nos'] as $groupNo) {
+            $counts = $this->repo->groupCodeCounts((int) $groupNo);
+            $groups[] = [
+                'group_no' => (int) $groupNo,
+                'generated' => (int) $counts['generated'],
+                'printed' => (int) $counts['printed'],
+            ];
+        }
+
+        return [
+            'deleted' => (int) $result['deleted'],
+            'skipped' => (int) $result['skipped'],
+            'deleted_ids' => $result['deleted_ids'],
+            'groups' => $groups,
+        ];
+    }
+
+    /**
      * @param list<array<string, mixed>> $items
      * @return list<array<string, mixed>>
      */
@@ -329,9 +372,23 @@ final class QrCouponAdminService
         return $normalized;
     }
 
+    public static function templateKeyForGroup(int $groupNo): string
+    {
+        return $groupNo > 0 ? ('group-' . $groupNo) : 'default';
+    }
+
+    /** @deprecated 분류 단위 템플릿 — 하위 호환(읽기 폴백)용 */
     public static function templateKeyForCategory(int $categoryNo): string
     {
         return $categoryNo > 0 ? ('cat-' . $categoryNo) : 'default';
+    }
+
+    public static function groupNoFromTemplateKey(string $key): int
+    {
+        if (preg_match('/^group-(\d+)$/', $key, $m) === 1) {
+            return (int) $m[1];
+        }
+        return 0;
     }
 
     public static function categoryNoFromTemplateKey(string $key): int
@@ -348,6 +405,13 @@ final class QrCouponAdminService
         if ($key === '' || $key === 'default') {
             return 'default';
         }
+        if (preg_match('/^group-(\d{1,3})$/', $key, $m) === 1) {
+            $no = (int) $m[1];
+            if ($no >= 1 && $no <= 99) {
+                return 'group-' . $no;
+            }
+        }
+        // 구버전 분류 키 — 조회만 허용
         if (preg_match('/^cat-(\d{1,3})$/', $key, $m) === 1) {
             $no = (int) $m[1];
             if ($no >= 1 && $no <= 99) {
@@ -357,11 +421,15 @@ final class QrCouponAdminService
         throw new RuntimeException('출력템플릿 키가 올바르지 않습니다.');
     }
 
-    public function resolveTemplateKeyFromRequest(?string $key, mixed $categoryNo): string
+    public function resolveTemplateKeyFromRequest(?string $key, mixed $groupNo = null, mixed $categoryNo = null): string
     {
         $key = trim((string) ($key ?? ''));
         if ($key !== '') {
             return $this->normalizeTemplateKey($key);
+        }
+        $group = (int) ($groupNo ?? 0);
+        if ($group > 0) {
+            return self::templateKeyForGroup($group);
         }
         $cat = (int) ($categoryNo ?? 0);
         if ($cat > 0) {
@@ -431,20 +499,37 @@ final class QrCouponAdminService
     public function getPrintTemplate(string $key = 'default'): array
     {
         $key = $this->normalizeTemplateKey($key);
+        $groupNo = self::groupNoFromTemplateKey($key);
         $categoryNo = self::categoryNoFromTemplateKey($key);
         $row = $this->repo->findPrintTemplate($key);
         $fallbackFrom = null;
 
+        // 그룹 템플릿이 없으면 구버전 분류 템플릿 → 공통 템플릿 순으로 폴백
+        if ($row === null && $groupNo > 0) {
+            $group = $this->repo->findByGroupNo($groupNo);
+            $legacyCat = (int) ($group['category_no'] ?? 0);
+            if ($legacyCat > 0) {
+                $legacyKey = self::templateKeyForCategory($legacyCat);
+                $legacyRow = $this->repo->findPrintTemplate($legacyKey);
+                if ($legacyRow !== null) {
+                    $row = $legacyRow;
+                    $fallbackFrom = $legacyKey;
+                }
+            }
+        }
         if ($row === null && $key !== 'default') {
             $row = $this->repo->findPrintTemplate('default');
             $fallbackFrom = $row !== null ? 'default' : null;
         }
 
+        $displayName = $this->templateDisplayName($key, $groupNo, $categoryNo);
+
         if ($row === null) {
             $defaults = self::defaultPrintTemplate();
             $defaults['key'] = $key;
+            $defaults['group_no'] = $groupNo;
             $defaults['category_no'] = $categoryNo;
-            $defaults['name'] = $this->templateDisplayName($key, $categoryNo);
+            $defaults['name'] = $displayName;
             $defaults['persisted'] = false;
             $defaults['fallback_from'] = null;
             return $defaults;
@@ -452,10 +537,11 @@ final class QrCouponAdminService
 
         return [
             'key' => $key,
+            'group_no' => $groupNo,
             'category_no' => $categoryNo,
             'name' => $fallbackFrom !== null
-                ? $this->templateDisplayName($key, $categoryNo)
-                : (string) ($row['name'] ?? $this->templateDisplayName($key, $categoryNo)),
+                ? $displayName
+                : (string) ($row['name'] ?? $displayName),
             'paper' => $this->decodeJsonMap($row['paper_json'] ?? null),
             'objects' => $this->decodeJsonList($row['objects_json'] ?? null),
             'settings' => $this->decodeJsonMap($row['settings_json'] ?? null),
@@ -473,12 +559,17 @@ final class QrCouponAdminService
     {
         $key = $this->resolveTemplateKeyFromRequest(
             (string) ($payload['key'] ?? ''),
+            $payload['group_no'] ?? null,
             $payload['category_no'] ?? null
         );
-        $categoryNo = self::categoryNoFromTemplateKey($key);
+        // 신규 저장은 그룹/공통만 허용 (분류 키로 저장 요청 시 그룹으로 안내)
+        if (self::categoryNoFromTemplateKey($key) > 0 && self::groupNoFromTemplateKey($key) <= 0) {
+            throw new RuntimeException('출력템플릿은 QR 그룹No. 단위로 저장합니다. 그룹 템플릿 버튼을 이용해 주세요.');
+        }
+        $groupNo = self::groupNoFromTemplateKey($key);
         $name = trim((string) ($payload['name'] ?? ''));
         if ($name === '') {
-            $name = $this->templateDisplayName($key, $categoryNo);
+            $name = $this->templateDisplayName($key, $groupNo, 0);
         }
         $paper = $payload['paper'] ?? null;
         $objects = $payload['objects'] ?? null;
@@ -492,13 +583,17 @@ final class QrCouponAdminService
 
         $saved = $this->repo->upsertPrintTemplate($key, $name, $paper, $objects, $settings, $adminId);
         $saved['persisted'] = true;
-        $saved['category_no'] = $categoryNo;
+        $saved['group_no'] = $groupNo;
+        $saved['category_no'] = 0;
         $saved['fallback_from'] = null;
         return $saved;
     }
 
-    private function templateDisplayName(string $key, int $categoryNo): string
+    private function templateDisplayName(string $key, int $groupNo, int $categoryNo = 0): string
     {
+        if ($groupNo > 0) {
+            return '그룹 ' . $groupNo . ' 출력템플릿';
+        }
         if ($categoryNo > 0) {
             return '분류 ' . $categoryNo . ' 출력템플릿';
         }
