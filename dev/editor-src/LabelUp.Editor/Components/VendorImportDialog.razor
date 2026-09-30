@@ -270,6 +270,9 @@
 
         var families = CollectUsedFamilies(r.Document);
         Fonts.DemoteWebFallbacks(families);
+        // 아이라벨 IDF는 데이터를 파일 안에 담지 않고 엑셀 경로만 적어 두는 때가 있다.
+        // 그 경로는 이 PC 밖이라 브라우저가 열 수 없으므로, 모양만 변환됨을 알려 준다.
+        var dataOnlyByPath = !r.HasData && !string.IsNullOrWhiteSpace(r.MissingExcelName);
 
         try
         {
@@ -283,10 +286,15 @@
 
             var missing = Fonts.UnresolvedLocalFamilies(families);
             if (missing.Count > 0)
-            {
                 Session.PendingLocalFonts = missing.ToList();
+
+            if (dataOnlyByPath)
+                Session.ShowNotice(
+                    "자료연결 안내",
+                    "데이터가 경로로 저장되어있어서 불러올 수 없습니다. 항목의 모양만 변환됩니다.",
+                    missing.Count > 0 ? EditorDialog.LocalFont : EditorDialog.None);
+            else if (missing.Count > 0)
                 Session.OpenDialog(EditorDialog.LocalFont);
-            }
         }
         catch (Exception ex)
         {

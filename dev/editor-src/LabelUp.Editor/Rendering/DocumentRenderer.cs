@@ -183,6 +183,7 @@ public static class DocumentRenderer
         float? widthMm = null,
         float? heightMm = null,
         bool drawCutLines = true,
+        bool drawShapeEdge = true,
         string? skipObjectId = null)
     {
         var w = widthMm ?? doc.WidthMm;
@@ -219,7 +220,9 @@ public static class DocumentRenderer
             DrawObject(canvas, obj, resolve);
         }
 
-        if (drawCutLines && forExport && cell.Objects.Count == 0 && shape.Kind is "svg" or "ellipse" or "circle")
+        // 하트·원처럼 네모가 아닌 라벨은 테두리를 그려야 모양이 보인다. 편집기 화면은 제 테두리를
+        // 위에서 그렸으니 여기는 내보내기 전용이다. 인쇄 시트는 칼선을 따로 그리므로 끄고 부른다.
+        if (drawShapeEdge && drawCutLines && forExport && shape.Kind is "svg" or "ellipse" or "circle")
         {
             using var outline = new SKPaint
             {
@@ -2765,7 +2768,8 @@ public static class DocumentRenderer
                 forExport: true,
                 widthMm: slot.W,
                 heightMm: slot.H,
-                drawCutLines: drawCutLines);
+                drawCutLines: drawCutLines,
+                drawShapeEdge: false);
             if (drawCutLines)
             {
                 using var outline = new SKPaint

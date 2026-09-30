@@ -77,6 +77,9 @@
 </ErrorBoundary>
   <ErrorDialog />
   <UnsavedChangesDialog />
+  <DeleteBoundDialog />
+  <DataCreateConfirmDialog />
+  <NewDesignDialog />
 </div>
 
 @code {
@@ -845,9 +848,8 @@
     [JSInvokable]
     public void OnEditorDelete()
     {
-        if (Session.SelectedIds.Count == 0) return;
-        History.Push(Session.Document);
-        Session.DeleteSelection();
+        if (Session.Dialog != EditorDialog.None) return;
+        SelectionActions.DeleteSelection(Session, History);
     }
 
     [JSInvokable]

@@ -2,6 +2,7 @@
 @using LabelUp.Editor.Services
 @inject EditorSession Session
 @inject HistoryService History
+@inject IJSRuntime Js
 @implements IDisposable
 
 @if (Session.DataPanelVisible && Session.Document.Data is { } data)
@@ -66,7 +67,10 @@
                 {
                   var col = c;
                   <td>
-                    <input value="@data.Get(row, data.Columns[col])" @onchange="e => EditCell(data, row, col, e)" />
+                    <input id="@CellId(row, col)"
+                           class="@(IsBoundColumn(data, col) ? "is-bound" : null)"
+                           value="@data.Get(row, data.Columns[col])"
+                           @onchange="e => EditCell(data, row, col, e)" />
                   </td>
                 }
                 <td><button type="button" class="ed-btn" @onclick="() => DeleteRow(data, row)">삭제</button></td>
@@ -108,6 +112,28 @@
     protected override void OnInitialized() => Session.Changed += OnChanged;
     public void Dispose() => Session.Changed -= OnChanged;
     private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    /// <summary>칸마다 붙는 아이디. 자료연결 항목을 더블클릭했을 때 이 아이디로 커서를 보낸다.</summary>
+    private static string CellId(int row, int col) => $"lu-dcell-{row}-{col}";
+
+    /// <summary>라벨에 올라간 열인지. 표에서 눈에 띄게 하려고 표시한다.</summary>
+    private bool IsBoundColumn(DataSheet data, int col)
+        => col >= 0 && col < data.Columns.Count && Session.Document.HasBoundColumn(data.Columns[col]);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Session.FocusDataCell is not { } at) return;
+        Session.FocusDataCell = null;
+        if (!Session.DataPanelVisible || !Session.DataPanelExpanded) return;
+        try
+        {
+            await Js.InvokeVoidAsync("labelUpEditor.focusSelect", "#" + CellId(at.Row, at.Col));
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("데이터 칸으로 커서 옮기기 실패: " + ex.Message);
+        }
+    }
 
     private void Expand()
     {

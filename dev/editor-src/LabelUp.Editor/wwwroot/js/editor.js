@@ -652,6 +652,18 @@ window.labelUpEditor = {
     var el = document.querySelector(sel);
     if (el) el.click();
   },
+  // 입력칸에 커서를 두고 글을 다 고른다. 바로 타면 고쳐 쓰게 된다.
+  // 요소를 바로 받거나 '#아이디' 같은 선택자를 받는다.
+  focusSelect: function (target) {
+    var el = typeof target === 'string' ? document.querySelector(target) : target;
+    if (!el) return;
+    try {
+      el.focus({ preventScroll: false });
+      if (typeof el.select === 'function') el.select();
+      if (typeof el.scrollIntoView === 'function')
+        el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    } catch (e) { /* ignore */ }
+  },
   // 캔버스 손잡이 위 커서. class 는 패닝(is-panning) 쪽이 쓰고 있어 data 속성으로 나눠 둔다.
   setCanvasCursor: function (kind) {
     var el = document.querySelector('.canvas-stage');
@@ -2010,6 +2022,8 @@ window.labelUpEditor = {
       if (window.labelUpEditor && typeof window.labelUpEditor.ensureMobileDrawerExtras === 'function')
         window.labelUpEditor.ensureMobileDrawerExtras();
       relabelExport();
+      if (window.labelUpEditor && typeof window.labelUpEditor.syncRailColumns === 'function')
+        window.labelUpEditor.syncRailColumns();
     };
     var mo = new MutationObserver(dock);
     var start = function () {
@@ -2026,6 +2040,48 @@ window.labelUpEditor = {
       });
       wait.observe(document.documentElement, { childList: true, subtree: true });
     }
+  },
+  // 왼쪽 도구 판넬이 창 높이에 다 들어가지 못하면 두 줄(2열)로 편다.
+  // 다음 그림 그릴 때 한 번만 재도록 모아서 처리한다. 화면 바뀔 때마다 불려도 무겁지 않다.
+  syncRailColumns: function () {
+    var self = this;
+    if (!this._railOnResize) {
+      this._railOnResize = function () { self.syncRailColumns(); };
+      window.addEventListener('resize', this._railOnResize, { passive: true });
+    }
+    if (this._railTick) return;
+    this._railTick = requestAnimationFrame(function () {
+      self._railTick = 0;
+      self.applyRailColumns();
+    });
+  },
+  applyRailColumns: function () {
+    var rail = document.querySelector('[data-ed-float-tools]');
+    var bar = rail && rail.querySelector('[data-ed-float-tools-bar]');
+    if (!rail || !bar) return;
+    var mobile = !!(document.querySelector('.ed.is-mobile') || document.documentElement.classList.contains('is-ed-mobile'));
+    if (mobile) {
+      rail.classList.remove('is-two-col');
+      this._railKey = '';
+      return;
+    }
+    var two = rail.classList.contains('is-two-col');
+    // 창 높이와 단추 수가 그대로면 다시 잴 것이 없다. 자리 계산을 아끼려는 것이다.
+    var key = window.innerHeight + 'x' + bar.querySelectorAll('button, label, a').length + (two ? 'w' : 'n');
+    if (key === this._railKey) return;
+    this._railKey = key;
+    var avail = bar.clientHeight;
+    if (avail <= 0) {
+      this._railKey = '';
+      return;
+    }
+    if (two) {
+      // 한 줄로 되돌릴 때는 여유를 두어 경계에서 왔다 갔다 하지 않게 한다.
+      if (this._railNeed && avail >= this._railNeed + 16) rail.classList.remove('is-two-col');
+      return;
+    }
+    this._railNeed = bar.scrollHeight;
+    if (this._railNeed > avail + 1) rail.classList.add('is-two-col');
   },
   ensureLayerOps: function () {
     if (this._layerOps) return this._layerOps;

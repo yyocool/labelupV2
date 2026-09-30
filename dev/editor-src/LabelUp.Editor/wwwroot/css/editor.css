@@ -1055,6 +1055,14 @@ html[data-ed-save="off"] .ed-autosave:hover {
   background: linear-gradient(145deg, var(--burgundy-light), var(--burgundy-dark));
   color: #fff;
 }
+/* 그림으로 그린 도구 아이콘(바코드·QR·이미지). 글자 아이콘과 보이는 크기를 맞춘다.
+   색은 currentColor 라 고를 때 글자 아이콘처럼 같이 하얘진다. */
+.ed-float-tools__gico {
+  display: block;
+  /* 16칸 좌표를 1:1 로 펴야 막대와 점이 흐려지지 않는다. */
+  width: 16px;
+  height: 16px;
+}
 .ed-float-tools__label {
   font-size: 9px;
   font-weight: 700;
@@ -1538,6 +1546,27 @@ html[data-ed-save="off"] .ed-autosave:hover {
   display: block;
   width: 18px;
   height: 18px;
+}
+/* 자료연결 항목임을 속성바 맨 앞에 알리는 표시 */
+.ed-ctx-bar__bound {
+  gap: 6px;
+  padding: 0 8px;
+  height: 26px;
+  border: 1px solid #e8d4db;
+  border-radius: 8px;
+  background: var(--ed-primary-soft, #f6eef1);
+  white-space: nowrap;
+}
+.ed-ctx-bar__bound em {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 800;
+  color: #8a7a7e;
+}
+.ed-ctx-bar__bound b {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--ed-primary, #7b2840);
 }
 /* 여러 항목 맞춤 아이콘. 막대는 글자색, 기준선은 강조색으로 구분한다. */
 .ed-ctx-bar__slot[data-slot="align"] { gap: 2px; }
@@ -2361,10 +2390,14 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   align-self: stretch;
   border: 0;
 }
+/* 왼쪽 판넬에 같은 단추가 있으므로 헤더에서는 감춘다.
+   모바일은 왼쪽 판넬에 이 묶음이 없으므로 헤더 단추를 그대로 둔다. */
 .ed:not(.is-mobile) .ed-topbar__actions [data-tut="mydesign"],
 .ed:not(.is-mobile) .ed-topbar__actions [data-tut="data-import"],
+.ed:not(.is-mobile) .ed-topbar__actions [data-tut="data-create"],
 .ed:not(.is-mobile) .ed-topbar__actions [data-ed-file-src="mydesign"],
-.ed:not(.is-mobile) .ed-topbar__actions [data-ed-file-src="data-import"] {
+.ed:not(.is-mobile) .ed-topbar__actions [data-ed-file-src="data-import"],
+.ed:not(.is-mobile) .ed-topbar__actions [data-ed-file-src="data-create"] {
   display: none !important;
 }
 .ed-topbar__actions [data-tut="preview-btn"] {
@@ -2465,6 +2498,74 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   background: transparent;
   padding: 0;
 }
+/* —— 왼쪽 판넬 두 줄(2열) —— */
+/* 창 높이가 모자라 도구가 아래에서 잘릴 때 JS가 is-two-col 을 붙인다.
+   판넬 폭을 두 배로 넓히고 단추를 두 줄로 흘려 모든 도구가 보이게 한다. */
+.ed:not(.is-mobile) .ed-float-tools.is-two-col,
+.ed:not(.is-mobile) .ed-float-tools.is-two-col .ed-float-tools__bar {
+  width: 132px;
+  max-width: 132px;
+}
+.ed:not(.is-mobile) .ed-float-tools.is-two-col .ed-float-tools__bar {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  column-gap: 2px;
+  /* 두 줄로도 모자랄 만큼 창이 낮으면 마지막 수단으로 굴린다. */
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+/* 구분선은 한 줄을 다 쓰고, 단추만 반씩 나눠 선다. */
+.ed:not(.is-mobile) .ed-float-tools.is-two-col .ed-float-tools__bar > * {
+  width: 100%;
+  max-width: 100%;
+}
+/* 묶음의 테두리를 없애 단추를 모두 같은 줄 흐름에 올린다.
+   그래야 "데이터 가져오기 + 데이터 생성하기"처럼 다른 묶음끼리도 짝지어 세울 수 있다.
+   display:contents 를 모르는 옛 브라우저에서는 묶음별로 두 줄이 되어 모양만 조금 달라진다. */
+.ed:not(.is-mobile) .ed-float-tools.is-two-col .ed-float-tools__group {
+  display: contents;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+/* 두 줄일 때 짝 짓는 차례.
+   [용지선택 템플릿선택] [데이터 가져오기 데이터 생성하기] ─── [내 디자인 튜토리얼] */
+.ed:not(.is-mobile) .ed-float-tools.is-two-col [data-tut="presets"] { order: 2; }
+.ed:not(.is-mobile) .ed-float-tools.is-two-col [data-tut="themes"] { order: 3; }
+.ed:not(.is-mobile) .ed-float-tools.is-two-col [data-tut="data-import"] { order: 4; }
+.ed:not(.is-mobile) .ed-float-tools.is-two-col [data-tut="data-create"] { order: 5; }
+.ed:not(.is-mobile) .ed-float-tools.is-two-col .ed-float-tools__divider--files { order: 6; }
+.ed:not(.is-mobile) .ed-float-tools.is-two-col [data-tut="mydesign"] { order: 7; }
+.ed:not(.is-mobile) .ed-float-tools.is-two-col .ed-tut-reopen { order: 8; }
+/* 맨 끝 구분선은 아래에 남는 것이 없어 자리만 차지한다. */
+.ed:not(.is-mobile) .ed-float-tools.is-two-col .ed-float-tools__divider:has(+ .ed-float-tools__dock) {
+  display: none;
+}
+.ed:not(.is-mobile) .ed-float-tools.is-two-col .ed-float-tools__group > *,
+.ed:not(.is-mobile) .ed-float-tools.is-two-col .ed-float-tools__bar > .ed-tut-reopen,
+.ed:not(.is-mobile) .ed-float-tools.is-two-col .ed-float-tools__bar > .ed-corner-fab {
+  flex: 0 0 calc(50% - 1px);
+  width: calc(50% - 1px);
+  max-width: calc(50% - 1px);
+}
+/* 한 줄일 때는 용지·템플릿 묶음을 맨 아래로 밀지만, 두 줄일 때는 차례대로 놓는다. */
+.ed:not(.is-mobile) .ed-float-tools.is-two-col .ed-float-tools__group--stack {
+  margin-top: 0;
+}
+/* 도형 목록은 판넬 바깥 오른쪽에 편다. 칸이 반 폭이라 기준을 판넬로 옮긴다. */
+.ed:not(.is-mobile) .ed-float-tools.is-two-col .ed-float-tools__shape {
+  position: static;
+}
+.ed:not(.is-mobile) .ed-float-tools.is-two-col .ed-shape-pop {
+  top: 8px;
+  left: calc(100% + 8px);
+}
+/* 판넬이 넓어진 만큼 작업 공간도 비켜 준다. */
+.ed:not(.is-mobile) .ed__workspace:has(.ed-float-tools.is-two-col) {
+  padding-left: 132px;
+}
+
 .ed-corner-fabs:empty,
 .ed-corner-fabs:not(:has(.ed-corner-fab)) { display: none !important; }
 
@@ -3952,6 +4053,14 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 .ed-data-table th, .ed-data-table td { border: 1px solid var(--ed-border); padding: 4px 6px; }
 .ed-data-table th { background: #faf8f6; }
 .ed-data-table input { width: 100%; border: none; font: inherit; padding: 4px; }
+/* 라벨에 올라간 열은 옅게 칠해 구분한다. */
+.ed-data-table input.is-bound { background: #fdf6f8; font-weight: 700; }
+/* 자료연결 항목을 더블클릭해 여기로 온 칸이 눈에 띄게 한다. */
+.ed-data-table input:focus {
+  outline: 2px solid var(--ed-primary, #7b2840);
+  outline-offset: -2px;
+  background: #fff;
+}
 .ed-data-table--panel td { cursor: grab; background: #fff; }
 .ed-data-table--panel td:hover { background: var(--ed-primary-soft); }
 
@@ -4072,6 +4181,16 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   line-height: 1.55;
   word-break: break-word;
   white-space: pre-wrap;
+}
+/* 확인 팝업 문구. 오류 문구와 달리 소스의 줄바꿈을 살리지 않고 칸 너비에 맞춰 흐르게 한다.
+   낱말 중간에서 끊기지 않도록 keep-all 을 쓴다. */
+.ed-confirm-msg {
+  margin: 0;
+  color: #7b2840;
+  font-size: 14px;
+  line-height: 1.6;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 .ed-crash {
   margin: 48px auto;

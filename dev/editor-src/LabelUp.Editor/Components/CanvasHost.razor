@@ -375,19 +375,51 @@
         var p = StagePoint(e);
         var (dx, dy) = ScreenToDoc(p.X, p.Y);
         var hit = HitTest.HitObject(Session.CurrentCell.Objects, dx, dy, _touchPointer ? 1.6f : 0.8f);
-        if (hit is null || hit.Type != ObjectType.Text)
+        if (hit is null)
+            return;
+        if (hit.DataBound)
+        {
+            // 값이 자료표에서 오는 항목은 데이터 판넬을 펼쳐 그 칸에서 고치게 한다.
+            Session.Select(hit.Id);
+            Session.OpenDataCellFor(hit);
+            return;
+        }
+        if (hit.Type is ObjectType.Barcode or ObjectType.Qr)
+        {
+            BeginValueEdit(hit);
+            return;
+        }
+        if (hit.Type != ObjectType.Text)
             return;
         if (!CanEditInline(hit))
         {
+            // 자료연결 항목은 위에서 이미 판넬로 보냈다.
             Session.Status = hit.Locked
                 ? "잠긴 항목은 고칠 수 없습니다"
-                : hit.DataBound
-                    ? "자료연결 항목은 값이 자료에서 옵니다"
-                    : "사용자정의 항목은 속성바에서 바꿔주세요";
+                : "사용자정의 항목은 속성바에서 바꿔주세요";
             Session.Notify();
             return;
         }
         BeginInlineEdit(hit);
+    }
+
+    /// <summary>
+    /// 바코드·QR은 캔버스에 글을 얹어 고칠 수 없다(값이 바뀌면 막대를 다시 그려야 한다).
+    /// 대신 그 항목을 고르고 속성바 내용 칸으로 커서를 보내 바로 타 넣게 한다.
+    /// </summary>
+    private void BeginValueEdit(DesignObject obj)
+    {
+        if (obj.Locked)
+        {
+            Session.Status = "잠긴 항목은 고칠 수 없습니다";
+            Session.Notify();
+            return;
+        }
+        var what = obj.Type == ObjectType.Qr ? "QR" : "바코드";
+        Session.FocusValueObjectId = obj.Id;
+        Session.Select(obj.Id);
+        Session.Status = $"{what} 내용 편집 — 속성바 내용 칸에 타 주세요";
+        Session.Notify();
     }
 
     private void BeginInlineEdit(DesignObject obj)
@@ -1158,9 +1190,7 @@
     private void CtxDelete()
     {
         _ctxOpen = false;
-        if (Session.SelectedIds.Count == 0) return;
-        History.Push(Session.Document);
-        Session.DeleteSelection();
+        SelectionActions.DeleteSelection(Session, History);
     }
 
     private void CtxCopy()

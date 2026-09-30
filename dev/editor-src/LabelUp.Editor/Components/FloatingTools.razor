@@ -23,7 +23,7 @@
                 class="ed-float-tools__item @(Session.Tool == item.Tool ? "is-active" : null)"
                 data-tut="@item.Tut"
                 @onclick="() => OnTool(item)">
-          <span class="ed-float-tools__ico">@item.Icon</span>
+          <span class="ed-float-tools__ico">@IconMarkup(item)</span>
           <span class="ed-float-tools__label">@item.Label</span>
         </button>
       }
@@ -116,13 +116,38 @@
 @code {
     private readonly record struct ToolItem(EditorTool Tool, ObjectType? Type, string Icon, string Label, string Tut);
 
+    /// <summary>
+    /// 도구 아이콘을 그대로 내보낸다. 글자 아이콘과 SVG 그림을 섞어 쓰기 때문이다.
+    /// 값은 모두 아래 Tools 에 박아 둔 상수여서 바깥에서 들어온 글이 섞일 일이 없다.
+    /// </summary>
+    private static MarkupString IconMarkup(ToolItem item) => new(item.Icon);
+
+    /// <summary>바코드 아이콘. 굵기가 다른 막대로 실제 바코드처럼 보이게 한다.</summary>
+    private const string BarcodeIcon =
+        "<svg class='ed-float-tools__gico' viewBox='0 0 16 16' aria-hidden='true'>"
+        + "<path fill='currentColor' d='M1.5 2.5h1.4v11H1.5V2.5Zm2.4 0h1v11h-1V2.5Zm2 0h2v11h-2V2.5Zm3 0h1v11h-1V2.5Zm2 0h1.4v11h-1.4V2.5Zm2.4 0h1.2v11h-1.2V2.5Z'/></svg>";
+
+    /// <summary>QR 아이콘. 모서리 눈 세 개와 오른쪽 아래 점으로 QR 느낌을 낸다.</summary>
+    private const string QrIcon =
+        "<svg class='ed-float-tools__gico' viewBox='0 0 16 16' aria-hidden='true'>"
+        + "<path fill='currentColor' fill-rule='evenodd' d='M1 1h5.5v5.5H1V1Zm1.4 1.4v2.7h2.7V2.4H2.4ZM9.5 1H15v5.5H9.5V1Z"
+        + "m1.4 1.4v2.7h2.7V2.4h-2.7ZM1 9.5h5.5V15H1V9.5Zm1.4 1.4v2.7h2.7v-2.7H2.4Zm7.1-1.4h2.2v2.2H9.5V9.5Z"
+        + "m3.3 0H15v2.2h-2.2V9.5Zm-3.3 3.3h2.2V15H9.5v-2.2Zm3.3 0H15V15h-2.2v-2.2Z'/></svg>";
+
+    /// <summary>이미지 아이콘. 사진틀 안에 해와 산을 넣은 흔한 그림 기호다.</summary>
+    private const string ImageIcon =
+        "<svg class='ed-float-tools__gico' viewBox='0 0 16 16' aria-hidden='true'>"
+        + "<path fill='currentColor' fill-rule='evenodd' d='M2.4 2h11.2c.8 0 1.4.6 1.4 1.4v9.2c0 .8-.6 1.4-1.4 1.4H2.4c-.8 0-1.4-.6-1.4-1.4V3.4C1 2.6 1.6 2 2.4 2Zm0 1.4v9.2h11.2V3.4H2.4Z'/>"
+        + "<path fill='currentColor' d='M5.3 5.2a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4Z'/>"
+        + "<path fill='currentColor' d='M2.9 11.6h10.2L10 7.6l-2.2 2.6-1.4-1.3-3.5 2.7Z'/></svg>";
+
     private static readonly ToolItem[] Tools =
     [
         new(EditorTool.Select, null, "↖", "선택", "tool-select"),
         new(EditorTool.Text, ObjectType.Text, "T", "텍스트", "tool-text"),
-        new(EditorTool.Barcode, ObjectType.Barcode, "▮▮", "바코드", "tool-barcode"),
-        new(EditorTool.Qr, ObjectType.Qr, "▣", "QR", "tool-qr"),
-        new(EditorTool.Image, ObjectType.Image, "🖼", "이미지", "tool-image"),
+        new(EditorTool.Barcode, ObjectType.Barcode, BarcodeIcon, "바코드", "tool-barcode"),
+        new(EditorTool.Qr, ObjectType.Qr, QrIcon, "QR", "tool-qr"),
+        new(EditorTool.Image, ObjectType.Image, ImageIcon, "이미지", "tool-image"),
         new(EditorTool.Table, ObjectType.Table, "▦", "표", "tool-table"),
         new(EditorTool.Clipart, ObjectType.Clipart, "★", "클립아트", "tool-clipart")
     ];
@@ -248,31 +273,16 @@
         Session.OpenDialog(EditorDialog.ProjectPicker);
     }
 
-    private void OpenDataCreate() => Session.OpenDialog(EditorDialog.DataCreate);
+    private void OpenDataCreate() => Session.RequestDataCreate();
 
-    private async Task OnDataFile(InputFileChangeEventArgs e)
-    {
-        try
-        {
-            var file = e.File;
-            await using var stream = file.OpenReadStream(20 * 1024 * 1024);
-            using var ms = new MemoryStream();
-            await stream.CopyToAsync(ms);
-            var sheet = DataImport.Parse(file.Name, ms.ToArray());
-            History.Push(Session.Document);
-            Session.Document.Data = sheet;
-            Session.SyncDataLabels();
-            Session.ShowDataPanelIfPresent(expand: false);
-            Session.Dirty = true;
-            Session.Status = $"자료 {sheet.RowCount}행 가져옴";
-        }
-        catch (Exception ex)
-        {
-            EditorLog.Error("자료 가져오기 실패", ex);
-            Session.Status = "자료 가져오기 실패: " + ex.Message;
-            Session.Notify();
-        }
-    }
+    private Task OnDataFile(InputFileChangeEventArgs e)
+        => DataImportActions.ImportAsync(
+            Session, DataImport, History, e.File,
+            async () =>
+            {
+                await InvokeAsync(StateHasChanged);
+                await Task.Delay(1);
+            });
 
     private async Task OnImageFile(InputFileChangeEventArgs e)
     {

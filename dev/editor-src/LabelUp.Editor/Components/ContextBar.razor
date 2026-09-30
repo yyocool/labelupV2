@@ -15,6 +15,16 @@
   @if (Session.Selected is { } o)
   {
     <div class="ed-ctx-bar__row ed-ctx-bar__row--main" @key="o.Id">
+      @* 자료연결 항목은 어느 열에서 값이 오는지부터 보여 준다. 줄 맨 앞이라 스크롤 없이 보인다. *@
+      @if (o.DataBound)
+      {
+        <span class="ed-ctx-bar__slot ed-ctx-bar__bound" data-slot="bound"
+              title="값은 데이터 판넬에서 바꿉니다. 캔버스에서 이 항목을 더블클릭하면 그 칸으로 갑니다">
+          <em>데이터 연결된 항목</em>
+          <b>@BoundColumnName(o) 열</b>
+        </span>
+        <span class="ed-ctx-bar__div"></span>
+      }
       @* 색은 종류를 가리지 않고 속성바 맨 앞에 "주 색 → 배경색 → 배경투명" 순으로 둔다. *@
       @if (ShowMainColor(o) || ShowBackground(o))
       {
@@ -162,7 +172,14 @@
       {
         <span class="ed-ctx-bar__div"></span>
         <span class="ed-ctx-bar__slot">
-          @if (TextModes.IsPlain(o.TextMode))
+          @if (o.DataBound)
+          {
+            @* 값이 자료표에서 오므로 여기서는 고칠 수 없다. 보기만 하고 판넬로 안내한다. *@
+            <input class="ed-ctx-bar__text" value="@BoundValue(o)" readonly
+                   title="자료표에서 온 값입니다. 데이터 판넬에서 바꿔 주세요" />
+            <button type="button" title="데이터 판넬에서 이 값 고치기" @onclick="() => OpenDataCell(o)">판넬에서 고치기</button>
+          }
+          else if (TextModes.IsPlain(o.TextMode))
           {
             <div @ref="_richRef"
                  class="ed-ctx-bar__text ed-ctx-bar__rich"
@@ -372,7 +389,16 @@
               <option value="H">H</option>
             </select>
           }
-          <input class="ed-ctx-bar__text" title="@BarcodeCatalog.ValueFieldLabel(o.BarcodeFormat)" value="@BarcodeFieldValue(o)" @onchange="e => SetString(v => o.BarcodeValue = BarcodeFieldStore(o, v), e)" />
+          @if (o.DataBound)
+          {
+            <input class="ed-ctx-bar__text" value="@BoundValue(o)" readonly
+                   title="자료표에서 온 값입니다. 데이터 판넬에서 바꿔 주세요" />
+            <button type="button" title="데이터 판넬에서 이 값 고치기" @onclick="() => OpenDataCell(o)">판넬에서 고치기</button>
+          }
+          else
+          {
+            <input @ref="_valueRef" class="ed-ctx-bar__text" title="@BarcodeCatalog.ValueFieldLabel(o.BarcodeFormat)" value="@BarcodeFieldValue(o)" @onchange="e => SetString(v => o.BarcodeValue = BarcodeFieldStore(o, v), e)" />
+          }
         </span>
       }
 
@@ -432,9 +458,11 @@
         _self = null;
     }
 
-    /// <summary>용지를 고르는 동안은 속성바를 감춘다. 팝업 위로 떠서 내용을 가린다.</summary>
-    private bool HiddenForDialog
-        => Session.Dialog is EditorDialog.PaperPicker or EditorDialog.PaperChange;
+    /// <summary>
+    /// 팝업을 띄운 동안은 속성바를 감춘다. 속성바가 팝업 위로 떠서(z-index 260 > 200) 내용을 가린다.
+    /// 팝업은 모두 화면 가운데를 덮으므로 그 동안 속성바를 쓸 일도 없다.
+    /// </summary>
+    private bool HiddenForDialog => Session.Dialog != EditorDialog.None;
 
     private bool _preloadingFont;
     private string? _boundObjectId;
@@ -444,6 +472,7 @@
     private bool _opacityOpen;
     private bool _richHistory;
     private ElementReference _richRef;
+    private ElementReference _valueRef;
     private DotNetObjectReference<ContextBar>? _self;
     private RichCaretStyle? _caret;
     private const string BorderFallback = "#000000";
@@ -532,7 +561,10 @@
     {
         if (firstRender)
             _self = DotNetObjectReference.Create(this);
-        if (Session.Selected is not { Type: ObjectType.Text } o || !TextModes.IsPlain(o.TextMode))
+        await FocusRequestedValueAsync();
+        // 자료연결 항목은 내용 칸을 읽기 전용 입력으로 그리므로 편집기를 붙일 자리가 없다.
+        if (Session.Selected is not { Type: ObjectType.Text, DataBound: false } o
+            || !TextModes.IsPlain(o.TextMode))
             return;
         RichTextModel.Ensure(o);
         try
@@ -543,6 +575,37 @@
         catch (Exception ex)
         {
             EditorLog.Error("일반텍스트 편집기 연결 실패", ex);
+        }
+    }
+
+    /// <summary>자료연결 항목이 값을 받아오는 열 이름.</summary>
+    private static string BoundColumnName(DesignObject o)
+    {
+        var col = (o.DataColumn ?? "").Trim();
+        return col.Length == 0 ? "이름 없는" : col;
+    }
+
+    /// <summary>자료표에서 지금 이 라벨에 들어오는 값. 보여 주기만 한다.</summary>
+    private string BoundValue(DesignObject o) => Session.ResolveObjectText(o);
+
+    private void OpenDataCell(DesignObject o) => Session.OpenDataCellFor(o);
+
+    /// <summary>캔버스에서 바코드·QR을 더블클릭했을 때 내용 칸으로 커서를 옮기고 글을 다 고른다.</summary>
+    private async Task FocusRequestedValueAsync()
+    {
+        if (Session.FocusValueObjectId is not { } id) return;
+        Session.FocusValueObjectId = null;
+        if (Session.Selected is not { DataBound: false } sel
+            || sel.Id != id
+            || sel.Type is not (ObjectType.Barcode or ObjectType.Qr))
+            return;
+        try
+        {
+            await Js.InvokeVoidAsync("labelUpEditor.focusSelect", _valueRef);
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("내용 칸으로 커서 옮기기 실패: " + ex.Message);
         }
     }
 
@@ -655,12 +718,7 @@
         Session.PasteClipboard();
     }
 
-    private void DeleteSelected()
-    {
-        if (Session.SelectedIds.Count == 0) return;
-        History.Push(Session.Document);
-        Session.DeleteSelection();
-    }
+    private void DeleteSelected() => SelectionActions.DeleteSelection(Session, History);
 
     private void OpenClipartReplace()
     {

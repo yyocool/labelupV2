@@ -97,9 +97,13 @@
   <div class="ed-m-scrim @(_mobileMenu ? "is-open" : null)" @onclick="CloseMobileMenu"></div>
   <div class="ed-topbar__actions @(_mobileMenu ? "is-open" : null)" data-tut="topbar-actions">
     <button type="button" class="ed-m-drawer-close" @onclick="CloseMobileMenu">메뉴 닫기</button>
-    <button type="button" class="ed-btn" data-tut="save-file" title="라벨 파일(.lbu)로 내 PC에 저장" @onclick="SaveToFile">
+    <button type="button" class="ed-btn" data-tut="new-design" title="새 디자인 시작 · 지금 라벨을 모두 비웁니다" @onclick="OpenNewDesign">
+      <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M3.2 1.6h7.2c.7 0 1.2.5 1.2 1.2v10.4c0 .7-.5 1.2-1.2 1.2H3.2c-.7 0-1.2-.5-1.2-1.2V2.8c0-.7.5-1.2 1.2-1.2Zm.2 1.4v10h6.8V3H3.4Z"/><path fill="currentColor" d="M6.1 5h1.4v2.3h2.3v1.4H7.5V11H6.1V8.7H3.8V7.3h2.3V5Z"/></svg>
+      새 디자인
+    </button>
+    <button type="button" class="ed-btn" data-tut="save-file" title="라벨 파일(.lbu)로 내 PC에 저장 · 임시로 쓰는 단추입니다" @onclick="SaveToFile">
       <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M7.3 1.8h1.4v6.1l1.8-1.8 1 1-3.5 3.5L4.5 7.1l1-1 1.8 1.8V1.8ZM2.6 11.2H4v1.6h8v-1.6h1.4v2a1 1 0 0 1-1 1H3.6a1 1 0 0 1-1-1v-2Z"/></svg>
-      저장
+      저장(임시 사용)
     </button>
     <button type="button" class="ed-btn ed-btn--shop" data-tut="shop" title="라벨 상품 구매" @onclick="OpenShop">
       <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M5.2 2.2 4.4 5H2.6a.6.6 0 0 0-.6.7l.9 6.2A1.6 1.6 0 0 0 4.5 14h7a1.6 1.6 0 0 0 1.6-1.1l.9-6.2a.6.6 0 0 0-.6-.7h-1.8l-.8-2.8A1.4 1.4 0 0 0 9.5 1.8H6.5c-.6 0-1.1.4-1.3.9Zm1.4.8h2.8l.6 2H6l.6-2ZM5 8.2a.7.7 0 0 1 1.4 0v2.4a.7.7 0 1 1-1.4 0V8.2Zm4.6 0a.7.7 0 0 1 1.4 0v2.4a.7.7 0 1 1-1.4 0V8.2Z"/></svg>
@@ -114,7 +118,7 @@
       데이터 가져오기
         <InputFile OnChange="OnDataFile" accept=".csv,.txt,.xlsx,.xls,.mdb" />
     </label>
-    <button type="button" class="ed-btn" data-tut="data-create" title="데이터 생성하기" @onclick="() => Session.OpenDialog(EditorDialog.DataCreate)">
+    <button type="button" class="ed-btn" data-tut="data-create" title="데이터 생성하기" @onclick="Session.RequestDataCreate">
       <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3 2.2h10c.6 0 1 .4 1 1V13c0 .6-.4 1-1 1H3c-.6 0-1-.4-1-1V3.2c0-.6.4-1 1-1Zm0 1.4V5h10V3.6H3Zm0 2.8v1.8h3.2V6.4H3Zm4.6 0v1.8H13V6.4H7.6ZM3 9.6V13h3.2V9.6H3Zm4.6 0V13H13V9.6H7.6Z"/></svg>
       데이터 생성하기
     </button>
@@ -383,6 +387,13 @@
         return text + ".lbu";
     }
 
+    /// <summary>새 디자인 시작. 지금 작업을 계정에 저장할지 먼저 묻는다.</summary>
+    private void OpenNewDesign()
+    {
+        CloseMobileMenu();
+        Session.OpenDialog(EditorDialog.NewDesignConfirm);
+    }
+
     private Task SaveDesign() => SaveDesign(auto: false);
 
     private async Task SaveDesign(bool auto)
@@ -455,52 +466,16 @@
         }
     }
 
-    private async Task OnDataFile(InputFileChangeEventArgs e)
-    {
-        try
-        {
-            var file = e.File;
-            await using var stream = file.OpenReadStream(20 * 1024 * 1024);
-            using var ms = new MemoryStream();
-            await stream.CopyToAsync(ms);
-            var sheet = DataImport.Parse(file.Name, ms.ToArray());
-            History.Push(Session.Document);
-            Session.Document.Data = sheet;
-            Session.SyncDataLabels();
-            Session.ShowDataPanelIfPresent(expand: false);
-            Session.Dirty = true;
-            Session.Status = $"자료 {sheet.RowCount}행 가져옴";
-        }
-        catch (Exception ex)
-        {
-            EditorLog.Error("자료 가져오기 실패", ex);
-            Session.Status = "자료 가져오기 실패: " + ex.Message;
-            Session.Notify();
-        }
-    }
+    private Task OnDataFile(InputFileChangeEventArgs e)
+        => DataImportActions.ImportAsync(
+            Session, DataImport, History, e.File,
+            async () =>
+            {
+                await InvokeAsync(StateHasChanged);
+                await Task.Delay(1);
+            });
 
-    private string? CapturePreview()
-    {
-        try
-        {
-            Session.Document.EnsureStructure();
-            var maxMm = Math.Max(Session.Document.WidthMm, Session.Document.HeightMm);
-            var dpi = maxMm <= 1 ? 72f : Math.Clamp(480f / maxMm * 25.4f, 36f, 120f);
-            var bytes = DocumentRenderer.ExportPng(
-                Session.Document,
-                Session.CurrentCell,
-                dpi,
-                o => Session.ResolveObjectText(o));
-            if (bytes.Length is 0 or > 1_500_000)
-                return null;
-            return "data:image/png;base64," + Convert.ToBase64String(bytes);
-        }
-        catch (Exception ex)
-        {
-            EditorLog.Warn("미리보기 이미지 생성 실패: " + ex.Message);
-            return null;
-        }
-    }
+    private string? CapturePreview() => DesignSaveService.CapturePreview(Session);
 
     private static string Sanitize(string name)
     {

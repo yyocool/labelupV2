@@ -96,7 +96,13 @@ public enum EditorDialog
     ProjectPicker,
     UnsavedChanges,
     Error,
-    PaperChange
+    PaperChange,
+    /// <summary>자료연결 항목을 지우기 전 확인.</summary>
+    DeleteBoundConfirm,
+    /// <summary>이미 자료가 있는데 새로 만들려 할 때 확인.</summary>
+    DataCreateConfirm,
+    /// <summary>새 디자인을 시작하기 전 지금 작업을 저장할지 확인.</summary>
+    NewDesignConfirm
 }
 
 public enum TextMode
