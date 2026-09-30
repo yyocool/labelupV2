@@ -22,9 +22,9 @@
             <label class="ed-form-grid__full">
               바코드 종류
               <select value="@_barcodeFormat" @onchange="OnBarcodeFormat">
-                @foreach (var spec in BarcodeCatalog.OneD)
+                @foreach (var spec in BarcodeCatalog.SelectableOneD(_barcodeFormat))
                 {
-                  <option value="@spec.Id">@spec.Label</option>
+                  <option value="@spec.Id">@BarcodeCatalog.OptionLabel(spec)</option>
                 }
               </select>
             </label>
@@ -46,9 +46,9 @@
             <label class="ed-form-grid__full">
               종류
               <select @bind="_barcodeFormat">
-                @foreach (var spec in BarcodeCatalog.TwoD)
+                @foreach (var spec in BarcodeCatalog.SelectableTwoD(_barcodeFormat))
                 {
-                  <option value="@spec.Id">@spec.Label</option>
+                  <option value="@spec.Id">@BarcodeCatalog.OptionLabel(spec)</option>
                 }
               </select>
             </label>

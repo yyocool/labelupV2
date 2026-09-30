@@ -143,14 +143,22 @@
     private IReadOnlyList<ShopPaperItem> _source = [];
     private readonly Dictionary<int, PaperSpec> _preview = new();
 
+    /// <summary>
+    /// 용지선택 목록에서 감추는 용지 번호 앞자리. 목록에만 걸리고, 이미 쓰고 있는 용지나
+    /// 타사 파일 변환·관리자 화면에는 그대로 쓰인다.
+    /// </summary>
+    private const string HiddenSkuPrefix = "PC";
+
+    private static bool HiddenFromList(ShopPaperItem item)
+        => (item.Sku ?? "").TrimStart().StartsWith(HiddenSkuPrefix, StringComparison.OrdinalIgnoreCase);
+
     private IEnumerable<ShopPaperItem> TabItems
     {
         get
         {
             var shop = _source.Where(i => ItemKind(i) == _tab).ToList();
-            if (shop.Count > 0)
-                return shop;
-            return CatalogFallback(_tab);
+            IEnumerable<ShopPaperItem> list = shop.Count > 0 ? shop : CatalogFallback(_tab);
+            return list.Where(i => !HiddenFromList(i));
         }
     }
 

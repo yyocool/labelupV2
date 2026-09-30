@@ -312,6 +312,20 @@ public sealed class EditorSession
         Notify();
     }
 
+    /// <summary>현재 라벨 칸에서 화면에 보이는 항목을 모두 선택한다. 라벨 밖으로 완전히 벗어난 항목은 뺀다.</summary>
+    /// <returns>선택된 항목 수.</returns>
+    public int SelectAllInLabel()
+    {
+        var w = Document.WidthMm;
+        var h = Document.HeightMm;
+        var ids = CurrentCell.Objects
+            .Where(o => o.Visible && !LabelDocument.IsOutsideLabel(o, w, h))
+            .Select(o => o.Id)
+            .ToList();
+        SelectMany(ids);
+        return ids.Count;
+    }
+
     public void ToggleSelect(string id)
     {
         if (!SelectedIds.Add(id)) SelectedIds.Remove(id);

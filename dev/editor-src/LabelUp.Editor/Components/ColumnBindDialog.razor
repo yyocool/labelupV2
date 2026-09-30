@@ -51,15 +51,15 @@
             종류
             <select value="@_barcode" @onchange="e => _barcode = e.Value?.ToString() ?? _barcode">
               <optgroup label="2D / QR">
-                @foreach (var spec in BarcodeCatalog.TwoD)
+                @foreach (var spec in BarcodeCatalog.SelectableTwoD(_barcode))
                 {
-                  <option value="@spec.Id">@spec.Label</option>
+                  <option value="@spec.Id">@BarcodeCatalog.OptionLabel(spec)</option>
                 }
               </optgroup>
               <optgroup label="1D 바코드">
-                @foreach (var spec in BarcodeCatalog.OneD)
+                @foreach (var spec in BarcodeCatalog.SelectableOneD(_barcode))
                 {
-                  <option value="@spec.Id">@spec.Label</option>
+                  <option value="@spec.Id">@BarcodeCatalog.OptionLabel(spec)</option>
                 }
               </optgroup>
             </select>

@@ -812,7 +812,12 @@ window.labelUpEditor = {
       var t = e.target;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
       var key = (e.key || '').toLowerCase();
-      if ((e.ctrlKey || e.metaKey) && key === 'c') {
+      // 팝업 안에서는 브라우저 기본 전체 선택을 그대로 둔다.
+      if ((e.ctrlKey || e.metaKey) && key === 'a') {
+        if (t && t.closest && t.closest('.ed-modal')) return;
+        e.preventDefault();
+        dotnet.invokeMethodAsync('OnEditorSelectAll');
+      } else if ((e.ctrlKey || e.metaKey) && key === 'c') {
         e.preventDefault();
         dotnet.invokeMethodAsync('OnEditorCopy');
       } else if ((e.ctrlKey || e.metaKey) && key === 'v') {
@@ -2889,7 +2894,9 @@ window.labelUpEditor = {
       var selected = hasSelection();
       if (selected) {
         document.documentElement.classList.add('lu-ctx-on');
-        bar.hidden = false;
+        // Blazor 가 그리는 막대는 스스로 보임을 정한다(용지선택 팝업 중에는 숨긴다).
+        // 여기서 풀어 주면 팝업 위로 다시 떠오른다.
+        if (!bar.hasAttribute('data-blazor-ctx')) bar.hidden = false;
         var key = selectionKey();
         if (busy) return;
         if (key && key === lastKey && bar.getAttribute('data-ready') === '1') return;

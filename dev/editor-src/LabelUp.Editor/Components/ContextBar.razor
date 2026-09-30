@@ -10,7 +10,8 @@
 @inject IJSRuntime Js
 @implements IDisposable
 
-<div id="lu-ctx-bar" class="ed-ctx-bar" data-blazor-ctx data-tut="ctx-bar" hidden="@(Session.Selected is null)" @onpointerdown:stopPropagation="true">
+@* 속성바는 용지선택 팝업보다 위에 떠(z-index 260 > 200) 팝업을 가린다. 용지 고르는 동안은 숨긴다. *@
+<div id="lu-ctx-bar" class="ed-ctx-bar" data-blazor-ctx data-tut="ctx-bar" hidden="@(Session.Selected is null || HiddenForDialog)" @onpointerdown:stopPropagation="true">
   @if (Session.Selected is { } o)
   {
     <div class="ed-ctx-bar__row ed-ctx-bar__row--main" @key="o.Id">
@@ -312,9 +313,9 @@
           @if (o.Type == ObjectType.Barcode)
           {
             <select @key="@(o.Id + "-bc-fmt")" value="@o.BarcodeFormat" @onchange="e => SetBarcodeFormat(o, e)">
-              @foreach (var spec in BarcodeCatalog.OneD)
+              @foreach (var spec in BarcodeCatalog.SelectableOneD(o.BarcodeFormat))
               {
-                <option value="@spec.Id">@spec.Label</option>
+                <option value="@spec.Id">@BarcodeCatalog.OptionLabel(spec)</option>
               }
             </select>
             <label class="ed-field ed-field--check"><input type="checkbox" checked="@o.BarcodeShowText" @onchange="e => SetBool(v => o.BarcodeShowText = v, e)" /> <span>내용</span></label>
@@ -338,9 +339,9 @@
           else
           {
             <select value="@o.BarcodeFormat" @onchange="e => SetString(v => o.BarcodeFormat = v, e)">
-              @foreach (var spec in BarcodeCatalog.TwoD)
+              @foreach (var spec in BarcodeCatalog.SelectableTwoD(o.BarcodeFormat))
               {
-                <option value="@spec.Id">@spec.Label</option>
+                <option value="@spec.Id">@BarcodeCatalog.OptionLabel(spec)</option>
               }
             </select>
             <select title="오류복원" value="@o.QrEcc" @onchange="e => SetString(v => o.QrEcc = v, e)">
@@ -409,6 +410,10 @@
         _self?.Dispose();
         _self = null;
     }
+
+    /// <summary>용지를 고르는 동안은 속성바를 감춘다. 팝업 위로 떠서 내용을 가린다.</summary>
+    private bool HiddenForDialog
+        => Session.Dialog is EditorDialog.PaperPicker or EditorDialog.PaperChange;
 
     private bool _preloadingFont;
     private string? _boundObjectId;

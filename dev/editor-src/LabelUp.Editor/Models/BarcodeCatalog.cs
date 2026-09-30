@@ -110,8 +110,78 @@ public static class BarcodeCatalog
         new("COMPACT_MATRIX", "Compact Matrix (미지원)", "GB/T 27767 규격 미확보로 그리지 못한다", 1, 4096, null, true)
     ];
 
+    /// <summary>
+    /// 새로 만들 때 고를 수 있는 심볼로지. 공개 규격이 있고 그 규격대로 인코딩하는 것,
+    /// 그중에서도 소매·산업·문헌·의약·우편처럼 실제로 쓰이는 계열만 둔다.
+    ///
+    /// 여기 없는 타입도 <see cref="OneD"/>·<see cref="TwoD"/>에 그대로 남아 있고 렌더러도 그린다.
+    /// 타사 파일을 변환해 들어온 개체가 그 타입이면 그 개체의 목록에만 나타난다.
+    /// 빠진 이유는 넷이다.
+    ///   1) 공개 규격이 없어 타사 표본으로 역산: Clocked-35, BC309, CPC Binary, POST Bar
+    ///   2) 규격과 다르게 찍음: BC412(SEMI T1-95 mod-35 검사문자를 타사에 맞춰 뺐다)
+    ///   3) 자료를 싣지 않는 표시류: Flattermarken(제책 접지), Patch Code(문서 구분)
+    ///   4) 규격 미확보: Compact Matrix(GB/T 27767)
+    /// 나머지(JAN·UPC-E0/E1·ITF-6/16·EAN-2/5·Code 25 변형·ABC Codabar·OPC·Numly·
+    /// Channel Code·Code 16K·Han Xin·Grid Matrix·PDF417 Truncated)는 그릴 수는 있으나
+    /// 이미 있는 타입과 겹치거나 쓰임이 특정 타사 파일에 한정돼 목록에서 뺐다.
+    /// </summary>
+    private static readonly HashSet<string> SelectableIds = new(StringComparer.Ordinal)
+    {
+        // 소매·유통(GS1)
+        "CODE_128", "EAN_128", "EAN_13", "EAN_8", "UPC_A", "UPC_E", "ITF", "ITF_14",
+        "RSS_14", "RSS_LIMITED", "RSS_EXPANDED",
+        // 일반 산업
+        "CODE_39", "CODE_39_EXT", "CODE_93", "CODE_93_EXT", "CODE_11", "CODABAR",
+        "MSI", "PLESSEY", "TELEPEN",
+        // 문헌
+        "ISBN", "ISSN", "ISMN",
+        // 의약
+        "PZN", "CODE_32", "PHARMA_1", "PHARMA_2",
+        // 우편·물류
+        "POSTNET", "PLANET", "ONECODE", "RM4SCC", "KIX", "JAPAN_POST", "AUSPOST",
+        "KOREAN_POST", "LEITCODE", "IDENTCODE", "UPU", "FIM",
+        // 2D
+        "QR_CODE", "MICRO_QR", "DATA_MATRIX", "PDF_417", "MICRO_PDF417", "AZTEC", "MAXICODE"
+    };
+
+    /// <summary>`CODE-128`처럼 하이픈으로 온 이름도 카탈로그 아이디로 맞춘다.</summary>
+    private static string Normalize(string? id)
+        => (id ?? "").Trim().Replace('-', '_').ToUpperInvariant();
+
+    /// <summary>새로 만들 때 고를 수 있는 타입인지. 아니면 타사 변환 개체에서만 나온다.</summary>
+    public static bool IsSelectable(string? id)
+        => SelectableIds.Contains(Normalize(id));
+
+    /// <summary>
+    /// 목록에 낼 1D 심볼로지. <paramref name="current"/>가 변환으로 들어온 타입이면
+    /// 그 항목도 함께 낸다. 목록에 없으면 선택이 첫 항목으로 튀어 값이 다른 막대가 되기 때문이다.
+    /// </summary>
+    public static IReadOnlyList<BarcodeSpec> SelectableOneD(string? current = null)
+        => Selectable(OneD, current);
+
+    /// <summary>목록에 낼 2D 심볼로지. 규칙은 <see cref="SelectableOneD"/>와 같다.</summary>
+    public static IReadOnlyList<BarcodeSpec> SelectableTwoD(string? current = null)
+        => Selectable(TwoD, current);
+
+    private static IReadOnlyList<BarcodeSpec> Selectable(BarcodeSpec[] all, string? current)
+    {
+        var keep = Normalize(current);
+        return all
+            .Where(s => SelectableIds.Contains(s.Id) || s.Id == keep)
+            .ToList();
+    }
+
+    /// <summary>목록에 쓰는 이름. 변환으로만 들어오는 타입은 그렇다고 밝힌다.</summary>
+    public static string OptionLabel(BarcodeSpec spec)
+        => SelectableIds.Contains(spec.Id) ? spec.Label : $"{spec.Label} · 변환 전용";
+
     public static BarcodeSpec? Find(string? id)
-        => OneD.Concat(TwoD).FirstOrDefault(s => string.Equals(s.Id, id, StringComparison.OrdinalIgnoreCase));
+    {
+        var key = Normalize(id);
+        return key.Length == 0
+            ? null
+            : OneD.Concat(TwoD).FirstOrDefault(s => s.Id == key);
+    }
 
     public static string HintFor(string? id)
     {

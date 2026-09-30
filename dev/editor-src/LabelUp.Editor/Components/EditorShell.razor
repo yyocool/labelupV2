@@ -830,6 +830,15 @@
     public void OnEditorCopy() => Session.CopySelection();
 
     [JSInvokable]
+    public void OnEditorSelectAll()
+    {
+        if (Session.Dialog != EditorDialog.None) return;
+        var count = Session.SelectAllInLabel();
+        Session.Status = count == 0 ? "선택할 항목이 없습니다" : $"라벨 안 항목 {count}개 선택";
+        Session.Notify();
+    }
+
+    [JSInvokable]
     public void OnEditorPaste()
     {
         History.Push(Session.Document);
