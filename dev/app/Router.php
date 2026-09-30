@@ -65,6 +65,8 @@ use App\Controllers\QrCouponPublicController;
 use App\Controllers\CompatCodePublicController;
 use App\Controllers\QaReviewController;
 use App\Controllers\Api\QaReviewApiController;
+use App\Controllers\LaunchChecklistPublicController;
+use App\Controllers\Api\LaunchChecklistApiController;
 
 final class Router
 {
@@ -196,10 +198,17 @@ final class Router
         $compatPublic = new CompatCodePublicController();
         $qaReview = new QaReviewController();
         $qaReviewApi = new QaReviewApiController();
+        $launchChecklist = new LaunchChecklistPublicController();
+        $launchChecklistApi = new LaunchChecklistApiController();
 
         $router->get('/', [$home, 'index']);
         $router->get('/about', [$about, 'index']);
         $router->get('/service', [$about, 'index']);
+        $router->get('/launch-checklist', [$launchChecklist, 'index']);
+        $router->get('/open-checklist', [$launchChecklist, 'index']);
+        $router->get('/api/launch-checklist', [$launchChecklistApi, 'show']);
+        $router->post('/api/launch-checklist', [$launchChecklistApi, 'save']);
+        $router->post('/api/launch-checklist/reset', [$launchChecklistApi, 'reset']);
         $router->get('/terms', [$legalPublic, 'terms']);
         $router->get('/privacy', [$legalPublic, 'privacy']);
         $router->get('/faq', [$faqPublic, 'index']);

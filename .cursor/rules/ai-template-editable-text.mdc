@@ -13,4 +13,10 @@ alwaysApply: true
 4. OCR 실패·첨부 이미지 없음이어도, 텍스트를 이미지에 구워 넣는 fallback을 쓰지 말고 `planEditableLabelTemplate` 등으로 텍스트 오브젝트를 만든다.
 5. `generate_clipart`(장식 그림만)와 혼동하지 말 것. 클립아트는 텍스트 없이 그려도 되지만, **템플릿(`generate_template`)은 항상 편집 가능 텍스트 분리**.
 
-관련 코드: `LabiDesignService` (generate_template), `OpenAIService::{extractLabelLayout,planEditableLabelTemplate}`, 에디터 `ApplyLabiDocument`.
+## 예외: 사용자가 이미지 안 텍스트를 **명시** 요청한 경우
+
+- 예: 「꽃그림에 '이중은' 이름 넣어서 이미지 만들어줘」, 「그림 안에 글자 넣어줘」
+- 이때만 클립아트/배경 이미지 생성 프롬프트에 해당 문구를 넣어도 된다 (`LabiDesignService::wantsBakedTextInImage`).
+- 구워 넣은 문구는 편집 텍스트로 중복하지 않는다. 그 외 일반 라벨 문구는 계속 텍스트 오브젝트로 분리한다.
+
+관련 코드: `LabiDesignService` (generate_template / generate_clipart), `OpenAIService::{extractLabelLayout,planEditableLabelTemplate}`, 에디터 `ApplyLabiDocument`.
