@@ -136,16 +136,23 @@ final class LabiDesignService
                 }
             }
         } elseif ($intent === 'generate_clipart') {
+            $userText = $this->lastUserText($messages);
+            $bakeText = $this->wantsBakedTextInImage($userText);
             $prompt = trim((string) ($structured['clipart_prompt'] ?? ''));
             if ($prompt === '') {
-                $prompt = $this->fallbackClipartPrompt($messages);
+                $prompt = $this->fallbackClipartPrompt($messages, $bakeText);
+            }
+            if ($bakeText) {
+                $prompt = $this->ensureBakedTextInImagePrompt($prompt, $userText);
             }
             $clipart = $this->openai->generateClipart($prompt);
             if ($clipart && $userId !== null && $userId > 0) {
                 $saved = (new UserAiClipartService())->saveForUser($userId, $clipart);
                 $clipartId = $saved > 0 ? $saved : null;
             }
-            if (!str_contains($reply, '클립아트') && !str_contains($reply, '이미지')) {
+            if ($bakeText) {
+                $reply = '요청하신 문구를 그림 안에 넣은 이미지를 만들어 두었어요. 이미지를 눌러 확대해 볼 수 있어요.';
+            } elseif (!str_contains($reply, '클립아트') && !str_contains($reply, '이미지')) {
                 $reply .= "\n\n라벨에 넣을 클립아트를 그려 두었어요. 이미지를 눌러 확대해 볼 수 있어요.";
             }
         } elseif ($intent === 'generate_template') {
@@ -166,6 +173,7 @@ final class LabiDesignService
                 }
             }
             $userText = $this->lastUserText($messages);
+            $bakeText = $this->wantsBakedTextInImage($userText);
             $product = $this->resolveProduct($structured, $catalog, $userText);
             $size = $this->resolveTemplateSize($structured, $catalog, $userText, $product);
             $layout = null;
@@ -173,6 +181,7 @@ final class LabiDesignService
 
             // HARD RULE: 템플릿의 변경 가능 문구는 반드시 텍스트 오브젝트.
             // 이미지에는 글자·숫자·특수문자를 넣지 않는다.
+            // 예외: 사용자가 이미지/그림 안에 문구를 넣으라고 명시한 경우만 이미지에 구워 넣는다.
             if ($hasImage) {
                 try {
                     $layout = $this->openai->extractLabelLayout($messages, $translateToKo);
@@ -180,7 +189,7 @@ final class LabiDesignService
                     $layout = null;
                 }
             }
-            if (!is_array($layout) || ($layout['texts'] ?? []) === []) {
+            if (!$bakeText && (!is_array($layout) || ($layout['texts'] ?? []) === [])) {
                 try {
                     $layout = $this->openai->planEditableLabelTemplate(
                         $messages,
@@ -195,7 +204,7 @@ final class LabiDesignService
                     $layout = null;
                 }
             }
-            if (!is_array($layout) || ($layout['texts'] ?? []) === []) {
+            if (!$bakeText && (!is_array($layout) || ($layout['texts'] ?? []) === [])) {
                 $layout = [
                     'title' => '라비가 만든 라벨 템플릿',
                     'width_mm' => $size['width_mm'],
@@ -212,6 +221,15 @@ final class LabiDesignService
                         'align' => 'center',
                         'color' => '#7B2840',
                     ]],
+                ];
+            }
+            if ($bakeText && !is_array($layout)) {
+                $layout = [
+                    'title' => '라비가 만든 라벨 템플릿',
+                    'width_mm' => $size['width_mm'],
+                    'height_mm' => $size['height_mm'],
+                    'background_prompt' => '',
+                    'texts' => [],
                 ];
             }
 
@@ -252,14 +270,26 @@ final class LabiDesignService
                 $bgHint = trim((string) ($structured['clipart_prompt'] ?? ''));
             }
             if ($bgHint === '') {
-                $bgHint = $this->fallbackTemplatePrompt($messages);
+                $bgHint = $this->fallbackTemplatePrompt($messages, $bakeText);
             }
-            $prompt = $bgHint
-                . ' Full-bleed print-ready label BACKGROUND only, filling the entire canvas edge to edge.'
-                . ' Absolutely NO letters, NO numbers, NO digits, NO punctuation, NO words, NO watermarks, NO barcodes as text.'
-                . ' Keep colors, shapes, ornaments, patterns, borders, and blank areas where text belonged.'
-                . ' No mockup, no table, no torn paper, no extra background around the label.'
-                . ' Transparent PNG: any area that is not printed artwork must be alpha-transparent.';
+            if ($bakeText) {
+                $baked = $this->extractBakedTextPhrases($userText);
+                $texts = $this->filterTextsExcludingBaked($texts, $baked);
+                $prompt = $this->ensureBakedTextInImagePrompt(
+                    $bgHint
+                        . ' Full-bleed print-ready label artwork, filling the entire canvas edge to edge.'
+                        . ' No mockup, no table, no torn paper, no extra background around the label.'
+                        . ' Transparent PNG: any area that is not printed artwork must be alpha-transparent.',
+                    $userText
+                );
+            } else {
+                $prompt = $bgHint
+                    . ' Full-bleed print-ready label BACKGROUND only, filling the entire canvas edge to edge.'
+                    . ' Absolutely NO letters, NO numbers, NO digits, NO punctuation, NO words, NO watermarks, NO barcodes as text.'
+                    . ' Keep colors, shapes, ornaments, patterns, borders, and blank areas where text belonged.'
+                    . ' No mockup, no table, no torn paper, no extra background around the label.'
+                    . ' Transparent PNG: any area that is not printed artwork must be alpha-transparent.';
+            }
 
             $image = $this->openai->generateClipart($prompt, false);
             $title = trim((string) ($layout['title'] ?? ''));
@@ -278,7 +308,9 @@ final class LabiDesignService
                 $texts,
                 $product
             );
-            if ($translateChoice === 'translate_yes') {
+            if ($bakeText) {
+                $reply = '요청하신 문구를 이미지 안에 넣고 라벨 템플릿을 만들었어요. 바로편집에서 확인해 보세요.';
+            } elseif ($translateChoice === 'translate_yes') {
                 $reply = '이미지의 외국어를 한국어로 번역해, 글자는 편집 가능한 텍스트로 분리한 라벨 템플릿을 만들었어요. 바로편집에서 문구를 바꿔 보세요.';
             } else {
                 $reply = '글자·숫자·특수문자는 편집 가능한 텍스트로, 배경만 이미지로 만든 라벨 템플릿이에요. 바로편집에서 문구를 바꿔 보세요.';
@@ -1114,7 +1146,7 @@ final class LabiDesignService
     }
 
     /** @param array<int, array{role:string, content:mixed}> $messages */
-    private function fallbackClipartPrompt(array $messages): string
+    private function fallbackClipartPrompt(array $messages, bool $bakeText = false): string
     {
         $lastUser = '';
         for ($i = count($messages) - 1; $i >= 0; $i--) {
@@ -1137,16 +1169,171 @@ final class LabiDesignService
         }
 
         $hint = trim(mb_substr($lastUser !== '' ? $lastUser : 'cute label decoration', 0, 120));
+        if ($bakeText) {
+            return "Simple clean label clipart illustration for sticker printing, fully transparent background, isolated centered motif inspired by: {$hint}. Flat vector style, high contrast, no watermark, no white or black studio backdrop."
+                . $this->bakedTextInstruction($lastUser);
+        }
 
         return "Simple clean label clipart illustration for sticker printing, fully transparent background, isolated centered motif inspired by: {$hint}. Flat vector style, high contrast, no text, no watermark, no white or black studio backdrop.";
     }
 
     /** @param array<int, array{role:string, content:mixed}> $messages */
-    private function fallbackTemplatePrompt(array $messages): string
+    private function fallbackTemplatePrompt(array $messages, bool $bakeText = false): string
     {
         $hint = trim(mb_substr($this->lastUserText($messages) !== '' ? $this->lastUserText($messages) : 'product label', 0, 120));
+        if ($bakeText) {
+            return "Print-ready full-bleed label artwork for sticker printing, filling the entire canvas edge to edge. Soft packaging-style colors inspired by: {$hint}. Decorations, shapes, borders, patterns, and the requested lettering. No mockup, no wooden table, no torn paper, no extra background around the label."
+                . $this->bakedTextInstruction($this->lastUserText($messages));
+        }
 
         return "Print-ready full-bleed label BACKGROUND only for sticker printing, filling the entire canvas edge to edge. Soft packaging-style colors inspired by: {$hint}. Decorations, shapes, borders, patterns only. Absolutely NO letters, NO numbers, NO digits, NO words, NO watermarks. No mockup, no wooden table, no torn paper, no extra background around the label.";
+    }
+
+    /**
+     * 사용자가 이미지/그림 안에 글자·이름을 직접 넣으라고 명시한 경우.
+     * 예: 꽃그림에 '이중은' 이름 넣어서 이미지 만들어줘
+     */
+    private function wantsBakedTextInImage(string $text): bool
+    {
+        $t = trim($text);
+        if ($t === '') {
+            return false;
+        }
+        // 편집 가능 분리·글자 제외를 명시한 경우는 bake 하지 않음
+        if (preg_match('/(글자|텍스트|문구).{0,8}(빼|없이|말고|제외)|편집\s*가능|텍스트\s*오브젝트|텍스트로\s*분리/u', $t)) {
+            return false;
+        }
+
+        $patterns = [
+            '/(이미지|그림|사진|일러스트|클립아트).{0,16}(안|속|위|에).{0,24}(이름|글자|텍스트|문구|문자|워딩)/u',
+            '/(이름|글자|텍스트|문구|문자|워딩).{0,24}(이미지|그림|사진|일러스트|클립아트).{0,12}(안|속|위|에|로)/u',
+            '/(이름|글자|텍스트|문구).{0,12}(넣|박아|그려|써\s*넣|포함)/u',
+            '/(넣|박아|그려|써\s*넣).{0,16}(이름|글자|텍스트|문구)/u',
+            '/(이미지|그림).{0,12}(에|으로).{0,16}(이름|글자|텍스트|문구).{0,12}(넣|만들|그려)/u',
+        ];
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $t)) {
+                return true;
+            }
+        }
+
+        // 따옴표로 감싼 이름 + 그림/이미지 만들기
+        if (
+            preg_match('/[\'"`「『][^\'"`」』]{1,40}[\'"`」』]/u', $t)
+            && preg_match('/(그림|이미지|사진|일러스트).{0,24}(넣|만들|그려)/u', $t)
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /** @return list<string> */
+    private function extractBakedTextPhrases(string $userText): array
+    {
+        $parts = [];
+        if (preg_match_all('/[\'"`「『]([^\'"`」』]{1,40})[\'"`」』]/u', $userText, $m)) {
+            foreach ($m[1] as $q) {
+                $q = trim((string) $q);
+                if ($q !== '') {
+                    $parts[] = $q;
+                }
+            }
+        }
+        if (preg_match_all('/이름\s*[\'"`「『]?([가-힣A-Za-z0-9·\.\-]{1,24})[\'"`」』]?/u', $userText, $m2)) {
+            foreach ($m2[1] as $q) {
+                $q = trim((string) $q);
+                if ($q !== '' && !in_array($q, ['넣', '넣어', '넣어서', '넣고'], true)) {
+                    $parts[] = $q;
+                }
+            }
+        }
+
+        $out = [];
+        foreach ($parts as $p) {
+            if ($p === '') {
+                continue;
+            }
+            $dup = false;
+            foreach ($out as $existing) {
+                if (mb_strtolower($existing) === mb_strtolower($p)) {
+                    $dup = true;
+                    break;
+                }
+            }
+            if (!$dup) {
+                $out[] = $p;
+            }
+        }
+
+        return $out;
+    }
+
+    private function bakedTextInstruction(string $userText): string
+    {
+        $phrases = $this->extractBakedTextPhrases($userText);
+        if ($phrases === []) {
+            return ' The artwork MUST clearly render the exact Korean or English text the user asked to put in the image. Keep spelling exact, legible, and integrated into the design. Do not omit the lettering.';
+        }
+        $joined = implode(', ', array_map(static fn (string $s): string => '"' . $s . '"', $phrases));
+
+        return " The artwork MUST clearly render this exact text on the image (legible, correctly spelled Korean/English lettering, integrated into the design): {$joined}. Do not omit, translate away, or misspell the text.";
+    }
+
+    private function ensureBakedTextInImagePrompt(string $prompt, string $userText): string
+    {
+        $clean = preg_replace(
+            '/\b(absolutely\s+)?(no|without|zero)\s+(letters?|numbers?|digits?|words?|text|texts?|watermarks?|punctuation)(\s*,\s*(no\s+)?(letters?|numbers?|digits?|words?|text|watermarks?|punctuation))*\b[^.!]*/i',
+            '',
+            $prompt
+        ) ?? $prompt;
+        $clean = preg_replace('/\bno text\b[^.!]*/i', '', $clean) ?? $clean;
+        $clean = trim(preg_replace('/\s{2,}/', ' ', $clean) ?? $clean);
+        $clean = rtrim($clean, " \t\n\r.,;");
+        $instr = $this->bakedTextInstruction($userText);
+        if (!preg_match('/must clearly render/i', $clean)) {
+            $clean .= '.' . $instr;
+        }
+
+        return $clean;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $texts
+     * @param list<string> $baked
+     * @return array<int, array<string, mixed>>
+     */
+    private function filterTextsExcludingBaked(array $texts, array $baked): array
+    {
+        if ($baked === [] || $texts === []) {
+            return $texts;
+        }
+        $out = [];
+        foreach ($texts as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $t = trim((string) ($row['text'] ?? ''));
+            if ($t === '') {
+                continue;
+            }
+            $skip = false;
+            foreach ($baked as $phrase) {
+                if ($phrase !== '' && mb_stripos($t, $phrase) !== false) {
+                    $skip = true;
+                    break;
+                }
+                if ($phrase !== '' && mb_stripos($phrase, $t) !== false && mb_strlen($t) >= 2) {
+                    $skip = true;
+                    break;
+                }
+            }
+            if (!$skip) {
+                $out[] = $row;
+            }
+        }
+
+        return $out;
     }
 
     /** @param array<int, array{role:string, content:mixed}> $messages */
