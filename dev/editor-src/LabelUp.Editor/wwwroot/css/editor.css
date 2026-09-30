@@ -1539,6 +1539,16 @@ html[data-ed-save="off"] .ed-autosave:hover {
   width: 18px;
   height: 18px;
 }
+/* 여러 항목 맞춤 아이콘. 막대는 글자색, 기준선은 강조색으로 구분한다. */
+.ed-ctx-bar__slot[data-slot="align"] { gap: 2px; }
+.ed-ctx-bar__slot[data-slot="align"] button { padding: 0 6px; min-width: 28px; }
+.ed-ctx-bar__al-ico {
+  display: block;
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+.ed-ctx-bar__al-guide { fill: var(--ed-primary, #7b2840); }
 .ed-ctx-op {
   position: absolute;
   top: calc(100% + 8px);
@@ -4298,6 +4308,25 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 .ed-print__xy { font-weight: 800; font-size: 12px; }
 .ed-print__dirs { display: grid; gap: 6px; }
 .ed-data-scroll { max-height: 58vh; overflow: auto; }
+
+/* 캔버스에서 글상자를 더블클릭했을 때 그 자리에 얹는 편집기 */
+.ed-inline-edit {
+  position: absolute;
+  z-index: 240;
+  box-sizing: border-box;
+  outline: 1px dashed rgba(123, 40, 64, 0.9);
+  cursor: text;
+}
+.ed-inline-edit__doc {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  transform-origin: 0 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  cursor: text;
+}
 
 .ed-ctx {
   position: absolute;

@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "LabelUp.Editor",
   "resources": {
-    "hash": "sha256-Jy2NQSAttUgorOAohQcwoAMv/lLjZJQJmvWmHOm88Y0=",
+    "hash": "sha256-Gh+cEGzyvOyK2aoHAAx/ezYnqWmHWDwCs2MnHM/Ho/A=",
     "jsModuleNative": {
       "dotnet.native.8.0.30.ozmvmdktbp.js": "sha256-h7DWn5hRj8s2oKK/k/JBnPtlONbB92KHy/ari4lLAoI="
     },
@@ -17,9 +17,9 @@
     "assembly": {
       "ExcelDataReader.DataSet.wasm": "sha256-eM/Vt4GxUiQsxVwPh3KKAke/LL9EnUPuS5ajIFktgqQ=",
       "ExcelDataReader.wasm": "sha256-p2z9GHuyV5pTFXT+GKmexXTO4ltRggPcT9q47Kjwzvg=",
-      "LabelUp.Editor.wasm": "sha256-pYMEO1ePIkLU9l3cMfbFmVBS+PQRYYbmLqOeFdJn1xw=",
+      "LabelUp.Editor.wasm": "sha256-mrEBxU2WmeGP+6YT30Go/9BWgZBxxe+BxlgjEXxu4/s=",
       "Microsoft.AspNetCore.Components.wasm": "sha256-SiHWtHabxBHJsGjDSDPIEjlIXadQcURL1rbPnfvUIx8=",
-      "Microsoft.AspNetCore.Components.Web.wasm": "sha256-tBZe0S3eL9L1K2RwcDpBXinSDZGGH6euWQReL2uJKu4=",
+      "Microsoft.AspNetCore.Components.Web.wasm": "sha256-7Um1LYCidj6QkkzbmYlGEJXynjLK7kvG90dqOvboMZU=",
       "Microsoft.AspNetCore.Components.WebAssembly.wasm": "sha256-BHFT8xwXxM3u+e8p0HWOiON7USro2WnDrjjGSzpOSPA=",
       "Microsoft.Extensions.Configuration.Abstractions.wasm": "sha256-opmQFQRtCspfcXfUyBWT4ecELRoD0q/n2DkAvQ6lu/A=",
       "Microsoft.Extensions.Configuration.Json.wasm": "sha256-/VUEfhgVp9FCU1rXnSNAI1mtW6EO5DpkV/5UNWDR/es=",
@@ -50,7 +50,7 @@
       "System.Drawing.wasm": "sha256-gDg2HRwl8X03DrKQ1CZ/4qMo4x9b4nHBwnUC6nfU1sU=",
       "System.IO.Compression.wasm": "sha256-I2Mr+4dtssxMCy1eJ4ywb99KGXvaVGQEpAN1MsNaII4=",
       "System.Linq.Expressions.wasm": "sha256-qDXKOKARXMk9K8ElcqpDxv6RuXqSZ2NNcqhZd2VsJVs=",
-      "System.Linq.wasm": "sha256-aEC65nGOEe/8XYT2k9XZl24AT1Tce8bsQt2iTZQlATo=",
+      "System.Linq.wasm": "sha256-akm78oaUyOb8JvZjeszUjfYy6JOK/Q7KaLsO1sZ5mgo=",
       "System.Memory.wasm": "sha256-5juV3Ej4fs7KeZ60Qcba1SMTwOhJI1OF/PcwhITU7E0=",
       "System.Net.Http.Json.wasm": "sha256-STtv0jXsrENGkr+SxKMUXlCkicsJa5BIDyTyPAxTlA4=",
       "System.Net.Http.wasm": "sha256-5TiIywoaIzLz9qz4SQfxrohNHw0QMAT8wUgPTUx9nDI=",

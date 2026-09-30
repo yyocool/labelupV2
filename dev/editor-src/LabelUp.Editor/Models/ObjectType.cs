@@ -61,6 +61,17 @@ public enum HandleKind
     Rotate
 }
 
+/// <summary>여러 항목을 맞출 기준. 선택 전체를 감싸는 네모의 어느 선에 붙일지를 가리킨다.</summary>
+public enum AlignEdge
+{
+    Left,
+    CenterX,
+    Right,
+    Top,
+    CenterY,
+    Bottom
+}
+
 public enum EditorDialog
 {
     None,

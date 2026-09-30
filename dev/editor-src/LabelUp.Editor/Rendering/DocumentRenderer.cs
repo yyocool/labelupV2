@@ -182,7 +182,8 @@ public static class DocumentRenderer
         Action? afterBackground = null,
         float? widthMm = null,
         float? heightMm = null,
-        bool drawCutLines = true)
+        bool drawCutLines = true,
+        string? skipObjectId = null)
     {
         var w = widthMm ?? doc.WidthMm;
         var h = heightMm ?? doc.HeightMm;
@@ -212,7 +213,11 @@ public static class DocumentRenderer
             DrawGuides(canvas, shape, w, h);
 
         foreach (var obj in cell.OrderedObjects())
+        {
+            // 캔버스에서 바로 고치고 있는 글상자는 HTML 편집기가 같은 자리에 글을 얹으므로 건너뛴다.
+            if (skipObjectId is not null && obj.Id == skipObjectId) continue;
             DrawObject(canvas, obj, resolve);
+        }
 
         if (drawCutLines && forExport && cell.Objects.Count == 0 && shape.Kind is "svg" or "ellipse" or "circle")
         {
@@ -832,7 +837,8 @@ public static class DocumentRenderer
     }
 
     /// <summary>변환 여백. 0이면 우리 박스는 거의 붙이고, 폼텍 변환은 2mm.</summary>
-    private static float TextPadX(DesignObject obj)
+    /// <remarks>캔버스 글 편집기가 같은 여백을 써야 글자가 제자리에 보이므로 어셈블리 안에 공개한다.</remarks>
+    internal static float TextPadX(DesignObject obj)
         => obj.TextPaddingXMm > 0.01f
             ? obj.TextPaddingXMm
             : Math.Clamp(obj.Width * 0.015f, 0.08f, 0.35f);

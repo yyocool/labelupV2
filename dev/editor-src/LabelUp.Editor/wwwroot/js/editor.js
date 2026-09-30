@@ -664,6 +664,9 @@ window.labelUpEditor = {
     if (!el || el.__luCtxBlocked) return;
     el.__luCtxBlocked = true;
     el.addEventListener('contextmenu', function (e) {
+      // 캔버스에서 글을 고치는 중이면 브라우저 메뉴를 살려 둔다(붙여넣기·맞춤법).
+      var t = e.target;
+      if (t && t.closest && t.closest('.ed-inline-edit')) return;
       e.preventDefault();
       e.stopPropagation();
     }, true);
@@ -830,6 +833,7 @@ window.labelUpEditor = {
     });
     document.addEventListener('contextmenu', function (e) {
       var t = e.target;
+      if (t && t.closest && t.closest('.ed-inline-edit')) return;
       if (t && t.closest && t.closest('.canvas-stage, .ed-ctx, .skia-view')) {
         e.preventDefault();
         e.stopPropagation();
@@ -3409,21 +3413,27 @@ window.labelUpEditor = {
       if (!el) return;
       this._el = el;
       this._dot = dotnet;
+      // 속성바와 캔버스 편집기가 동시에 살아 있다. 연결 대상을 요소마다 들고 있어야
+      // 한쪽에서 친 글이 다른 쪽 컴포넌트로 가지 않는다.
+      el._luRichDot = dotnet;
       if (el._luRichBound) return;
       el._luRichBound = true;
       el.setAttribute('contenteditable', 'true');
       el.setAttribute('spellcheck', 'false');
       el.setAttribute('role', 'textbox');
       var self = this;
+      var target = function () { return el._luRichDot || self._dot; };
       var emit = function () {
-        if (!self._dot) return;
-        try { self._dot.invokeMethodAsync('OnRichModel', JSON.stringify(self.read(el))); }
+        var dot = target();
+        if (!dot) return;
+        try { dot.invokeMethodAsync('OnRichModel', JSON.stringify(self.read(el))); }
         catch (e) { /* ignore */ }
       };
       var caret = function () {
         self.saveSel(el);
-        if (!self._dot) return;
-        try { self._dot.invokeMethodAsync('OnRichCaret', JSON.stringify(self.query(el))); }
+        var dot = target();
+        if (!dot) return;
+        try { dot.invokeMethodAsync('OnRichCaret', JSON.stringify(self.query(el))); }
         catch (e) { /* ignore */ }
       };
       el.addEventListener('input', emit);
@@ -3433,8 +3443,9 @@ window.labelUpEditor = {
       el.addEventListener('blur', function () {
         el._luRichFocus = false;
         emit();
-        if (self._dot) {
-          try { self._dot.invokeMethodAsync('OnRichBlur'); } catch (e) { /* ignore */ }
+        var dot = target();
+        if (dot) {
+          try { dot.invokeMethodAsync('OnRichBlur'); } catch (e) { /* ignore */ }
         }
       });
       el.addEventListener('paste', function (e) {
@@ -3455,24 +3466,44 @@ window.labelUpEditor = {
       if (!sel || sel.rangeCount === 0) return;
       var a = sel.anchorNode;
       if (!node || !a || !node.contains(a)) return;
-      this._saved = sel.getRangeAt(0).cloneRange();
+      var range = sel.getRangeAt(0).cloneRange();
+      this._saved = range;
+      // 선택 영역도 요소마다 따로 둔다. 속성바 단추가 캔버스 편집기의 선택을 집어 쓰면
+      // 엉뚱한 글자에 서식이 걸린다.
+      node._luRichSel = range;
     },
     restoreSel: function (el) {
-      if (!this._saved) return false;
       var node = el || this._el;
+      var range = (node && node._luRichSel) || this._saved;
+      if (!range) return false;
       try {
         node.focus();
         var sel = window.getSelection();
         sel.removeAllRanges();
-        sel.addRange(this._saved);
+        sel.addRange(range);
         return true;
       } catch (e) {
         return false;
       }
     },
+    // 편집기를 열 때 글 맨 끝에 커서를 둔다.
+    focusEnd: function (el) {
+      if (!el) return;
+      try {
+        el.focus();
+        var range = document.createRange();
+        range.selectNodeContents(el);
+        range.collapse(false);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        this.saveSel(el);
+      } catch (e) { /* ignore */ }
+    },
     hasSelection: function (el) {
       var node = el || this._el;
-      if (this._saved && this._saved.toString().length > 0) return true;
+      var own = node && node._luRichSel;
+      if (own && own.toString().length > 0) return true;
       var sel = window.getSelection();
       if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return false;
       var a = sel.anchorNode, f = sel.focusNode;

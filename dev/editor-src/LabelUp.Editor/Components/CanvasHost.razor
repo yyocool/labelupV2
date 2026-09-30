@@ -17,6 +17,7 @@
      @onpointermove="OnPointerMove"
      @onpointerup="OnPointerUp"
      @onpointerleave="OnPointerLeave"
+     @ondblclick="OnDoubleClick"
      @onwheel="OnWheel"
      @ondrop="OnDrop"
      @ondrop:preventDefault="true"
@@ -60,6 +61,21 @@
     </div>
     <div class="ed-guides__corner" style="@($"left:{rLeft:0.##}px;top:{rTop:0.##}px")"></div>
   </div>
+  @if (InlineEdit is { } editing)
+  {
+    var style = InlineEditStyle(editing, frame);
+    <div class="ed-inline-edit"
+         style="@style.Outer"
+         title="내용 편집 중 — Esc 취소, 바깥을 누르면 완료"
+         @onpointerdown:stopPropagation="true"
+         @onpointermove:stopPropagation="true"
+         @onpointerup:stopPropagation="true"
+         @ondblclick:stopPropagation="true"
+         @onwheel:stopPropagation="true"
+         @onkeydown="OnInlineKeyDown">
+      <div @ref="_inlineRef" class="ed-inline-edit__doc" style="@style.Inner"></div>
+    </div>
+  }
   @if (_ctxOpen)
   {
     var hasSel = Session.SelectedIds.Count > 0;
@@ -161,6 +177,21 @@
             try { await Js.InvokeVoidAsync("labelUpEditor.bindCanvasStage", _stageRef, _self); }
             catch { }
         }
+        if (_inlineId is not null && !_inlineBound)
+        {
+            _inlineBound = true;
+            try
+            {
+                await Js.InvokeVoidAsync("labelUpEditor.richText.bind", _inlineRef, _self);
+                await Js.InvokeVoidAsync("labelUpEditor.richText.setHtml", _inlineRef, InlineEditHtml());
+                await Js.InvokeVoidAsync("labelUpEditor.richText.focusEnd", _inlineRef);
+            }
+            catch (Exception ex)
+            {
+                EditorLog.Error("캔버스 글 편집기 연결 실패", ex);
+            }
+        }
+
         if (_ctxBlocked) return;
         try
         {
@@ -300,6 +331,7 @@
     {
         _ = InvokeAsync(() =>
         {
+            CloseInlineIfStale();
             if (Session.PendingFit && _viewW >= 360 && _viewH >= 220)
             {
                 Session.FitToView(_viewW, _viewH);
@@ -311,6 +343,219 @@
     }
 
     public void Invalidate() => _view?.Invalidate();
+
+    // ── 캔버스에서 바로 글 고치기 ─────────────────────────────────────────────
+    // 글상자를 더블클릭하면 그 자리에 HTML 편집기를 얹는다. 속성바가 쓰는 것과 같은
+    // richText 편집기라 구간 서식(글꼴·색·기울기)이 그대로 남는다.
+
+    private ElementReference _inlineRef;
+    private string? _inlineId;
+    private DesignObject? _inlineSnapshot;
+    private bool _inlineHistory;
+    private bool _inlineBound;
+
+    /// <summary>1mm가 CSS 픽셀 몇 개인지(96dpi). pt로 적힌 글자 크기를 mm에 맞추는 데 쓴다.</summary>
+    private const float CssPxPerMm = 96f / 25.4f;
+
+    /// <summary>지금 캔버스에서 내용을 고치고 있는 글상자.</summary>
+    private DesignObject? InlineEdit
+        => _inlineId is null
+            ? null
+            : Session.CurrentCell.Objects.FirstOrDefault(o => o.Id == _inlineId);
+
+    /// <summary>더블클릭으로 바로 고칠 수 있는 글상자인지.</summary>
+    private static bool CanEditInline(DesignObject obj)
+        => obj.Type == ObjectType.Text
+           && !obj.Locked
+           && !obj.DataBound
+           && obj.TextMode != TextMode.Custom;
+
+    private void OnDoubleClick(MouseEventArgs e)
+    {
+        var p = StagePoint(e);
+        var (dx, dy) = ScreenToDoc(p.X, p.Y);
+        var hit = HitTest.HitObject(Session.CurrentCell.Objects, dx, dy, _touchPointer ? 1.6f : 0.8f);
+        if (hit is null || hit.Type != ObjectType.Text)
+            return;
+        if (!CanEditInline(hit))
+        {
+            Session.Status = hit.Locked
+                ? "잠긴 항목은 고칠 수 없습니다"
+                : hit.DataBound
+                    ? "자료연결 항목은 값이 자료에서 옵니다"
+                    : "사용자정의 항목은 속성바에서 바꿔주세요";
+            Session.Notify();
+            return;
+        }
+        BeginInlineEdit(hit);
+    }
+
+    private void BeginInlineEdit(DesignObject obj)
+    {
+        if (_inlineId == obj.Id) return;
+        Session.Select(obj.Id);
+        _inlineId = obj.Id;
+        // Esc 로 되돌릴 사본. 고친 내용은 타는 즉시 모델에 들어가므로 취소에는 사본이 필요하다.
+        _inlineSnapshot = obj.Clone();
+        _inlineHistory = false;
+        _inlineBound = false;
+        _dragging = false;
+        _marquee = false;
+        _handle = HandleKind.None;
+        _dragStarts.Clear();
+        SetCursor(null);
+        Session.Status = "내용 편집 중 — Esc 취소, 바깥을 누르면 완료";
+        Session.Notify();
+    }
+
+    private void EndInlineEdit(bool keep)
+    {
+        if (_inlineId is null) return;
+        var id = _inlineId;
+        var snapshot = _inlineSnapshot;
+        _inlineId = null;
+        _inlineSnapshot = null;
+        _inlineHistory = false;
+        _inlineBound = false;
+
+        if (!keep && snapshot is not null)
+        {
+            var list = Session.CurrentCell.Objects;
+            var at = list.FindIndex(o => o.Id == id);
+            if (at >= 0)
+                list[at] = snapshot;
+            Session.Status = "내용 편집 취소";
+        }
+        Session.Notify();
+    }
+
+    /// <summary>선택이 옮겨가거나 팝업이 열리면 편집기를 닫는다. 화면에 남아 떠 있으면 안 된다.</summary>
+    private void CloseInlineIfStale()
+    {
+        if (_inlineId is null) return;
+        if (Session.Dialog == EditorDialog.None
+            && Session.SelectedIds.Contains(_inlineId)
+            && InlineEdit is not null)
+            return;
+        _inlineId = null;
+        _inlineSnapshot = null;
+        _inlineHistory = false;
+        _inlineBound = false;
+    }
+
+    private void OnInlineKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+            EndInlineEdit(keep: false);
+        else if (e.Key == "Enter" && (e.CtrlKey || e.MetaKey))
+            EndInlineEdit(keep: true);
+    }
+
+    /// <summary>
+    /// 편집기 자리와 글자 크기. 상자는 mm를 96dpi 픽셀로 만들고 화면 배율만큼 한 번에 줄인다.
+    /// 이러면 HTML이 pt로 적은 글자 크기가 SkiaSharp가 mm로 그린 크기와 맞는다.
+    /// </summary>
+    private (string Outer, string Inner) InlineEditStyle(
+        DesignObject o, (float Ox, float Oy, float Scale, float LabelW, float LabelH) frame)
+    {
+        var left = frame.Ox + o.X * frame.Scale;
+        var top = frame.Oy + o.Y * frame.Scale;
+        var w = Math.Max(4f, o.Width * frame.Scale);
+        var h = Math.Max(4f, o.Height * frame.Scale);
+        var rotate = Math.Abs(o.Rotation) > 0.01f ? $"transform:rotate({o.Rotation:0.##}deg);" : "";
+        var outer = $"left:{left:0.##}px;top:{top:0.##}px;width:{w:0.##}px;height:{h:0.##}px;{rotate}";
+
+        var zoom = frame.Scale / CssPxPerMm;
+        var padX = DocumentRenderer.TextPadX(o) * CssPxPerMm;
+        var justify = o.VerticalAlign switch
+        {
+            "top" => "flex-start",
+            "bottom" => "flex-end",
+            _ => "center"
+        };
+        var align = o.TextAlign switch
+        {
+            "center" or "right" or "justify" => o.TextAlign,
+            _ => "left"
+        };
+        var wrap = o.TextWrap switch
+        {
+            "none" => "white-space:pre;",
+            "word" => "white-space:pre-wrap;word-break:normal;overflow-wrap:break-word;",
+            _ => "white-space:pre-wrap;word-break:break-all;"
+        };
+        var vertical = string.Equals(o.TextDirection, "vertical", StringComparison.OrdinalIgnoreCase)
+            ? "writing-mode:vertical-rl;"
+            : "";
+        var inner =
+            $"width:{o.Width * CssPxPerMm:0.##}px;height:{o.Height * CssPxPerMm:0.##}px;" +
+            $"transform:scale({zoom:0.####});padding:0 {padX:0.##}px;" +
+            $"justify-content:{justify};text-align:{align};" +
+            $"line-height:{Math.Max(0.62f, o.LineHeight):0.##};" +
+            $"letter-spacing:{o.LetterSpacing * CssPxPerMm:0.##}px;" +
+            $"font-family:{CssFamily(o.FontFamily)};font-size:{FontCatalog.ToPt(o.FontSize):0.##}pt;" +
+            $"font-weight:{(o.Bold ? "700" : "400")};font-style:{(o.Italic ? "italic" : "normal")};" +
+            $"color:{ColorUtil.ToHtmlColor(o.Fill, "#2e2a27")};" +
+            wrap + vertical;
+        return (outer, inner);
+    }
+
+    private static string CssFamily(string? family)
+    {
+        var id = FontCatalog.CanonicalId(family);
+        return id.Contains(' ', StringComparison.Ordinal) ? "'" + id.Replace("'", "") + "'" : id;
+    }
+
+    /// <summary>편집기에 처음 넣을 HTML. 일반텍스트는 구간 서식을 살리고, 워드아트는 줄만 옮긴다.</summary>
+    private string InlineEditHtml()
+    {
+        if (InlineEdit is not { } o) return "";
+        // 빈 글상자는 빈 span만 남아 커서가 설 자리가 없다. 줄바꿈 하나를 넣어 준다.
+        if (string.IsNullOrEmpty(o.Text))
+            return "<div><br></div>";
+        if (RichTextModel.UsesRich(o))
+            return RichTextModel.ToHtml(o);
+        var lines = (o.Text ?? "").Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        return string.Concat(lines.Select(line => line.Length == 0
+            ? "<div><br></div>"
+            : "<div>" + System.Net.WebUtility.HtmlEncode(line).Replace(" ", "&nbsp;") + "</div>"));
+    }
+
+    [JSInvokable]
+    public void OnRichModel(string json)
+    {
+        if (InlineEdit is not { } o) return;
+        try
+        {
+            var dto = System.Text.Json.JsonSerializer.Deserialize<RichTextDto>(json, LabelDocumentJson.Options);
+            if (dto is null) return;
+            if (!_inlineHistory)
+            {
+                History.Push(Session.Document);
+                _inlineHistory = true;
+            }
+            if (RichTextModel.UsesRich(o))
+                RichTextModel.ReplaceFromDto(o, dto);
+            else
+                o.Text = string.Join('\n', (dto.Paragraphs ?? [])
+                    .Select(p => string.Concat((p.Spans ?? []).Select(s => s.Text ?? ""))));
+            Session.Dirty = true;
+            Session.Notify();
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error("캔버스 글 편집 반영 실패", ex);
+        }
+    }
+
+    /// <summary>커서 자리의 서식은 속성바가 보여 준다. 캔버스 편집기는 받아만 두고 쓰지 않는다.</summary>
+    [JSInvokable]
+    public void OnRichCaret(string json)
+    {
+    }
+
+    [JSInvokable]
+    public void OnRichBlur() => EndInlineEdit(keep: true);
 
     private (float Ox, float Oy, float Scale, float LabelW, float LabelH) LabelFrame()
     {
@@ -393,7 +638,8 @@
                 if (!Session.ShowGrid)
                     return;
                 DrawLabelGridMm(canvas, doc.WidthMm, doc.HeightMm);
-            });
+            },
+            skipObjectId: _inlineId);
         if (Fonts.IsReady)
         {
             foreach (var sel in Session.SelectedObjects)

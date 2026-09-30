@@ -509,6 +509,76 @@ public sealed class EditorSession
         Notify();
     }
 
+    /// <summary>맞춤 이름. 단추 도움말과 상태줄에 같은 말을 쓴다.</summary>
+    public static string AlignName(AlignEdge edge) => edge switch
+    {
+        AlignEdge.Left => "왼쪽 정렬",
+        AlignEdge.CenterX => "가로 가운데 정렬",
+        AlignEdge.Right => "오른쪽 정렬",
+        AlignEdge.Top => "세로 위쪽 정렬",
+        AlignEdge.CenterY => "세로 가운데 정렬",
+        _ => "세로 아래쪽 정렬"
+    };
+
+    /// <summary>움직일 항목이 있는지 미리 본다. 없으면 되돌리기 단계를 만들지 않는다.</summary>
+    public bool CanAlignSelection(AlignEdge edge) => PlanAlign(edge).Count > 0;
+
+    /// <summary>선택 항목을 기준선에 맞춘다.</summary>
+    /// <returns>실제로 움직인 항목 수.</returns>
+    public int AlignSelection(AlignEdge edge)
+    {
+        var moves = PlanAlign(edge);
+        if (moves.Count == 0) return 0;
+        foreach (var (obj, x, y) in moves)
+        {
+            obj.X = x;
+            obj.Y = y;
+        }
+        Dirty = true;
+        Status = $"{AlignName(edge)} — {moves.Count}개 이동";
+        Notify();
+        return moves.Count;
+    }
+
+    /// <summary>
+    /// 맞춤 뒤 자리를 계산한다. 기준은 선택 전체를 감싸는 네모이며, 잠긴 항목도 기준에는 넣되
+    /// 움직이지는 않는다(잠근 항목을 그대로 둔 기준선 노릇을 한다). 회전은 무시하고 상자 기준으로 맞춘다.
+    /// </summary>
+    private List<(DesignObject Obj, float X, float Y)> PlanAlign(AlignEdge edge)
+    {
+        var moves = new List<(DesignObject, float, float)>();
+        var all = SelectedObjects;
+        if (all.Count < 2) return moves;
+
+        var left = all.Min(o => o.X);
+        var right = all.Max(o => o.X + o.Width);
+        var top = all.Min(o => o.Y);
+        var bottom = all.Max(o => o.Y + o.Height);
+
+        foreach (var obj in all)
+        {
+            if (obj.Locked) continue;
+            var x = edge switch
+            {
+                AlignEdge.Left => left,
+                AlignEdge.CenterX => (left + right - obj.Width) / 2f,
+                AlignEdge.Right => right - obj.Width,
+                _ => obj.X
+            };
+            var y = edge switch
+            {
+                AlignEdge.Top => top,
+                AlignEdge.CenterY => (top + bottom - obj.Height) / 2f,
+                AlignEdge.Bottom => bottom - obj.Height,
+                _ => obj.Y
+            };
+            // 0.01mm 안쪽 차이는 이미 맞은 것으로 본다.
+            if (Math.Abs(x - obj.X) < 0.01f && Math.Abs(y - obj.Y) < 0.01f) continue;
+            moves.Add((obj, x, y));
+        }
+        return moves;
+    }
+
     public void BringSelectionToFront()
     {
         if (SelectedIds.Count == 0) return;

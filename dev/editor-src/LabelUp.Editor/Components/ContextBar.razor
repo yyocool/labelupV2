@@ -111,6 +111,27 @@
         }
       </span>
       <button type="button" class="@(o.Locked ? "is-on" : null)" title="잠금" @onclick="() => Toggle(v => o.Locked = v, o.Locked)">잠금</button>
+      @* 맞춤은 기준이 될 상대가 있어야 뜻이 있으므로 두 개 이상 골랐을 때만 낸다. *@
+      @if (Session.SelectedIds.Count > 1)
+      {
+        <span class="ed-ctx-bar__div"></span>
+        <span class="ed-ctx-bar__slot" data-slot="align">
+          @foreach (var edge in AlignEdges)
+          {
+            <button type="button" title="@EditorSession.AlignName(edge)" @onclick="() => AlignSelected(edge)">
+              <svg class="ed-ctx-bar__al-ico" viewBox="0 0 24 24" aria-hidden="true">
+                @foreach (var r in AlignIconRects(edge))
+                {
+                  <rect class="@(r.Guide ? "ed-ctx-bar__al-guide" : null)" rx="0.7"
+                        x="@r.X.ToString("0.##")" y="@r.Y.ToString("0.##")"
+                        width="@r.W.ToString("0.##")" height="@r.H.ToString("0.##")" />
+                }
+              </svg>
+            </button>
+          }
+        </span>
+      }
+
       <span class="ed-ctx-bar__div"></span>
       <span class="ed-ctx-bar__slot">
         <button type="button" title="앞으로" @onclick="BringForward">앞으로</button>
@@ -551,6 +572,65 @@
         {
             _preloadingFont = false;
         }
+    }
+
+    /// <summary>맞춤 단추 차례. 가로 셋 다음 세로 셋.</summary>
+    private static readonly AlignEdge[] AlignEdges =
+    [
+        AlignEdge.Left, AlignEdge.CenterX, AlignEdge.Right,
+        AlignEdge.Top, AlignEdge.CenterY, AlignEdge.Bottom
+    ];
+
+    /// <summary>
+    /// 맞춤 아이콘 그림(24×24 좌표). 기준선 하나와 길이가 다른 막대 셋으로 어느 선에 붙는지 보인다.
+    /// 가로 맞춤은 막대를 눕히고 세로 맞춤은 같은 그림을 세워 그린다.
+    /// </summary>
+    private static IEnumerable<(float X, float Y, float W, float H, bool Guide)> AlignIconRects(AlignEdge edge)
+    {
+        const float lineW = 1.6f;   // 기준선 굵기
+        const float barW = 3.4f;    // 막대 굵기
+        const float barGap = 5.3f;  // 막대 간격
+        const float barHead = 5f;   // 첫 막대 시작
+        const float nearEnd = 6f;   // 기준선에 붙는 쪽 끝
+        const float farEnd = 18f;   // 반대쪽 끝
+        float[] lengths = [12f, 7f, 10f];
+
+        var vertical = edge is AlignEdge.Top or AlignEdge.CenterY or AlignEdge.Bottom;
+        var guide = edge switch
+        {
+            AlignEdge.Left or AlignEdge.Top => 3f,
+            AlignEdge.Right or AlignEdge.Bottom => 24f - 3f - lineW,
+            _ => (24f - lineW) / 2f
+        };
+        yield return vertical ? (3f, guide, 18f, lineW, true) : (guide, 3f, lineW, 18f, true);
+
+        for (var i = 0; i < lengths.Length; i++)
+        {
+            var len = lengths[i];
+            var along = edge switch
+            {
+                AlignEdge.Left or AlignEdge.Top => nearEnd,
+                AlignEdge.Right or AlignEdge.Bottom => farEnd - len,
+                _ => (24f - len) / 2f
+            };
+            var cross = barHead + i * barGap;
+            yield return vertical ? (cross, along, barW, len, false) : (along, cross, len, barW, false);
+        }
+    }
+
+    private void AlignSelected(AlignEdge edge)
+    {
+        if (Session.SelectedIds.Count < 2) return;
+        if (!Session.CanAlignSelection(edge))
+        {
+            Session.Status = Session.SelectedObjects.All(o => o.Locked)
+                ? "잠긴 항목은 맞출 수 없습니다"
+                : $"{EditorSession.AlignName(edge)} — 이미 맞춰져 있습니다";
+            Session.Notify();
+            return;
+        }
+        History.Push(Session.Document);
+        Session.AlignSelection(edge);
     }
 
     private void BringForward()
