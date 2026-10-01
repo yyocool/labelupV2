@@ -103,7 +103,7 @@ $usagePct = $usageLimit > 0 ? min(100, (int) round(($usageUsed / max(1, $usageLi
         </a>
       </div>
       <?php endforeach; ?>
-      <a class="account-design-card account-design-new" href="<?= url('editor/') ?>">
+      <a class="account-design-card account-design-new" href="<?= url('editor/?new=1') ?>">
         <span>＋</span>
         <strong>새 디자인</strong>
       </a>

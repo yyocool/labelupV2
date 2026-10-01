@@ -4,6 +4,27 @@
 window.LabelUpTossPay = (function () {
   let sdkPromise = null;
 
+  function ensureStyles() {
+    if (document.getElementById('luTossPayStyles')) return;
+    const style = document.createElement('style');
+    style.id = 'luTossPayStyles';
+    style.textContent =
+      '.lu-toss-modal{position:fixed;inset:0;z-index:200000;display:flex;align-items:center;justify-content:center;padding:16px}' +
+      '.lu-toss-modal[hidden]{display:none!important}' +
+      '.lu-toss-modal__backdrop{position:absolute;inset:0;background:rgba(28,24,22,.45)}' +
+      '.lu-toss-modal__panel{position:relative;width:min(520px,100%);max-height:min(92vh,900px);overflow:auto;background:#fff;border-radius:20px;box-shadow:0 24px 60px rgba(0,0,0,.2);padding:16px 16px 14px}' +
+      '.lu-toss-modal__head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px}' +
+      '.lu-toss-modal__head h2{margin:0;font-size:18px}' +
+      '.lu-toss-modal__head p{margin:4px 0 0;color:#7a716b;font-size:13px}' +
+      '.lu-toss-modal__close{border:0;background:transparent;font-size:24px;line-height:1;cursor:pointer;color:#6b635d}' +
+      '.lu-toss-widget,.lu-toss-agree{margin-top:8px}' +
+      '.lu-toss-modal__foot{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}' +
+      '.lu-toss-btn{border:1px solid #ddd5ce;background:#fff;border-radius:12px;padding:10px 14px;font-weight:700;cursor:pointer}' +
+      '.lu-toss-btn--primary{background:#7B2840;border-color:#7B2840;color:#fff}' +
+      '.lu-toss-modal__err{margin:10px 0 0;color:#b42318;font-size:13px;font-weight:600}';
+    document.head.appendChild(style);
+  }
+
   function loadSdk() {
     if (window.TossPayments) return Promise.resolve(window.TossPayments);
     if (sdkPromise) return sdkPromise;
@@ -19,6 +40,7 @@ window.LabelUpTossPay = (function () {
   }
 
   function ensureModal() {
+    ensureStyles();
     let root = document.getElementById('luTossPayModal');
     if (root) return root;
     root = document.createElement('div');

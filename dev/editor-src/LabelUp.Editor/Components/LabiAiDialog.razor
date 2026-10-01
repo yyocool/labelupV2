@@ -12,9 +12,10 @@
      aria-label="라비AI"
      aria-hidden="@(!open)"
      hidden="@(!open)"
+     data-tut="labi-dialog"
      @onclick="Session.CloseDialog">
   <div class="ed-modal__card ed-modal__card--labi ed-labi" @onclick:stopPropagation="true">
-    <header class="ed-modal__head">
+    <header class="ed-modal__head" data-tut="labi-head">
       <div class="ed-modal__head-title">
         <img class="ed-modal__head-labi" src="/assets/labi-icon.png" alt="라비" width="48" height="48" />
         <div class="ed-modal__head-copy">
@@ -25,10 +26,10 @@
       <button type="button" class="ed-modal__close" @onclick="Session.CloseDialog">×</button>
     </header>
     <div class="ed-modal__body ed-labi__body">
-      <section class="prompt" id="aiPromptPanel">
+      <section class="prompt" id="aiPromptPanel" data-tut="labi-panel">
         <div class="ai-chat-log" id="aiChatLog" hidden aria-live="polite"></div>
 
-        <div class="prompt-composer">
+        <div class="prompt-composer" data-tut="labi-prompt">
           <div class="ai-attach-preview" id="aiAttachPreview" hidden></div>
           <div class="prompt-row">
             <div class="spark" aria-hidden="true">✦</div>

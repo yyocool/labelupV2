@@ -619,6 +619,15 @@ window.labelUpEditor = {
   loadDraft: function (key) {
     try { return localStorage.getItem(key); } catch (e) { return null; }
   },
+  clearDraft: function (key) {
+    try {
+      if (key) localStorage.removeItem(key);
+      else {
+        localStorage.removeItem('labelup.editor.draft.v3');
+        localStorage.removeItem('labelup.editor.draft.v1');
+      }
+    } catch (e) { /* ignore */ }
+  },
   closeImport: function () {
     var el = document.querySelector('[data-ed-import-overlay]');
     if (!el) return;
@@ -3322,6 +3331,19 @@ window.labelUpEditor = {
       var u = new URL(window.location.href);
       if (id) u.searchParams.set('project', String(id));
       else u.searchParams.delete('project');
+      window.history.replaceState(null, '', u.toString());
+    } catch (e) { /* ignore */ }
+  },
+
+  /** Remove one or more query keys without reload (e.g. after ?new=1 boot). */
+  replaceUrlQuery: function () {
+    try {
+      var u = new URL(window.location.href);
+      var keys = Array.prototype.slice.call(arguments);
+      if (!keys.length) return;
+      keys.forEach(function (k) {
+        if (k) u.searchParams.delete(String(k));
+      });
       window.history.replaceState(null, '', u.toString());
     } catch (e) { /* ignore */ }
   },

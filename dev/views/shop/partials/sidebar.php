@@ -94,7 +94,7 @@ $isActive = static fn (string ...$keys): string => in_array($shopSubNav, $keys, 
     <div class="premium premium--shop">
       <b>✎ 라벨업 에디터</b>
       <p>디자인하고 바로<br>주문까지 한 번에!</p>
-      <a href="<?= url('editor/') ?>">디자인 시작 →</a>
+      <a href="<?= url('editor/?new=1') ?>">디자인 시작 →</a>
     </div>
   </div>
 </aside>

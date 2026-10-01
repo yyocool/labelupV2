@@ -148,11 +148,21 @@
 
             var themeApplied = !projectLoaded && !pendingDocApplied && await TryApplyTemplateFromQueryAsync(pageQuery);
             var wantVendor = pageQuery.ContainsKey("vendor") || pageQuery.ContainsKey("vendorImport");
-            var bootFromQuery = !projectLoaded && !themeApplied && !pendingDocApplied && !wantVendor && TryApplyPaperFromQuery(pageQuery);
-            var clipartApplied = !projectLoaded && !pendingDocApplied && !wantVendor && await TryApplyClipartFromQueryAsync(pageQuery);
+            var wantNew = IsNewDesignQuery(pageQuery);
+            var bootFromQuery = !projectLoaded && !themeApplied && !pendingDocApplied && !wantVendor && !wantNew && TryApplyPaperFromQuery(pageQuery);
+            var clipartApplied = !projectLoaded && !pendingDocApplied && !wantVendor && !wantNew && await TryApplyClipartFromQueryAsync(pageQuery);
             var restored = false;
             LabelDocument? draft = null;
-            if (!projectLoaded && !themeApplied && !pendingDocApplied && !wantVendor && !bootFromQuery && !clipartApplied)
+            var startedNew = false;
+            if (wantNew && !projectLoaded && !pendingDocApplied && !themeApplied && !wantVendor && !bootFromQuery && !clipartApplied)
+            {
+                // 홈/사이드바 「새 디자인 만들기」: 이전 클라우드·로컬 초안을 이어서 열지 않는다.
+                Session.StartNewDesign();
+                await Drafts.ClearAsync();
+                startedNew = true;
+                try { await Js.InvokeVoidAsync("labelUpEditor.replaceUrlQuery", "new"); } catch { /* ignore */ }
+            }
+            else if (!projectLoaded && !themeApplied && !pendingDocApplied && !wantVendor && !bootFromQuery && !clipartApplied)
             {
                 restored = await TryRestoreCloudWorkspaceAsync();
                 if (!restored)
@@ -168,7 +178,8 @@
                 }
             }
 
-            var usedExisting = projectLoaded || pendingDocApplied || themeApplied || bootFromQuery || clipartApplied || restored || draft is not null;
+            var usedExisting = projectLoaded || pendingDocApplied || themeApplied || bootFromQuery || clipartApplied || restored || draft is not null || startedNew;
+            // 새 디자인도 기본 빈 문서이므로 쇼핑몰 규격 자동 연결은 하지 않는다(용지는 StartNewDesign이 유지/기본).
             BindCurrentPaperToShop(!usedExisting);
 
             await WarmDocumentFontsAsync();
@@ -275,6 +286,15 @@
         if (!q.TryGetValue("project", out var raw) && !q.TryGetValue("workspace", out raw))
             return false;
         return int.TryParse(raw, out id) && id > 0;
+    }
+
+    private static bool IsNewDesignQuery(Dictionary<string, string> q)
+    {
+        if (!q.TryGetValue("new", out var raw) && !q.TryGetValue("fresh", out raw))
+            return false;
+        raw = (raw ?? "").Trim();
+        if (raw.Length == 0) return true; // ?new 또는 ?new=
+        return raw is "1" or "true" or "yes" or "new";
     }
 
     private async Task<bool> TryLoadProjectFromQueryAsync(Dictionary<string, string>? q = null)

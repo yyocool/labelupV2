@@ -8,7 +8,7 @@ $projects = $projects ?? [];
     <h1>프로젝트</h1>
     <p>편집기에 저장한 라벨 디자인을 모아서 이어 작업합니다. 삭제하면 휴지통으로 이동합니다.</p>
   </div>
-  <a class="account-btn account-btn--primary" href="<?= url('editor/') ?>">새 디자인 만들기</a>
+  <a class="account-btn account-btn--primary" href="<?= url('editor/?new=1') ?>">새 디자인 만들기</a>
 </section>
 
 <section class="card lib-panel">

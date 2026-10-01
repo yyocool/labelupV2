@@ -165,8 +165,37 @@
             return Task.CompletedTask;
         }
 
+        if (action == "openLabi")
+        {
+            Session.OpenDialog(EditorDialog.LabiAi);
+            return Task.CompletedTask;
+        }
+
+        if (action == "closeLabi")
+        {
+            if (Session.Dialog == EditorDialog.LabiAi)
+                Session.CloseDialog();
+            return Task.CompletedTask;
+        }
+
+        if (action == "closeLabiThenVendor")
+        {
+            if (Session.Dialog == EditorDialog.LabiAi)
+                Session.CloseDialog();
+            Session.OpenDialog(EditorDialog.VendorPicker);
+            return Task.CompletedTask;
+        }
+
+        if (action == "closeLabiThenMobileMenu")
+        {
+            if (Session.Dialog == EditorDialog.LabiAi)
+                Session.CloseDialog();
+            return Task.CompletedTask;
+        }
+
         if (action is "openImport" or "closeImport" || action.StartsWith("importTab:", StringComparison.Ordinal)
-            || action.StartsWith("paperTab:", StringComparison.Ordinal))
+            || action.StartsWith("paperTab:", StringComparison.Ordinal)
+            || action.StartsWith("labiDemo:", StringComparison.Ordinal))
         {
             return Task.CompletedTask;
         }
