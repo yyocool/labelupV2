@@ -7,14 +7,17 @@
 
 @if (Session.Dialog == EditorDialog.PaperPicker)
 {
-  <div class="ed-modal" role="dialog" aria-label="용지선택" @onclick="Session.CloseDialog">
+  @* 바탕을 눌러도 닫지 않는다. 카드 안에서 마우스를 누르고 바깥에서 떼면 누름과 뗌의 공통 조상인
+     이 바탕에 click 이 떨어지므로, 카드의 stopPropagation 으로도 막을 수 없어 창이 닫혀 버렸다.
+     목록을 한참 훑는 창이라 실수로 닫히면 처음부터 다시 찾아야 해서 ×로만 닫게 한다. *@
+  <div class="ed-modal" role="dialog" aria-modal="true" aria-label="용지선택">
     <div class="ed-modal__card ed-modal__card--papers" @onclick:stopPropagation="true">
       <header class="ed-modal__head" data-tut="paper-picker-head">
         <div>
           <h3>용지선택</h3>
-          <p>라벨용지와 태그용지를 검색하고 선택합니다.</p>
+          <p>라벨용지와 태그용지를 검색하고 선택합니다. 닫으려면 오른쪽 위 ×를 누르세요.</p>
         </div>
-        <button type="button" class="ed-modal__close" @onclick="Session.CloseDialog">×</button>
+        <button type="button" class="ed-modal__close" title="용지선택 닫기" @onclick="Session.CloseDialog">×</button>
       </header>
 
       <nav class="ed-paper-tabs" role="tablist" aria-label="용지 종류" data-tut="paper-tabs">

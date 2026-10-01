@@ -184,7 +184,8 @@ public static class DocumentRenderer
         float? heightMm = null,
         bool drawCutLines = true,
         bool drawShapeEdge = true,
-        string? skipObjectId = null)
+        string? skipObjectId = null,
+        bool paintBackground = true)
     {
         var w = widthMm ?? doc.WidthMm;
         var h = heightMm ?? doc.HeightMm;
@@ -193,9 +194,15 @@ public static class DocumentRenderer
         canvas.Save();
         canvas.ClipPath(clip, SKClipOperation.Intersect, antialias: true);
 
-        using var bg = new SKPaint { Color = ColorUtil.Parse(doc.Background), IsAntialias = true, Style = SKPaintStyle.Fill };
-        canvas.DrawRect(0, 0, w, h, bg);
-        DrawDesignBackground(canvas, doc, w, h);
+        // 바탕색과 디자인 그림은 사 온 라벨지에 이미 입혀져 있는 것이다. 화면에서는 실제 라벨처럼
+        // 보이도록 그리지만, 프린터로 보낼 때는 그리지 않는다. 그리면 같은 색을 한 번 더 덮어
+        // 잉크만 쓰고 색도 어긋난다.
+        if (paintBackground)
+        {
+            using var bg = new SKPaint { Color = ColorUtil.Parse(doc.Background), IsAntialias = true, Style = SKPaintStyle.Fill };
+            canvas.DrawRect(0, 0, w, h, bg);
+            DrawDesignBackground(canvas, doc, w, h);
+        }
 
         if (!forExport)
         {
@@ -251,7 +258,12 @@ public static class DocumentRenderer
         switch (shape.Kind)
         {
             case "ellipse" or "circle":
-                path.AddOval(new SKRect(0, 0, w, h));
+                // 규격에 반지름이 적혀 있으면 칸 가운데에 그 크기의 정원을 그린다. 칸이 정사각이
+                // 아닌 원형 라벨에서 칸을 꽉 채운 타원을 그리면 실제 타공과 어긋난다.
+                if (shape.CircleRadiusFor(w, h) is { } radius)
+                    path.AddCircle(w / 2f, h / 2f, radius);
+                else
+                    path.AddOval(new SKRect(0, 0, w, h));
                 break;
             case "roundrect":
                 path.AddRoundRect(new SKRoundRect(new SKRect(0, 0, w, h), shape.CornerRadiusMm, shape.RadiusYMm));
@@ -2737,7 +2749,8 @@ public static class DocumentRenderer
         float offsetXMm,
         float offsetYMm,
         Func<int, DesignObject, string>? resolve = null,
-        bool drawCutLines = false)
+        bool drawCutLines = false,
+        bool paintPaperColor = true)
     {
         doc.EnsureStructure();
         pageIndex = Math.Clamp(pageIndex, 0, doc.Pages.Count - 1);
@@ -2748,8 +2761,10 @@ public static class DocumentRenderer
         var info = new SKImageInfo(w, h, SKColorType.Rgba8888, SKAlphaType.Premul);
         using var surface = SKSurface.Create(info);
         var canvas = surface.Canvas;
+        // 프린터로 보낼 때는 종이색을 칠하지 않는다. 라벨지가 이미 그 색이고, 흰 바탕으로 두면
+        // 프린터가 그 자리에 아무것도 뿌리지 않는다.
         var paperBg = ColorUtil.Parse(paper.LabelColor);
-        canvas.Clear(paperBg.Alpha == 0 ? SKColors.White : paperBg);
+        canvas.Clear(paintPaperColor && paperBg.Alpha != 0 ? paperBg : SKColors.White);
         canvas.Scale(scale);
         canvas.Translate(offsetXMm, offsetYMm);
 
@@ -2769,7 +2784,8 @@ public static class DocumentRenderer
                 widthMm: slot.W,
                 heightMm: slot.H,
                 drawCutLines: drawCutLines,
-                drawShapeEdge: false);
+                drawShapeEdge: false,
+                paintBackground: paintPaperColor);
             if (drawCutLines)
             {
                 using var outline = new SKPaint

@@ -341,11 +341,24 @@ public sealed class PaperCatalog
         else if (kind is "rect" or "roundrect")
             kind = rx > 0f ? "roundrect" : "rect";
 
+        // 형태가 원형이면 '모서리 세로 반경'을 원의 반지름으로 읽는다(없으면 가로 반경).
+        // 값이 있으면 칸 가운데에 그 크기의 정원을 그리고, 없으면 칸에 내접하는 타원을 그린다.
+        float? circle = null;
+        if (kind == "ellipse" && ry > 0f)
+        {
+            circle = ry;
+            var raw = item.CornerRadiusYMm ?? item.CornerRadiusXMm ?? 0f;
+            if (raw > limit + 0.005f)
+                EditorLog.Warn($"원형 규격의 반지름이 칸보다 큽니다: {item.Sku} "
+                               + $"{raw:0.###}mm → {limit:0.###}mm (칸 {lw:0.#}×{lh:0.#}mm)");
+        }
+
         return new PaperShape
         {
             Kind = kind,
             CornerRadiusMm = rx,
             CornerRadiusYMm = Math.Abs(ry - rx) > 0.005f ? ry : null,
+            CircleRadiusMm = circle,
             Svg = svg.Length > 0 ? svg : null,
             SvgIsLabelMm = false
         };

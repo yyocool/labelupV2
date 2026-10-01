@@ -12,8 +12,19 @@
       <header class="ed-modal__head">
         <div>
           <h3>편집기에서 출력</h3>
-          <p>인쇄 위치를 맞춘 뒤 프린터 또는 PDF로 출력하세요. 빨간 칼선(라벨 외곽선)은 미리보기용이며 인쇄되지 않습니다.</p>
+          <p>
+            인쇄 위치를 맞춘 뒤 프린터 또는 PDF로 출력하세요. 빨간 칼선(라벨 외곽선)은 미리보기용이며 인쇄되지 않습니다.
+            @if (PaperInkNote is { } note)
+            {
+              <text>@note</text>
+            }
+          </p>
         </div>
+        @* 출력 단추는 선택한 페이지가 아니라 모든 페이지를 보낸다. 몇 장이 나가는지 제목줄
+           가운데에 붉게 적어, 수십 장을 모르고 뽑는 일을 막는다. *@
+        <strong class="ed-print__pages" title="출력 단추를 누르면 이 장수가 모두 프린터로 갑니다">
+          총 인쇄페이지수 : @Session.Document.Pages.Count
+        </strong>
         <button type="button" class="ed-modal__close" @onclick="Session.CloseDialog">×</button>
       </header>
       <div class="ed-modal__body ed-print">
@@ -74,6 +85,10 @@
         </div>
       </div>
       <footer class="ed-modal__foot">
+        <label class="ed-print__cut" title="칼선(라벨 외곽선)을 함께 내보냅니다. 인쇄 위치를 맞춰 볼 때만 쓰고, 실제 라벨에는 끄고 인쇄하세요">
+          <input type="checkbox" @bind="_printCutLines" />
+          칼선 인쇄(테스트용)
+        </label>
         <button type="button" class="ed-btn" @onclick="DownloadPdfPng">PDF용 PNG 저장</button>
         <button type="button" class="ed-btn ed-btn--primary" @onclick="Print">출력</button>
       </footer>
@@ -87,6 +102,11 @@
     private float _oy;
     private int _page;
     private bool _opened;
+    /// <summary>
+    /// 칼선을 프린터로도 보낼지. 자리 맞춤을 시험할 때만 켠다. 실제 라벨에 찍으면
+    /// 라벨 테두리를 따라 빨간 줄이 남으므로 기본은 꺼 둔다.
+    /// </summary>
+    private bool _printCutLines;
     private static readonly System.Globalization.CultureInfo Inv = System.Globalization.CultureInfo.InvariantCulture;
 
     private static string Fmt(float v) => v.ToString("0.#", Inv);
@@ -138,6 +158,30 @@
         return $"--page-ar:{pw.ToString("0.###", inv)} / {ph.ToString("0.###", inv)};--page-w:{pw.ToString("0.###", inv)};--page-h:{ph.ToString("0.###", inv)};";
     }
 
+    /// <summary>
+    /// 라벨지에 이미 입혀져 있어 인쇄하지 않는 것들을 알려 주는 문구.
+    /// 미리보기에는 실제 라벨처럼 보이게 그리지만 프린터로는 보내지 않으므로,
+    /// 미리보기와 인쇄물이 다른 이유를 미리 밝혀 둔다. 흰 종이면 알릴 것이 없다.
+    /// </summary>
+    private string? PaperInkNote
+    {
+        get
+        {
+            var paper = Session.Document.Paper;
+            var hasDesign = !string.IsNullOrWhiteSpace(paper.DesignImageUrl);
+            var c = ColorUtil.Parse(paper.LabelColor);
+            // 흰색에 가까우면 어차피 인쇄해도 티가 나지 않으므로 색이 없는 것으로 본다.
+            var hasColor = c.Alpha != 0 && (c.Red < 250 || c.Green < 250 || c.Blue < 250);
+            if (hasDesign && hasColor)
+                return "라벨지 바탕색과 미리 인쇄된 디자인은 종이에 이미 있어 인쇄되지 않습니다.";
+            if (hasDesign)
+                return "미리 인쇄된 라벨지 디자인은 종이에 이미 있어 인쇄되지 않습니다.";
+            return hasColor
+                ? "라벨지 바탕색은 종이에 이미 있어 인쇄되지 않습니다."
+                : null;
+        }
+    }
+
     private void Rebuild()
     {
         try
@@ -170,9 +214,13 @@
             var pages = new List<byte[]>();
             for (var i = 0; i < Session.Document.Pages.Count; i++)
             {
+                // 라벨지에 이미 입혀진 바탕색은 보내지 않는다. 미리보기에서는 종이색을 보여 주되
+                // 프린터에는 디자인만 간다.
                 pages.Add(DocumentRenderer.ExportSheetPng(
                     Session.Document, i, 180f, _ox, _oy,
-                    (global, obj) => Session.ResolveObjectText(obj, global, clock)));
+                    (global, obj) => Session.ResolveObjectText(obj, global, clock),
+                    drawCutLines: _printCutLines,
+                    paintPaperColor: false));
             }
             if (pages.Count == 0 || pages.All(p => p.Length == 0))
             {
@@ -184,6 +232,10 @@
                 Session.Document.Name,
                 Session.Document.Paper.PaperWidthMm,
                 Session.Document.Paper.PaperHeightMm);
+            Session.Status = _printCutLines
+                ? $"{pages.Count}장을 프린터로 보냈습니다 · 칼선 포함(테스트용)"
+                : $"{pages.Count}장을 프린터로 보냈습니다";
+            Session.Notify();
         }
         catch (Exception ex)
         {
@@ -199,11 +251,16 @@
         {
             Session.ExpandCustomSerial();
             var clock = DateTime.Now;
+            // 인쇄용 파일이므로 화면 미리보기와 달리 종이색을 넣지 않는다.
             var bytes = DocumentRenderer.ExportSheetPng(
                 Session.Document, _page, 300f, _ox, _oy,
-                (global, obj) => Session.ResolveObjectText(obj, global, clock));
+                (global, obj) => Session.ResolveObjectText(obj, global, clock),
+                drawCutLines: _printCutLines,
+                paintPaperColor: false);
             await Export.DownloadPngAsync(bytes, Sanitize(Session.Document.Name) + "-print.png");
-            Session.Status = "PDF용 PNG를 저장했습니다";
+            Session.Status = _printCutLines
+                ? "PDF용 PNG를 저장했습니다 · 칼선 포함(테스트용)"
+                : "PDF용 PNG를 저장했습니다";
             Session.Notify();
         }
         catch (Exception ex)

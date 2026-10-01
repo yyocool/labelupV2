@@ -154,6 +154,12 @@ public sealed class PaperShape
     public float CornerRadiusMm { get; set; } = 1.2f;
     /// <summary>세로 모서리 반경. 없으면 <see cref="CornerRadiusMm"/>과 같은 정원 모서리.</summary>
     public float? CornerRadiusYMm { get; set; }
+    /// <summary>
+    /// 원형 라벨의 반지름(mm). 규격에 값이 적혀 있을 때만 채운다. 채워져 있으면 칸 가운데에
+    /// 이 반지름의 정원을 그린다. 비어 있으면 종전처럼 칸에 내접하는 타원을 그린다.
+    /// 칸이 정사각이 아닌 원형 라벨에서 타원을 그리면 실제 타공과 어긋나기 때문이다.
+    /// </summary>
+    public float? CircleRadiusMm { get; set; }
     public string? Svg { get; set; }
     /// <summary>구버전: 가이드를 한 path 문자열로 둔 경우(선만).</summary>
     public string? GuideSvg { get; set; }
@@ -170,11 +176,19 @@ public sealed class PaperShape
     [JsonIgnore]
     public float RadiusYMm => CornerRadiusYMm ?? CornerRadiusMm;
 
+    /// <summary>
+    /// 칸 안에 그릴 원의 반지름(mm). 규격에 적힌 값을 칸 밖으로 넘지 않게 줄여 돌려준다.
+    /// 적힌 값이 없으면 null이고, 그때는 칸에 내접하는 타원을 그려야 한다.
+    /// </summary>
+    public float? CircleRadiusFor(float w, float h)
+        => CircleRadiusMm is { } r && r > 0f ? Math.Min(r, Math.Min(w, h) / 2f) : null;
+
     public PaperShape Clone() => new()
     {
         Kind = Kind,
         CornerRadiusMm = CornerRadiusMm,
         CornerRadiusYMm = CornerRadiusYMm,
+        CircleRadiusMm = CircleRadiusMm,
         Svg = Svg,
         GuideSvg = GuideSvg,
         Guides = Guides?.Select(g => g.Clone()).ToList(),
@@ -194,8 +208,7 @@ public sealed class PaperShape
         var stroke = "#c4b8aa";
         var outer = Kind switch
         {
-            "ellipse" or "circle" =>
-                $"<ellipse cx='{x + w / 2f}' cy='{y + h / 2f}' rx='{w / 2f}' ry='{h / 2f}' fill='{fillEsc}' stroke='{stroke}' stroke-width='0.25'/>",
+            "ellipse" or "circle" => EllipseSvg(x, y, w, h, fillEsc, stroke),
             "roundrect" =>
                 $"<rect x='{x}' y='{y}' width='{w}' height='{h}' rx='{CornerRadiusMm}' ry='{RadiusYMm}' fill='{fillEsc}' stroke='{stroke}' stroke-width='0.25'/>",
             "svg" when !string.IsNullOrWhiteSpace(Svg) =>
@@ -210,6 +223,18 @@ public sealed class PaperShape
         var rx = (hole.Width / 2f).ToString("0.###", CultureInfo.InvariantCulture);
         var ry = (hole.Height / 2f).ToString("0.###", CultureInfo.InvariantCulture);
         return $"<g>{outer}<ellipse cx='{hx}' cy='{hy}' rx='{rx}' ry='{ry}' fill='#d8d2cc' stroke='{stroke}' stroke-width='0.2'/></g>";
+    }
+
+    /// <summary>원형 라벨 한 칸. 규격에 반지름이 있으면 칸 가운데의 정원을, 없으면 내접 타원을 그린다.</summary>
+    private string EllipseSvg(float x, float y, float w, float h, string fill, string stroke)
+    {
+        var inv = CultureInfo.InvariantCulture;
+        var r = CircleRadiusFor(w, h);
+        var rx = r ?? w / 2f;
+        var ry = r ?? h / 2f;
+        return $"<ellipse cx='{(x + w / 2f).ToString("0.###", inv)}' cy='{(y + h / 2f).ToString("0.###", inv)}'"
+               + $" rx='{rx.ToString("0.###", inv)}' ry='{ry.ToString("0.###", inv)}'"
+               + $" fill='{fill}' stroke='{stroke}' stroke-width='0.25'/>";
     }
 
     private static string WrapShapeSvg(string svg, float w, float h, string fill)

@@ -81,7 +81,9 @@
               </optgroup>
             }
           </select>
-          <input type="number" min="4" max="200" step="0.5" title="크기 pt" value="@DisplayFontSizePt(o).ToString("0.##")" @onchange="e => SetFontSizePt(o, e)" />
+          @* 글자 크기는 소수 첫째 자리까지만 보여 준다. 자세한 설명은 DisplayFontSizePt 에 적었다. *@
+          <input type="number" min="4" max="200" step="0.5" title="크기 pt"
+                 value="@DisplayFontSizePt(o).ToString("0.#")" @onchange="e => SetFontSizePt(o, e)" />
           <button type="button" class="@(DisplayBold(o) ? "is-on" : null)" title="굵게" @onclick='() => ToggleRich(o, "bold")'>B</button>
           <button type="button" class="@(DisplayItalic(o) ? "is-on" : null)" title="기울임" @onclick='() => ToggleRich(o, "italic")'><i>I</i></button>
           <button type="button" class="@(DisplayUnderline(o) ? "is-on" : null)" title="밑줄" @onclick='() => ToggleRich(o, "underline")'><u>U</u></button>
@@ -998,6 +1000,12 @@
     private string DisplayFamily(DesignObject o)
         => string.IsNullOrWhiteSpace(_caret?.FontFamily) ? o.FontFamily : _caret.FontFamily;
 
+    /// <summary>
+    /// 속성바에 보여 줄 글자 크기(pt). 안에는 mm로 담아 두고 pt로 고쳐 보여 주기 때문에
+    /// 타사 파일을 변환하면 12.23pt 같은 값이 나온다. 0.01pt는 0.0035mm로 600dpi 점
+    /// 하나(0.042mm)보다도 작아 인쇄에서 구별되지 않으므로, 보여 줄 때는 소수 첫째 자리에서
+    /// 끊는다. 담아 둔 값은 그대로 두므로 손대지 않은 항목의 크기가 바뀌지는 않는다.
+    /// </summary>
     private float DisplayFontSizePt(DesignObject o)
         => _caret is { FontSizePt: > 0 } ? _caret.FontSizePt : FontCatalog.ToPt(o.FontSize);
 

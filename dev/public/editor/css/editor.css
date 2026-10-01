@@ -1352,6 +1352,16 @@ html[data-ed-save="off"] .ed-autosave:hover {
   min-width: 44px;
   max-width: 44px;
 }
+/* 글자 크기는 120.5 처럼 네 자리에 소수까지 들어가므로 기본 숫자칸보다 넓어야 한다.
+   오른쪽 맞춤이라 숫자가 늘어도 끝이 잘리지 않는다. */
+.ed-ctx-bar__slot[data-slot="font"] input[type="number"] {
+  box-sizing: border-box;
+  width: 64px;
+  min-width: 64px;
+  max-width: 64px;
+  padding: 0 4px;
+  text-align: right;
+}
 /* 회전은 -123.4 까지 들어가야 해서 다른 숫자칸보다 넓다. */
 .ed-ctx-bar .ed-field--rotate input[type="number"] {
   box-sizing: border-box;
@@ -4214,6 +4224,22 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   flex: 1;
   min-height: 0;
 }
+/* 총 인쇄페이지수. 제목줄 가운데에 띄워 둔다. 제목(h3)과 같은 줄 높이에 두므로 그 아래
+   설명 글과 겹치지 않고, 제목글이 짧아 가운데까지 닿지도 않는다. */
+.ed-modal__card--print .ed-modal__head {
+  position: relative;
+}
+.ed-print__pages {
+  position: absolute;
+  left: 50%;
+  top: 16px;
+  transform: translateX(-50%);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 20px;
+  color: #c4283a;
+  white-space: nowrap;
+}
 .ed-modal__head {
   display: flex;
   justify-content: space-between;
@@ -4249,6 +4275,25 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   gap: 8px;
   padding: 12px 18px;
   border-top: 1px solid var(--ed-border);
+}
+/* 칼선 인쇄는 자리 맞춤을 시험할 때만 쓰는 것이라 단추보다 눈에 덜 띄게 둔다. */
+.ed-print__cut {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ed-muted, #6b635c);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ed-print__cut input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--ed-primary, #7b2840);
 }
 .ed-paper-tabs {
   display: flex;
@@ -6261,6 +6306,17 @@ html.is-ed-mobile .ed-data-restore {
   max-width: none;
   max-height: min(92dvh, 100%);
   border-radius: 18px 18px 0 0;
+}
+/* 좁은 화면에서는 제목글이 가운데까지 닿아 겹치므로, 띄우지 않고 제목 아래 한 줄로 내린다. */
+.ed.is-mobile .ed-modal__card--print .ed-modal__head {
+  flex-wrap: wrap;
+}
+.ed.is-mobile .ed-print__pages {
+  position: static;
+  transform: none;
+  flex: 0 0 100%;
+  order: 3;
+  margin-top: 2px;
 }
 .ed.is-mobile .ed-modal__card--confirm {
   width: calc(100% - 24px);
