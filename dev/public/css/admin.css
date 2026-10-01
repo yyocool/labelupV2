@@ -253,6 +253,10 @@
 .admin-badge{display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700}
 .admin-badge--ok{background:#eaf8ef;color:#176b3a}
 .admin-badge--err{background:#fdecec;color:#9b1c1c}
+/* 규격 목록의 연결 상품 SKU. 한 규격에 여러 상품이 걸리므로 줄바꿈되게 둔다. */
+.admin-badge--sku{background:#f3f0eb;color:#4a423b;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600}
+.admin-spec-skus{max-width:220px}
+.admin-spec-skus .admin-badge--sku{margin:1px 2px 1px 0}
 .admin-quick-links{display:grid;gap:8px}
 .admin-quick-links a{display:block;padding:10px 12px;border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--charcoal);font-size:13px;font-weight:600;background:#faf7f3}
 .admin-quick-links a:hover{border-color:var(--accent);color:var(--accent)}

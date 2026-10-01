@@ -204,6 +204,28 @@ final class ShopAdminService
         return $this->repo->allSpecs();
     }
 
+    /**
+     * 규격 목록의 product_skus(GROUP_CONCAT 결과)를 SKU 배열로 쪼갠다.
+     * 빈 값·중복을 걸러 내므로 화면에서는 그대로 돌리기만 하면 된다.
+     *
+     * @return list<string>
+     */
+    public static function splitSkuList(mixed $raw): array
+    {
+        $text = trim((string) ($raw ?? ''));
+        if ($text === '') {
+            return [];
+        }
+        $skus = [];
+        foreach (preg_split('/[,\s]+/', $text) ?: [] as $part) {
+            $sku = trim((string) $part);
+            if ($sku !== '' && !in_array($sku, $skus, true)) {
+                $skus[] = $sku;
+            }
+        }
+        return $skus;
+    }
+
     public function saveSpec(array $data): int
     {
         $name = trim((string) ($data['name'] ?? ''));

@@ -223,7 +223,30 @@ final class ShopRepository extends BaseModel
 
     {
 
-        return $this->fetchAll('SELECT * FROM label_specs ORDER BY id DESC');
+        // 규격마다 어느 상품(SKU)이 걸려 있는지 함께 읽는다. 규격값을 고치면 그 상품을 고른
+        // 사용자의 미리보기·인쇄가 같이 바뀌므로, 목록에서 영향 범위가 바로 보여야 한다.
+
+        // 걸린 상품이 없는 규격은 편집기 용지선택에 아예 나오지 않는다(editorPapers 가
+
+        // shop_products 를 기준으로 조회하기 때문). 그것도 이 칸으로 드러난다.
+
+        return $this->fetchAll(
+
+            "SELECT s.*,
+
+                    COUNT(p.id) AS product_count,
+
+                    GROUP_CONCAT(p.sku ORDER BY p.sku SEPARATOR ',') AS product_skus
+
+             FROM label_specs s
+
+             LEFT JOIN shop_products p ON p.spec_id = s.id
+
+             GROUP BY s.id
+
+             ORDER BY s.id DESC"
+
+        );
 
     }
 

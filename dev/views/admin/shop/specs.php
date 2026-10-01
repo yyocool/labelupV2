@@ -6,9 +6,9 @@
 <div id="adminAlert" class="admin-alert"></div>
 <div class="admin-table-wrap">
   <table class="admin-table">
-    <thead><tr><th>ID</th><th>이미지</th><th>규격명</th><th>종류</th><th>용지</th><th>크기(mm)</th><th>재질</th><th>형태</th><th>칸수</th><th>배치(열×행)</th><th>상태</th><th>관리</th></tr></thead>
+    <thead><tr><th>ID</th><th>이미지</th><th>규격명</th><th>상품 SKU</th><th>종류</th><th>용지</th><th>크기(mm)</th><th>재질</th><th>형태</th><th>칸수</th><th>배치(열×행)</th><th>상태</th><th>관리</th></tr></thead>
     <tbody>
-    <?php if (empty($items)): ?><tr><td colspan="12" class="empty">등록된 규격이 없습니다.</td></tr><?php else: ?>
+    <?php if (empty($items)): ?><tr><td colspan="13" class="empty">등록된 규격이 없습니다.</td></tr><?php else: ?>
     <?php foreach ($items as $row): ?>
     <tr>
       <td><?= (int) $row['id'] ?></td>
@@ -18,6 +18,14 @@
         <?php else: ?><span class="admin-muted">-</span><?php endif; ?>
       </td>
       <td><?= e($row['name']) ?></td>
+      <td class="admin-spec-skus">
+        <?php $skus = ShopAdminService::splitSkuList($row['product_skus'] ?? null); ?>
+        <?php if ($skus === []): ?>
+        <span class="admin-muted" title="이 규격을 쓰는 상품이 없어 편집기 용지선택에 나오지 않습니다">연결 상품 없음</span>
+        <?php else: ?>
+        <?php foreach ($skus as $sku): ?><span class="admin-badge admin-badge--sku"><?= e($sku) ?></span><?php endforeach; ?>
+        <?php endif; ?>
+      </td>
       <td><?= (($row['kind'] ?? 'label') === 'tag') ? '태그' : '라벨' ?></td>
       <td><?= e($row['paper_size'] ?? '') ?: '<span class="admin-muted">-</span>' ?></td>
       <td><?= e($row['width_mm']) ?> × <?= e($row['height_mm']) ?></td>
