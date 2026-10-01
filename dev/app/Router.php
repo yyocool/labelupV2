@@ -57,6 +57,10 @@ use App\Controllers\SeoPublicController;
 use App\Controllers\Api\SeoAdminApiController;
 use App\Controllers\SiteIntroAdminController;
 use App\Controllers\Api\SiteIntroAdminApiController;
+use App\Controllers\SiteModeAdminController;
+use App\Controllers\Api\SiteModeAdminApiController;
+use App\Controllers\Api\SiteRuntimeApiController;
+use App\Services\SiteModeService;
 use App\Controllers\MemberGradeAdminController;
 use App\Controllers\Api\MemberGradeAdminApiController;
 use App\Controllers\QrCouponAdminController;
@@ -105,6 +109,7 @@ final class Router
             }
         }
         $path = rtrim($path, '/') ?: '/';
+        $this->enforceMaintenanceIfNeeded($path);
 
         foreach ($this->routes as $route) {
             if ($route['method'] !== strtoupper($method)) {
@@ -132,6 +137,34 @@ final class Router
         } catch (\Throwable) {
         }
         view('errors/404');
+    }
+
+    private function enforceMaintenanceIfNeeded(string $path): void
+    {
+        try {
+            $siteMode = new SiteModeService();
+            if (!$siteMode->isMaintenance()) {
+                return;
+            }
+            if ($siteMode->isBypassPath($path)) {
+                return;
+            }
+            // 관리자 세션이어도 공개 페이지는 유지보수 화면을 본다.
+            // (/admin · /api/admin 만 isBypassPath 로 통과)
+        } catch (\Throwable) {
+            return;
+        }
+
+        http_response_code(503);
+        if (str_starts_with($path, '/api/')) {
+            \App\Helpers\ApiResponse::error('현재 사이트 점검 중입니다. 잠시 후 다시 시도해 주세요.', [
+                'code' => 'maintenance',
+            ], 503);
+        }
+        view('errors/maintenance', [
+            'siteMode' => (new SiteModeService())->adminPayload(),
+        ]);
+        exit;
     }
 
     public static function register(): self
@@ -190,6 +223,9 @@ final class Router
         $seoPublic = new SeoPublicController();
         $introAdmin = new SiteIntroAdminController();
         $introAdminApi = new SiteIntroAdminApiController();
+        $siteModeAdmin = new SiteModeAdminController();
+        $siteModeAdminApi = new SiteModeAdminApiController();
+        $siteRuntimeApi = new SiteRuntimeApiController();
         $memberGradeAdmin = new MemberGradeAdminController();
         $memberGradeAdminApi = new MemberGradeAdminApiController();
         $qrCouponAdmin = new QrCouponAdminController();
@@ -252,6 +288,7 @@ final class Router
         $router->get('/admin/settings/seo', [$seoAdmin, 'seo']);
         $router->get('/admin/settings/tracking', [$seoAdmin, 'marketing']);
         $router->get('/admin/settings/intro', [$introAdmin, 'index']);
+        $router->get('/admin/settings/environment', [$siteModeAdmin, 'index']);
 
         $router->get('/robots.txt', [$seoPublic, 'robots']);
         $router->get('/sitemap.xml', [$seoPublic, 'sitemap']);
@@ -364,6 +401,8 @@ final class Router
         $router->post('/api/admin/marketing/file/delete', [$seoAdminApi, 'deleteFile']);
         $router->post('/api/admin/intro/save', [$introAdminApi, 'save']);
         $router->post('/api/admin/intro/upload', [$introAdminApi, 'upload']);
+        $router->post('/api/admin/site-mode/save', [$siteModeAdminApi, 'save']);
+        $router->get('/api/site/runtime', [$siteRuntimeApi, 'runtime']);
 
         $router->post('/api/admin/login', [$adminApi, 'login']);
         $router->post('/api/admin/password', [$adminApi, 'changePassword']);

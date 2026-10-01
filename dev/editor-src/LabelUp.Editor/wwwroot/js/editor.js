@@ -1043,7 +1043,7 @@ window.labelUpEditor = {
       if (after && after.nextSibling) after.after(vendor);
       else actions.insertBefore(vendor, actions.firstChild);
     }
-    if (!credit) {
+    if (!credit && !this._creditGuest) {
       credit = document.createElement('button');
       credit.type = 'button';
       credit.className = 'ed-btn';
@@ -1052,11 +1052,12 @@ window.labelUpEditor = {
       credit.addEventListener('click', function (e) {
         e.preventDefault();
         var chip = document.getElementById('lu-credit-chip');
-        if (!chip) return;
-        chip.hidden = false;
+        if (!chip || chip.hidden) return;
         chip.click();
       });
       vendor.after(credit);
+    } else if (credit && this._creditGuest) {
+      credit.remove();
     }
   },
   toggleMobileProps: function () {
@@ -3058,17 +3059,31 @@ window.labelUpEditor = {
     if (!chip) return;
     var bal = Number(balance);
     var strong = chip.querySelector('strong');
+    var em = chip.querySelector('em');
     if (strong) strong.textContent = bal.toLocaleString('ko-KR') + ' C';
+    if (em) em.textContent = bal < 0 ? '미정산' : '남은 크레딧';
     chip.hidden = false;
     chip.classList.remove('is-guest');
     chip.classList.toggle('is-debt', bal < 0);
     chip.title = bal < 0 ? '마이너스 잔액 · 충전 시 자동 차감' : '내 크레딧';
+    this._creditGuest = false;
+    this.syncMobileCreditButton();
+  },
+  syncMobileCreditButton: function () {
+    var credit = document.querySelector('[data-ed-m-credit]');
+    var on = !!(document.querySelector('.ed.is-mobile'));
+    if (!on || this._creditGuest) {
+      if (credit) credit.remove();
+      return;
+    }
+    // ensureMobileDrawerExtras 가 다시 만들도록 둡니다.
   },
   bindCreditBadge: function () {
     if (this._creditBadgeBound) return;
     this._creditBadgeBound = true;
     var self = this;
     var state = { balance: 0, page: 1, pages: 1, items: [], loaded: false, guest: false };
+    self._creditGuest = true;
 
     var fmt = function (n) {
       var v = Number(n) || 0;
@@ -3108,12 +3123,15 @@ window.labelUpEditor = {
       if (!chip) return;
       var strong = chip.querySelector('strong');
       var em = chip.querySelector('em');
+      self._creditGuest = !!state.guest;
       if (state.guest) {
-        chip.hidden = false;
+        // 비로그인: 잔액을 알 수 없으므로 칩을 숨긴다 (0 C처럼 보이게 하지 않음)
+        chip.hidden = true;
         chip.classList.add('is-guest');
         chip.title = '로그인하면 남은 크레딧을 볼 수 있습니다';
         if (em) em.textContent = '크레딧';
         if (strong) strong.textContent = '로그인';
+        self.syncMobileCreditButton();
         return;
       }
       chip.classList.remove('is-guest');
@@ -3124,6 +3142,8 @@ window.labelUpEditor = {
         : '크레딧 사용 이력 보기';
       if (em) em.textContent = Number(state.balance) < 0 ? '미정산' : '남은 크레딧';
       if (strong) strong.textContent = fmt(state.balance);
+      self.syncMobileCreditButton();
+      if (document.querySelector('.ed.is-mobile')) self.ensureMobileDrawerExtras();
     };
 
     var rowHtml = function (item) {
@@ -3193,17 +3213,18 @@ window.labelUpEditor = {
         renderChip();
         renderModal();
       } catch (err) {
-        if (err && err.status === 401) {
+        if (err && (err.status === 401 || err.status === 403)) {
           state.guest = true;
           state.loaded = true;
+          state.balance = 0;
+          state.items = [];
           renderChip();
           return;
         }
-        var chip = ensureChip();
-        if (chip) {
-          chip.hidden = false;
-          chip.title = (err && err.message) || '크레딧을 불러오지 못했습니다';
-        }
+        // 실패 시에도 잔액처럼 보이게 두지 않음
+        state.guest = true;
+        state.loaded = true;
+        renderChip();
       }
     };
 

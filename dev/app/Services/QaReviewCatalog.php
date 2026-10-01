@@ -161,6 +161,7 @@ final class QaReviewCatalog
             $a('admin-admins', '설정', '관리자/권한', '/admin/settings/admins', '관리자 추가·메뉴권한'),
             $a('admin-grades', '설정', '회원등급', '/admin/settings/member-grades', '등급 CRUD'),
             $a('admin-intro', '설정', '인트로설정', '/admin/settings/intro', '미디어 업로드·저장'),
+            $a('admin-environment', '설정', '환경설정', '/admin/settings/environment', '개발·운영·유지보수 모드'),
             $a('admin-seo', '설정', 'SEO 설정', '/admin/settings/seo', '메타·페이지 SEO'),
             $a('admin-tracking', '설정', '광고 스크립트', '/admin/settings/tracking', '트래킹·ads.txt'),
 

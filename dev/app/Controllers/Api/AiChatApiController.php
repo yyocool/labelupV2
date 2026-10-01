@@ -10,6 +10,7 @@ use App\Services\AiCreditService;
 use App\Services\AiUsageService;
 use App\Services\AuthService;
 use App\Services\LabiDesignService;
+use App\Services\SiteModeService;
 use RuntimeException;
 
 final class AiChatApiController extends BaseController
@@ -59,6 +60,16 @@ final class AiChatApiController extends BaseController
                     $result['reply'] = rtrim((string) ($result['reply'] ?? '')) . $note;
                 }
             }
+            $usageOut = null;
+            $siteMode = new SiteModeService();
+            if ($siteMode->showAiUsage()) {
+                $usageOut = $result['usage'] ?? null;
+                if (is_array($usageOut) && $siteMode->showAiDebug()) {
+                    $usageOut['debug'] = true;
+                } elseif (is_array($usageOut)) {
+                    unset($usageOut['steps'], $usageOut['usd'], $usageOut['usd_krw'], $usageOut['currency_note']);
+                }
+            }
             $this->jsonSuccess([
                 'reply' => $result['reply'],
                 'role' => 'assistant',
@@ -67,8 +78,11 @@ final class AiChatApiController extends BaseController
                 'clipart' => $result['clipart'],
                 'template' => $result['template'] ?? null,
                 'choices' => $result['choices'] ?? null,
-                'usage' => $result['usage'] ?? null,
+                'usage' => $usageOut,
                 'credit' => $creditInfo,
+                'site_mode' => $siteMode->mode(),
+                'show_ai_usage' => $siteMode->showAiUsage(),
+                'show_ai_debug' => $siteMode->showAiDebug(),
             ]);
         } catch (RuntimeException $e) {
             $status = str_contains($e->getMessage(), '크레딧') ? 402 : 502;

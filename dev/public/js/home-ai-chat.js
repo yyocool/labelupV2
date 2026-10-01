@@ -9,6 +9,27 @@ window.LabelUpLabiChat = {
     const embedMode = cfg.embedMode === 'editor';
     const surface = embedMode ? 'editor' : 'home';
     const root = cfg.rootEl || document.getElementById('aiPromptPanel');
+    let showAiUsage = cfg.showAiUsage === true || cfg.show_ai_usage === true;
+    let showAiDebug = cfg.showAiDebug === true || cfg.show_ai_debug === true;
+    if (typeof cfg.showAiUsage === 'undefined' && typeof cfg.show_ai_usage === 'undefined') {
+      // 홈은 서버에서 주입. 편집기 등에서 미지정 시 runtime API로 보정.
+      showAiUsage = false;
+      showAiDebug = false;
+      void fetchRuntimeFlags();
+    }
+
+    async function fetchRuntimeFlags() {
+      try {
+        const res = await fetch('/api/site/runtime', { credentials: 'same-origin' });
+        const data = await res.json().catch(() => ({}));
+        const payload = (data && data.data) || {};
+        showAiUsage = !!payload.show_ai_usage;
+        showAiDebug = !!payload.show_ai_debug;
+      } catch (e) {
+        showAiUsage = false;
+        showAiDebug = false;
+      }
+    }
 
     const panel = root;
     const input = root && (root.querySelector('#promptInput') || root.querySelector('[data-labi-input]'));
@@ -962,8 +983,8 @@ window.LabelUpLabiChat = {
     if (extras.vendor) {
       body.appendChild(buildVendorCard(extras.vendor));
     }
-    if (extras.usage) {
-      const meta = buildUsageMeta(extras.usage);
+    if (extras.usage && showAiUsage) {
+      const meta = buildUsageMeta(extras.usage, showAiDebug);
       if (meta) body.appendChild(meta);
     }
 
@@ -973,7 +994,7 @@ window.LabelUpLabiChat = {
     chatLog.scrollTop = chatLog.scrollHeight;
   }
 
-  function buildUsageMeta(usage) {
+  function buildUsageMeta(usage, debugMode) {
     if (!usage || typeof usage !== 'object') return null;
     const tokens = Number(usage.total_tokens || 0);
     const krw = Number(usage.krw || 0);
@@ -1000,6 +1021,36 @@ window.LabelUpLabiChat = {
       <span class="ai-chat-meta__sep" aria-hidden="true">·</span>
       ${bits.join('<span class="ai-chat-meta__sep" aria-hidden="true">·</span>')}
     `;
+
+    if (debugMode || usage.debug) {
+      const prompt = Number(usage.prompt_tokens || 0);
+      const completion = Number(usage.completion_tokens || 0);
+      const usd = Number(usage.usd || 0);
+      const rate = Number(usage.usd_krw || 0);
+      const models = Array.isArray(usage.models) ? usage.models.filter(Boolean) : [];
+      const steps = Array.isArray(usage.steps) ? usage.steps : [];
+      const dbg = document.createElement('details');
+      dbg.className = 'ai-chat-debug';
+      const stepLines = steps.map((step, idx) => {
+        const s = step && typeof step === 'object' ? step : {};
+        const label = String(s.label || s.name || s.model || ('step ' + (idx + 1)));
+        const pt = Number(s.prompt_tokens || s.prompt || 0);
+        const ct = Number(s.completion_tokens || s.completion || 0);
+        const tt = Number(s.total_tokens || (pt + ct) || 0);
+        return `<li><code>${escapeHtml(label)}</code> · in ${pt.toLocaleString('ko-KR')} / out ${ct.toLocaleString('ko-KR')} / Σ ${tt.toLocaleString('ko-KR')}</li>`;
+      }).join('');
+      dbg.innerHTML = `
+        <summary>디버그 정보</summary>
+        <ul>
+          <li>입력 ${prompt.toLocaleString('ko-KR')} · 출력 ${completion.toLocaleString('ko-KR')}</li>
+          <li>USD $${usd.toFixed(6)} · 환율 ${rate ? rate.toLocaleString('ko-KR') : '-'}</li>
+          ${models.length ? `<li>모델 ${escapeHtml(models.join(', '))}</li>` : ''}
+          ${stepLines}
+        </ul>
+      `;
+      el.appendChild(dbg);
+    }
+
     return el;
   }
 
@@ -1341,6 +1392,8 @@ window.LabelUpLabiChat = {
 
       const payload = data.data || {};
       const reply = String(payload.reply || '').trim();
+      if (typeof payload.show_ai_usage === 'boolean') showAiUsage = payload.show_ai_usage;
+      if (typeof payload.show_ai_debug === 'boolean') showAiDebug = payload.show_ai_debug;
       removeTyping(typing);
       appendMessage('assistant', reply || '응답이 비어 있습니다.', {
         product: payload.product || null,

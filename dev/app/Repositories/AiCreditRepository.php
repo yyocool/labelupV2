@@ -16,7 +16,7 @@ final class AiCreditRepository extends BaseModel
         if (!$row) {
             $this->execute(
                 'INSERT INTO ai_credit_config (id, is_enabled, monthly_budget, low_balance_threshold, updated_at)
-                 VALUES (1, 1, 0, 10, :now)',
+                 VALUES (1, 1, 0, 100, :now)',
                 ['now' => date('Y-m-d H:i:s')]
             );
             $row = $this->fetchOne('SELECT * FROM ai_credit_config WHERE id = 1') ?: [];
@@ -24,7 +24,7 @@ final class AiCreditRepository extends BaseModel
         return [
             'is_enabled' => (int) ($row['is_enabled'] ?? 1),
             'monthly_budget' => (int) ($row['monthly_budget'] ?? 0),
-            'low_balance_threshold' => (int) ($row['low_balance_threshold'] ?? 10),
+            'low_balance_threshold' => (int) ($row['low_balance_threshold'] ?? 100),
             'updated_at' => $row['updated_at'] ?? null,
         ];
     }
@@ -43,7 +43,7 @@ final class AiCreditRepository extends BaseModel
             [
                 'is_enabled' => (int) !empty($data['is_enabled']),
                 'monthly_budget' => max(0, (int) ($data['monthly_budget'] ?? 0)),
-                'low_balance_threshold' => max(0, (int) ($data['low_balance_threshold'] ?? 10)),
+                'low_balance_threshold' => max(0, (int) ($data['low_balance_threshold'] ?? 100)),
                 'now' => date('Y-m-d H:i:s'),
             ]
         );
@@ -118,12 +118,13 @@ final class AiCreditRepository extends BaseModel
         }
         $now = date('Y-m-d H:i:s');
         $defaults = [
-            ['chat', '일반 대화', 1, '라비 AI 일반 채팅/질문', 10],
-            ['recommend_product', '상품 추천', 2, '라벨지·상품 추천', 20],
-            ['ask_image_mode', '이미지 모드 안내', 1, '이미지 첨부 후 모드 선택 안내', 30],
-            ['generate_clipart', '클립아트 생성', 15, 'AI 클립아트/일러스트 생성', 40],
-            ['generate_template', '템플릿 생성', 10, '라벨 템플릿 초안 생성', 50],
-            ['generate_data_template', '데이터 라벨 생성', 20, '엑셀·문서 기반 데이터 라벨 생성', 60],
+            ['chat', '일반 대화', 10, '라비 AI 일반 채팅/질문', 10],
+            ['recommend_product', '상품 추천', 20, '라벨지·상품 추천', 20],
+            ['ask_image_mode', '이미지 모드 안내', 10, '이미지 첨부 후 모드 선택 안내', 30],
+            ['ask_translate', '번역·문구 다듬기', 10, '문구 번역·다듬기', 35],
+            ['generate_clipart', '클립아트 생성', 150, 'AI 클립아트/일러스트 생성', 40],
+            ['generate_template', '템플릿 생성', 100, '라벨 템플릿 초안 생성', 50],
+            ['generate_data_template', '데이터 라벨 생성', 200, '엑셀·문서 기반 데이터 라벨 생성', 60],
         ];
         foreach ($defaults as [$intent, $label, $cost, $desc, $sort]) {
             $this->execute(
@@ -153,7 +154,7 @@ final class AiCreditRepository extends BaseModel
                 id TINYINT UNSIGNED NOT NULL PRIMARY KEY DEFAULT 1,
                 is_enabled TINYINT(1) NOT NULL DEFAULT 1,
                 monthly_budget INT UNSIGNED NOT NULL DEFAULT 0,
-                low_balance_threshold INT UNSIGNED NOT NULL DEFAULT 10,
+                low_balance_threshold INT UNSIGNED NOT NULL DEFAULT 100,
                 updated_at DATETIME NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
         );
@@ -161,7 +162,7 @@ final class AiCreditRepository extends BaseModel
             "CREATE TABLE IF NOT EXISTS ai_credit_costs (
                 intent VARCHAR(64) NOT NULL PRIMARY KEY,
                 label VARCHAR(100) NOT NULL,
-                credit_cost INT UNSIGNED NOT NULL DEFAULT 1,
+                credit_cost INT UNSIGNED NOT NULL DEFAULT 10,
                 description VARCHAR(255) NOT NULL DEFAULT '',
                 is_active TINYINT(1) NOT NULL DEFAULT 1,
                 sort_order INT NOT NULL DEFAULT 0,

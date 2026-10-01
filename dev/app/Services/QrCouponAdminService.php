@@ -142,7 +142,7 @@ final class QrCouponAdminService
      * 정상 소비자가 기준 제조단가·최대지급액·토큰·크레딧.
      * 제조단가 = 소비자가의 20%, 최대지급액 = 제조단가의 3%.
      * 토큰량은 기본 ChatGPT 모델의 입력 75%·출력 25% 혼합 단가.
-     * 크레딧환산은 1 C = 1원.
+     * 크레딧환산은 1원 = 10 C (CreditService::CREDITS_PER_KRW).
      *
      * @return array{manufacturing_cost:int,max_payout:int,token_amount:int,credit_equivalent:int}
      */
@@ -156,7 +156,7 @@ final class QrCouponAdminService
             'manufacturing_cost' => $manufacturing,
             'max_payout' => $maxPayout,
             'token_amount' => AiCostService::tokensForKrw((float) $maxPayout),
-            'credit_equivalent' => $maxPayout,
+            'credit_equivalent' => CreditService::krwToCredits($maxPayout),
         ];
     }
 

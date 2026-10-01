@@ -295,6 +295,7 @@ function admin_menu_catalog(): array
         ['key' => 'ops-purchase-credits', 'label' => '구매크레딧', 'href' => 'admin/ops/purchase-credits', 'group' => '운영관리', 'ic' => '▣'],
         ['key' => 'settings-admins', 'label' => '관리자', 'href' => 'admin/settings/admins', 'group' => '설정', 'ic' => '⚙'],
         ['key' => 'settings-member-grades', 'label' => '회원등급 설정', 'href' => 'admin/settings/member-grades', 'group' => '설정', 'ic' => '◇'],
+        ['key' => 'settings-environment', 'label' => '환경설정', 'href' => 'admin/settings/environment', 'group' => '설정', 'ic' => '◐'],
         ['key' => 'settings-intro', 'label' => '인트로설정', 'href' => 'admin/settings/intro', 'group' => '설정', 'ic' => '▶'],
         ['key' => 'settings-seo', 'label' => 'SEO 설정', 'href' => 'admin/settings/seo', 'group' => '설정', 'ic' => '◎'],
         ['key' => 'settings-tracking', 'label' => '광고 스크립트', 'href' => 'admin/settings/tracking', 'group' => '설정', 'ic' => '◈'],

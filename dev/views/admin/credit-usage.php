@@ -1,12 +1,13 @@
 <?php
-$settings = $settings ?? ['is_enabled' => true, 'monthly_budget' => 0, 'low_balance_threshold' => 10, 'costs' => []];
+$settings = $settings ?? ['is_enabled' => true, 'monthly_budget' => 0, 'low_balance_threshold' => 100, 'costs' => []];
 $costs = $settings['costs'] ?? [];
 $saveUrl = $saveUrl ?? url('api/admin/ops/credit-usage/save');
+$ratioLabel = \App\Services\CreditService::ratioLabel();
 ?>
 <div class="admin-head">
   <div>
     <h1>크레딧 사용 설정</h1>
-    <p>회원이 홈·편집기에서 라비 AI를 사용할 때 차감할 크레딧을 기능별로 설정합니다. 저장 즉시 사이트에 적용됩니다.</p>
+    <p>회원이 홈·편집기에서 라비 AI를 사용할 때 차감할 크레딧을 기능별로 설정합니다. 저장 즉시 사이트에 적용됩니다. 환산 기준: <strong><?= e($ratioLabel) ?></strong></p>
   </div>
 </div>
 
@@ -28,7 +29,8 @@ $saveUrl = $saveUrl ?? url('api/admin/ops/credit-usage/save');
       </label>
       <label class="admin-field">
         <span>잔액 부족 알림 기준 (C)</span>
-        <input type="number" min="0" class="admin-input" name="low_balance_threshold" value="<?= (int) ($settings['low_balance_threshold'] ?? 10) ?>">
+        <input type="number" min="0" class="admin-input" name="low_balance_threshold" value="<?= (int) ($settings['low_balance_threshold'] ?? 100) ?>">
+        <small class="admin-muted">환산: <?= e($ratioLabel) ?></small>
       </label>
     </div>
   </section>
@@ -42,6 +44,7 @@ $saveUrl = $saveUrl ?? url('api/admin/ops/credit-usage/save');
             <th>기능</th>
             <th>설명</th>
             <th>차감(C)</th>
+            <th>환산(원)</th>
             <th>평균 사용 토큰</th>
             <th>예상 금액(원)</th>
             <th>사용</th>
@@ -54,6 +57,7 @@ $saveUrl = $saveUrl ?? url('api/admin/ops/credit-usage/save');
             $avgKrw = $row['avg_cost_krw'] ?? null;
             $totalKrw = $row['total_cost_krw'] ?? null;
             $samples = (int) ($row['usage_samples'] ?? 0);
+            $creditCost = (int) ($row['credit_cost'] ?? 0);
           ?>
           <tr data-intent="<?= e((string) $row['intent']) ?>">
             <td>
@@ -67,7 +71,10 @@ $saveUrl = $saveUrl ?? url('api/admin/ops/credit-usage/save');
               <input type="text" class="admin-input" name="costs[<?= $i ?>][description]" value="<?= e((string) ($row['description'] ?? '')) ?>">
             </td>
             <td style="width:7rem">
-              <input type="number" min="0" class="admin-input" name="costs[<?= $i ?>][credit_cost]" value="<?= (int) ($row['credit_cost'] ?? 0) ?>">
+              <input type="number" min="0" class="admin-input" name="costs[<?= $i ?>][credit_cost]" value="<?= $creditCost ?>">
+            </td>
+            <td class="admin-num" style="white-space:nowrap">
+              ≈ <?= e(\App\Services\CreditService::formatKrwEquivalent($creditCost)) ?>
             </td>
             <td class="admin-num" style="white-space:nowrap">
               <?php if ($avgTokens === null || $samples <= 0): ?>
