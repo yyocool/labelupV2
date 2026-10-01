@@ -285,15 +285,27 @@ final class OAuthService
 
     private function absoluteUrl(string $path): string
     {
-        $host = (string) ($_SERVER['HTTP_HOST'] ?? '');
-        if ($host !== '') {
+        $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+        $appUrl = rtrim((string) env('APP_URL', ''), '/');
+
+        // OAuth redirect_uri는 콘솔에 등록된 https 주소와 바이트 단위로 같아야 한다.
+        if ($host !== '' && (str_ends_with($host, 'labelup.co.kr') || str_contains($host, 'labelup.'))) {
+            $base = 'https://' . preg_replace('/:\d+$/', '', $host);
+        } elseif ($appUrl !== '') {
+            $base = $appUrl;
+            if (str_starts_with($base, 'http://') && (str_contains($base, 'labelup.co.kr') || str_contains($base, 'labelup.'))) {
+                $base = 'https://' . substr($base, strlen('http://'));
+            }
+        } elseif ($host !== '') {
             $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-                || ((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+                || ((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')
+                || ((string) ($_SERVER['SERVER_PORT'] ?? '') === '443');
             $base = ($https ? 'https' : 'http') . '://' . $host;
         } else {
-            $base = rtrim((string) env('APP_URL', ''), '/');
+            $base = 'https://www.labelup.co.kr';
         }
-        return $base . '/' . ltrim($path, '/');
+
+        return rtrim($base, '/') . '/' . ltrim($path, '/');
     }
 
     /**
