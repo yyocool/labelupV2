@@ -148,11 +148,21 @@
 
             var themeApplied = !projectLoaded && !pendingDocApplied && await TryApplyTemplateFromQueryAsync(pageQuery);
             var wantVendor = pageQuery.ContainsKey("vendor") || pageQuery.ContainsKey("vendorImport");
-            var bootFromQuery = !projectLoaded && !themeApplied && !pendingDocApplied && !wantVendor && TryApplyPaperFromQuery(pageQuery);
-            var clipartApplied = !projectLoaded && !pendingDocApplied && !wantVendor && await TryApplyClipartFromQueryAsync(pageQuery);
+            var wantNew = IsNewDesignQuery(pageQuery);
+            var bootFromQuery = !projectLoaded && !themeApplied && !pendingDocApplied && !wantVendor && !wantNew && TryApplyPaperFromQuery(pageQuery);
+            var clipartApplied = !projectLoaded && !pendingDocApplied && !wantVendor && !wantNew && await TryApplyClipartFromQueryAsync(pageQuery);
             var restored = false;
             LabelDocument? draft = null;
-            if (!projectLoaded && !themeApplied && !pendingDocApplied && !wantVendor && !bootFromQuery && !clipartApplied)
+            var startedNew = false;
+            if (wantNew && !projectLoaded && !pendingDocApplied && !themeApplied && !wantVendor && !bootFromQuery && !clipartApplied)
+            {
+                // 홈/사이드바 「새 디자인 만들기」: 이전 클라우드·로컬 초안을 이어서 열지 않는다.
+                Session.StartNewDesign();
+                await Drafts.ClearAsync();
+                startedNew = true;
+                try { await Js.InvokeVoidAsync("labelUpEditor.replaceUrlQuery", "new"); } catch { /* ignore */ }
+            }
+            else if (!projectLoaded && !themeApplied && !pendingDocApplied && !wantVendor && !bootFromQuery && !clipartApplied)
             {
                 restored = await TryRestoreCloudWorkspaceAsync();
                 if (!restored)
@@ -168,7 +178,8 @@
                 }
             }
 
-            var usedExisting = projectLoaded || pendingDocApplied || themeApplied || bootFromQuery || clipartApplied || restored || draft is not null;
+            var usedExisting = projectLoaded || pendingDocApplied || themeApplied || bootFromQuery || clipartApplied || restored || draft is not null || startedNew;
+            // 새 디자인도 기본 빈 문서이므로 쇼핑몰 규격 자동 연결은 하지 않는다(용지는 StartNewDesign이 유지/기본).
             BindCurrentPaperToShop(!usedExisting);
 
             await WarmDocumentFontsAsync();
@@ -275,6 +286,15 @@
         if (!q.TryGetValue("project", out var raw) && !q.TryGetValue("workspace", out raw))
             return false;
         return int.TryParse(raw, out id) && id > 0;
+    }
+
+    private static bool IsNewDesignQuery(Dictionary<string, string> q)
+    {
+        if (!q.TryGetValue("new", out var raw) && !q.TryGetValue("fresh", out raw))
+            return false;
+        raw = (raw ?? "").Trim();
+        if (raw.Length == 0) return true; // ?new 또는 ?new=
+        return raw is "1" or "true" or "yes" or "new";
     }
 
     private async Task<bool> TryLoadProjectFromQueryAsync(Dictionary<string, string>? q = null)
@@ -980,13 +1000,29 @@
 
             var w = ReadFloat(root, "width_mm", "widthMm", "w", "width");
             var h = ReadFloat(root, "height_mm", "heightMm", "h", "height");
+            var sku = ReadString(root, "sku", "paper", "paperNo", "paper_no");
             History.Push(Session.Document);
             if (w is > 0 && h is > 0)
             {
                 await Papers.EnsureLoadedAsync();
-                var paper = Papers.FindBestMatch(w.Value, h.Value, 1)
-                            ?? Papers.CreateFromSize(w.Value, h.Value, 1, ReadString(root, "shape"), title);
-                Session.ApplyPaper(paper);
+                await Papers.EnsureShopPapersAsync();
+                ShopPaperItem? shop = null;
+                if (!string.IsNullOrWhiteSpace(sku))
+                {
+                    shop = Papers.ShopPapers.FirstOrDefault(p =>
+                        string.Equals(p.Sku, sku, StringComparison.OrdinalIgnoreCase));
+                }
+                PaperSpec? paper = shop is not null ? Papers.FromShopProduct(shop) : null;
+                if (paper is null && !string.IsNullOrWhiteSpace(sku))
+                    paper = Papers.Find(sku)?.Clone();
+                paper ??= Papers.FindBestMatch(w.Value, h.Value, 1)
+                          ?? Papers.CreateFromSize(w.Value, h.Value, 1, ReadString(root, "shape"), title);
+                if (!string.IsNullOrWhiteSpace(sku))
+                    paper.PaperNo = sku!;
+                if (shop is not null)
+                    Session.ApplyPaper(paper, shop.Id);
+                else
+                    Session.ApplyPaper(paper);
                 BindCurrentPaperToShop(false);
             }
 
@@ -1009,7 +1045,7 @@
     }
 
     [JSInvokable]
-    public Task ApplyLabiDocument(string json)
+    public async Task ApplyLabiDocument(string json)
     {
         try
         {
@@ -1018,7 +1054,7 @@
             doc.EnsurePagesForData();
             History.Push(Session.Document);
             Session.ReplaceDocument(doc);
-            BindCurrentPaperToShop(false);
+            await BindLabiDocumentToShopAsync(doc.Paper.PaperNo);
             Session.Dirty = true;
             Session.Status = string.IsNullOrWhiteSpace(doc.Name)
                 ? "라비 데이터 템플릿을 편집기에 넣었습니다"
@@ -1031,7 +1067,31 @@
             Session.Status = "데이터 템플릿을 적용하지 못했습니다";
             Session.Notify();
         }
-        return Task.CompletedTask;
+    }
+
+    private async Task BindLabiDocumentToShopAsync(string? paperNo)
+    {
+        try
+        {
+            await Papers.EnsureLoadedAsync();
+            await Papers.EnsureShopPapersAsync();
+            if (!string.IsNullOrWhiteSpace(paperNo) && !string.Equals(paperNo, "LU-AI", StringComparison.OrdinalIgnoreCase))
+            {
+                var shop = Papers.ShopPapers.FirstOrDefault(p =>
+                    string.Equals(p.Sku, paperNo, StringComparison.OrdinalIgnoreCase));
+                if (shop is not null)
+                {
+                    Session.CurrentShopProductId = shop.Id;
+                    Session.Notify();
+                    return;
+                }
+            }
+            BindCurrentPaperToShop(false);
+        }
+        catch
+        {
+            BindCurrentPaperToShop(false);
+        }
     }
 
     private static string? ReadString(JsonElement el, params string[] keys)

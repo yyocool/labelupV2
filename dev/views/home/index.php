@@ -299,7 +299,10 @@ window.LABELUP_HOME = {
   examplePromptsUrl: <?= json_encode(url('api/ai/example-prompts') . '?surface=home', JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
   examplePrompts: <?= json_encode($examplePrompts ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
   labiIconUrl: <?= json_encode(asset('labi-icon.png'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
-  editorUrl: <?= json_encode(url('editor/'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>
+  editorUrl: <?= json_encode(url('editor/'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
+  showAiUsage: <?= !empty($siteRuntime['show_ai_usage']) ? 'true' : 'false' ?>,
+  showAiDebug: <?= !empty($siteRuntime['show_ai_debug']) ? 'true' : 'false' ?>,
+  siteMode: <?= json_encode((string) ($siteRuntime['mode'] ?? 'production'), JSON_UNESCAPED_UNICODE) ?>
 };
 </script>
 <script src="<?= js('home.js') ?>"></script>

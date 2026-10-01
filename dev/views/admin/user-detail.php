@@ -50,7 +50,8 @@ $userId = (int) ($user['id'] ?? 0);
       <input type="hidden" name="user_id" value="<?= $userId ?>">
       <label class="admin-field">
         <span>지급 크레딧</span>
-        <input class="admin-input" type="number" name="amount" min="1" max="1000000" step="1" required placeholder="예: 500">
+        <input class="admin-input" type="number" name="amount" min="1" max="10000000" step="1" required placeholder="예: 5000">
+        <small class="admin-muted"><?= e(\App\Services\CreditService::ratioLabel()) ?></small>
       </label>
       <label class="admin-field">
         <span>지급 사유</span>

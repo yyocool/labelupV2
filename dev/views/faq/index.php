@@ -39,7 +39,7 @@
         <h1>자주 묻는 질문</h1>
         <p>라벨 디자인, 쇼핑, 크레딧, 주문까지 자주 묻는 내용을 모아 두었습니다.</p>
       </div>
-      <a class="account-btn account-btn--primary" href="<?= url('editor/') ?>">새 디자인 만들기</a>
+      <a class="account-btn account-btn--primary" href="<?= url('editor/?new=1') ?>">새 디자인 만들기</a>
     </section>
 
     <?php $groups = $groups ?? []; ?>

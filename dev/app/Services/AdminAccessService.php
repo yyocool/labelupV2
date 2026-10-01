@@ -105,6 +105,8 @@ final class AdminAccessService
             '/api/admin/seo' => 'settings-seo',
             '/admin/settings/intro' => 'settings-intro',
             '/api/admin/intro' => 'settings-intro',
+            '/admin/settings/environment' => 'settings-environment',
+            '/api/admin/site-mode' => 'settings-environment',
             '/admin/settings/tracking' => 'settings-tracking',
             '/api/admin/marketing' => 'settings-tracking',
             '/admin/users' => 'users',

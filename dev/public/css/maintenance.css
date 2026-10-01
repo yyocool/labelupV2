@@ -1,0 +1,83 @@
+:root{
+  --lu-ink:#1c1917;
+  --lu-muted:#6b645e;
+  --lu-accent:#7b2840;
+  --lu-accent-2:#a3455f;
+  --lu-sand:#f4ebe3;
+  --lu-paper:#fffaf6;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body.lu-maint{
+  font-family:"Pretendard","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  color:var(--lu-ink);
+  background:
+    radial-gradient(1200px 600px at 12% -10%, rgba(123,40,64,.18), transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, rgba(163,69,95,.14), transparent 50%),
+    linear-gradient(160deg, #2a171c 0%, #3a1f28 38%, #1a1214 100%);
+  overflow-x:hidden;
+}
+.lu-maint__glow{
+  position:fixed;inset:auto -10% -20% auto;width:55vw;height:55vw;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,214,196,.18),transparent 68%);
+  pointer-events:none;filter:blur(8px);
+}
+.lu-maint__grid{
+  position:fixed;inset:0;pointer-events:none;opacity:.18;
+  background-image:
+    linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px);
+  background-size:48px 48px;
+  mask-image:radial-gradient(ellipse at 50% 30%, #000 20%, transparent 75%);
+}
+.lu-maint__stage{
+  position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:48px 22px 36px;text-align:center;
+}
+.lu-maint__brand{margin:0 0 28px}
+.lu-maint__brand img{
+  width:148px;height:auto;filter:drop-shadow(0 8px 24px rgba(0,0,0,.25));
+  animation:luMaintFloat 4.8s ease-in-out infinite;
+}
+.lu-maint__hero{
+  max-width:640px;width:100%;padding:36px 28px 32px;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:28px;
+  background:linear-gradient(180deg, rgba(255,250,246,.96), rgba(244,235,227,.92));
+  box-shadow:0 30px 80px rgba(0,0,0,.28);
+  animation:luMaintRise .7s ease both;
+}
+.lu-maint__labi{
+  width:88px;height:88px;margin:0 auto 14px;display:block;
+  animation:luMaintFloat 3.6s ease-in-out infinite;
+}
+.lu-maint__eyebrow{
+  margin:0 0 10px;font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--lu-accent);
+}
+.lu-maint__hero h1{
+  margin:0 0 14px;font-size:clamp(28px,4vw,40px);line-height:1.2;letter-spacing:-.03em;font-weight:860;
+}
+.lu-maint__lead{
+  margin:0 auto;max-width:42ch;font-size:16px;line-height:1.7;color:var(--lu-muted);
+}
+.lu-maint__eta{
+  display:inline-block;margin:18px 0 0;padding:8px 14px;border-radius:999px;
+  background:rgba(123,40,64,.1);color:var(--lu-accent);font-size:13px;font-weight:700;
+}
+.lu-maint__foot{
+  margin:28px 0 0;color:rgba(255,245,240,.72);font-size:13px;
+}
+.lu-maint__foot a{color:#ffd7e2;text-decoration:underline;text-underline-offset:3px}
+@keyframes luMaintRise{
+  from{opacity:0;transform:translateY(18px) scale(.985)}
+  to{opacity:1;transform:none}
+}
+@keyframes luMaintFloat{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-6px)}
+}
+@media (max-width:640px){
+  .lu-maint__hero{padding:28px 20px}
+  .lu-maint__brand img{width:120px}
+}

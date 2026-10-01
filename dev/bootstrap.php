@@ -45,6 +45,21 @@ if (!headers_sent()) {
 
 if (session_status() === PHP_SESSION_NONE) {
     session_name($appConfig['session_key'] ?? 'labelupdev_session');
+    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || ((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')
+        || (isset($_SERVER['SERVER_PORT']) && (string) $_SERVER['SERVER_PORT'] === '443');
+    $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+    if (!$https && (str_ends_with($host, 'labelup.co.kr') || str_contains($host, 'labelup.'))) {
+        // 리버스 프록시가 X-Forwarded-Proto를 안 넘기는 호스팅 대비
+        $https = true;
+    }
+    session_set_cookie_params([
+        'lifetime' => (int) ($appConfig['session_lifetime'] ?? 7200),
+        'path' => '/',
+        'secure' => $https,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
     session_start();
 }
 

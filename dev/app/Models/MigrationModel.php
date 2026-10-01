@@ -40,7 +40,18 @@ final class MigrationModel extends BaseModel
     {
         $statements = array_filter(array_map('trim', preg_split('/;\s*\n/', $sql) ?: []));
         foreach ($statements as $statement) {
-            if ($statement === '' || str_starts_with($statement, '--')) {
+            // 앞쪽 SQL 주석(-- ...)만 제거. 주석만 있는 조각은 건너뜀.
+            $lines = preg_split('/\R/', $statement) ?: [];
+            $kept = [];
+            foreach ($lines as $line) {
+                $trim = ltrim($line);
+                if ($trim === '' || str_starts_with($trim, '--')) {
+                    continue;
+                }
+                $kept[] = $line;
+            }
+            $statement = trim(implode("\n", $kept));
+            if ($statement === '') {
                 continue;
             }
             $this->db->exec($statement);

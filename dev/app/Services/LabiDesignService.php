@@ -181,7 +181,8 @@ final class LabiDesignService
 
             // HARD RULE: 템플릿의 변경 가능 문구는 반드시 텍스트 오브젝트.
             // 이미지에는 글자·숫자·특수문자를 넣지 않는다.
-            // 예외: 사용자가 이미지/그림 안에 문구를 넣으라고 명시한 경우만 이미지에 구워 넣는다.
+            // 예외: 사용자가 이미지/그림 "안/속"에 문구를 넣으라고 명시한 경우만 해당 문구를 이미지에 구워 넣는다.
+            // (bake여도 나머지 문구 설계·용지 추천은 항상 수행한다.)
             if ($hasImage) {
                 try {
                     $layout = $this->openai->extractLabelLayout($messages, $translateToKo);
@@ -189,7 +190,7 @@ final class LabiDesignService
                     $layout = null;
                 }
             }
-            if (!$bakeText && (!is_array($layout) || ($layout['texts'] ?? []) === [])) {
+            if (!is_array($layout) || (($layout['texts'] ?? []) === [] && ($layout['codes'] ?? []) === [])) {
                 try {
                     $layout = $this->openai->planEditableLabelTemplate(
                         $messages,
@@ -204,7 +205,7 @@ final class LabiDesignService
                     $layout = null;
                 }
             }
-            if (!$bakeText && (!is_array($layout) || ($layout['texts'] ?? []) === [])) {
+            if (!is_array($layout) || (($layout['texts'] ?? []) === [] && ($layout['codes'] ?? []) === [])) {
                 $layout = [
                     'title' => '라비가 만든 라벨 템플릿',
                     'width_mm' => $size['width_mm'],
@@ -221,15 +222,7 @@ final class LabiDesignService
                         'align' => 'center',
                         'color' => '#7B2840',
                     ]],
-                ];
-            }
-            if ($bakeText && !is_array($layout)) {
-                $layout = [
-                    'title' => '라비가 만든 라벨 템플릿',
-                    'width_mm' => $size['width_mm'],
-                    'height_mm' => $size['height_mm'],
-                    'background_prompt' => '',
-                    'texts' => [],
+                    'codes' => [],
                 ];
             }
 
@@ -265,19 +258,32 @@ final class LabiDesignService
             }
 
             $texts = is_array($layout['texts'] ?? null) ? $layout['texts'] : [];
+            $codes = $this->mergeEditableCodes(
+                is_array($layout['codes'] ?? null) ? $layout['codes'] : [],
+                $this->inferCodesFromUserText($userText)
+            );
             $bgHint = trim((string) ($layout['background_prompt'] ?? ''));
             if ($bgHint === '') {
                 $bgHint = trim((string) ($structured['clipart_prompt'] ?? ''));
             }
             if ($bgHint === '') {
-                $bgHint = $this->fallbackTemplatePrompt($messages, $bakeText);
+                $bgHint = $this->fallbackTemplatePrompt($messages, false);
+            }
+            $baked = $bakeText ? $this->extractBakedTextPhrases($userText) : [];
+            // 구울 구체 문구가 없으면 bake를 취소하고 일반 편집 템플릿 경로를 유지
+            if ($bakeText && $baked === []) {
+                $bakeText = false;
             }
             if ($bakeText) {
-                $baked = $this->extractBakedTextPhrases($userText);
                 $texts = $this->filterTextsExcludingBaked($texts, $baked);
+                // 전부 걸러져도 최소 1개 편집 텍스트는 유지(빈 문서 방지) — codes만 있으면 예외
+                if ($texts === [] && $codes === [] && is_array($layout['texts'] ?? null) && ($layout['texts'] ?? []) !== []) {
+                    $texts = [$layout['texts'][0]];
+                }
                 $prompt = $this->ensureBakedTextInImagePrompt(
                     $bgHint
-                        . ' Full-bleed print-ready label artwork, filling the entire canvas edge to edge.'
+                        . ' Full-bleed print-ready label BACKGROUND artwork, filling the entire canvas edge to edge.'
+                        . ' Keep decorations and leave room for separate editable text overlays except for the baked lettering below.'
                         . ' No mockup, no table, no torn paper, no extra background around the label.'
                         . ' Transparent PNG: any area that is not printed artwork must be alpha-transparent.',
                     $userText
@@ -285,7 +291,7 @@ final class LabiDesignService
             } else {
                 $prompt = $bgHint
                     . ' Full-bleed print-ready label BACKGROUND only, filling the entire canvas edge to edge.'
-                    . ' Absolutely NO letters, NO numbers, NO digits, NO punctuation, NO words, NO watermarks, NO barcodes as text.'
+                    . ' Absolutely NO letters, NO numbers, NO digits, NO punctuation, NO words, NO watermarks, NO barcodes, NO QR codes.'
                     . ' Keep colors, shapes, ornaments, patterns, borders, and blank areas where text belonged.'
                     . ' No mockup, no table, no torn paper, no extra background around the label.'
                     . ' Transparent PNG: any area that is not printed artwork must be alpha-transparent.';
@@ -306,12 +312,15 @@ final class LabiDesignService
                 $size['width_mm'],
                 $size['height_mm'],
                 $texts,
-                $product
+                $product,
+                $codes
             );
             if ($bakeText) {
                 $reply = '요청하신 문구를 이미지 안에 넣고 라벨 템플릿을 만들었어요. 바로편집에서 확인해 보세요.';
             } elseif ($translateChoice === 'translate_yes') {
                 $reply = '이미지의 외국어를 한국어로 번역해, 글자는 편집 가능한 텍스트로 분리한 라벨 템플릿을 만들었어요. 바로편집에서 문구를 바꿔 보세요.';
+            } elseif ($codes !== []) {
+                $reply = '요청하신 QR·바코드를 실제 코드 객체로 넣고, 글자는 편집 가능한 텍스트로 분리한 라벨 템플릿이에요. 바로편집에서 값과 문구를 바꿔 보세요.';
             } else {
                 $reply = '글자·숫자·특수문자는 편집 가능한 텍스트로, 배경만 이미지로 만든 라벨 템플릿이에요. 바로편집에서 문구를 바꿔 보세요.';
             }
@@ -1133,6 +1142,17 @@ final class LabiDesignService
             'labels_per_sheet' => $labels > 0 ? $labels : null,
             'shape' => $shape,
             'material' => $material,
+            // 편집기 PaperSpec 호환 (label_specs 배치값)
+            'paper_size' => self::nullableTrim($product['paper_size'] ?? null),
+            'columns_count' => isset($product['columns_count']) ? (int) $product['columns_count'] : null,
+            'rows_count' => isset($product['rows_count']) ? (int) $product['rows_count'] : null,
+            'top_margin_mm' => isset($product['top_margin_mm']) ? (float) $product['top_margin_mm'] : null,
+            'left_margin_mm' => isset($product['left_margin_mm']) ? (float) $product['left_margin_mm'] : null,
+            'h_gap_mm' => isset($product['h_gap_mm']) ? (float) $product['h_gap_mm'] : null,
+            'v_gap_mm' => isset($product['v_gap_mm']) ? (float) $product['v_gap_mm'] : null,
+            'corner_radius_x_mm' => isset($product['corner_radius_x_mm']) ? (float) $product['corner_radius_x_mm'] : null,
+            'corner_radius_y_mm' => isset($product['corner_radius_y_mm']) ? (float) $product['corner_radius_y_mm'] : null,
+            'label_color' => self::nullableTrim($product['label_color'] ?? null),
             'price' => $unit,
             'price_label' => $this->shopService->formatPrice($unit),
             'list_price' => (int) ($product['price'] ?? 0),
@@ -1143,6 +1163,16 @@ final class LabiDesignService
             'url' => url('shop/products/' . (int) $product['id']),
             'editor_url' => $editorUrl,
         ];
+    }
+
+    private static function nullableTrim(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        $s = trim((string) $value);
+
+        return $s === '' ? null : $s;
     }
 
     /** @param array<int, array{role:string, content:mixed}> $messages */
@@ -1190,7 +1220,8 @@ final class LabiDesignService
     }
 
     /**
-     * 사용자가 이미지/그림 안에 글자·이름을 직접 넣으라고 명시한 경우.
+     * 사용자가 이미지/그림 안·속에 글자·이름을 직접 넣으라고 명시한 경우만 true.
+     * 「문구 넣어서 템플릿 만들어줘」처럼 일반 편집 템플릿 요청은 false.
      * 예: 꽃그림에 '이중은' 이름 넣어서 이미지 만들어줘
      */
     private function wantsBakedTextInImage(string $text): bool
@@ -1204,12 +1235,18 @@ final class LabiDesignService
             return false;
         }
 
+        $mediaInside = (bool) preg_match('/(이미지|그림|사진|일러스트|클립아트).{0,20}(안|속)/u', $t)
+            || (bool) preg_match('/(안|속).{0,12}(에\s*)?(이미지|그림|사진|일러스트|클립아트)/u', $t);
+        $wantsTemplate = (bool) preg_match('/템플릿|라벨\s*디자인|완성\s*(된\s*)?라벨|편집기/u', $t);
+        // 템플릿 요청인데 "그림/이미지 안" 표현이 없으면 편집 가능 텍스트 경로
+        if ($wantsTemplate && !$mediaInside) {
+            return false;
+        }
+
         $patterns = [
-            '/(이미지|그림|사진|일러스트|클립아트).{0,16}(안|속|위|에).{0,24}(이름|글자|텍스트|문구|문자|워딩)/u',
-            '/(이름|글자|텍스트|문구|문자|워딩).{0,24}(이미지|그림|사진|일러스트|클립아트).{0,12}(안|속|위|에|로)/u',
-            '/(이름|글자|텍스트|문구).{0,12}(넣|박아|그려|써\s*넣|포함)/u',
-            '/(넣|박아|그려|써\s*넣).{0,16}(이름|글자|텍스트|문구)/u',
-            '/(이미지|그림).{0,12}(에|으로).{0,16}(이름|글자|텍스트|문구).{0,12}(넣|만들|그려)/u',
+            '/(이미지|그림|사진|일러스트|클립아트).{0,16}(안|속).{0,24}(이름|글자|텍스트|문구|문자|워딩)/u',
+            '/(이름|글자|텍스트|문구|문자|워딩).{0,24}(이미지|그림|사진|일러스트|클립아트).{0,12}(안|속)/u',
+            '/(이미지|그림|사진|일러스트|클립아트).{0,20}(에|으로|위에).{0,16}(이름|글자|텍스트|문구).{0,12}(넣|박아|그려|써\s*넣|포함)/u',
         ];
         foreach ($patterns as $pattern) {
             if (preg_match($pattern, $t)) {
@@ -1217,9 +1254,10 @@ final class LabiDesignService
             }
         }
 
-        // 따옴표로 감싼 이름 + 그림/이미지 만들기
+        // 따옴표 이름 + 그림/이미지 만들기 (템플릿 키워드 없을 때만)
         if (
-            preg_match('/[\'"`「『][^\'"`」』]{1,40}[\'"`」』]/u', $t)
+            !$wantsTemplate
+            && preg_match('/[\'"`「『][^\'"`」』]{1,40}[\'"`」』]/u', $t)
             && preg_match('/(그림|이미지|사진|일러스트).{0,24}(넣|만들|그려)/u', $t)
         ) {
             return true;
@@ -1433,7 +1471,7 @@ final class LabiDesignService
      * @param array<string, mixed>|null $paper
      * @return array<string, mixed>
      */
-    private function presentTemplate(array $image, float $widthMm, float $heightMm, array $texts = [], ?array $paper = null): array
+    private function presentTemplate(array $image, float $widthMm, float $heightMm, array $texts = [], ?array $paper = null, array $codes = []): array
     {
         $title = (string) ($image['title'] ?? '라비가 만든 라벨 템플릿');
         $url = (string) ($image['url'] ?? '');
@@ -1441,9 +1479,25 @@ final class LabiDesignService
         $h = max(10.0, $heightMm);
         $paperMeta = $this->templatePaperMeta($paper, $w, $h);
 
-        if ($texts !== [] && $url !== '') {
-            $document = $this->buildEditableTemplateDocument($url, $title, $w, $h, $texts);
-            $editorUrl = url('editor/') . '?labiDoc=1';
+        if (($texts !== [] || $codes !== []) && $url !== '') {
+            $document = $this->buildEditableTemplateDocument(
+                $url,
+                $title,
+                $w,
+                $h,
+                $texts,
+                $paper,
+                $codes
+            );
+            $editorQuery = ['labiDoc' => '1'];
+            if (($paperMeta['sku'] ?? '') !== '') {
+                $editorQuery['sku'] = $paperMeta['sku'];
+            }
+            if ($w > 0 && $h > 0) {
+                $editorQuery['w'] = rtrim(rtrim(sprintf('%.2f', $w), '0'), '.');
+                $editorQuery['h'] = rtrim(rtrim(sprintf('%.2f', $h), '0'), '.');
+            }
+            $editorUrl = url('editor/') . '?' . http_build_query($editorQuery);
 
             return array_merge([
                 'url' => $url,
@@ -1455,6 +1509,7 @@ final class LabiDesignService
                 'editor_url' => $editorUrl,
                 'document' => $document,
                 'editable_texts' => count($texts),
+                'editable_codes' => count($codes),
             ], $paperMeta);
         }
 
@@ -1516,6 +1571,16 @@ final class LabiDesignService
      *   align:string,
      *   color:string
      * }> $texts
+     * @param array<string, mixed>|null $paperProduct presentProduct() 결과(용지 배치값 포함)
+     * @param array<int, array{
+     *   kind:string,
+     *   value:string,
+     *   x:float,
+     *   y:float,
+     *   w:float,
+     *   h:float,
+     *   show_text:bool
+     * }> $codes
      * @return array<string, mixed>
      */
     private function buildEditableTemplateDocument(
@@ -1523,94 +1588,105 @@ final class LabiDesignService
         string $title,
         float $w,
         float $h,
-        array $texts
+        array $texts,
+        ?array $paperProduct = null,
+        array $codes = []
     ): array {
-        $paper = [
-            'version' => 1,
-            'paperNo' => 'LU-AI',
-            'name' => sprintf('%s×%s mm', rtrim(rtrim(sprintf('%.1f', $w), '0'), '.'), rtrim(rtrim(sprintf('%.1f', $h), '0'), '.')),
-            'category' => 'Custom',
-            'brand' => 'LabelUp',
-            'paperWidthMm' => $w,
-            'paperHeightMm' => $h,
-            'labelWidthMm' => $w,
-            'labelHeightMm' => $h,
-            'columns' => 1,
-            'rows' => 1,
-            'leftMarginMm' => 0,
-            'topMarginMm' => 0,
-            'rightMarginMm' => 0,
-            'bottomMarginMm' => 0,
-            'hGapMm' => 0,
-            'vGapMm' => 0,
-            'labelColor' => '#FFFFFF',
-            'shape' => ['kind' => 'rect'],
-        ];
+        $paper = $this->resolveDocumentPaper($w, $h, $paperProduct);
+        $lw = max(1.0, (float) ($paper['labelWidthMm'] ?? $w));
+        $lh = max(1.0, (float) ($paper['labelHeightMm'] ?? $h));
 
         $objects = [
-            [
-                'id' => 'labiBg01',
-                'type' => 'image',
-                'zIndex' => 0,
-                'visible' => true,
-                'locked' => false,
-                'x' => 0,
-                'y' => 0,
-                'width' => $w,
-                'height' => $h,
-                'fill' => 'transparent',
-                'strokeWidth' => 0,
-                'opacity' => 1,
-                'imageData' => $imageUrl,
-                'imageFit' => 'cover',
-                'backgroundTransparent' => true,
-            ],
+            $this->labiImageObject('labiBg01', 0, 0, $lw, $lh, $imageUrl, 0, 'cover'),
         ];
 
         $z = 1;
         foreach ($texts as $i => $row) {
-            $boxW = max(4.0, (float) $row['w'] * $w);
-            $boxH = max(3.0, (float) $row['h'] * $h);
-            $x = max(0.0, min($w - 2.0, (float) $row['x'] * $w));
-            $y = max(0.0, min($h - 2.0, (float) $row['y'] * $h));
-            if ($x + $boxW > $w) {
-                $boxW = max(3.0, $w - $x);
+            $boxW = max(4.0, (float) $row['w'] * $lw);
+            $boxH = max(3.0, (float) $row['h'] * $lh);
+            $x = max(0.0, min($lw - 2.0, (float) $row['x'] * $lw));
+            $y = max(0.0, min($lh - 2.0, (float) $row['y'] * $lh));
+            if ($x + $boxW > $lw) {
+                $boxW = max(3.0, $lw - $x);
             }
-            if ($y + $boxH > $h) {
-                $boxH = max(2.5, $h - $y);
+            if ($y + $boxH > $lh) {
+                $boxH = max(2.5, $lh - $y);
             }
             $font = (float) ($row['font_size_mm'] ?? 0);
             if ($font < 1.5) {
                 $font = max(1.8, min(12.0, $boxH * 0.72));
             }
             $font = max(1.5, min(14.0, $font));
-            // 라벨 크기에 맞게 한 번 더 스케일 (정규화 추정값이 절대 mm로 올 때 보정)
             if ($font > $boxH * 1.15) {
                 $font = max(1.5, $boxH * 0.78);
             }
 
-            $objects[] = [
-                'id' => sprintf('labiTx%02d', $i + 1),
-                'type' => 'text',
-                'zIndex' => $z++,
-                'visible' => true,
-                'locked' => false,
-                'x' => round($x, 2),
-                'y' => round($y, 2),
-                'width' => round($boxW, 2),
-                'height' => round($boxH, 2),
-                'fill' => (string) ($row['color'] ?? '#2E2A27'),
-                'strokeWidth' => 0,
-                'opacity' => 1,
-                'text' => (string) $row['text'],
-                'fontSize' => round($font, 2),
-                'fontFamily' => 'Pretendard',
-                'bold' => !empty($row['bold']),
-                'textAlign' => (string) ($row['align'] ?? 'left'),
-                'verticalAlign' => 'middle',
-                'backgroundTransparent' => true,
-                'textMode' => 'normal',
-                'textWrap' => 'char',
+            $objects[] = $this->labiTextObject(
+                sprintf('labiTx%02d', $i + 1),
+                $x,
+                $y,
+                $boxW,
+                $boxH,
+                (string) $row['text'],
+                (string) ($row['color'] ?? '#2E2A27'),
+                $font,
+                !empty($row['bold']),
+                (string) ($row['align'] ?? 'left'),
+                $z++
+            );
+        }
+
+        foreach ($codes as $i => $code) {
+            $kind = strtolower(trim((string) ($code['kind'] ?? '')));
+            $value = trim((string) ($code['value'] ?? ''));
+            if ($value === '' || !in_array($kind, ['qr', 'barcode'], true)) {
+                continue;
+            }
+            $boxW = max(6.0, (float) $code['w'] * $lw);
+            $boxH = max(6.0, (float) $code['h'] * $lh);
+            $x = max(0.0, min($lw - 2.0, (float) $code['x'] * $lw));
+            $y = max(0.0, min($lh - 2.0, (float) $code['y'] * $lh));
+            if ($kind === 'qr') {
+                $side = max(8.0, min($boxW, $boxH, $lw - $x, $lh - $y));
+                $boxW = $side;
+                $boxH = $side;
+                $objects[] = $this->labiQrObject(
+                    sprintf('labiQr%02d', $i + 1),
+                    $x,
+                    $y,
+                    $boxW,
+                    $value,
+                    $z++
+                );
+            } else {
+                if ($x + $boxW > $lw) {
+                    $boxW = max(8.0, $lw - $x);
+                }
+                if ($y + $boxH > $lh) {
+                    $boxH = max(6.0, $lh - $y);
+                }
+                $objects[] = $this->labiBarcodeObject(
+                    sprintf('labiBc%02d', $i + 1),
+                    $x,
+                    $y,
+                    $boxW,
+                    $boxH,
+                    $value,
+                    !empty($code['show_text']),
+                    $z++
+                );
+            }
+        }
+
+        $cellCount = max(1, (int) ($paper['columns'] ?? 1) * (int) ($paper['rows'] ?? 1));
+        if (!empty($paper['customSlots']) && is_array($paper['customSlots'])) {
+            $cellCount = max(1, count($paper['customSlots']));
+        }
+        $cells = [];
+        for ($c = 0; $c < $cellCount; $c++) {
+            $cells[] = [
+                'index' => $c,
+                'objects' => $c === 0 ? $objects : [],
             ];
         }
 
@@ -1622,13 +1698,458 @@ final class LabiDesignService
             'paper' => $paper,
             'pages' => [[
                 'index' => 0,
-                'cells' => [[
-                    'index' => 0,
-                    'objects' => $objects,
-                ]],
+                'cells' => $cells,
             ]],
             'printOffsetXMm' => 0,
             'printOffsetYMm' => 0,
+        ];
+    }
+
+    /**
+     * 편집기 PaperSpec JSON (시드·paperData·DB 규격과 동일 키).
+     *
+     * @param array<string, mixed>|null $product
+     * @return array<string, mixed>
+     */
+    private function resolveDocumentPaper(float $labelW, float $labelH, ?array $product): array
+    {
+        $product = $product ?? [];
+        $sku = trim((string) ($product['sku'] ?? ''));
+        $name = trim((string) ($product['name'] ?? $product['paper_name'] ?? ''));
+
+        if ($sku !== '') {
+            $fromFile = $this->loadPaperDataJson($sku);
+            if ($fromFile !== null) {
+                if ($name !== '') {
+                    $fromFile['name'] = $name;
+                }
+                return $fromFile;
+            }
+        }
+
+        $cols = (int) ($product['columns_count'] ?? 0);
+        $rows = (int) ($product['rows_count'] ?? 0);
+        $labels = (int) ($product['labels_per_sheet'] ?? 0);
+        $lw = $labelW > 0 ? $labelW : (float) ($product['width_mm'] ?? 70);
+        $lh = $labelH > 0 ? $labelH : (float) ($product['height_mm'] ?? 36);
+        $lw = max(1.0, $lw);
+        $lh = max(1.0, $lh);
+
+        if ($cols < 1 && $rows < 1 && $labels > 1) {
+            $cols = max(1, (int) ceil(sqrt($labels)));
+            $rows = max(1, (int) ceil($labels / $cols));
+        }
+        if ($cols < 1) {
+            $cols = 1;
+        }
+        if ($rows < 1) {
+            $rows = 1;
+        }
+
+        $hGap = isset($product['h_gap_mm']) ? max(0.0, (float) $product['h_gap_mm']) : ($cols > 1 ? 5.0 : 0.0);
+        $vGap = isset($product['v_gap_mm']) ? max(0.0, (float) $product['v_gap_mm']) : ($rows > 1 ? 3.0 : 0.0);
+        $left = isset($product['left_margin_mm']) ? max(0.0, (float) $product['left_margin_mm']) : null;
+        $top = isset($product['top_margin_mm']) ? max(0.0, (float) $product['top_margin_mm']) : null;
+
+        $usedW = $lw * $cols + $hGap * max(0, $cols - 1);
+        $usedH = $lh * $rows + $vGap * max(0, $rows - 1);
+        $pageW = 210.0;
+        $pageH = 297.0;
+        $paperSize = strtoupper(trim((string) ($product['paper_size'] ?? 'A4')));
+        if ($paperSize === 'LETTER') {
+            $pageW = 215.9;
+            $pageH = 279.4;
+        }
+        if ($left === null) {
+            $left = max(0.0, ($pageW - $usedW) / 2);
+        }
+        if ($top === null) {
+            $top = max(0.0, ($pageH - $usedH) / 2);
+        }
+        $needW = $usedW + $left;
+        $needH = $usedH + $top;
+        if ($needW > $pageW + 0.5) {
+            $pageW = $needW;
+        }
+        if ($needH > $pageH + 0.5) {
+            $pageH = $needH;
+        }
+        $right = max(0.0, $pageW - $left - $usedW);
+        $bottom = max(0.0, $pageH - $top - $usedH);
+
+        $shapeKind = 'rect';
+        $rawShape = strtolower(trim((string) ($product['shape'] ?? '')));
+        if (str_contains($rawShape, 'round') || str_contains($rawShape, '모서')) {
+            $shapeKind = 'roundrect';
+        } elseif (str_contains($rawShape, 'circle') || str_contains($rawShape, 'ellipse') || str_contains($rawShape, '원')) {
+            $shapeKind = abs($lw - $lh) < 0.8 ? 'circle' : 'ellipse';
+        }
+        $shape = ['kind' => $shapeKind];
+        $rx = isset($product['corner_radius_x_mm']) ? (float) $product['corner_radius_x_mm'] : null;
+        $ry = isset($product['corner_radius_y_mm']) ? (float) $product['corner_radius_y_mm'] : null;
+        if ($shapeKind === 'roundrect') {
+            $shape['cornerRadiusMm'] = $rx !== null && $rx > 0 ? $rx : 1.5;
+            if ($ry !== null && $ry > 0) {
+                $shape['cornerRadiusYMm'] = $ry;
+            }
+        }
+
+        $labelColor = trim((string) ($product['label_color'] ?? ''));
+        if ($labelColor === '') {
+            $labelColor = '#FFFFFF';
+        }
+
+        return [
+            'version' => 1,
+            'paperNo' => $sku !== '' ? $sku : 'LU-AI',
+            'name' => $name !== '' ? $name : sprintf(
+                '%s×%s mm',
+                rtrim(rtrim(sprintf('%.1f', $lw), '0'), '.'),
+                rtrim(rtrim(sprintf('%.1f', $lh), '0'), '.')
+            ),
+            'category' => $sku !== '' ? 'A4' : 'Custom',
+            'brand' => 'LabelUp',
+            'paperWidthMm' => round($pageW, 2),
+            'paperHeightMm' => round($pageH, 2),
+            'labelWidthMm' => round($lw, 2),
+            'labelHeightMm' => round($lh, 2),
+            'columns' => $cols,
+            'rows' => $rows,
+            'leftMarginMm' => round($left, 2),
+            'topMarginMm' => round($top, 2),
+            'rightMarginMm' => round($right, 2),
+            'bottomMarginMm' => round($bottom, 2),
+            'hGapMm' => round($hGap, 2),
+            'vGapMm' => round($vGap, 2),
+            'labelColor' => $labelColor,
+            'shape' => $shape,
+        ];
+    }
+
+    /** @return array<string, mixed>|null */
+    private function loadPaperDataJson(string $sku): ?array
+    {
+        $sku = trim($sku);
+        if ($sku === '' || !preg_match('/^[A-Za-z0-9_-]+$/', $sku)) {
+            return null;
+        }
+        $candidates = [
+            public_path('editor/paperData/' . $sku . '.json'),
+            base_path('editor-src/LabelUp.Editor/wwwroot/paperData/' . $sku . '.json'),
+        ];
+        foreach ($candidates as $path) {
+            if (!is_file($path)) {
+                continue;
+            }
+            $raw = @file_get_contents($path);
+            if (!is_string($raw) || trim($raw) === '') {
+                continue;
+            }
+            $decoded = json_decode($raw, true);
+            if (!is_array($decoded) || empty($decoded['paperNo'])) {
+                continue;
+            }
+            return $decoded;
+        }
+        return null;
+    }
+
+    /** @return array<string, mixed> */
+    private function labiImageObject(
+        string $id,
+        float $x,
+        float $y,
+        float $w,
+        float $h,
+        string $url,
+        int $z,
+        string $fit = 'cover'
+    ): array {
+        return [
+            'id' => $id,
+            'type' => 'image',
+            'zIndex' => $z,
+            'locked' => false,
+            'visible' => true,
+            'x' => round($x, 2),
+            'y' => round($y, 2),
+            'width' => round($w, 2),
+            'height' => round($h, 2),
+            'rotation' => 0,
+            'fill' => 'transparent',
+            'stroke' => 'transparent',
+            'strokeWidth' => 0,
+            'opacity' => 1,
+            'imageData' => $url,
+            'imageFit' => $fit === 'contain' ? 'contain' : 'cover',
+            'lockAspectRatio' => false,
+            'backgroundTransparent' => true,
+            'backgroundFill' => 'transparent',
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function labiTextObject(
+        string $id,
+        float $x,
+        float $y,
+        float $w,
+        float $h,
+        string $text,
+        string $fill,
+        float $fontSize,
+        bool $bold,
+        string $align,
+        int $z
+    ): array {
+        return [
+            'id' => $id,
+            'type' => 'text',
+            'zIndex' => $z,
+            'locked' => false,
+            'visible' => true,
+            'x' => round($x, 2),
+            'y' => round($y, 2),
+            'width' => round($w, 2),
+            'height' => round($h, 2),
+            'rotation' => 0,
+            'fill' => $fill !== '' ? $fill : '#2E2A27',
+            'stroke' => 'transparent',
+            'strokeWidth' => 0,
+            'opacity' => 1,
+            'text' => $text,
+            'fontSize' => round($fontSize, 2),
+            'fontFamily' => 'Pretendard',
+            'bold' => $bold,
+            'italic' => false,
+            'underline' => false,
+            'textAlign' => in_array($align, ['left', 'center', 'right'], true) ? $align : 'left',
+            'verticalAlign' => 'middle',
+            'lineHeight' => 1.15,
+            'letterSpacing' => 0,
+            'textDirection' => 'horizontal',
+            'textWrap' => 'char',
+            'backgroundTransparent' => true,
+            'backgroundFill' => 'transparent',
+            'textMode' => 'normal',
+            'wordArtStyle' => 'none',
+            'customKind' => 'none',
+        ];
+    }
+
+    /**
+     * 사용자 요청에서 URL·SKU 등 인코딩 값을 추출해 QR/바코드 후보를 만든다.
+     *
+     * @return array<int, array{kind:string,value:string,x:float,y:float,w:float,h:float,show_text:bool}>
+     */
+    private function inferCodesFromUserText(string $text): array
+    {
+        $text = trim($text);
+        if ($text === '') {
+            return [];
+        }
+        $wantsQr = (bool) preg_match('/QR|큐알|큐\s*아르|이차원\s*코드|qr\s*코드/iu', $text);
+        $wantsBarcode = (bool) preg_match('/바코드|barcode|code\s*[- ]?128|ean[- ]?13|upc/iu', $text);
+        $codes = [];
+
+        if (preg_match_all('#https?://[^\s<>"\']+#iu', $text, $m)) {
+            foreach ($m[0] as $raw) {
+                $url = rtrim($raw, '.,;)]}>"\'');
+                if ($url === '') {
+                    continue;
+                }
+                // URL은 기본적으로 QR. 바코드만 명시하고 QR이 없으면 스킵.
+                if ($wantsBarcode && !$wantsQr) {
+                    continue;
+                }
+                $codes[] = [
+                    'kind' => 'qr',
+                    'value' => $url,
+                    'x' => 0.72,
+                    'y' => 0.62,
+                    'w' => 0.22,
+                    'h' => 0.22,
+                    'show_text' => false,
+                ];
+            }
+        }
+
+        if ($wantsQr && $codes === [] && preg_match('/(?:QR|큐알)[^\w가-힣]{0,6}([a-z0-9][a-z0-9._~:/?#\[\]@!$&\'()*+,;=%-]{5,})/iu', $text, $m)) {
+            $val = rtrim($m[1], '.,;)]}>"\'');
+            if ($val !== '') {
+                if (!preg_match('#^https?://#i', $val) && preg_match('/\./', $val)) {
+                    $val = 'https://' . $val;
+                }
+                $codes[] = [
+                    'kind' => 'qr',
+                    'value' => $val,
+                    'x' => 0.72,
+                    'y' => 0.62,
+                    'w' => 0.22,
+                    'h' => 0.22,
+                    'show_text' => false,
+                ];
+            }
+        }
+
+        if ($wantsBarcode) {
+            $barcodeVal = '';
+            if (preg_match('/(?:바코드|barcode|ean|upc|sku)\s*[:：]?\s*([A-Za-z0-9\-_]{6,32})/iu', $text, $m)) {
+                $barcodeVal = $m[1];
+            } elseif (preg_match('/\b(\d{8}|\d{12}|\d{13}|\d{14})\b/', $text, $m)) {
+                $barcodeVal = $m[1];
+            }
+            if ($barcodeVal !== '') {
+                $codes[] = [
+                    'kind' => 'barcode',
+                    'value' => $barcodeVal,
+                    'x' => 0.12,
+                    'y' => 0.68,
+                    'w' => 0.76,
+                    'h' => 0.2,
+                    'show_text' => true,
+                ];
+            }
+        }
+
+        // 중복 value 제거
+        $seen = [];
+        $out = [];
+        foreach ($codes as $c) {
+            $key = $c['kind'] . '|' . mb_strtolower($c['value']);
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $out[] = $c;
+            if (count($out) >= 6) {
+                break;
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $primary
+     * @param array<int, array<string, mixed>> $fallback
+     * @return array<int, array{kind:string,value:string,x:float,y:float,w:float,h:float,show_text:bool}>
+     */
+    private function mergeEditableCodes(array $primary, array $fallback): array
+    {
+        $out = [];
+        $seen = [];
+        foreach (array_merge($primary, $fallback) as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $kind = strtolower(trim((string) ($row['kind'] ?? '')));
+            if ($kind === 'qrcode') {
+                $kind = 'qr';
+            }
+            $value = trim((string) ($row['value'] ?? ''));
+            if ($value === '' || !in_array($kind, ['qr', 'barcode'], true)) {
+                continue;
+            }
+            $key = $kind . '|' . mb_strtolower($value);
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $x = max(0.0, min(0.95, (float) ($row['x'] ?? ($kind === 'qr' ? 0.72 : 0.12))));
+            $y = max(0.0, min(0.95, (float) ($row['y'] ?? ($kind === 'qr' ? 0.62 : 0.68))));
+            if ($kind === 'qr') {
+                $w = max(0.12, min(1.0 - $x, (float) ($row['w'] ?? 0.22)));
+                $h = max(0.12, min(1.0 - $y, (float) ($row['h'] ?? $w)));
+                $side = min($w, $h);
+                $w = $side;
+                $h = $side;
+            } else {
+                $w = max(0.2, min(1.0 - $x, (float) ($row['w'] ?? 0.76)));
+                $h = max(0.08, min(1.0 - $y, (float) ($row['h'] ?? 0.2)));
+            }
+            $out[] = [
+                'kind' => $kind,
+                'value' => mb_strlen($value) > 500 ? mb_substr($value, 0, 500) : $value,
+                'x' => $x,
+                'y' => $y,
+                'w' => $w,
+                'h' => $h,
+                'show_text' => array_key_exists('show_text', $row)
+                    ? !empty($row['show_text'])
+                    : ($kind === 'barcode'),
+            ];
+            if (count($out) >= 8) {
+                break;
+            }
+        }
+        return $out;
+    }
+
+    /** @return array<string, mixed> */
+    private function labiBarcodeObject(
+        string $id,
+        float $x,
+        float $y,
+        float $w,
+        float $h,
+        string $value,
+        bool $showText,
+        int $z
+    ): array {
+        return [
+            'id' => $id,
+            'type' => 'barcode',
+            'zIndex' => $z,
+            'locked' => false,
+            'visible' => true,
+            'x' => round($x, 2),
+            'y' => round($y, 2),
+            'width' => round($w, 2),
+            'height' => round($h, 2),
+            'rotation' => 0,
+            'fill' => '#2E2A27',
+            'stroke' => 'transparent',
+            'strokeWidth' => 0,
+            'opacity' => 1,
+            'barcodeFormat' => 'CODE_128',
+            'barcodeValue' => $value,
+            'barcodeShowText' => $showText,
+            'fontSize' => 2.2,
+            'backgroundTransparent' => true,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function labiQrObject(
+        string $id,
+        float $x,
+        float $y,
+        float $size,
+        string $value,
+        int $z
+    ): array {
+        $kind = preg_match('#^https?://#i', $value) ? 'url' : 'text';
+        return [
+            'id' => $id,
+            'type' => 'qr',
+            'zIndex' => $z,
+            'locked' => false,
+            'visible' => true,
+            'x' => round($x, 2),
+            'y' => round($y, 2),
+            'width' => round($size, 2),
+            'height' => round($size, 2),
+            'rotation' => 0,
+            'fill' => '#2E2A27',
+            'stroke' => 'transparent',
+            'strokeWidth' => 0,
+            'opacity' => 1,
+            'barcodeFormat' => 'QR_CODE',
+            'barcodeValue' => $value,
+            'barcodeShowText' => false,
+            'qrEcc' => 'M',
+            'qrKind' => $kind,
+            'backgroundTransparent' => true,
         ];
     }
 }

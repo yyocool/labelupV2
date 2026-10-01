@@ -58,6 +58,19 @@ public sealed class DraftStorage(IJSRuntime js)
         EditorLog.Info("초안 저장");
     }
 
+    public async Task ClearAsync()
+    {
+        try
+        {
+            await js.InvokeVoidAsync("labelUpEditor.clearDraft", Key);
+            await js.InvokeVoidAsync("labelUpEditor.clearDraft", LegacyKey);
+        }
+        catch
+        {
+            /* ignore */
+        }
+    }
+
     public async Task<LabelDocument?> LoadAsync()
     {
         var json = await js.InvokeAsync<string?>("labelUpEditor.loadDraft", Key);

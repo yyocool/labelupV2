@@ -14,7 +14,7 @@ REMOTE_ROOT = '/home/uptube1'
 REMOTE_PUBLIC = REMOTE_ROOT + '/www'
 
 # 공개 URL
-APP_URL = 'http://www.labelup.co.kr'
+APP_URL = 'https://www.labelup.co.kr'
 PUBLIC_HOST = 'www.labelup.co.kr'
 
 # MySQL

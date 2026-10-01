@@ -3,6 +3,7 @@
 @inject EditorSession Session
 @inject DesignSaveService Save
 @inject HistoryService History
+@inject DraftStorage Drafts
 @implements IDisposable
 
 @if (Session.Dialog == EditorDialog.NewDesignConfirm)
@@ -100,6 +101,7 @@
         // 되돌리기로 지운 디자인이 되살아나면 헷갈린다. 기록을 비우고 새로 센다.
         History.Clear();
         Session.StartNewDesign();
+        _ = Drafts.ClearAsync();
         Session.CloseDialog();
     }
 }

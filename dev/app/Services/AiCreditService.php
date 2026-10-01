@@ -49,8 +49,10 @@ final class AiCreditService
         return [
             'is_enabled' => (int) ($cfg['is_enabled'] ?? 1) === 1,
             'monthly_budget' => (int) ($cfg['monthly_budget'] ?? 0),
-            'low_balance_threshold' => (int) ($cfg['low_balance_threshold'] ?? 10),
+            'low_balance_threshold' => (int) ($cfg['low_balance_threshold'] ?? 100),
             'costs' => $costs,
+            'credits_per_krw' => CreditService::CREDITS_PER_KRW,
+            'ratio_label' => CreditService::ratioLabel(),
         ];
     }
 
@@ -60,7 +62,7 @@ final class AiCreditService
         $this->repo->saveConfig([
             'is_enabled' => !empty($data['is_enabled']),
             'monthly_budget' => (int) ($data['monthly_budget'] ?? 0),
-            'low_balance_threshold' => (int) ($data['low_balance_threshold'] ?? 10),
+            'low_balance_threshold' => (int) ($data['low_balance_threshold'] ?? 100),
         ]);
         $costs = $data['costs'] ?? [];
         if (is_array($costs)) {

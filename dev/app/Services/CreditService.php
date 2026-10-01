@@ -9,11 +9,41 @@ use RuntimeException;
 
 final class CreditService
 {
+    /** 원화 1원당 크레딧 수 (1원 : 10 C) */
+    public const CREDITS_PER_KRW = 10;
+
     private CreditRepository $repo;
 
     public function __construct()
     {
         $this->repo = new CreditRepository();
+    }
+
+    public static function krwToCredits(float|int $krw): int
+    {
+        return (int) round(((float) $krw) * self::CREDITS_PER_KRW);
+    }
+
+    public static function creditsToKrw(int $credits): float
+    {
+        if (self::CREDITS_PER_KRW <= 0) {
+            return 0.0;
+        }
+        return round($credits / self::CREDITS_PER_KRW, 4);
+    }
+
+    public static function ratioLabel(): string
+    {
+        return '1원 = ' . self::CREDITS_PER_KRW . ' C';
+    }
+
+    public static function formatKrwEquivalent(int $credits): string
+    {
+        $krw = self::creditsToKrw($credits);
+        if (abs($krw - (int) $krw) < 0.0001) {
+            return number_format((int) $krw) . '원';
+        }
+        return rtrim(rtrim(number_format($krw, 2, '.', ','), '0'), '.') . '원';
     }
 
     public function balance(int $userId): int
@@ -57,8 +87,8 @@ final class CreditService
         if ($amount <= 0) {
             throw new RuntimeException('지급 크레딧은 1 이상이어야 합니다.');
         }
-        if ($amount > 1000000) {
-            throw new RuntimeException('한 번에 지급할 수 있는 크레딧은 1,000,000 C까지입니다.');
+        if ($amount > 10000000) {
+            throw new RuntimeException('한 번에 지급할 수 있는 크레딧은 10,000,000 C까지입니다.');
         }
         $reason = trim($reason);
         if ($reason === '') {

@@ -106,7 +106,7 @@ final class AuthController extends BaseController
             || !hash_equals($expected, $state)
             || $code === ''
         ) {
-            $_SESSION['auth_flash'] = '소셜 로그인 인증 정보가 올바르지 않습니다. 다시 시도해 주세요.';
+            $_SESSION['auth_flash'] = '소셜 로그인 세션이 만료되었거나 인증 정보가 올바르지 않습니다. 팝업/시크릿 창이 아닌 같은 브라우저에서 다시 시도해 주세요.';
             redirect('/login');
         }
 

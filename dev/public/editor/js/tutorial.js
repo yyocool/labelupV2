@@ -193,9 +193,44 @@
       title: '라비AI',
       description: '제목 옆 클라우드 저장 다음의 라비AI로 원하는 라벨을 말로 만들 수 있어요.',
       effect: '아이디어만 말해도 초안을 시작할 수 있습니다.',
-      speech: '클라우드 저장 옆의 라비AI 버튼이에요.',
-      wait: 2600,
-      cursor: true
+      speech: '클라우드 저장 옆의 라비AI 버튼이에요. 눌러서 예시를 볼게요.',
+      wait: 2400,
+      cursor: true,
+      click: true,
+      action: 'openLabi'
+    },
+    {
+      id: 'labi-prompt',
+      selector: '[data-tut="labi-prompt"]',
+      title: '프롬프트 작성',
+      description: '만들고 싶은 라벨을 적어요. 예: "카페 원두 라벨, 따뜻한 브라운톤으로 만들어줘".',
+      effect: '말하듯 적어도 라비가 이해합니다.',
+      speech: '여기에 원하는 라벨을 적어 볼게요.',
+      wait: 4200,
+      cursor: true,
+      action: 'labiDemo:type'
+    },
+    {
+      id: 'labi-generate',
+      selector: '[data-tut="labi-dialog"]',
+      title: '라비가 생성 중',
+      description: '프롬프트를 보낸 뒤 라비가 레이아웃·문구·클립아트 초안을 준비하는 장면이에요.',
+      effect: '잠시 기다리면 결과가 대화와 편집기에 이어집니다.',
+      speech: '라비가 라벨을 만들고 있어요.',
+      wait: 4800,
+      cursor: true,
+      action: 'labiDemo:generate'
+    },
+    {
+      id: 'labi-result',
+      selector: '[data-tut="labi-dialog"]',
+      title: '생성 결과 예시',
+      description: '결과가 나오면 편집 캔버스에 넣어 글자·이미지를 바로 손볼 수 있어요.',
+      effect: 'AI 초안 → 직접 편집으로 이어집니다.',
+      speech: '끝나면 편집기에 바로 넣을 수 있어요.',
+      wait: 3600,
+      cursor: true,
+      action: 'labiDemo:result'
     },
     {
       id: 'import-fab',
@@ -207,7 +242,7 @@
       wait: 2400,
       cursor: true,
       click: true,
-      action: 'openVendorPicker'
+      action: 'closeLabiThenVendor'
     },
     {
       id: 'vendor-picker-head',
@@ -324,12 +359,46 @@
       id: 'm-labi',
       selector: '[data-tut="labi-fab"]',
       title: '라비AI',
-      description: '클라우드 저장 다음의 라비AI로 원하는 라벨을 말로 만들 수 있어요.',
+      description: '클라우드 저장 다음의 라비AI로 원하는 라벨을 말로 만들 수 있어요. 예시를 볼게요.',
       effect: '아이디어만 말해도 초안을 시작합니다.',
-      speech: '구름 옆 라비AI 버튼이에요.',
+      speech: '구름 옆 라비AI 버튼이에요. 눌러서 예시를 볼게요.',
       wait: 2400,
       cursor: true,
-      action: 'closeMobileOverlays'
+      click: true,
+      action: 'openLabi'
+    },
+    {
+      id: 'm-labi-prompt',
+      selector: '[data-tut="labi-prompt"]',
+      title: '프롬프트 작성',
+      description: '만들고 싶은 라벨을 적어요. 예: "카페 원두 라벨, 따뜻한 브라운톤으로 만들어줘".',
+      effect: '말하듯 적어도 라비가 이해합니다.',
+      speech: '여기에 원하는 라벨을 적어 볼게요.',
+      wait: 4200,
+      cursor: true,
+      action: 'labiDemo:type'
+    },
+    {
+      id: 'm-labi-generate',
+      selector: '[data-tut="labi-dialog"]',
+      title: '라비가 생성 중',
+      description: '라비가 레이아웃·문구·클립아트 초안을 준비하는 예시 장면이에요.',
+      effect: '결과가 나오면 편집기에 이어서 손볼 수 있어요.',
+      speech: '라비가 라벨을 만들고 있어요.',
+      wait: 4800,
+      cursor: true,
+      action: 'labiDemo:generate'
+    },
+    {
+      id: 'm-labi-result',
+      selector: '[data-tut="labi-dialog"]',
+      title: '생성 결과 예시',
+      description: '결과가 나오면 캔버스에 넣어 글자·이미지를 바로 수정할 수 있어요.',
+      effect: 'AI 초안 → 직접 편집으로 이어집니다.',
+      speech: '끝나면 편집기에 바로 넣을 수 있어요.',
+      wait: 3600,
+      cursor: true,
+      action: 'labiDemo:result'
     },
     {
       id: 'm-menu',
@@ -341,7 +410,7 @@
       wait: 2600,
       cursor: true,
       click: true,
-      action: 'openMobileMenu'
+      action: 'closeLabiThenMobileMenu'
     },
     {
       id: 'm-menu-items',
@@ -467,6 +536,11 @@
     }
   ];
   function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
+  function rectsOverlap(a, b, pad) {
+    pad = pad || 0;
+    if (!a || !b) return false;
+    return !(a.right + pad <= b.left || a.left - pad >= b.right || a.bottom + pad <= b.top || a.top - pad >= b.bottom);
+  }
   function isTouch() {
     return window.matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
   }
@@ -556,6 +630,9 @@
     this._built = false;
     this._speechUtter = null;
     this.mobile = false;
+    this._cursorX = null;
+    this._cursorY = null;
+    this._labiDemoPrompt = '카페 원두 라벨을 따뜻한 브라운톤으로 만들어줘. 브랜드명은 Roasty.';
   }
 
   Tutorial.prototype.mount = function (rootSel, dotNet) {
@@ -611,6 +688,15 @@
         '<span class="lu-tut__cursor-ripple"></span>' +
       '</div>' +
       '<div class="lu-tut__caption" data-tut-caption hidden></div>' +
+      '<div class="lu-tut__labi-scene" data-tut-labi-scene hidden>' +
+        '<div class="lu-tut__labi-scene-card">' +
+          '<div class="lu-tut__labi-scene-head">' +
+            '<img src="/assets/labi-icon.png" alt="" width="36" height="36" />' +
+            '<div><strong data-tut-labi-scene-title>라비AI 예시</strong><p data-tut-labi-scene-sub></p></div>' +
+          '</div>' +
+          '<div class="lu-tut__labi-scene-body" data-tut-labi-scene-body></div>' +
+        '</div>' +
+      '</div>' +
       '<div class="lu-tut__demo" data-tut-demo hidden>' +
         '<i class="lu-tut__finger lu-tut__finger--a"></i>' +
         '<i class="lu-tut__finger lu-tut__finger--b"></i>' +
@@ -656,6 +742,10 @@
       toast: host.querySelector('[data-tut-toast]'),
       demo: host.querySelector('[data-tut-demo]'),
       demoLabel: host.querySelector('[data-tut-demo-label]'),
+      labiScene: host.querySelector('[data-tut-labi-scene]'),
+      labiSceneTitle: host.querySelector('[data-tut-labi-scene-title]'),
+      labiSceneSub: host.querySelector('[data-tut-labi-scene-sub]'),
+      labiSceneBody: host.querySelector('[data-tut-labi-scene-body]'),
       ctrl: host.querySelector('[data-tut-ctrl]'),
       title: host.querySelector('[data-tut-title]'),
       desc: host.querySelector('[data-tut-desc]'),
@@ -696,7 +786,8 @@
     host.querySelector('[data-tut-caption-btn]').addEventListener('click', function (e) {
       self.captionOn = !self.captionOn;
       e.currentTarget.classList.toggle('is-on', self.captionOn);
-      self.els.caption.hidden = !self.captionOn || !self.playing;
+      if (self.captionOn && self.playing) self._showCaption();
+      else self.els.caption.hidden = true;
     });
   };
 
@@ -750,9 +841,12 @@
     this.els.ctrl.hidden = !on;
     this.els.caption.hidden = true;
     if (this.els.demo) this.els.demo.hidden = true;
+    this._hideLabiScene();
     if (!on) {
       this.els.cursor.hidden = true;
       this.els.toast.hidden = true;
+      this._cursorX = null;
+      this._cursorY = null;
     }
     document.body.classList.toggle('lu-tut-active', on);
   };
@@ -890,6 +984,9 @@
     this.els.caption.hidden = true;
     this.els.spot.hidden = true;
     if (this.els.demo) this.els.demo.hidden = true;
+    if (!(step.action && String(step.action).indexOf('labiDemo:') === 0)) {
+      this._hideLabiScene();
+    }
     this._stopSpeech();
 
     this._ignoreUserUntil = Date.now() + 900;
@@ -902,6 +999,9 @@
           step.action === 'openMobileMenu' || step.action === 'openMobileProps' ||
           step.action === 'openMobilePreview' ||
           step.action === 'closeMobileProps' || step.action === 'closeMobileOverlays' ||
+          step.action === 'openLabi' || step.action === 'closeLabi' ||
+          step.action === 'closeLabiThenVendor' || step.action === 'closeLabiThenMobileMenu' ||
+          (step.action && String(step.action).indexOf('labiDemo:') === 0) ||
           (step.action && (step.action.indexOf('importTab:') === 0 || step.action.indexOf('paperTab:') === 0))) {
         settle = (420 * PACE) / self.speed;
       }
@@ -919,6 +1019,9 @@
       return self._ensureVisible(el, step).then(function () {
         self._highlight(el);
         self._showDemo(step, el);
+        var r = el.getBoundingClientRect();
+        self._cursorX = r.left + r.width * 0.55;
+        self._cursorY = r.top + r.height * 0.55;
         if (step.cursor) {
           return self._moveCursor(el, !!step.click);
         }
@@ -926,6 +1029,7 @@
       }).then(function () {
         self._fillTipContent(step, false);
         self._placeTip(el);
+        self._revealTip();
         if (self.voiceOn) self._speak(step.speech || step.description);
         if (!self.paused) self._scheduleAdvance();
       });
@@ -980,10 +1084,13 @@
       step.action === 'openPaperPicker' || step.action === 'closePaperPicker' ||
       step.action === 'openVendorPicker' || step.action === 'closeVendorPicker' ||
       step.action === 'closeVendorPickerThenImport' ||
+      step.action === 'openLabi' || step.action === 'closeLabi' ||
+      step.action === 'closeLabiThenVendor' || step.action === 'closeLabiThenMobileMenu' ||
       step.action === 'openMobileMenu' || step.action === 'openMobileProps' ||
       step.action === 'openMobilePreview' ||
       step.action === 'closeMobileProps' || step.action === 'closeMobileOverlays' ||
-      step.action.indexOf('importTab:') === 0 || step.action.indexOf('paperTab:') === 0;
+      step.action.indexOf('importTab:') === 0 || step.action.indexOf('paperTab:') === 0 ||
+      step.action.indexOf('labiDemo:') === 0;
     this._ignoreUserUntil = Date.now() + (needsDom ? 2800 : 1200);
     var runLocal = function () { return self._fallbackAction(step.action); };
     if (this.dotNet) {
@@ -1039,6 +1146,26 @@
       if (window.labelUpEditor && typeof window.labelUpEditor.openImport === 'function') {
         window.labelUpEditor.openImport();
       }
+    } else if (action === 'openLabi') {
+      this._openLabiDialog();
+    } else if (action === 'closeLabi') {
+      this._closeLabiDialog();
+      this._hideLabiScene();
+    } else if (action === 'closeLabiThenVendor') {
+      this._closeLabiDialog();
+      this._hideLabiScene();
+      var vendorDlg2 = document.querySelector('[data-tut="vendor-picker-dialog"]');
+      if (!vendorDlg2) {
+        var vendorFab2 = document.querySelector('[data-tut="import-fab"]');
+        if (vendorFab2) vendorFab2.click();
+      }
+    } else if (action === 'closeLabiThenMobileMenu') {
+      this._closeLabiDialog();
+      this._hideLabiScene();
+      closeMobileOverlays();
+      setMobileMenuOpen(true);
+    } else if (action.indexOf('labiDemo:') === 0) {
+      return this._runLabiDemo(action.split(':')[1] || '');
     } else if (action === 'openImport') {
       if (window.labelUpEditor && typeof window.labelUpEditor.openImport === 'function') {
         window.labelUpEditor.openImport();
@@ -1107,17 +1234,47 @@
     var r = el.getBoundingClientRect();
     var tw = tip.offsetWidth || 300;
     var th = tip.offsetHeight || 160;
-    var left = r.right + 16;
-    var top = r.top;
-    if (left + tw > window.innerWidth - 12) left = r.left - tw - 16;
-    if (left < 12) left = clamp((window.innerWidth - tw) / 2, 12, window.innerWidth - tw - 12);
-    if (top + th > window.innerHeight - 100) top = window.innerHeight - th - 100;
-    if (top < 12) top = 12;
-    tip.style.left = left + 'px';
+    // 커서/자막이 붙을 타깃 바로 아래는 비워 두고, 옆에 설명을 둔다.
+    var gap = 20;
+    var captionReserve = 56;
+    var candidates = [
+      { left: r.right + gap, top: r.top },
+      { left: r.left - tw - gap, top: r.top },
+      { left: r.right + gap, top: r.bottom + captionReserve },
+      { left: r.left - tw - gap, top: r.bottom + captionReserve },
+      { left: clamp(r.left + (r.width - tw) / 2, 12, window.innerWidth - tw - 12), top: r.bottom + captionReserve + 8 },
+      { left: clamp(r.left + (r.width - tw) / 2, 12, window.innerWidth - tw - 12), top: r.top - th - gap }
+    ];
+    var pick = null;
+    for (var i = 0; i < candidates.length; i++) {
+      var c = candidates[i];
+      var left = clamp(c.left, 12, window.innerWidth - tw - 12);
+      var top = clamp(c.top, 12, window.innerHeight - th - 100);
+      var box = { left: left, top: top, right: left + tw, bottom: top + th };
+      // 타깃 바로 아래(자막 자리)와 겹치면 제외
+      var captionZone = {
+        left: r.left - 8,
+        top: r.bottom + 8,
+        right: r.right + 8,
+        bottom: r.bottom + 8 + captionReserve
+      };
+      if (rectsOverlap(box, captionZone, 4)) continue;
+      if (rectsOverlap(box, { left: r.left, top: r.top, right: r.right, bottom: r.bottom }, 10)) continue;
+      pick = box;
+      break;
+    }
+    if (!pick) {
+      var leftFallback = r.right + gap;
+      if (leftFallback + tw > window.innerWidth - 12) leftFallback = r.left - tw - gap;
+      leftFallback = clamp(leftFallback, 12, window.innerWidth - tw - 12);
+      var topFallback = clamp(r.bottom + captionReserve + 8, 12, window.innerHeight - th - 100);
+      pick = { left: leftFallback, top: topFallback };
+    }
+    tip.style.left = pick.left + 'px';
     tip.style.right = '';
     tip.style.width = '';
     tip.style.bottom = '';
-    tip.style.top = top + 'px';
+    tip.style.top = pick.top + 'px';
     tip.style.transform = '';
     tip.style.visibility = '';
     tip.hidden = true;
@@ -1166,13 +1323,229 @@
     tip.hidden = true;
   };
 
+  Tutorial.prototype._openLabiDialog = function () {
+    var dlg = document.querySelector('.ed-labi-modal.is-open, [data-tut="labi-dialog"].is-open');
+    if (dlg) return;
+    var btn = document.querySelector('[data-tut="labi-fab"]');
+    if (btn) btn.click();
+  };
+
+  Tutorial.prototype._closeLabiDialog = function () {
+    var close = document.querySelector('.ed-labi-modal.is-open .ed-modal__close, [data-tut="labi-dialog"].is-open .ed-modal__close');
+    if (close) close.click();
+  };
+
+  Tutorial.prototype._hideLabiScene = function () {
+    if (!this.els.labiScene) return;
+    this.els.labiScene.hidden = true;
+    this.els.labiScene.classList.remove('is-typing', 'is-generate', 'is-result');
+    if (this.els.labiSceneBody) this.els.labiSceneBody.innerHTML = '';
+  };
+
+  Tutorial.prototype._placeLabiScene = function () {
+    var scene = this.els.labiScene;
+    if (!scene) return;
+    scene.style.transform = '';
+    var anchor = document.querySelector('[data-tut="labi-dialog"] .ed-modal__card--labi, .ed-labi-modal.is-open .ed-modal__card--labi');
+    if (anchor) {
+      var r = anchor.getBoundingClientRect();
+      scene.style.left = Math.max(12, r.left) + 'px';
+      scene.style.top = Math.max(12, r.top) + 'px';
+      scene.style.width = Math.min(r.width, window.innerWidth - 24) + 'px';
+      scene.style.maxHeight = Math.min(r.height, window.innerHeight - 24) + 'px';
+    } else {
+      scene.style.left = '50%';
+      scene.style.top = '18%';
+      scene.style.width = 'min(520px, calc(100vw - 24px))';
+      scene.style.maxHeight = '70vh';
+      scene.style.transform = 'translateX(-50%)';
+    }
+    scene.hidden = false;
+  };
+
+  Tutorial.prototype._runLabiDemo = function (mode) {
+    var self = this;
+    this._openLabiDialog();
+    return this._wait((360 * PACE) / this.speed).then(function () {
+      self._placeLabiScene();
+      var scene = self.els.labiScene;
+      var body = self.els.labiSceneBody;
+      var title = self.els.labiSceneTitle;
+      var sub = self.els.labiSceneSub;
+      if (!scene || !body) return null;
+      scene.classList.remove('is-typing', 'is-generate', 'is-result');
+      if (mode === 'type') {
+        scene.classList.add('is-typing');
+        if (title) title.textContent = '프롬프트 작성 예시';
+        if (sub) sub.textContent = '라비에게 원하는 라벨을 말하듯 적어요';
+        body.innerHTML =
+          '<div class="lu-tut__labi-bubble is-user"><span data-tut-labi-type></span><i class="lu-tut__labi-caret"></i></div>' +
+          '<p class="lu-tut__labi-hint">제품·분위기·브랜드명을 함께 적으면 더 잘 맞춰 줘요.</p>';
+        return self._typeLabiPrompt(body.querySelector('[data-tut-labi-type]'), self._labiDemoPrompt);
+      }
+      if (mode === 'generate') {
+        scene.classList.add('is-generate');
+        if (title) title.textContent = '라비가 만드는 중';
+        if (sub) sub.textContent = '레이아웃 · 문구 · 장식을 준비해요';
+        body.innerHTML =
+          '<div class="lu-tut__labi-bubble is-user">' + self._labiDemoPrompt + '</div>' +
+          '<div class="lu-tut__labi-bubble is-ai">' +
+            '<div class="lu-tut__labi-gen">' +
+              '<img src="/assets/labi-icon.png" alt="" width="42" height="42" />' +
+              '<div><strong>라벨 초안 생성 중…</strong><em></em></div>' +
+            '</div>' +
+            '<ul class="lu-tut__labi-steps">' +
+              '<li class="is-on">요청 이해 · 스타일 잡기</li>' +
+              '<li class="is-on">편집 가능한 텍스트 분리</li>' +
+              '<li>배경·클립아트 준비</li>' +
+            '</ul>' +
+          '</div>';
+        return self._wait((900 * PACE) / self.speed).then(function () {
+          var last = body.querySelector('.lu-tut__labi-steps li:last-child');
+          if (last) last.classList.add('is-on');
+          return null;
+        });
+      }
+      scene.classList.add('is-result');
+      if (title) title.textContent = '생성 결과 예시';
+      if (sub) sub.textContent = '편집기에 넣어 바로 수정할 수 있어요';
+      body.innerHTML =
+        '<div class="lu-tut__labi-bubble is-user">' + self._labiDemoPrompt + '</div>' +
+        '<div class="lu-tut__labi-bubble is-ai">' +
+          '<p>원두 라벨 초안을 준비했어요. 브랜드명·슬로건은 텍스트로 넣어 두었으니 편집기에서 바꿀 수 있어요.</p>' +
+          '<div class="lu-tut__labi-preview">' +
+            '<div class="lu-tut__labi-preview-art" aria-hidden="true"></div>' +
+            '<div class="lu-tut__labi-preview-copy">' +
+              '<strong>Roasty</strong>' +
+              '<span>Warm Roast · 200g</span>' +
+              '<small>편집 가능 텍스트 · 클립아트</small>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      return null;
+    }).then(function () {
+      return self._wait(200 * PACE);
+    });
+  };
+
+  Tutorial.prototype._typeLabiPrompt = function (el, text) {
+    var self = this;
+    if (!el) return Promise.resolve();
+    el.textContent = '';
+    var i = 0;
+    var token = this._token;
+    return new Promise(function (resolve) {
+      var tick = function () {
+        if (token !== self._token || self.paused || !self.playing) {
+          resolve();
+          return;
+        }
+        i += 1;
+        el.textContent = text.slice(0, i);
+        if (i >= text.length) {
+          resolve();
+          return;
+        }
+        setTimeout(tick, Math.max(18, (28 * PACE) / self.speed));
+      };
+      tick();
+    });
+  };
+
   Tutorial.prototype._revealTip = function () {
     var tip = this.els.tip;
     tip.hidden = false;
     tip.classList.remove('is-shown');
     void tip.offsetWidth;
     tip.classList.add('is-shown');
-    this.els.caption.hidden = !this.captionOn;
+    this._showCaption();
+  };
+
+  Tutorial.prototype._showCaption = function () {
+    var cap = this.els.caption;
+    if (!cap) return;
+    if (!this.captionOn || !this.playing) {
+      cap.hidden = true;
+      return;
+    }
+    cap.hidden = false;
+    this._placeCaptionNearCursor();
+  };
+
+  Tutorial.prototype._placeCaptionNearCursor = function () {
+    var cap = this.els.caption;
+    if (!cap || cap.hidden) return;
+    var tip = this.els.tip;
+    var tipR = null;
+    if (tip && !tip.hidden) {
+      tipR = tip.getBoundingClientRect();
+      if (!(tipR.width > 0 && tipR.height > 0)) tipR = null;
+    }
+    var ctrl = this.els.ctrl;
+    var ctrlR = (ctrl && !ctrl.hidden) ? ctrl.getBoundingClientRect() : null;
+
+    var x = this._cursorX;
+    var y = this._cursorY;
+    if (x == null || y == null) {
+      x = window.innerWidth / 2;
+      y = 72;
+    }
+
+    cap.style.maxWidth = 'min(360px, calc(100vw - 24px))';
+    cap.style.bottom = 'auto';
+    cap.style.right = 'auto';
+    cap.style.transform = 'none';
+    // 측정용으로 잠깐 보이게 둔 상태(이미 hidden=false)
+    var cw = Math.min(Math.max(cap.offsetWidth || 240, 120), window.innerWidth - 24);
+    var ch = Math.max(cap.offsetHeight || 40, 32);
+
+    var candidates = [
+      { left: x - cw / 2, top: y + 36 },
+      { left: x - cw / 2, top: y - ch - 28 },
+      { left: x + 24, top: y + 20 },
+      { left: x - cw - 24, top: y + 20 },
+      { left: x + 24, top: y - ch - 16 },
+      { left: x - cw - 24, top: y - ch - 16 }
+    ];
+    if (tipR) {
+      candidates.push(
+        { left: tipR.left, top: tipR.bottom + 12 },
+        { left: tipR.right - cw, top: tipR.bottom + 12 },
+        { left: tipR.left, top: tipR.top - ch - 12 },
+        { left: tipR.right + 12, top: tipR.top },
+        { left: tipR.left - cw - 12, top: tipR.top }
+      );
+    }
+
+    var best = null;
+    for (var i = 0; i < candidates.length; i++) {
+      var left = clamp(candidates[i].left, 12, window.innerWidth - cw - 12);
+      var top = clamp(candidates[i].top, 12, window.innerHeight - ch - 12);
+      var box = { left: left, top: top, right: left + cw, bottom: top + ch };
+      if (tipR && rectsOverlap(box, tipR, 12)) continue;
+      if (ctrlR && rectsOverlap(box, ctrlR, 8)) continue;
+      best = { left: left, top: top };
+      break;
+    }
+    if (!best) {
+      // 최후: 팁 아래 또는 화면 하단(컨트롤러 위)
+      var leftFb = clamp(x - cw / 2, 12, window.innerWidth - cw - 12);
+      var topFb = tipR ? tipR.bottom + 14 : window.innerHeight - ch - 110;
+      if (tipR && topFb + ch > window.innerHeight - 20) {
+        topFb = Math.max(12, tipR.top - ch - 14);
+      }
+      if (ctrlR && rectsOverlap(
+        { left: leftFb, top: topFb, right: leftFb + cw, bottom: topFb + ch },
+        ctrlR,
+        8
+      )) {
+        topFb = Math.max(12, ctrlR.top - ch - 12);
+      }
+      best = { left: leftFb, top: clamp(topFb, 12, window.innerHeight - ch - 12) };
+    }
+
+    cap.style.left = best.left + 'px';
+    cap.style.top = best.top + 'px';
   };
 
   Tutorial.prototype._moveCursor = function (el, click) {
@@ -1182,9 +1555,17 @@
     var r = el.getBoundingClientRect();
     var tx = r.left + r.width * 0.55;
     var ty = r.top + r.height * 0.55;
+    this._cursorX = tx;
+    this._cursorY = ty;
     cursor.style.transition = 'transform ' + ((0.55 * PACE) / this.speed) + 's cubic-bezier(0.22,1,0.36,1)';
     cursor.style.transform = 'translate(' + tx + 'px,' + ty + 'px)';
+    if (this.captionOn && !this.els.caption.hidden) {
+      this._placeCaptionNearCursor();
+    }
     return this._wait((600 * PACE) / this.speed).then(function () {
+      self._cursorX = tx;
+      self._cursorY = ty;
+      if (self.captionOn) self._placeCaptionNearCursor();
       if (!click) return;
       cursor.classList.add('is-click');
       return self._wait((280 * PACE) / self.speed).then(function () {

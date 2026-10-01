@@ -865,7 +865,7 @@ body.lu-postcode-open{overflow:hidden}
 .shop-pay-fail__msg{margin:0 0 8px;font-size:15px;font-weight:700}
 .shop-pay-fail__code,.shop-pay-fail__order{margin:0 0 6px;color:#7a716b;font-size:13px}
 .shop-pay-fail__actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
-.lu-toss-modal{position:fixed;inset:0;z-index:12000;display:flex;align-items:center;justify-content:center;padding:16px}
+.lu-toss-modal{position:fixed;inset:0;z-index:200000;display:flex;align-items:center;justify-content:center;padding:16px}
 .lu-toss-modal[hidden]{display:none!important}
 .lu-toss-modal__backdrop{position:absolute;inset:0;background:rgba(28,24,22,.45)}
 .lu-toss-modal__panel{position:relative;width:min(520px,100%);max-height:min(92vh,900px);overflow:auto;background:#fff;border-radius:20px;box-shadow:0 24px 60px rgba(0,0,0,.2);padding:16px 16px 14px}

@@ -334,9 +334,8 @@
                   <div class="ed-shop-summary__total"><dt>결제 금액</dt><dd>@_cart.TotalLabel</dd></div>
                 </dl>
                 <button type="submit" class="ed-btn ed-btn--primary ed-shop-block" disabled="@_busy">
-                  @(_busy ? "주문 처리 중…" : "주문 접수")
+                  @(_busy ? "주문 처리 중…" : (_tossEnabled ? "주문하고 결제하기" : "주문 접수"))
                 </button>
-                <p class="ed-shop-note">주문 접수 후 담당자가 결제를 확인합니다.</p>
               </aside>
             </div>
           </form>
@@ -344,10 +343,10 @@
         else if (_view == ShopView.Done && _order is not null)
         {
           <div class="ed-shop-done">
-            <strong>주문이 접수되었습니다</strong>
+            <strong>@(_tossEnabled ? "주문이 접수되었습니다. 결제를 진행해 주세요." : "주문이 접수되었습니다")</strong>
             <p>주문번호 <b>@_order.OrderNo</b></p>
             <p>결제 예정 금액 <em>@_order.TotalLabel</em></p>
-            <p>마이페이지에서 주문 상태를 확인할 수 있어요.</p>
+            <p>@(_tossEnabled ? "결제가 완료되면 마이페이지에서 주문 상태를 확인할 수 있어요." : "마이페이지에서 주문 상태를 확인할 수 있어요.")</p>
             <div class="ed-shop-done__actions">
               <button type="button" class="ed-btn" @onclick="BackToCatalog">쇼핑 계속</button>
               <a class="ed-btn ed-btn--primary" href="/account">내 주문 보기</a>
@@ -400,6 +399,7 @@
     private bool _opened;
     private bool _loading;
     private bool _busy;
+    private bool _tossEnabled;
     private string _query = "";
     private string _category = "";
     private string _parentCategory = "";
@@ -439,12 +439,29 @@
         Session.ClearPendingShopBuyNow();
         if (buyNow)
         {
+            await LoadPayMethodsAsync();
             await StartBuyNowAsync(knownId, paperNo);
             return;
         }
         _view = ShopView.Catalog;
+        await LoadPayMethodsAsync();
         await LoadCatalogAsync(1);
         await LoadCartAsync();
+    }
+
+    private async Task LoadPayMethodsAsync()
+    {
+        try
+        {
+            var raw = await Js.InvokeAsync<string>("labelUpEditor.apiGetJson", "/api/shop/pay/methods");
+            using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(raw) ? "{}" : raw);
+            _tossEnabled = doc.RootElement.TryGetProperty("enabled", out var en)
+                && en.ValueKind == JsonValueKind.True;
+        }
+        catch
+        {
+            _tossEnabled = false;
+        }
     }
 
     private async Task StartBuyNowAsync(int? knownId, string? paperNo)
@@ -690,6 +707,7 @@
             return;
         }
         await PrefillUserAsync();
+        await LoadPayMethodsAsync();
         _flash = "";
         _view = ShopView.Checkout;
     }

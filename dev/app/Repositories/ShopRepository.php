@@ -956,7 +956,9 @@ final class ShopRepository extends BaseModel
     {
         return $this->fetchOne(
             'SELECT p.*, c.name AS category_name, c.slug AS category_slug,
-                    s.name AS spec_name, s.width_mm, s.height_mm, s.material, s.shape, s.labels_per_sheet
+                    s.name AS spec_name, s.width_mm, s.height_mm, s.material, s.shape, s.labels_per_sheet,
+                    s.paper_size, s.top_margin_mm, s.left_margin_mm, s.columns_count, s.rows_count,
+                    s.h_gap_mm, s.v_gap_mm, s.corner_radius_x_mm, s.corner_radius_y_mm, s.label_color
              FROM shop_products p
              INNER JOIN shop_categories c ON c.id = p.category_id AND c.is_active = 1
              LEFT JOIN label_specs s ON s.id = p.spec_id
@@ -1066,7 +1068,9 @@ final class ShopRepository extends BaseModel
     private function findActiveProductByExactCode(string $code): ?array
     {
         $select = 'SELECT p.*, c.name AS category_name, c.slug AS category_slug,
-                          s.name AS spec_name, s.width_mm, s.height_mm, s.material, s.shape, s.labels_per_sheet
+                          s.name AS spec_name, s.width_mm, s.height_mm, s.material, s.shape, s.labels_per_sheet,
+                          s.paper_size, s.top_margin_mm, s.left_margin_mm, s.columns_count, s.rows_count,
+                          s.h_gap_mm, s.v_gap_mm, s.corner_radius_x_mm, s.corner_radius_y_mm, s.label_color
                    FROM shop_products p
                    INNER JOIN shop_categories c ON c.id = p.category_id AND c.is_active = 1
                    LEFT JOIN label_specs s ON s.id = p.spec_id
@@ -1110,7 +1114,9 @@ final class ShopRepository extends BaseModel
 
         return $this->fetchOne(
             "SELECT p.*, c.name AS category_name, c.slug AS category_slug,
-                    s.name AS spec_name, s.width_mm, s.height_mm, s.material, s.shape, s.labels_per_sheet
+                    s.name AS spec_name, s.width_mm, s.height_mm, s.material, s.shape, s.labels_per_sheet,
+                    s.paper_size, s.top_margin_mm, s.left_margin_mm, s.columns_count, s.rows_count,
+                    s.h_gap_mm, s.v_gap_mm, s.corner_radius_x_mm, s.corner_radius_y_mm, s.label_color
              FROM shop_products p
              INNER JOIN shop_categories c ON c.id = p.category_id AND c.is_active = 1
              INNER JOIN label_specs s ON s.id = p.spec_id

@@ -25,7 +25,7 @@ $loginFor = static function (string $dest): string {
     <strong class="brand-name">labelup</strong>
     <small>라벨업 · AI 라벨 디자인</small>
   </div>
-  <a class="create" href="<?= url('editor/') ?>">✎ &nbsp;새 디자인 만들기</a>
+  <a class="create" href="<?= url('editor/?new=1') ?>">✎ &nbsp;새 디자인 만들기</a>
 
   <div class="group">
     <nav class="menu">

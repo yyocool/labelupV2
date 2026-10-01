@@ -11,6 +11,7 @@ use App\Services\EditorWorkspaceService;
 use App\Services\EventPopupService;
 use App\Services\HomeHeroService;
 use App\Services\LabelTemplateService;
+use App\Services\SiteModeService;
 
 final class HomeController extends BaseController
 {
@@ -40,6 +41,7 @@ final class HomeController extends BaseController
         } catch (\Throwable) {
             $popularCliparts = [];
         }
+        $siteRuntime = (new SiteModeService())->publicConfig();
         $this->render('home/index', [
             'pageTitle' => 'labelup — 라벨업',
             'year' => (int) date('Y'),
@@ -51,6 +53,7 @@ final class HomeController extends BaseController
             'examplePrompts' => $examplePrompts,
             'popularTemplates' => $popularTemplates,
             'popularCliparts' => $popularCliparts,
+            'siteRuntime' => $siteRuntime,
         ]);
     }
 }

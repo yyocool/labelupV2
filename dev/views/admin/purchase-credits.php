@@ -14,7 +14,7 @@ $qrCouponsUrl = url('admin/qr-coupons');
 <div class="admin-head">
   <div>
     <h1>구매크레딧</h1>
-    <p>QR쿠폰관리와 동일한 그룹 기준으로 지급 크레딧을 설정하고, 회원에게 지급된 이력을 확인합니다.</p>
+    <p>QR쿠폰관리와 동일한 그룹 기준으로 지급 크레딧을 설정하고, 회원에게 지급된 이력을 확인합니다. 환산 기준: <strong><?= e(\App\Services\CreditService::ratioLabel()) ?></strong></p>
   </div>
   <div class="admin-head-actions">
     <a class="admin-btn" href="<?= e($qrCouponsUrl) ?>">QR쿠폰관리 바로가기</a>

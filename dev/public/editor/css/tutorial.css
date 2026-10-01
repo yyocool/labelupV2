@@ -162,18 +162,191 @@
 .lu-tut__caption {
   position: fixed;
   left: 50%;
+  top: auto;
   bottom: 96px;
   transform: translateX(-50%);
-  z-index: 3;
-  max-width: min(640px, calc(100vw - 24px));
-  padding: 10px 16px;
-  border-radius: 10px;
-  background: rgba(46, 42, 39, 0.88);
+  z-index: 6;
+  max-width: min(360px, calc(100vw - 24px));
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(46, 42, 39, 0.92);
   color: #fff;
   font-size: 13px;
   line-height: 1.45;
-  text-align: center;
+  text-align: left;
   pointer-events: none;
+  box-shadow: 0 10px 28px rgba(46, 42, 39, 0.28);
+  transition: left .35s cubic-bezier(0.22,1,0.36,1), top .35s cubic-bezier(0.22,1,0.36,1);
+}
+
+.lu-tut__labi-scene {
+  position: fixed;
+  z-index: 7;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: 18px;
+}
+.lu-tut__labi-scene-card {
+  height: 100%;
+  max-height: inherit;
+  overflow: auto;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255, 251, 248, 0.97);
+  border: 1px solid #E8D4DB;
+  box-shadow: 0 18px 48px rgba(46, 42, 39, 0.22);
+}
+.lu-tut__labi-scene-head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.lu-tut__labi-scene-head img {
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(123, 40, 64, 0.16);
+}
+.lu-tut__labi-scene-head strong {
+  display: block;
+  color: #7B2840;
+  font-size: 14px;
+}
+.lu-tut__labi-scene-head p {
+  margin: 2px 0 0;
+  color: #8a8490;
+  font-size: 12px;
+  font-weight: 600;
+}
+.lu-tut__labi-scene-body {
+  display: grid;
+  gap: 10px;
+}
+.lu-tut__labi-bubble {
+  padding: 10px 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+.lu-tut__labi-bubble.is-user {
+  justify-self: end;
+  max-width: 92%;
+  background: #7B2840;
+  color: #fff;
+  border-bottom-right-radius: 6px;
+  min-height: 1.4em;
+}
+.lu-tut__labi-bubble.is-ai {
+  justify-self: start;
+  max-width: 96%;
+  background: #fff;
+  border: 1px solid #efe4e8;
+  color: #2e2a27;
+  border-bottom-left-radius: 6px;
+}
+.lu-tut__labi-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  background: rgba(255,255,255,.9);
+  vertical-align: -2px;
+  animation: luTutCaret 0.8s steps(1) infinite;
+}
+@keyframes luTutCaret {
+  50% { opacity: 0; }
+}
+.lu-tut__labi-hint {
+  margin: 0;
+  color: #9a8b90;
+  font-size: 12px;
+  font-weight: 600;
+}
+.lu-tut__labi-gen {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.lu-tut__labi-gen img {
+  border-radius: 50%;
+  animation: luTutLabiPulse 1.2s ease-in-out infinite;
+}
+.lu-tut__labi-gen strong {
+  display: block;
+  font-size: 13px;
+}
+.lu-tut__labi-gen em {
+  display: block;
+  margin-top: 4px;
+  height: 6px;
+  width: 140px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #eadfe4, #7B2840, #eadfe4);
+  background-size: 200% 100%;
+  animation: luTutBar 1.1s linear infinite;
+  font-style: normal;
+}
+@keyframes luTutLabiPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+@keyframes luTutBar {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+.lu-tut__labi-steps {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  color: #8a8490;
+  font-size: 12px;
+  font-weight: 700;
+}
+.lu-tut__labi-steps li.is-on {
+  color: #7B2840;
+}
+.lu-tut__labi-preview {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 10px;
+  align-items: center;
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  background: linear-gradient(160deg, #fff7f2, #f3ebe4);
+  border: 1px solid #ead9cf;
+}
+.lu-tut__labi-preview-art {
+  width: 72px;
+  height: 72px;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 35% 35%, #c48a5a 0 18%, transparent 19%),
+    radial-gradient(circle at 65% 55%, #8b5a3c 0 22%, transparent 23%),
+    linear-gradient(145deg, #f0d7c2, #d9b496);
+  box-shadow: inset 0 0 0 1px rgba(123, 40, 64, 0.08);
+}
+.lu-tut__labi-preview-copy {
+  display: grid;
+  gap: 2px;
+}
+.lu-tut__labi-preview-copy strong {
+  font-size: 16px;
+  letter-spacing: -0.02em;
+  color: #5E1F30;
+}
+.lu-tut__labi-preview-copy span {
+  font-size: 12px;
+  color: #6B6560;
+  font-weight: 700;
+}
+.lu-tut__labi-preview-copy small {
+  font-size: 11px;
+  color: #9a8b90;
+  font-weight: 700;
 }
 
 .lu-tut__toast {
