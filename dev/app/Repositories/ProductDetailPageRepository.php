@@ -123,10 +123,16 @@ final class ProductDetailPageRepository extends BaseModel
         $offset = ($page - 1) * $perPage;
 
         $items = $this->fetchAll(
-            "SELECT p.id, p.name, p.sku, p.status AS product_status, p.category_id,
+            "SELECT p.id, p.name, p.sku, p.spec_sheet_image, p.header_image, p.shoot_image, p.status AS product_status, p.category_id,
                     c.name AS category_name,
                     d.id AS detail_page_id, d.status AS detail_status, d.generated_at,
-                    CASE WHEN d.id IS NULL THEN 0 ELSE 1 END AS has_detail_page
+                    CASE WHEN d.id IS NULL THEN 0 ELSE 1 END AS has_detail_page,
+                    (SELECT i.image_path
+                     FROM shop_product_images i
+                     WHERE i.product_id = p.id
+                       AND i.image_path LIKE '/assets/products/mockups/%'
+                     ORDER BY i.sort_order ASC, i.id ASC
+                     LIMIT 1) AS representative_image
              FROM shop_products p
              LEFT JOIN shop_categories c ON c.id = p.category_id
              LEFT JOIN shop_product_detail_pages d ON d.product_id = p.id

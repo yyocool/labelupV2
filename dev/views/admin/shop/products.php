@@ -42,9 +42,9 @@ $statuses = ['active', 'soldout', 'hidden', 'draft'];
 <div id="adminAlert" class="admin-alert"></div>
 <div class="admin-table-wrap">
   <table class="admin-table">
-    <thead><tr><th>ID</th><th>대표 이미지</th><th>상품명</th><th>SKU</th><th>카테고리</th><th>규격</th><th>가격</th><th>재고</th><th>상태</th><th>관리</th></tr></thead>
+    <thead><tr><th>ID</th><th>대표 이미지</th><th>상품명</th><th>SKU</th><th>카테고리</th><th>규격</th><th>가격</th><th>옵션</th><th>재고</th><th>상태</th><th>관리</th></tr></thead>
     <tbody>
-    <?php if (empty($items)): ?><tr><td colspan="10" class="empty"><?= $hasFilter ? "\u{AC80}\u{C0C9} \u{ACB0}\u{ACFC}\u{AC00} \u{C5C6}\u{C2B5}\u{B2C8}\u{B2E4}." : "\u{B4F1}\u{B85D}\u{B41C} \u{C0C1}\u{D488}\u{C774} \u{C5C6}\u{C2B5}\u{B2C8}\u{B2E4}." ?></td></tr><?php else: ?>
+    <?php if (empty($items)): ?><tr><td colspan="11" class="empty"><?= $hasFilter ? "\u{AC80}\u{C0C9} \u{ACB0}\u{ACFC}\u{AC00} \u{C5C6}\u{C2B5}\u{B2C8}\u{B2E4}." : "\u{B4F1}\u{B85D}\u{B41C} \u{C0C1}\u{D488}\u{C774} \u{C5C6}\u{C2B5}\u{B2C8}\u{B2E4}." ?></td></tr><?php else: ?>
     <?php foreach ($items as $row): ?>
     <tr>
       <td><?= (int) $row['id'] ?></td>
@@ -72,11 +72,41 @@ $statuses = ['active', 'soldout', 'hidden', 'draft'];
       ?></td>
       <td><?= e($row['spec_name'] ?? '-') ?></td>
       <td><?= number_format((int) $row['price']) ?>원<?php if (!empty($row['sale_price'])): ?> <small class="admin-muted">→ <?= number_format((int) $row['sale_price']) ?>원</small><?php endif; ?></td>
+      <td>
+        <?php
+          $rowOptions = $row['options'] ?? [];
+          $activeOptions = array_filter($rowOptions, static fn (array $o): bool => !empty($o['is_active']));
+        ?>
+        <?php if ($rowOptions === []): ?>
+        <span class="admin-muted">-</span>
+        <?php else: ?>
+        <?= count($activeOptions) ?>개<?php if (count($rowOptions) > count($activeOptions)): ?><small class="admin-muted"> / 전체 <?= count($rowOptions) ?></small><?php endif; ?>
+        <?php endif; ?>
+      </td>
       <td><?= number_format((int) $row['stock_qty']) ?></td>
       <td><?= e(ShopAdminService::productStatusLabel((string) ($row['status'] ?? ''))) ?></td>
       <td>
-        <button type="button" class="admin-btn admin-btn--sm js-shop-edit" data-entity="product" data-row='<?= e(json_encode($row, JSON_UNESCAPED_UNICODE)) ?>'>수정</button>
-        <button type="button" class="admin-btn admin-btn--sm js-shop-delete" data-entity="product" data-id="<?= (int) $row['id'] ?>">삭제</button>
+        <?php
+          $productId = (int) $row['id'];
+          $productStatus = (string) ($row['status'] ?? '');
+          // 사용자 페이지는 판매중·품절 상품이면서 카테고리까지 활성일 때만 열린다.
+          // 조건이 하나라도 어긋나면 404 이므로 관리자 미리보기로 보낸다.
+          $statusOpen = in_array($productStatus, ['active', 'soldout'], true);
+          $categoryOpen = !empty($row['category_is_active']);
+          $blockReason = !$statusOpen
+            ? ShopAdminService::productStatusLabel($productStatus) . ' 상태라'
+            : (!$categoryOpen ? '카테고리가 비활성이라' : '');
+        ?>
+        <div class="admin-table-actions">
+          <button type="button" class="admin-btn admin-btn--sm js-shop-edit" data-entity="product" data-row='<?= e(json_encode($row, JSON_UNESCAPED_UNICODE)) ?>'>수정</button>
+          <?php if ($blockReason === ''): ?>
+          <a class="admin-btn admin-btn--sm" href="<?= url('shop/products/' . $productId) ?>" target="_blank" rel="noopener">상품페이지보기</a>
+          <?php else: ?>
+          <a class="admin-btn admin-btn--sm" href="<?= url('admin/content/product-detail-pages/preview/' . $productId) ?>" target="_blank" rel="noopener"
+             title="<?= e($blockReason) ?> 사용자 페이지에서는 열리지 않습니다. 관리자 미리보기로 엽니다.">미리보기</a>
+          <?php endif; ?>
+          <button type="button" class="admin-btn admin-btn--sm js-shop-delete" data-entity="product" data-id="<?= $productId ?>">삭제</button>
+        </div>
       </td>
     </tr>
     <?php endforeach; ?>

@@ -130,6 +130,47 @@ $usagePct = $usageLimit > 0 ? min(100, (int) round(($usageUsed / max(1, $usageLi
   </section>
 </div>
 
+<section class="account-panel card" id="wishlist">
+  <div class="account-panel-head">
+    <h2>찜한 상품<?php if (!empty($dash['wishlistCount'])): ?> <small class="account-count"><?= (int) $dash['wishlistCount'] ?></small><?php endif; ?></h2>
+    <a href="<?= url('shop/products') ?>">상품 더 보기 →</a>
+  </div>
+  <ul class="account-wish-list" id="accountWishList">
+    <?php foreach (($dash['wishlist'] ?? []) as $item): ?>
+    <li class="account-wish" data-wish-product-id="<?= (int) $item['product_id'] ?>">
+      <?php if ($item['openable']): ?>
+      <a class="account-wish__thumb" href="<?= e($item['url']) ?>">
+        <img src="<?= e($item['thumb_url']) ?>" alt="<?= e($item['name']) ?>" loading="lazy">
+      </a>
+      <?php else: ?>
+      <span class="account-wish__thumb">
+        <img src="<?= e($item['thumb_url']) ?>" alt="<?= e($item['name']) ?>" loading="lazy">
+      </span>
+      <?php endif; ?>
+      <div class="account-wish__info">
+        <?php if ($item['openable']): ?>
+        <a class="account-wish__name" href="<?= e($item['url']) ?>"><?= e($item['name']) ?></a>
+        <?php else: ?>
+        <strong class="account-wish__name"><?= e($item['name']) ?></strong>
+        <?php endif; ?>
+        <span class="account-wish__meta">
+          <?php if ($item['category_name'] !== ''): ?><?= e($item['category_name']) ?> · <?php endif; ?>
+          <b><?= e($item['price_label']) ?></b>
+          <?php if ($item['list_price_label'] !== ''): ?><del><?= e($item['list_price_label']) ?></del><?php endif; ?>
+        </span>
+        <?php if ($item['soldout']): ?>
+        <span class="account-wish__tag">품절</span>
+        <?php elseif (!$item['openable']): ?>
+        <span class="account-wish__tag">판매 중지</span>
+        <?php endif; ?>
+      </div>
+      <button type="button" class="account-btn account-btn--outline js-wish-remove" data-product-id="<?= (int) $item['product_id'] ?>">찜 해제</button>
+    </li>
+    <?php endforeach; ?>
+  </ul>
+  <p class="account-empty" id="accountWishEmpty"<?= empty($dash['wishlist']) ? '' : ' hidden' ?>>찜한 상품이 없습니다. 상품 상세에서 ♥ 찜하기를 눌러 모아보세요.</p>
+</section>
+
 <section class="account-panel card" id="cliparts">
   <div class="account-panel-head">
     <h2>내 클립아트</h2>

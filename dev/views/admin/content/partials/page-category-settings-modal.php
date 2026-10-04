@@ -17,6 +17,15 @@
         <input type="hidden" name="category_id" id="pageCategoryId" value="">
         <p class="admin-page-category-current">선택: <strong id="pageCategoryName">카테고리를 선택하세요</strong></p>
         <p class="admin-muted" id="pageCategoryStackHint" hidden>2차 카테고리입니다. 1차 카테고리에 저장한 헤더/푸터와 이 설정이 상품 상세·미리보기에 함께 표시됩니다.</p>
+        <section class="admin-hashtag-section">
+          <h4 class="admin-product-section-title">해시태그</h4>
+          <p class="admin-muted">상품 상세 제목 아래에 둥근 태그로 표시됩니다. 최대 8개, 입력 후 Enter로 추가합니다.</p>
+          <div id="pageCategoryHashtags" class="admin-hashtag-list" aria-live="polite"></div>
+          <div class="admin-hashtag-add">
+            <input type="text" id="pageCategoryHashtagInput" maxlength="20" placeholder="해시태그 입력" autocomplete="off" disabled>
+            <button type="button" class="admin-btn admin-btn--sm" id="pageCategoryHashtagAdd" disabled>추가</button>
+          </div>
+        </section>
         <section>
           <h4 class="admin-product-section-title">카테고리 헤더</h4>
           <div class="admin-product-form-grid">

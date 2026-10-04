@@ -172,6 +172,9 @@ final class SiteModeService
         if ($path === '/admin' || str_starts_with($path, '/admin/')) {
             return true;
         }
+        if ($path === '/partner' || str_starts_with($path, '/partner/')) {
+            return true;
+        }
         if (str_starts_with($path, '/api/admin')) {
             return true;
         }

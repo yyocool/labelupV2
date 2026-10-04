@@ -11,6 +11,9 @@ $grades = $grades ?? [];
     <h1>회원 관리</h1>
     <p>총 <?= number_format($total) ?>명 · 회원에게 크레딧을 지급하고 지급 사유·이력을 확인할 수 있습니다.</p>
   </div>
+  <div class="admin-head-actions">
+    <button type="button" class="admin-btn admin-btn--primary" id="userCreateOpen">+ 회원 추가</button>
+  </div>
 </div>
 
 <form class="admin-toolbar" method="get" action="<?= url('admin/users') ?>">
@@ -156,6 +159,77 @@ $grades = $grades ?? [];
     </table>
   </div>
 </section>
+
+<div class="admin-modal" id="userCreateModal" hidden>
+  <div class="admin-modal-backdrop" data-close="userCreateModal"></div>
+  <div class="admin-modal-panel admin-modal-panel--wide" role="dialog" aria-modal="true" aria-labelledby="userCreateTitle">
+    <div class="admin-modal-head">
+      <h2 id="userCreateTitle">회원 추가</h2>
+      <button type="button" class="admin-modal-close" data-close="userCreateModal" aria-label="닫기">×</button>
+    </div>
+    <form id="userCreateForm" class="admin-modal-body">
+      <div class="admin-form-grid">
+        <label class="admin-field">
+          <span>이메일 <em>필수</em></span>
+          <input class="admin-input" type="email" name="email" maxlength="190" required autocomplete="off" placeholder="member@example.com">
+          <small>로그인 아이디로 쓰입니다. 이미 가입된 이메일은 쓸 수 없습니다.</small>
+        </label>
+        <label class="admin-field">
+          <span>이름 <em>필수</em></span>
+          <input class="admin-input" type="text" name="name" maxlength="100" required autocomplete="off" placeholder="홍길동">
+        </label>
+        <div class="admin-field">
+          <span>비밀번호 <em>필수</em></span>
+          <div class="admin-input-row">
+            <input class="admin-input" type="text" name="password" id="userCreatePassword" maxlength="72" required autocomplete="new-password" placeholder="영문+숫자 8자 이상">
+            <button type="button" class="admin-btn admin-btn--sm" id="userCreatePasswordGen">자동 생성</button>
+          </div>
+          <small>회원에게 따로 알려주세요. 나중에 회원이 직접 변경할 수 있습니다.</small>
+        </div>
+        <label class="admin-field">
+          <span>연락처</span>
+          <input class="admin-input" type="tel" name="phone" maxlength="30" autocomplete="off" placeholder="010-0000-0000">
+        </label>
+        <label class="admin-field">
+          <span>회사명</span>
+          <input class="admin-input" type="text" name="company" maxlength="150" autocomplete="off" placeholder="(주)라벨업">
+        </label>
+        <label class="admin-field">
+          <span>회원등급</span>
+          <select class="admin-input" name="grade_id">
+            <?php foreach ($grades as $grade): ?>
+            <option value="<?= (int) $grade['id'] ?>"<?= !empty($grade['is_default']) ? ' selected' : '' ?>><?= e((string) $grade['name']) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </label>
+        <label class="admin-field">
+          <span>상태</span>
+          <select class="admin-input" name="status">
+            <option value="active" selected>활성</option>
+            <option value="inactive">비활성</option>
+          </select>
+        </label>
+        <label class="admin-field">
+          <span>가입 크레딧</span>
+          <input class="admin-input" type="number" name="credit_amount" min="0" max="10000000" step="1" value="0">
+          <small>0이면 지급하지 않습니다. <?= e(\App\Services\CreditService::ratioLabel()) ?></small>
+        </label>
+        <label class="admin-field admin-field--full">
+          <span>크레딧 지급 사유</span>
+          <input class="admin-input" type="text" name="credit_reason" maxlength="255" placeholder="예: 관리자 직접 등록 지급">
+        </label>
+        <label class="admin-field admin-field--full admin-field--inline-check">
+          <input type="checkbox" name="send_welcome" value="1">
+          <span>가입 환영 알림 보내기</span>
+        </label>
+      </div>
+    </form>
+    <div class="admin-modal-foot">
+      <button type="button" class="admin-btn" data-close="userCreateModal">취소</button>
+      <button type="submit" form="userCreateForm" class="admin-btn admin-btn--primary">회원 추가</button>
+    </div>
+  </div>
+</div>
 
 <div class="admin-modal" id="creditGrantModal" hidden>
   <div class="admin-modal-backdrop" data-close="creditGrantModal"></div>

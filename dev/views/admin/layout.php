@@ -31,6 +31,11 @@
       <?php require view_path('admin/partials/ai-menu.php'); ?>
       <?php require view_path('admin/partials/ops-menu.php'); ?>
       <?php require view_path('admin/partials/settings-menu.php'); ?>
+      <?php if (admin_can_menu('partners')): ?>
+      <a class="admin-lnb-item<?= ($activeMenu ?? '') === 'partners' ? ' is-active' : '' ?>" href="<?= url('admin/partners') ?>" title="협력사 관리">
+        <span class="ic">◇</span><span class="label">협력사 관리</span>
+      </a>
+      <?php endif; ?>
       <?php if (admin_can_menu('qr-coupons')): ?>
       <a class="admin-lnb-item<?= ($activeMenu ?? '') === 'qr-coupons' ? ' is-active' : '' ?>" href="<?= url('admin/qr-coupons') ?>" title="QR쿠폰관리">
         <span class="ic">▦</span><span class="label">QR쿠폰관리</span>
@@ -108,6 +113,7 @@
               'settings-intro' => '설정 › 인트로설정',
               'settings-seo' => '설정 › SEO 설정',
               'settings-tracking' => '설정 › 광고 스크립트',
+              'partners' => '협력사 관리',
               'qr-coupons' => 'QR쿠폰관리',
               default => '대시보드',
           };
@@ -250,6 +256,9 @@ window.LABELUP_ADMIN_CREDIT_OVERVIEW_URL = <?= json_encode(url('api/admin/credit
 <?php endif; ?>
 <?php if (($activeMenu ?? '') === 'settings-member-grades'): ?>
 <script src="<?= js('admin-grades.js') ?>"></script>
+<?php endif; ?>
+<?php if (($activeMenu ?? '') === 'partners'): ?>
+<script src="<?= js('admin-partners.js') ?>"></script>
 <?php endif; ?>
 </body>
 </html>

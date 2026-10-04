@@ -359,9 +359,11 @@ final class ShopAdminService
     {
         $list = $this->repo->adminProducts($filters, $page, $perPage);
         $images = $this->repo->allProductImagesGrouped();
+        $options = $this->repo->allProductOptionsGrouped();
         foreach ($list['items'] as &$row) {
             $pid = (int) ($row['id'] ?? 0);
             $row['images'] = $images[$pid] ?? [];
+            $row['options'] = $options[$pid] ?? [];
             if (empty($row['thumbnail']) && !empty($row['images'])) {
                 foreach ($row['images'] as $img) {
                     if (!empty($img['is_primary'])) {
@@ -478,7 +480,43 @@ final class ShopAdminService
             $this->repo->syncProductImages($id, [['image_path' => $thumbnail, 'sort_order' => 0, 'is_primary' => 1]], $thumbnail);
         }
 
+        if (array_key_exists('options', $data)) {
+            $this->repo->syncProductOptions($id, $this->normalizeOptionInput($data['options']));
+        }
+
         return $id;
+    }
+
+    /**
+     * 모달에서 올라온 옵션 행을 정리한다. 이름이 빈 줄은 버린다.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function normalizeOptionInput(mixed $raw): array
+    {
+        if (!is_array($raw)) {
+            return [];
+        }
+        $out = [];
+        foreach (array_values($raw) as $index => $option) {
+            if (!is_array($option)) {
+                continue;
+            }
+            $name = trim((string) ($option['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+            $out[] = [
+                'id' => (int) ($option['id'] ?? 0),
+                'name' => $name,
+                'price_delta' => (int) ($option['price_delta'] ?? 0),
+                'stock_qty' => max(0, (int) ($option['stock_qty'] ?? 0)),
+                'sku_suffix' => trim((string) ($option['sku_suffix'] ?? '')),
+                'is_active' => !empty($option['is_active']) ? 1 : 0,
+                'sort_order' => (int) ($option['sort_order'] ?? $index),
+            ];
+        }
+        return $out;
     }
 
     /** @return array<int, string> */
@@ -757,22 +795,27 @@ final class ShopAdminService
                 continue;
             }
             $custom = $indexed[$id] ?? null;
+            $slug = (string) ($cat['slug'] ?? '');
+            $name = (string) ($cat['name'] ?? '');
+            $storedTags = is_array($custom) ? ($custom['hashtags'] ?? null) : null;
+            $hashtags = ShopCategoryHashtag::resolve($storedTags, $slug, $name);
             $categories[] = [
                 'id' => $id,
-                'name' => (string) ($cat['name'] ?? ''),
-                'label' => (string) ($cat['label'] ?? $cat['name'] ?? ''),
-                'slug' => (string) ($cat['slug'] ?? ''),
+                'name' => $name,
+                'label' => (string) ($cat['label'] ?? $name),
+                'slug' => $slug,
                 'parent_id' => (int) ($cat['parent_id'] ?? 0),
                 'parent_name' => (string) ($cat['parent_name'] ?? ''),
                 'depth' => (int) ($cat['depth'] ?? 0),
                 'is_active' => (int) ($cat['is_active'] ?? 0) === 1,
-                'has_custom' => !empty($custom['has_custom']),
+                'has_custom' => $this->categorySettingsCustom($custom, $slug, $name),
                 'header_html' => (string) ($custom['header_html'] ?? ''),
                 'footer_html' => (string) ($custom['footer_html'] ?? ''),
                 'header_image' => (string) ($custom['header_image'] ?? ''),
                 'footer_image' => (string) ($custom['footer_image'] ?? ''),
                 'header_image_url' => ShopProductImageService::resolveUrl((string) ($custom['header_image'] ?? '')),
                 'footer_image_url' => ShopProductImageService::resolveUrl((string) ($custom['footer_image'] ?? '')),
+                'hashtags' => $hashtags,
             ];
         }
         return ['categories' => $categories];
@@ -799,16 +842,19 @@ final class ShopAdminService
             'footer_html' => '',
             'header_image' => '',
             'footer_image' => '',
+            'hashtags' => null,
         ];
-        $repo = new ShopProductPageCategorySettingsRepository();
         $parentName = (string) ($cat['parent_name'] ?? '');
         $name = (string) ($cat['name'] ?? '');
+        $slug = (string) ($cat['slug'] ?? '');
         $depth = (int) ($cat['depth'] ?? 0);
         $displayName = $parentName !== '' ? $parentName . ' › ' . $name : $name;
+        $hashtags = ShopCategoryHashtag::resolve($custom['hashtags'] ?? null, $slug, $name);
         return [
             'category_id' => $categoryId,
             'category_name' => $displayName,
             'category_own_name' => $name,
+            'slug' => $slug,
             'parent_id' => (int) ($cat['parent_id'] ?? 0),
             'parent_name' => $parentName,
             'depth' => $depth,
@@ -818,12 +864,8 @@ final class ShopAdminService
             'footer_image' => $custom['footer_image'],
             'header_image_url' => ShopProductImageService::resolveUrl($custom['header_image']),
             'footer_image_url' => ShopProductImageService::resolveUrl($custom['footer_image']),
-            'has_custom' => $repo->hasContent(
-                $custom['header_html'],
-                $custom['footer_html'],
-                $custom['header_image'],
-                $custom['footer_image']
-            ),
+            'hashtags' => $hashtags,
+            'has_custom' => $this->categorySettingsCustom($custom, $slug, $name),
         ];
     }
 
@@ -840,14 +882,43 @@ final class ShopAdminService
             'footer_html' => (string) ($data['footer_html'] ?? ''),
             'header_image' => $headerImage,
             'footer_image' => $footerImage,
+            'hashtags' => $data['hashtags'] ?? [],
         ]);
         return $this->productPageCategorySettings($categoryId);
     }
 
-    /** @return array<int, string> */
-    public function uploadProductPageImages(array $files): array
+    /**
+     * 헤더·푸터·이미지가 있거나, 해시태그를 기본값과 다르게 저장한 경우.
+     *
+     * @param array<string, mixed>|null $custom
+     */
+    private function categorySettingsCustom(?array $custom, string $slug, string $name): bool
     {
-        return ShopProductImageService::storePageSettingUploads($files);
+        if ($custom === null) {
+            return false;
+        }
+        $repo = new ShopProductPageCategorySettingsRepository();
+        $layout = $repo->hasContent(
+            (string) ($custom['header_html'] ?? ''),
+            (string) ($custom['footer_html'] ?? ''),
+            (string) ($custom['header_image'] ?? ''),
+            (string) ($custom['footer_image'] ?? '')
+        );
+        if ($layout) {
+            return true;
+        }
+        if (!array_key_exists('hashtags', $custom) || $custom['hashtags'] === null) {
+            return false;
+        }
+        $tags = ShopCategoryHashtag::normalize($custom['hashtags']);
+        return !ShopCategoryHashtag::same($tags, ShopCategoryHashtag::defaultsFor($slug, $name));
+    }
+
+    /** @return array<int, string> */
+    /** @return array<int, array{name: string, size: int, path: string, error: string}> */
+    public function uploadProductPageImages(array $files, int $fitWidth = 0): array
+    {
+        return ShopProductImageService::storePageSettingUploads($files, $fitWidth);
     }
 
     /** @return array<int, string> */

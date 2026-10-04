@@ -121,6 +121,8 @@ $exportUrl = url('admin/shop/orders/export?' . http_build_query(array_filter($qu
         <td>
           <?php if ($firstItem): ?>
             <?= e((string) $firstItem['product_name']) ?>
+            <?php $firstOption = trim((string) ($firstItem['option_name'] ?? '')); ?>
+            <?php if ($firstOption !== ''): ?><span class="admin-chip"><?= e($firstOption) ?></span><?php endif; ?>
             <small class="admin-muted">x<?= (int) ($firstItem['qty'] ?? 0) ?><?php if ($more): ?> <?= "\u{C678}" ?> <?= $more ?><?= "\u{AC74}" ?><?php endif; ?></small>
           <?php else: ?>-<?php endif; ?>
         </td>

@@ -130,6 +130,10 @@ body.qa-modal-open{overflow:hidden}
 .qa-btn--primary{background:#1f2933;border-color:#1f2933;color:#fff}
 .qa-modal .note-editor{border-radius:10px;border-color:var(--qa-line)}
 .qa-modal .note-editable img{max-width:100%;height:auto;border-radius:8px;border:1px solid #e6ebf0}
+/* Summernote 다이얼로그는 dialogsInBody 로 body 에 붙어 기본 z-index(1050)를 쓴다.
+   .qa-modal(10050) 보다 위로 올리고, 백드롭(1040)도 다이얼로그 바로 아래에 둬야 클릭이 먹는다. */
+.note-modal-backdrop{z-index:10055 !important}
+.note-modal,.note-popover,.note-dropdown-menu{z-index:10060 !important}
 @media (max-width:1100px){
   .qa-summary{grid-template-columns:repeat(4,minmax(0,1fr))}
 }

@@ -41,7 +41,9 @@ final class MigrationModel extends BaseModel
         $statements = array_filter(array_map('trim', preg_split('/;\s*\n/', $sql) ?: []));
         foreach ($statements as $statement) {
             // 앞쪽 SQL 주석(-- ...)만 제거. 주석만 있는 조각은 건너뜀.
-            $lines = preg_split('/\R/', $statement) ?: [];
+            // \R 은 비UTF 모드에서 \x85(NEL)도 줄바꿈으로 보기 때문에
+            // 한글 UTF-8 바이트(예: "션" = EC 85 98) 중간이 잘린다. 줄바꿈을 직접 나열한다.
+            $lines = preg_split("/\r\n|\n|\r/", $statement) ?: [];
             $kept = [];
             foreach ($lines as $line) {
                 $trim = ltrim($line);

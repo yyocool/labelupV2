@@ -12,23 +12,26 @@
   <div class="shop-cart-main">
     <div class="shop-cart-list">
       <?php foreach ($cart['items'] as $item): ?>
-      <article class="shop-cart-item" data-product-id="<?= (int) $item['id'] ?>">
+      <article class="shop-cart-item" data-cart-line data-product-id="<?= (int) $item['id'] ?>" data-option-id="<?= (int) ($item['option_id'] ?? 0) ?>">
         <a class="shop-cart-thumb" href="<?= url('shop/products/' . (int) $item['id']) ?>">
           <img src="<?= e($shopService->productThumb($item)) ?>" alt="">
         </a>
         <div class="shop-cart-info">
           <a href="<?= url('shop/products/' . (int) $item['id']) ?>"><strong><?= e((string) $item['name']) ?></strong></a>
+          <?php if (!empty($item['option_name'])): ?>
+          <span class="shop-cart-option">옵션 · <?= e((string) $item['option_name']) ?></span>
+          <?php endif; ?>
           <span class="shop-cart-sku"><?= e((string) $item['sku']) ?></span>
           <div class="shop-cart-price"><?= e($shopService->formatPrice((int) $item['unit_price'])) ?></div>
         </div>
         <div class="shop-cart-controls">
           <div class="shop-qty">
-            <button type="button" class="shop-qty-btn" data-cart-minus="<?= (int) $item['id'] ?>">-</button>
-            <input type="number" value="<?= (int) $item['qty'] ?>" min="1" max="<?= (int) $item['stock_qty'] ?>" data-cart-qty="<?= (int) $item['id'] ?>" readonly>
-            <button type="button" class="shop-qty-btn" data-cart-plus="<?= (int) $item['id'] ?>">+</button>
+            <button type="button" class="shop-qty-btn" data-cart-minus>-</button>
+            <input type="number" value="<?= (int) $item['qty'] ?>" min="1" max="<?= (int) ($item['available_qty'] ?? $item['stock_qty']) ?>" data-cart-qty readonly>
+            <button type="button" class="shop-qty-btn" data-cart-plus>+</button>
           </div>
           <strong class="shop-cart-line"><?= e($shopService->formatPrice((int) $item['line_total'])) ?></strong>
-          <button type="button" class="shop-cart-remove" data-cart-remove="<?= (int) $item['id'] ?>">삭제</button>
+          <button type="button" class="shop-cart-remove" data-cart-remove>삭제</button>
         </div>
       </article>
       <?php endforeach; ?>
@@ -134,6 +137,9 @@
         <img src="<?= e($shopService->productThumb($item)) ?>" alt="">
         <div>
           <strong><?= e((string) $item['name']) ?></strong>
+          <?php if (!empty($item['option_name'])): ?>
+          <span class="shop-co-items__opt"><?= e((string) $item['option_name']) ?></span>
+          <?php endif; ?>
           <span><?= (int) $item['qty'] ?>개 · <?= e($shopService->formatPrice((int) $item['unit_price'])) ?></span>
         </div>
       </li>

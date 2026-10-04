@@ -66,6 +66,10 @@ $queryParams = array_filter([
         <th>상세페이지</th>
         <th>상품명</th>
         <th>상품코드</th>
+        <th>대표 이미지</th>
+        <th>헤더 이미지</th>
+        <th>상품규격</th>
+        <th>촬영</th>
         <th>카테고리</th>
         <th>상품상태</th>
         <th>작업</th>
@@ -73,7 +77,7 @@ $queryParams = array_filter([
     </thead>
     <tbody>
     <?php if ($items === []): ?>
-      <tr><td colspan="6" class="empty"><?= $hasFilter ? '검색 결과가 없습니다.' : '등록된 상품이 없습니다.' ?></td></tr>
+      <tr><td colspan="10" class="empty"><?= $hasFilter ? '검색 결과가 없습니다.' : '등록된 상품이 없습니다.' ?></td></tr>
     <?php else: ?>
       <?php foreach ($items as $row): ?>
       <?php
@@ -90,6 +94,62 @@ $queryParams = array_filter([
         </td>
         <td><strong><?= e((string) ($row['name'] ?? '')) ?></strong></td>
         <td><code><?= e((string) ($row['sku'] ?? '')) ?></code></td>
+        <td>
+          <?php
+            $repPath = \App\Services\ShopProductImageService::normalizePublicPath((string) ($row['representative_image'] ?? ''));
+            $repFile = $repPath !== '' ? public_path(ltrim($repPath, '/')) : '';
+            $repReady = $repFile !== '' && is_file($repFile);
+          ?>
+          <?php if ($repReady): ?>
+          <button type="button" class="admin-thumb-btn js-image-preview" data-src="<?= e(\App\Services\ShopProductImageService::resolveUrl($repPath)) ?>" data-title="<?= e((string) ($row['name'] ?? '대표 이미지')) ?>">
+            <img class="admin-thumb admin-thumb--mockup" src="<?= e(\App\Services\ShopProductImageService::resolveUrl($repPath)) ?>" alt="<?= e((string) ($row['sku'] ?? '대표 이미지')) ?>">
+          </button>
+          <?php else: ?>
+          <span class="admin-muted">없음</span>
+          <?php endif; ?>
+        </td>
+        <td>
+          <?php
+            $headerPath = \App\Services\ShopProductImageService::normalizePublicPath((string) ($row['header_image'] ?? ''));
+            $headerFile = $headerPath !== '' ? public_path(ltrim($headerPath, '/')) : '';
+            $headerReady = $headerFile !== '' && is_file($headerFile);
+          ?>
+          <?php if ($headerReady): ?>
+          <button type="button" class="admin-thumb-btn js-image-preview" data-src="<?= e(\App\Services\ShopProductImageService::resolveUrl($headerPath)) ?>" data-title="<?= e((string) ($row['name'] ?? '헤더 이미지')) ?>">
+            <img class="admin-thumb admin-thumb--header" src="<?= e(\App\Services\ShopProductImageService::resolveUrl($headerPath)) ?>" alt="<?= e((string) ($row['sku'] ?? '헤더 이미지')) ?>">
+          </button>
+          <?php else: ?>
+          <span class="admin-muted">없음</span>
+          <?php endif; ?>
+        </td>
+        <td>
+          <?php
+            $specPath = \App\Services\ShopProductImageService::normalizePublicPath((string) ($row['spec_sheet_image'] ?? ''));
+            $specFile = $specPath !== '' ? public_path(ltrim($specPath, '/')) : '';
+            $specReady = $specFile !== '' && is_file($specFile);
+          ?>
+          <?php if ($specReady): ?>
+          <button type="button" class="admin-thumb-btn js-image-preview" data-src="<?= e(\App\Services\ShopProductImageService::resolveUrl($specPath)) ?>" data-title="<?= e((string) ($row['name'] ?? '상품규격')) ?>">
+            <img class="admin-thumb admin-thumb--sheet" src="<?= e(\App\Services\ShopProductImageService::resolveUrl($specPath)) ?>" alt="<?= e((string) ($row['sku'] ?? '상품규격')) ?>">
+          </button>
+          <?php else: ?>
+          <span class="admin-muted">없음</span>
+          <?php endif; ?>
+        </td>
+        <td>
+          <?php
+            $shootPath = \App\Services\ShopProductImageService::normalizePublicPath((string) ($row['shoot_image'] ?? ''));
+            $shootFile = $shootPath !== '' ? public_path(ltrim($shootPath, '/')) : '';
+            $shootReady = $shootFile !== '' && is_file($shootFile);
+          ?>
+          <?php if ($shootReady): ?>
+          <button type="button" class="admin-thumb-btn js-image-preview" data-src="<?= e(\App\Services\ShopProductImageService::resolveUrl($shootPath)) ?>" data-title="<?= e((string) ($row['name'] ?? '촬영')) ?>">
+            <img class="admin-thumb admin-thumb--shoot" src="<?= e(\App\Services\ShopProductImageService::resolveUrl($shootPath)) ?>" alt="<?= e((string) ($row['sku'] ?? '촬영')) ?>">
+          </button>
+          <?php else: ?>
+          <span class="admin-muted">없음</span>
+          <?php endif; ?>
+        </td>
         <td><?= e((string) ($row['category_name'] ?? '-')) ?></td>
         <td><?= e(ShopAdminService::productStatusLabel((string) ($row['product_status'] ?? ''))) ?></td>
         <td>
@@ -106,6 +166,11 @@ $queryParams = array_filter([
               data-preview-url="<?= e($previewUrl) ?>"
               data-preview-title="<?= e((string) ($row['name'] ?? '상품 상세')) ?>"
             >미리보기</button>
+            <button
+              type="button"
+              class="admin-btn admin-btn--sm js-product-detail-images"
+              data-download-url="<?= e(url('admin/content/product-detail-pages/images/' . (int) ($row['id'] ?? 0))) ?>"
+            >이미지</button>
           </div>
         </td>
       </tr>
@@ -156,9 +221,42 @@ $queryParams = array_filter([
       </div>
     </form>
     <div class="admin-modal-foot">
-      <p class="admin-muted admin-detail-html-hint">카테고리 헤더/푸터와 별개로, 상품 본문에 표시됩니다. 이미지를 끌어다 놓거나 툴바에서 넣을 수 있습니다.</p>
+      <p class="admin-muted admin-detail-html-hint">헤더, 상품규격, 촬영 이미지가 위에서부터 들어갑니다. 저장되는 내용은 이미지 태그만 사용합니다.</p>
       <button type="button" class="admin-btn js-product-detail-html-close">취소</button>
       <button type="submit" form="productDetailHtmlForm" class="admin-btn admin-btn--primary" id="productDetailHtmlSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+<div id="imageQueueModal" class="admin-modal admin-modal--image-queue" hidden>
+  <div class="admin-modal-backdrop js-image-queue-close"></div>
+  <div class="admin-modal-dialog admin-modal-dialog--image-queue" role="dialog" aria-modal="true" aria-labelledby="imageQueueTitle">
+    <div class="admin-modal-head">
+      <h3 id="imageQueueTitle">이미지 올리고 순서 정하기</h3>
+      <button type="button" class="admin-modal-close js-image-queue-close" aria-label="닫기">×</button>
+    </div>
+    <div class="admin-modal-body">
+      <div class="admin-image-drop" id="imageQueueDrop">
+        <p class="admin-image-drop__lead">여기로 이미지를 끌어다 놓으세요</p>
+        <p class="admin-muted admin-image-drop__sub">
+          JPG · PNG · GIF · WEBP / 한 장당 최대 <b id="imageQueueMaxLabel">20MB</b> · 여러 장 한꺼번에 가능
+        </p>
+        <button type="button" class="admin-btn admin-btn--primary admin-btn--sm" id="imageQueueAdd">파일 선택</button>
+        <input type="file" id="imageQueueInput" accept="image/jpeg,image/png,image/gif,image/webp" multiple hidden>
+      </div>
+      <div class="admin-image-queue-progress" id="imageQueueBar" hidden>
+        <div class="admin-image-queue-progress__fill" id="imageQueueBarFill"></div>
+      </div>
+      <p class="admin-image-queue-status" id="imageQueueStatus" hidden role="status"></p>
+      <p class="admin-muted admin-image-queue-hint" id="imageQueueHint" hidden>
+        썸네일을 끌어다 놓거나 <b>◀ ▶</b> 버튼으로 순서를 바꾼 뒤 삽입하세요. 왼쪽부터 차례로 들어갑니다.
+      </p>
+      <div class="admin-image-queue" id="imageQueueList" hidden></div>
+    </div>
+    <div class="admin-modal-foot">
+      <p class="admin-muted admin-image-queue-count" id="imageQueueCount"></p>
+      <button type="button" class="admin-btn admin-btn--sm" id="imageQueueClear" hidden>전체 비우기</button>
+      <button type="button" class="admin-btn js-image-queue-close">취소</button>
+      <button type="button" class="admin-btn admin-btn--primary" id="imageQueueApply" disabled>에디터에 삽입</button>
     </div>
   </div>
 </div>

@@ -69,5 +69,7 @@ $pageTitle = '미리보기 · ' . (string) ($product['name'] ?? '상품');
       <div class="preview-aside" aria-hidden="true"></div>
     </div>
   </div>
+  <!-- 실제 페이지와 같게 보이도록 갤러리 썸네일 전환 스크립트를 함께 싣는다. -->
+  <script src="<?= js('shop.js') ?>"></script>
 </body>
 </html>

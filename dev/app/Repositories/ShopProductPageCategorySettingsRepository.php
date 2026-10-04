@@ -8,7 +8,7 @@ use App\Models\BaseModel;
 
 final class ShopProductPageCategorySettingsRepository extends BaseModel
 {
-    /** @return array{header_html:string,footer_html:string,header_image:string,footer_image:string}|null */
+    /** @return array{header_html:string,footer_html:string,header_image:string,footer_image:string,hashtags:?string}|null */
     public function findByCategoryId(int $categoryId): ?array
     {
         if ($categoryId <= 0) {
@@ -26,10 +26,11 @@ final class ShopProductPageCategorySettingsRepository extends BaseModel
             'footer_html' => (string) ($row['footer_html'] ?? ''),
             'header_image' => (string) ($row['header_image'] ?? ''),
             'footer_image' => (string) ($row['footer_image'] ?? ''),
+            'hashtags' => $this->storedHashtags($row),
         ];
     }
 
-    /** @return array<int, array{category_id:int,header_html:string,footer_html:string,header_image:string,footer_image:string,has_custom:bool}> */
+    /** @return array<int, array{category_id:int,header_html:string,footer_html:string,header_image:string,footer_image:string,hashtags:?string,has_custom:bool}> */
     public function allIndexed(): array
     {
         $rows = $this->fetchAll('SELECT * FROM shop_product_page_category_settings');
@@ -43,13 +44,15 @@ final class ShopProductPageCategorySettingsRepository extends BaseModel
             $footerHtml = (string) ($row['footer_html'] ?? '');
             $headerImage = (string) ($row['header_image'] ?? '');
             $footerImage = (string) ($row['footer_image'] ?? '');
+            $hashtags = $this->storedHashtags($row);
             $map[$id] = [
                 'category_id' => $id,
                 'header_html' => $headerHtml,
                 'footer_html' => $footerHtml,
                 'header_image' => $headerImage,
                 'footer_image' => $footerImage,
-                'has_custom' => $this->hasContent($headerHtml, $footerHtml, $headerImage, $footerImage),
+                'hashtags' => $hashtags,
+                'has_custom' => $this->hasContent($headerHtml, $footerHtml, $headerImage, $footerImage, $hashtags),
             ];
         }
         return $map;
@@ -67,6 +70,9 @@ final class ShopProductPageCategorySettingsRepository extends BaseModel
             'footer_html' => $this->nullableHtml($data['footer_html'] ?? null),
             'header_image' => $this->nullableText($data['header_image'] ?? null),
             'footer_image' => $this->nullableText($data['footer_image'] ?? null),
+            'hashtags' => \App\Services\ShopCategoryHashtag::encode(
+                \App\Services\ShopCategoryHashtag::normalize($data['hashtags'] ?? [])
+            ),
             'created_at' => $now,
             'updated_at' => $now,
         ];
@@ -77,23 +83,13 @@ final class ShopProductPageCategorySettingsRepository extends BaseModel
         );
 
         if ($existing) {
-            // If everything empty, remove row
-            if ($params['header_html'] === null
-                && $params['footer_html'] === null
-                && $params['header_image'] === null
-                && $params['footer_image'] === null) {
-                $this->execute(
-                    'DELETE FROM shop_product_page_category_settings WHERE category_id = :id',
-                    ['id' => $categoryId]
-                );
-                return;
-            }
             $this->execute(
                 'UPDATE shop_product_page_category_settings
                  SET header_html = :header_html,
                      footer_html = :footer_html,
                      header_image = :header_image,
                      footer_image = :footer_image,
+                     hashtags = :hashtags,
                      updated_at = :updated_at
                  WHERE category_id = :id',
                 [
@@ -102,33 +98,44 @@ final class ShopProductPageCategorySettingsRepository extends BaseModel
                     'footer_html' => $params['footer_html'],
                     'header_image' => $params['header_image'],
                     'footer_image' => $params['footer_image'],
+                    'hashtags' => $params['hashtags'],
                     'updated_at' => $params['updated_at'],
                 ]
             );
             return;
         }
 
-        if ($params['header_html'] === null
-            && $params['footer_html'] === null
-            && $params['header_image'] === null
-            && $params['footer_image'] === null) {
-            return;
-        }
-
         $this->execute(
             'INSERT INTO shop_product_page_category_settings
-             (category_id, header_html, footer_html, header_image, footer_image, created_at, updated_at)
-             VALUES (:id, :header_html, :footer_html, :header_image, :footer_image, :created_at, :updated_at)',
+             (category_id, header_html, footer_html, header_image, footer_image, hashtags, created_at, updated_at)
+             VALUES (:id, :header_html, :footer_html, :header_image, :footer_image, :hashtags, :created_at, :updated_at)',
             $params
         );
     }
 
-    public function hasContent(string $headerHtml, string $footerHtml, string $headerImage, string $footerImage): bool
-    {
+    public function hasContent(
+        string $headerHtml,
+        string $footerHtml,
+        string $headerImage,
+        string $footerImage,
+        ?string $hashtags = null
+    ): bool {
+        $tags = $hashtags === null ? [] : \App\Services\ShopCategoryHashtag::normalize($hashtags);
         return trim($headerHtml) !== ''
             || trim($footerHtml) !== ''
             || trim($headerImage) !== ''
-            || trim($footerImage) !== '';
+            || trim($footerImage) !== ''
+            || $tags !== [];
+    }
+
+    /** @param array<string, mixed> $row */
+    private function storedHashtags(array $row): ?string
+    {
+        if (!array_key_exists('hashtags', $row) || $row['hashtags'] === null) {
+            return null;
+        }
+        $text = trim((string) $row['hashtags']);
+        return $text === '' ? null : $text;
     }
 
     private function nullableHtml(mixed $value): ?string

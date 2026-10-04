@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
+use App\Middleware\AuthMiddleware;
 use App\Services\AuthService;
 use App\Services\ShopService;
+use App\Services\ShopWishlistService;
 use RuntimeException;
 
 final class ShopApiController extends BaseController
@@ -41,7 +43,12 @@ final class ShopApiController extends BaseController
         if (!$product) {
             $this->jsonError('상품을 찾을 수 없습니다.', null, 404);
         }
-        $this->jsonSuccess($this->shop->presentPublicProduct($product));
+        // 목록 응답에는 옵션을 싣지 않는다(N+1). 상세에서만 내려준다.
+        $payload = $this->shop->presentPublicProduct($product);
+        $payload['options'] = $this->shop->productOptions($product);
+        $layout = $this->shop->productPageLayout((int) ($product['category_id'] ?? 0));
+        $payload['hashtags'] = $layout['hashtags'];
+        $this->jsonSuccess($payload);
     }
 
     public function lookup(): never
@@ -80,11 +87,58 @@ final class ShopApiController extends BaseController
         $this->jsonSuccess($this->shop->cartSummary());
     }
 
+    public function wishlist(): never
+    {
+        $auth = new AuthService();
+        (new AuthMiddleware($auth))->handle();
+        $userId = (int) $auth->id();
+        $wish = new ShopWishlistService();
+        $this->jsonSuccess([
+            'items' => $wish->items($userId),
+            'count' => $wish->count($userId),
+        ]);
+    }
+
+    public function toggleWishlist(): never
+    {
+        $auth = new AuthService();
+        (new AuthMiddleware($auth))->handle();
+        $data = request_json();
+        try {
+            $result = (new ShopWishlistService())->toggle(
+                (int) $auth->id(),
+                (int) ($data['product_id'] ?? 0)
+            );
+            $this->jsonSuccess(
+                $result,
+                $result['wished'] ? '찜 목록에 담았습니다.' : '찜 목록에서 뺐습니다.'
+            );
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
+        }
+    }
+
+    public function removeWishlist(): never
+    {
+        $auth = new AuthService();
+        (new AuthMiddleware($auth))->handle();
+        $data = request_json();
+        $count = (new ShopWishlistService())->remove(
+            (int) $auth->id(),
+            (int) ($data['product_id'] ?? 0)
+        );
+        $this->jsonSuccess(['wished' => false, 'count' => $count], '찜 목록에서 뺐습니다.');
+    }
+
     public function addCart(): never
     {
         $data = request_json();
         try {
-            $this->shop->addToCart((int) ($data['product_id'] ?? 0), (int) ($data['qty'] ?? 1));
+            $this->shop->addToCart(
+                (int) ($data['product_id'] ?? 0),
+                (int) ($data['qty'] ?? 1),
+                (int) ($data['option_id'] ?? 0)
+            );
             $this->jsonSuccess($this->shop->cartSummary(), '장바구니에 담았습니다.');
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage(), null, 422);
@@ -95,7 +149,11 @@ final class ShopApiController extends BaseController
     {
         $data = request_json();
         try {
-            $this->shop->updateCartItem((int) ($data['product_id'] ?? 0), (int) ($data['qty'] ?? 0));
+            $this->shop->updateCartItem(
+                (int) ($data['product_id'] ?? 0),
+                (int) ($data['qty'] ?? 0),
+                (int) ($data['option_id'] ?? 0)
+            );
             $this->jsonSuccess($this->shop->cartSummary(), '장바구니가 수정되었습니다.');
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage(), null, 422);
@@ -105,7 +163,10 @@ final class ShopApiController extends BaseController
     public function removeCart(): never
     {
         $data = request_json();
-        $this->shop->removeFromCart((int) ($data['product_id'] ?? 0));
+        $this->shop->removeFromCart(
+            (int) ($data['product_id'] ?? 0),
+            (int) ($data['option_id'] ?? 0)
+        );
         $this->jsonSuccess($this->shop->cartSummary(), '상품을 삭제했습니다.');
     }
 

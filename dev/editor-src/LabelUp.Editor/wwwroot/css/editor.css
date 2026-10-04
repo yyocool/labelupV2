@@ -5643,6 +5643,14 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   text-overflow: ellipsis;
 }
 .ed-shop-cart-item span { display: block; margin-top: 5px; font-size: 12px; color: #8a8490; }
+.ed-shop-cart-item .ed-shop-cart-opt { color: #7B2840; font-weight: 700; }
+
+/* 상품 옵션 선택 (단일 선택형) */
+.ed-shop-option { display: grid; gap: 6px; margin: 10px 0 12px; padding: 12px; border: 1px solid #ece5df; border-radius: 12px; background: #fbf9f7; }
+.ed-shop-option label { font-size: 12px; font-weight: 800; color: #1c1a22; }
+.ed-shop-option label em { margin-left: 4px; font-style: normal; font-size: 11px; font-weight: 700; color: #7B2840; }
+.ed-shop-option select { width: 100%; padding: 10px 11px; border: 1px solid #ddd5ce; border-radius: 10px; background: #fff; font-size: 13px; font-weight: 600; color: #1c1a22; }
+.ed-shop-option small { font-size: 11px; color: #8a8490; font-weight: 700; }
 .ed-shop-remove {
   grid-area: remove;
   height: 32px;

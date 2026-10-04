@@ -81,6 +81,73 @@ document.querySelectorAll('.js-save-user').forEach((btn) => {
   });
 });
 
+/* 회원 관리: 관리자가 회원을 직접 추가하는 창. */
+function initUserCreateUi() {
+  const modal = document.getElementById('userCreateModal');
+  const form = document.getElementById('userCreateForm');
+  const openBtn = document.getElementById('userCreateOpen');
+  if (!modal || !form || !openBtn) return;
+
+  const submitBtn = document.querySelector('[form="userCreateForm"][type=submit]');
+  const close = () => { modal.hidden = true; };
+
+  openBtn.addEventListener('click', () => {
+    form.reset();
+    modal.hidden = false;
+    form.querySelector('[name=email]')?.focus();
+  });
+  modal.querySelectorAll('[data-close="userCreateModal"]').forEach((el) => {
+    el.addEventListener('click', close);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.hidden) close();
+  });
+
+  // 서버 규칙(영문+숫자 8자 이상)을 반드시 만족하는 임시 비밀번호를 만든다.
+  document.getElementById('userCreatePasswordGen')?.addEventListener('click', () => {
+    const letters = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
+    const digits = '23456789';
+    const pick = (chars, n) => Array.from(
+      crypto.getRandomValues(new Uint32Array(n)),
+      (v) => chars[v % chars.length]
+    );
+    const chars = [...pick(letters, 6), ...pick(digits, 4), ...pick('!@#$%', 1)];
+    // 자리별 종류가 고정되지 않도록 섞는다.
+    for (let i = chars.length - 1; i > 0; i--) {
+      const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1);
+      [chars[i], chars[j]] = [chars[j], chars[i]];
+    }
+    const input = document.getElementById('userCreatePassword');
+    if (input) {
+      input.value = chars.join('');
+      input.select();
+    }
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const payload = Object.fromEntries(fd.entries());
+    payload.grade_id = Number(payload.grade_id || 0);
+    payload.credit_amount = Number(payload.credit_amount || 0);
+    payload.send_welcome = fd.get('send_welcome') ? 1 : 0;
+
+    if (submitBtn) submitBtn.disabled = true;
+    try {
+      const res = await AdminAPI.post('/api/admin/users/create', payload);
+      close();
+      showAdminAlert(res.message || '회원이 추가되었습니다.', 'success');
+      window.location.reload();
+    } catch (err) {
+      showAdminAlert(err.message, 'error');
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  });
+}
+
+initUserCreateUi();
+
 initAdminLnbToggle();
 
 document.querySelectorAll('.admin-lnb-group-toggle').forEach((btn) => {

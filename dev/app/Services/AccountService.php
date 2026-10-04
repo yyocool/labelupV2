@@ -40,6 +40,10 @@ final class AccountService
         $usageLimit = (int) ($aiCredit['limit'] ?? 0);
         $usageUsed = (int) ($aiCredit['used'] ?? 0);
 
+        $wishlistService = new ShopWishlistService();
+        $wishlist = $wishlistService->items($userId, 12);
+        $wishlistCount = $wishlistService->count($userId);
+
         return [
             'user' => $user,
             'grade' => (new MemberGradeService())->forUser($userId),
@@ -62,8 +66,11 @@ final class AccountService
             ],
             'cliparts' => $myCliparts,
             'clipartCount' => $clipartCount,
+            'wishlist' => $wishlist,
+            'wishlistCount' => $wishlistCount,
             'quickLinks' => [
                 ['label' => '내 클립아트', 'ic' => '✦', 'href' => '#cliparts', 'badge' => $clipartCount],
+                ['label' => '찜한 상품', 'ic' => '♥', 'href' => '#wishlist', 'badge' => $wishlistCount],
                 ['label' => '배송지 관리', 'ic' => '📍', 'href' => '#address'],
                 ['label' => '결제수단 관리', 'ic' => '💳', 'href' => '#', 'disabled' => true],
                 ['label' => '쿠폰함', 'ic' => '🎫', 'href' => url('shop/cart'), 'badge' => 3],
@@ -180,7 +187,7 @@ final class AccountService
         foreach ($orders as $order) {
             $items[] = [
                 'order_no' => (string) $order['order_no'],
-                'name' => (string) ($order['customer_name'] ?? '주문'),
+                'name' => self::orderItemsLabel($order['items'] ?? [], (string) ($order['customer_name'] ?? '주문')),
                 'date' => date('Y.m.d', strtotime((string) ($order['created_at'] ?? 'now'))),
                 'status' => (string) ($order['status'] ?? 'pending'),
                 'status_label' => ShopAdminService::orderStatusLabel((string) ($order['status'] ?? 'pending')),
@@ -194,6 +201,32 @@ final class AccountService
             }
         }
         return $items;
+    }
+
+    /**
+     * 주문내역에 "상품명 (옵션) 외 N건" 형태로 보여준다.
+     *
+     * @param array<int, array<string, mixed>> $items
+     */
+    private static function orderItemsLabel(array $items, string $fallback): string
+    {
+        $first = $items[0] ?? null;
+        if (!is_array($first)) {
+            return $fallback;
+        }
+        $label = trim((string) ($first['product_name'] ?? ''));
+        if ($label === '') {
+            return $fallback;
+        }
+        $option = trim((string) ($first['option_name'] ?? ''));
+        if ($option !== '') {
+            $label .= ' (' . $option . ')';
+        }
+        $extra = count($items) - 1;
+        if ($extra > 0) {
+            $label .= ' 외 ' . $extra . '건';
+        }
+        return $label;
     }
 
     /** @return array<int, array<string, mixed>> */

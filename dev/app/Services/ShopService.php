@@ -118,10 +118,32 @@ final class ShopService
         return $this->repo->findCategoryBySlug($slug);
     }
 
-    /** @return array<int, array{product_id:int, qty:int}> */
+    /** @return array<int, array{product_id:int, option_id:int, qty:int}> */
     public function rawCart(): array
     {
-        return $_SESSION[self::SESSION_CART] ?? [];
+        $out = [];
+        foreach ($_SESSION[self::SESSION_CART] ?? [] as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $productId = (int) ($row['product_id'] ?? 0);
+            if ($productId <= 0) {
+                continue;
+            }
+            // 옵션 도입 전에 담긴 장바구니는 option_id가 없다.
+            $out[] = [
+                'product_id' => $productId,
+                'option_id' => max(0, (int) ($row['option_id'] ?? 0)),
+                'qty' => max(1, (int) ($row['qty'] ?? 1)),
+            ];
+        }
+        return $out;
+    }
+
+    /** 같은 상품이라도 옵션이 다르면 장바구니에서 다른 줄로 다룬다. */
+    public static function cartLineKey(int $productId, int $optionId = 0): string
+    {
+        return $productId . '-' . max(0, $optionId);
     }
 
     public function cartCount(): int
@@ -142,13 +164,31 @@ final class ShopService
             if (!$product) {
                 continue;
             }
-            $qty = max(1, (int) ($row['qty'] ?? 1));
-            $unit = $this->unitPrice($product);
-            $items[] = $product + [
-                'qty' => $qty,
-                'unit_price' => $unit,
-                'line_total' => $unit * $qty,
-            ];
+            $optionId = (int) $row['option_id'];
+            $option = $optionId > 0 ? $this->repo->findProductOption((int) $product['id'], $optionId) : null;
+            if ($optionId > 0 && $option === null) {
+                // 담아둔 뒤 옵션이 내려갔으면 장바구니에서 빼고 보여준다.
+                continue;
+            }
+            $qty = max(1, (int) $row['qty']);
+            $unit = max(0, $this->unitPrice($product) + (int) ($option['price_delta'] ?? 0));
+            $suffix = trim((string) ($option['sku_suffix'] ?? ''));
+
+            $item = $product;
+            $item['qty'] = $qty;
+            $item['unit_price'] = $unit;
+            $item['line_total'] = $unit * $qty;
+            $item['option_id'] = $optionId;
+            $item['option_name'] = (string) ($option['name'] ?? '');
+            $item['option_price_delta'] = (int) ($option['price_delta'] ?? 0);
+            $item['available_qty'] = $option !== null
+                ? (int) $option['stock_qty']
+                : (int) ($product['stock_qty'] ?? 0);
+            $item['line_key'] = self::cartLineKey((int) $product['id'], $optionId);
+            if ($suffix !== '') {
+                $item['sku'] = (string) $product['sku'] . '-' . $suffix;
+            }
+            $items[] = $item;
         }
         return $items;
     }
@@ -163,8 +203,15 @@ final class ShopService
             $row = $this->presentPublicProduct($item);
             $row['qty'] = (int) ($item['qty'] ?? 1);
             $row['unit_price'] = (int) ($item['unit_price'] ?? $row['unit_price']);
+            $row['price_label'] = $this->formatPrice((int) $row['unit_price']);
             $row['line_total'] = (int) ($item['line_total'] ?? 0);
             $row['line_total_label'] = $this->formatPrice((int) $row['line_total']);
+            $row['sku'] = (string) ($item['sku'] ?? $row['sku']);
+            $row['option_id'] = (int) ($item['option_id'] ?? 0);
+            $row['option_name'] = (string) ($item['option_name'] ?? '');
+            $row['option_price_delta'] = (int) ($item['option_price_delta'] ?? 0);
+            $row['available_qty'] = (int) ($item['available_qty'] ?? $row['stock_qty']);
+            $row['line_key'] = (string) ($item['line_key'] ?? self::cartLineKey((int) $row['id'], $row['option_id']));
             $presented[] = $row;
         }
         return [
@@ -270,8 +317,14 @@ final class ShopService
             throw new RuntimeException('장바구니가 비어 있습니다.');
         }
         foreach ($items as $item) {
-            if (($item['status'] ?? '') === 'soldout' || (int) ($item['stock_qty'] ?? 0) < (int) ($item['qty'] ?? 1)) {
-                throw new RuntimeException(($item['name'] ?? '상품') . '의 재고가 부족합니다.');
+            $available = (int) ($item['available_qty'] ?? $item['stock_qty'] ?? 0);
+            if (($item['status'] ?? '') === 'soldout' || $available < (int) ($item['qty'] ?? 1)) {
+                $label = (string) ($item['name'] ?? '상품');
+                $option = trim((string) ($item['option_name'] ?? ''));
+                if ($option !== '') {
+                    $label .= ' (' . $option . ')';
+                }
+                throw new RuntimeException($label . '의 재고가 부족합니다.');
             }
         }
 
@@ -370,6 +423,11 @@ final class ShopService
     private function buildOrderName(array $items): string
     {
         $first = (string) ($items[0]['name'] ?? '라벨업 상품');
+        $option = trim((string) ($items[0]['option_name'] ?? ''));
+        if ($option !== '') {
+            // 옵션만 다른 동일 상품이 섞이면 주문명으로 구분이 안 된다.
+            $first .= ' (' . $option . ')';
+        }
         $extra = max(0, count($items) - 1);
         if ($extra > 0) {
             return mb_substr($first, 0, 60) . ' 외 ' . $extra . '건';
@@ -488,7 +546,7 @@ final class ShopService
         return $out;
     }
 
-    public function addToCart(int $productId, int $qty = 1): void
+    public function addToCart(int $productId, int $qty = 1, int $optionId = 0): void
     {
         $product = $this->repo->findActiveProduct($productId);
         if (!$product) {
@@ -498,38 +556,51 @@ final class ShopService
             throw new RuntimeException('품절된 상품입니다.');
         }
 
-        $qty = max(1, min($qty, (int) $product['stock_qty']));
+        $option = $this->resolveRequiredOption($productId, $optionId);
+        $optionId = (int) ($option['id'] ?? 0);
+        $available = $option !== null ? (int) $option['stock_qty'] : (int) $product['stock_qty'];
+        if ($available <= 0) {
+            throw new RuntimeException($option !== null ? '선택한 옵션이 품절되었습니다.' : '품절된 상품입니다.');
+        }
+
+        $qty = max(1, min($qty, $available));
         $cart = $this->rawCart();
         $found = false;
         foreach ($cart as &$row) {
-            if ((int) $row['product_id'] === $productId) {
-                $row['qty'] = min((int) $row['qty'] + $qty, (int) $product['stock_qty']);
+            if ((int) $row['product_id'] === $productId && (int) $row['option_id'] === $optionId) {
+                $row['qty'] = min((int) $row['qty'] + $qty, $available);
                 $found = true;
                 break;
             }
         }
         unset($row);
         if (!$found) {
-            $cart[] = ['product_id' => $productId, 'qty' => $qty];
+            $cart[] = ['product_id' => $productId, 'option_id' => $optionId, 'qty' => $qty];
         }
         $_SESSION[self::SESSION_CART] = $cart;
     }
 
-    public function updateCartItem(int $productId, int $qty): void
+    public function updateCartItem(int $productId, int $qty, int $optionId = 0): void
     {
-        $cart = $this->rawCart();
         if ($qty <= 0) {
-            $this->removeFromCart($productId);
+            $this->removeFromCart($productId, $optionId);
             return;
         }
         $product = $this->repo->findActiveProduct($productId);
         if (!$product) {
             throw new RuntimeException('상품을 찾을 수 없습니다.');
         }
-        $qty = min($qty, (int) $product['stock_qty']);
+        $option = $optionId > 0 ? $this->repo->findProductOption($productId, $optionId) : null;
+        if ($optionId > 0 && $option === null) {
+            throw new RuntimeException('선택할 수 없는 옵션입니다.');
+        }
+        $available = $option !== null ? (int) $option['stock_qty'] : (int) $product['stock_qty'];
+        $qty = max(1, min($qty, $available));
+
+        $cart = $this->rawCart();
         $updated = false;
         foreach ($cart as &$row) {
-            if ((int) $row['product_id'] === $productId) {
+            if ((int) $row['product_id'] === $productId && (int) $row['option_id'] === $optionId) {
                 $row['qty'] = $qty;
                 $updated = true;
                 break;
@@ -542,13 +613,71 @@ final class ShopService
         $_SESSION[self::SESSION_CART] = $cart;
     }
 
-    public function removeFromCart(int $productId): void
+    public function removeFromCart(int $productId, int $optionId = 0): void
     {
         $cart = array_values(array_filter(
             $this->rawCart(),
-            static fn (array $row): bool => (int) $row['product_id'] !== $productId
+            static fn (array $row): bool => !(
+                (int) $row['product_id'] === $productId && (int) $row['option_id'] === $optionId
+            )
         ));
         $_SESSION[self::SESSION_CART] = $cart;
+    }
+
+    /**
+     * 판매 중인 옵션이 하나라도 있으면 선택이 필수다.
+     *
+     * @return array<string, mixed>|null 옵션이 없는 상품이면 null
+     */
+    private function resolveRequiredOption(int $productId, int $optionId): ?array
+    {
+        $options = $this->repo->productOptions($productId, true);
+        if ($options === []) {
+            return null;
+        }
+        if ($optionId <= 0) {
+            throw new RuntimeException('옵션을 선택해 주세요.');
+        }
+        foreach ($options as $option) {
+            if ((int) $option['id'] === $optionId) {
+                return $option;
+            }
+        }
+        throw new RuntimeException('선택할 수 없는 옵션입니다.');
+    }
+
+    /**
+     * 상품 상세에서 쓰는 옵션 목록. 기준 단가에 증감액을 더해 실제 결제가를 함께 준다.
+     *
+     * @param array<string, mixed> $product
+     * @return array<int, array<string, mixed>>
+     */
+    public function productOptions(array $product): array
+    {
+        $productId = (int) ($product['id'] ?? 0);
+        if ($productId <= 0) {
+            return [];
+        }
+        $base = $this->unitPrice($product);
+        $out = [];
+        foreach ($this->repo->productOptions($productId, true) as $option) {
+            $delta = (int) $option['price_delta'];
+            $unit = max(0, $base + $delta);
+            $stock = (int) $option['stock_qty'];
+            $out[] = [
+                'id' => (int) $option['id'],
+                'name' => (string) $option['name'],
+                'price_delta' => $delta,
+                'delta_label' => $delta === 0
+                    ? ''
+                    : ($delta > 0 ? '+' : '−') . $this->formatPrice(abs($delta)),
+                'unit_price' => $unit,
+                'price_label' => $this->formatPrice($unit),
+                'stock_qty' => $stock,
+                'soldout' => $stock <= 0,
+            ];
+        }
+        return $out;
     }
 
     public function clearCart(): void
@@ -577,6 +706,37 @@ final class ShopService
             return (string) $product['thumbnail'];
         }
         return asset('hero-tall-1.webp');
+    }
+
+    /**
+     * 상품 상세 갤러리용 이미지 목록. 대표 이미지가 항상 첫 장이다.
+     * 등록된 이미지가 없으면 썸네일 한 장만 돌려준다.
+     *
+     * @param array<string, mixed> $product
+     * @return array<int, array{url: string, is_primary: bool}>
+     */
+    public function productGallery(array $product): array
+    {
+        $productId = (int) ($product['id'] ?? 0);
+        $out = [];
+        $seen = [];
+        if ($productId > 0) {
+            foreach ($this->repo->productImages($productId) as $image) {
+                $url = ShopProductImageService::resolveUrl((string) ($image['image_path'] ?? ''));
+                if ($url === '' || isset($seen[$url])) {
+                    continue;
+                }
+                $seen[$url] = true;
+                $out[] = ['url' => $url, 'is_primary' => !empty($image['is_primary'])];
+            }
+        }
+
+        usort($out, static fn (array $a, array $b): int => ($b['is_primary'] ? 1 : 0) <=> ($a['is_primary'] ? 1 : 0));
+
+        if ($out === []) {
+            $out[] = ['url' => $this->productThumb($product), 'is_primary' => true];
+        }
+        return $out;
     }
 
     /** Editor boot URL for this product's label paper/spec. */
@@ -630,7 +790,8 @@ final class ShopService
      *   header_html:string,footer_html:string,header_image:string,footer_image:string,
      *   header_image_url:string,footer_image_url:string,has_header:bool,has_footer:bool,
      *   source:string,category_id:int,category_ids:list<int>,
-     *   header_blocks:list<array<string,mixed>>,footer_blocks:list<array<string,mixed>>
+     *   header_blocks:list<array<string,mixed>>,footer_blocks:list<array<string,mixed>>,
+     *   hashtags:list<string>
      * }
      */
     public function productPageLayout(?int $categoryId = null): array
@@ -641,6 +802,7 @@ final class ShopService
 
         $headerBlocks = [];
         $categoryFooters = [];
+        $hashtags = [];
         $settingsRepo = new ShopProductPageCategorySettingsRepository();
 
         $globalMeta = ['id' => 0, 'name' => '', 'depth' => -1];
@@ -659,16 +821,23 @@ final class ShopService
             } catch (\Throwable) {
                 $custom = null;
             }
-            if (!is_array($custom)) {
-                continue;
+            if (is_array($custom)) {
+                $header = $this->pageLayoutBlockFromSettings($custom, 'header', $cat);
+                if ($header !== null) {
+                    $headerBlocks[] = $header;
+                }
+                $footer = $this->pageLayoutBlockFromSettings($custom, 'footer', $cat);
+                if ($footer !== null) {
+                    $categoryFooters[] = $footer;
+                }
             }
-            $header = $this->pageLayoutBlockFromSettings($custom, 'header', $cat);
-            if ($header !== null) {
-                $headerBlocks[] = $header;
-            }
-            $footer = $this->pageLayoutBlockFromSettings($custom, 'footer', $cat);
-            if ($footer !== null) {
-                $categoryFooters[] = $footer;
+            $resolvedTags = ShopCategoryHashtag::resolve(
+                is_array($custom) ? ($custom['hashtags'] ?? null) : null,
+                (string) ($cat['slug'] ?? ''),
+                (string) ($cat['name'] ?? '')
+            );
+            if ($resolvedTags !== []) {
+                $hashtags = $resolvedTags;
             }
         }
 
@@ -710,6 +879,7 @@ final class ShopService
                 static fn (array $row): int => (int) ($row['id'] ?? 0),
                 $chain
             )),
+            'hashtags' => $hashtags,
         ];
     }
 
@@ -794,13 +964,18 @@ final class ShopService
             $qty = (int) ($item['qty'] ?? 1);
             $unit = (int) ($item['unit_price'] ?? 0);
             $line = (int) ($item['line_total'] ?? ($unit * $qty));
+            // SKU는 주문 시점 스냅샷을 우선한다. 옵션 접미사가 붙어 있을 수 있다.
+            $sku = (string) ($item['sku'] ?? $presented['sku'] ?? '');
+            $optionName = trim((string) ($item['option_name'] ?? ''));
             $meta = trim(implode(' / ', array_filter([
+                $optionName,
                 (string) ($presented['spec'] ?? ''),
-                (string) ($presented['sku'] ?? $item['sku'] ?? ''),
+                $sku,
             ])));
             $items[] = [
                 'name' => (string) ($item['product_name'] ?? $presented['name'] ?? '상품'),
-                'sku' => (string) ($presented['sku'] ?? $item['sku'] ?? ''),
+                'sku' => $sku,
+                'option_name' => $optionName,
                 'spec' => (string) ($presented['spec'] ?? ''),
                 'meta' => $meta,
                 'thumbnail' => (string) ($presented['thumbnail'] ?? asset('hero-tall-1.webp')),

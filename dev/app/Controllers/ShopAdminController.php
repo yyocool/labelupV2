@@ -87,7 +87,12 @@ final class ShopAdminController extends BaseController
             $names = [];
             $qty = 0;
             foreach ($row['items'] ?? [] as $item) {
-                $names[] = (string) ($item['product_name'] ?? '') . ' x' . (int) ($item['qty'] ?? 0);
+                $label = (string) ($item['product_name'] ?? '');
+                $option = trim((string) ($item['option_name'] ?? ''));
+                if ($option !== '') {
+                    $label .= ' [' . $option . ']';
+                }
+                $names[] = $label . ' x' . (int) ($item['qty'] ?? 0);
                 $qty += (int) ($item['qty'] ?? 0);
             }
             fputcsv($out, [

@@ -299,6 +299,7 @@ function admin_menu_catalog(): array
         ['key' => 'settings-intro', 'label' => '인트로설정', 'href' => 'admin/settings/intro', 'group' => '설정', 'ic' => '▶'],
         ['key' => 'settings-seo', 'label' => 'SEO 설정', 'href' => 'admin/settings/seo', 'group' => '설정', 'ic' => '◎'],
         ['key' => 'settings-tracking', 'label' => '광고 스크립트', 'href' => 'admin/settings/tracking', 'group' => '설정', 'ic' => '◈'],
+        ['key' => 'partners', 'label' => '협력사 관리', 'href' => 'admin/partners', 'group' => '협력사', 'ic' => '◇'],
         ['key' => 'qr-coupons', 'label' => 'QR쿠폰관리', 'href' => 'admin/qr-coupons', 'group' => 'QR쿠폰', 'ic' => '▦'],
     ];
 }
