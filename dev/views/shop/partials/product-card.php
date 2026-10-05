@@ -2,13 +2,23 @@
 /** @var App\Services\ShopService $shopService */
 /** @var array<string, mixed> $product */
 $unit = $shopService->unitPrice($product);
-$thumb = $shopService->productThumb($product);
-$isSoldout = ($product['status'] ?? '') === 'soldout' || (int) ($product['stock_qty'] ?? 0) <= 0;
+$isInk = $shopService->isInkProduct($product);
+$inkAmount = (int) ($product['ink_amount'] ?? 0);
+$hasPhoto = trim((string) ($product['thumbnail'] ?? '')) !== '';
+$thumb = ($isInk && !$hasPhoto) ? '' : $shopService->productThumb($product);
+$isSoldout = ($product['status'] ?? '') === 'soldout' || (!$isInk && (int) ($product['stock_qty'] ?? 0) <= 0);
 ?>
-<article class="shop-product-card">
+<article class="shop-product-card<?= $isInk ? ' shop-product-card--ink' : '' ?>">
   <a class="shop-product-link" href="<?= url('shop/products/' . (int) $product['id']) ?>">
     <div class="shop-product-img">
+      <?php if ($thumb === '' && $isInk): ?>
+      <div class="shop-ink-visual shop-ink-visual--card">
+        <small>INK</small>
+        <strong><?= number_format($inkAmount) ?></strong>
+      </div>
+      <?php else: ?>
       <img src="<?= e($thumb) ?>" alt="">
+      <?php endif; ?>
       <?php if ($isSoldout): ?><span class="shop-product-badge">품절</span><?php endif; ?>
       <?php if (!empty($product['sale_price']) && (int) $product['sale_price'] < (int) $product['price']): ?>
       <span class="shop-product-badge shop-product-badge--sale">SALE</span>
@@ -17,7 +27,9 @@ $isSoldout = ($product['status'] ?? '') === 'soldout' || (int) ($product['stock_
     <div class="shop-product-meta">
       <span class="shop-product-cat"><?= e((string) ($product['category_name'] ?? '')) ?></span>
       <h3><?= e((string) $product['name']) ?></h3>
-      <?php if (!empty($product['material'])): ?>
+      <?php if ($isInk): ?>
+      <p class="shop-product-desc">지급 <?= number_format($inkAmount) ?> 잉크</p>
+      <?php elseif (!empty($product['material'])): ?>
       <p class="shop-product-desc"><?= e((string) $product['material']) ?> · <?= e((string) ($product['width_mm'] ?? '')) ?>×<?= e((string) ($product['height_mm'] ?? '')) ?>mm</p>
       <?php elseif (!empty($product['description'])): ?>
       <p class="shop-product-desc"><?= e(mb_strimwidth(strip_tags((string) $product['description']), 0, 48, '…')) ?></p>

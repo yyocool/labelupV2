@@ -44,12 +44,12 @@ $userId = (int) ($user['id'] ?? 0);
   </section>
 
   <section class="admin-card">
-    <h2>크레딧 지급</h2>
+    <h2>잉크 지급</h2>
     <p class="admin-credit-balance"><strong><?= number_format($creditBalance) ?> C</strong></p>
     <form id="creditGrantForm" class="admin-grant-form">
       <input type="hidden" name="user_id" value="<?= $userId ?>">
       <label class="admin-field">
-        <span>지급 크레딧</span>
+        <span>지급 잉크</span>
         <input class="admin-input" type="number" name="amount" min="1" max="10000000" step="1" required placeholder="예: 5000">
         <small class="admin-muted"><?= e(\App\Services\CreditService::ratioLabel()) ?></small>
       </label>
@@ -98,7 +98,7 @@ $userId = (int) ($user['id'] ?? 0);
 
 <section class="admin-section">
   <div class="admin-section-head">
-    <h2 class="admin-section-title">크레딧 사용·적립 내역</h2>
+    <h2 class="admin-section-title">잉크 사용·적립 내역</h2>
   </div>
   <div class="admin-table-wrap">
     <table class="admin-table">
@@ -114,7 +114,7 @@ $userId = (int) ($user['id'] ?? 0);
       </thead>
       <tbody>
       <?php if (empty($creditTx)): ?>
-        <tr><td colspan="6" class="empty">크레딧 내역이 없습니다.</td></tr>
+        <tr><td colspan="6" class="empty">잉크 내역이 없습니다.</td></tr>
       <?php else: ?>
       <?php foreach ($creditTx as $tx): ?>
         <tr>

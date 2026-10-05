@@ -96,9 +96,9 @@
               'content-user-designs' => '컨텐츠관리 › 사용자디자인',
               'content-templates' => '컨텐츠관리 › 템플릿관리',
               'content-product-detail-pages' => '컨텐츠관리 › 상세페이지관리',
-              'ops-credit-rewards' => '운영관리 › 크레딧보상 관리',
-              'ops-credit-usage' => '운영관리 › 크레딧 사용 설정',
-              'ops-purchase-credits' => '운영관리 › 구매크레딧',
+              'ops-credit-rewards' => '운영관리 › 잉크보상 관리',
+              'ops-credit-usage' => '운영관리 › 잉크 사용 설정',
+              'ops-purchase-credits' => '운영관리 › 구매잉크',
               'ops-hero-slides' => '운영관리 › 히어로 이미지 관리',
               'ops-event-popups' => '운영관리 › 이벤트 팝업관리',
               'ops-faq' => '운영관리 › FAQ 관리',
@@ -128,7 +128,7 @@
             $creditOverview = ['granted' => 0, 'used' => 0, 'remaining' => 0];
         }
       ?>
-      <button type="button" class="admin-credit-summary" id="adminCreditSummaryBtn" title="크레딧 상세 현황" aria-haspopup="dialog">
+      <button type="button" class="admin-credit-summary" id="adminCreditSummaryBtn" title="잉크 상세 현황" aria-haspopup="dialog">
         <span class="admin-credit-summary__item">
           <em>지급</em>
           <strong data-credit-granted><?= number_format((int) ($creditOverview['granted'] ?? 0)) ?></strong>
@@ -235,7 +235,7 @@
   <div class="admin-modal-backdrop" data-close="adminCreditOverviewModal"></div>
   <div class="admin-modal-panel admin-modal-panel--wide" role="dialog" aria-modal="true" aria-labelledby="adminCreditOverviewTitle">
     <div class="admin-modal-head">
-      <h2 id="adminCreditOverviewTitle">전체 회원 크레딧 현황</h2>
+      <h2 id="adminCreditOverviewTitle">전체 회원 잉크 현황</h2>
       <button type="button" class="admin-modal-close" data-close="adminCreditOverviewModal" aria-label="닫기">×</button>
     </div>
     <div class="admin-modal-body" id="adminCreditOverviewBody">

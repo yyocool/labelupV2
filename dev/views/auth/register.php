@@ -26,42 +26,12 @@
       <div id="authAlert" class="login-alert<?= !empty($authFlash) ? ' show error' : '' ?>"><?= e($authFlash ?? '') ?></div>
 
       <div class="login-social login-social--row">
-        <?php $oauthEnabled = $oauthEnabled ?? ['naver' => false, 'kakao' => false, 'google' => false]; ?>
-        <?php if (!empty($oauthEnabled['naver'])): ?>
-        <a class="login-social-btn login-social-btn--compact" href="<?= url('auth/naver') ?>">
-          <img src="<?= asset('icon-naver.svg') ?>" alt="">
-          <span>네이버로 가입</span>
-        </a>
-        <?php else: ?>
-        <button type="button" class="login-social-btn login-social-btn--compact" disabled title="키 설정 후 이용 가능">
-          <img src="<?= asset('icon-naver.svg') ?>" alt="">
-          <span>네이버로 가입</span>
-        </button>
-        <?php endif; ?>
-
-        <?php if (!empty($oauthEnabled['kakao'])): ?>
-        <a class="login-social-btn login-social-btn--compact" href="<?= url('auth/kakao') ?>">
-          <img src="<?= asset('icon-kakao.svg') ?>" alt="">
-          <span>카카오로 가입</span>
-        </a>
-        <?php else: ?>
-        <button type="button" class="login-social-btn login-social-btn--compact" disabled title="키 설정 후 이용 가능">
-          <img src="<?= asset('icon-kakao.svg') ?>" alt="">
-          <span>카카오로 가입</span>
-        </button>
-        <?php endif; ?>
-
-        <?php if (!empty($oauthEnabled['google'])): ?>
-        <a class="login-social-btn login-social-btn--compact" href="<?= url('auth/google') ?>">
-          <img src="<?= asset('icon-google.svg') ?>" alt="">
-          <span>구글로 가입</span>
-        </a>
-        <?php else: ?>
-        <button type="button" class="login-social-btn login-social-btn--compact" disabled title="키 설정 후 이용 가능">
-          <img src="<?= asset('icon-google.svg') ?>" alt="">
-          <span>구글로 가입</span>
-        </button>
-        <?php endif; ?>
+        <?php
+          $socialVerb = '가입';
+          $socialCompact = true;
+          $socialRedirect = '';
+          require view_path('auth/partials/social-buttons.php');
+        ?>
       </div>
 
       <div class="login-divider register-divider"><span>또는</span></div>

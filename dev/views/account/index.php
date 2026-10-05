@@ -43,7 +43,7 @@ $usagePct = $usageLimit > 0 ? min(100, (int) round(($usageUsed / max(1, $usageLi
     </div>
   </div>
   <div class="account-hero-stats">
-    <a class="account-stat" href="#credits"><span class="account-stat-ic purple">C</span><span class="account-stat-val"><?= number_format((int) $stats['points']) ?> C</span><span class="account-stat-label">크레딧</span></a>
+    <a class="account-stat" href="#credits"><span class="account-stat-ic purple">C</span><span class="account-stat-val"><?= number_format((int) $stats['points']) ?> C</span><span class="account-stat-label">잉크</span></a>
     <a class="account-stat" href="#ai-usage"><span class="account-stat-ic yellow">✦</span><span class="account-stat-val"><?= number_format((int) ($aiUsage['used'] ?? 0)) ?> C</span><span class="account-stat-label">이번달 AI</span></a>
     <a class="account-stat" href="<?= url('shop/cart') ?>"><span class="account-stat-ic green">🎫</span><span class="account-stat-val"><?= (int) $stats['coupons'] ?></span><span class="account-stat-label">쿠폰</span></a>
     <a class="account-stat" href="#orders"><span class="account-stat-ic yellow">📦</span><span class="account-stat-val"><?= (int) $stats['orders'] ?></span><span class="account-stat-label">최근 주문</span></a>
@@ -278,22 +278,22 @@ $usagePct = $usageLimit > 0 ? min(100, (int) round(($usageUsed / max(1, $usageLi
     <h2>알림 설정</h2>
     <button type="button" class="account-btn account-btn--outline" data-open-modal="notifPrefsModal">설정 변경</button>
   </div>
-  <p class="account-meta">받고 싶은 알림 종류와 크레딧 부족 기준을 직접 조절할 수 있습니다.</p>
+  <p class="account-meta">받고 싶은 알림 종류와 잉크 부족 기준을 직접 조절할 수 있습니다.</p>
   <ul class="account-notif-summary" id="accountNotifSummary">
     <li>설정을 불러오는 중…</li>
   </ul>
 </section>
 
 <section class="account-panel card" id="credits">
-  <h2 class="account-section-title">크레딧 내역</h2>
+  <h2 class="account-section-title">잉크 내역</h2>
   <?php $creditBal = (int) ($dash['credit']['balance'] ?? 0); ?>
-  <p class="account-meta">보유 크레딧 <strong<?= $creditBal < 0 ? ' class="is-debt"' : '' ?>><?= number_format($creditBal) ?> C</strong></p>
+  <p class="account-meta">보유 잉크 <strong<?= $creditBal < 0 ? ' class="is-debt"' : '' ?>><?= number_format($creditBal) ?> C</strong></p>
   <?php if ($creditBal < 0): ?>
   <p class="account-meta account-meta--warn">AI 사용으로 마이너스 잔액이 생겼습니다. 다음에 충전하면 부족한 <?= number_format(abs($creditBal)) ?> C이(가) 먼저 차감됩니다.</p>
   <?php endif; ?>
   <?php $creditTx = $dash['credit']['transactions'] ?? []; ?>
   <?php if (empty($creditTx)): ?>
-  <p class="account-empty">크레딧 사용·적립 내역이 없습니다.</p>
+  <p class="account-empty">잉크 사용·적립 내역이 없습니다.</p>
   <?php else: ?>
   <div class="account-credit-list">
     <?php foreach ($creditTx as $tx): ?>
@@ -313,7 +313,7 @@ $usagePct = $usageLimit > 0 ? min(100, (int) round(($usageUsed / max(1, $usageLi
 
 <section class="account-panel card" id="ai-usage">
   <h2 class="account-section-title">AI 사용 이력</h2>
-  <p class="account-meta">이번 달 AI 사용 크레딧 <strong><?= number_format((int) ($aiUsage['used'] ?? 0)) ?> C</strong>
+  <p class="account-meta">이번 달 AI 사용 잉크 <strong><?= number_format((int) ($aiUsage['used'] ?? 0)) ?> C</strong>
     · 보유 <strong<?= (int) ($aiUsage['balance'] ?? 0) < 0 ? ' class="is-debt"' : '' ?>><?= number_format((int) ($aiUsage['balance'] ?? 0)) ?> C</strong></p>
   <?php $aiItems = $aiUsage['items'] ?? []; ?>
   <?php if (empty($aiItems)): ?>

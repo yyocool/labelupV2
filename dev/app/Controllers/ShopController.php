@@ -87,6 +87,15 @@ final class ShopController extends BaseController
 
     public function product(string $id): void
     {
+        if (!ctype_digit($id)) {
+            $found = $this->shop->activeProductIdBySku($id);
+            if ($found <= 0) {
+                http_response_code(404);
+                view('errors/404');
+                return;
+            }
+            redirect('shop/products/' . $found);
+        }
         $product = $this->shop->productDetail((int) $id);
         if (!$product) {
             http_response_code(404);

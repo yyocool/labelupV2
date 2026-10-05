@@ -122,6 +122,7 @@ final class PartnerImageRepository extends BaseModel
              FROM shop_products p
              WHERE p.id IN ({$in})
                AND p.status IN ('active', 'soldout')
+               AND (p.ink_amount IS NULL OR p.ink_amount = 0)
              ORDER BY p.sort_order ASC, p.id DESC",
             $params
         );
@@ -133,7 +134,7 @@ final class PartnerImageRepository extends BaseModel
      */
     private function filterClause(array $filters): array
     {
-        $where = "p.status IN ('active', 'soldout')";
+        $where = "p.status IN ('active', 'soldout') AND (p.ink_amount IS NULL OR p.ink_amount = 0)";
         $params = [];
 
         $q = trim((string) ($filters['q'] ?? ''));

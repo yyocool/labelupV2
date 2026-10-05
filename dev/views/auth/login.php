@@ -53,44 +53,11 @@
 
       <div class="login-social">
         <?php
-          $oauthEnabled = $oauthEnabled ?? ['naver' => false, 'kakao' => false, 'google' => false];
-          $oauthRedirect = rawurlencode((string) ($_GET['redirect'] ?? '/'));
+          $socialVerb = '로그인';
+          $socialCompact = false;
+          $socialRedirect = rawurlencode((string) ($_GET['redirect'] ?? '/'));
+          require view_path('auth/partials/social-buttons.php');
         ?>
-        <?php if (!empty($oauthEnabled['naver'])): ?>
-        <a class="login-social-btn" href="<?= url('auth/naver') ?>?redirect=<?= e($oauthRedirect) ?>">
-          <img src="<?= asset('icon-naver.svg') ?>" alt="">
-          <span>네이버로 로그인</span>
-        </a>
-        <?php else: ?>
-        <button type="button" class="login-social-btn" disabled title="키 설정 후 이용 가능">
-          <img src="<?= asset('icon-naver.svg') ?>" alt="">
-          <span>네이버로 로그인</span>
-        </button>
-        <?php endif; ?>
-
-        <?php if (!empty($oauthEnabled['kakao'])): ?>
-        <a class="login-social-btn" href="<?= url('auth/kakao') ?>?redirect=<?= e($oauthRedirect) ?>">
-          <img src="<?= asset('icon-kakao.svg') ?>" alt="">
-          <span>카카오로 로그인</span>
-        </a>
-        <?php else: ?>
-        <button type="button" class="login-social-btn" disabled title="키 설정 후 이용 가능">
-          <img src="<?= asset('icon-kakao.svg') ?>" alt="">
-          <span>카카오로 로그인</span>
-        </button>
-        <?php endif; ?>
-
-        <?php if (!empty($oauthEnabled['google'])): ?>
-        <a class="login-social-btn" href="<?= url('auth/google') ?>?redirect=<?= e($oauthRedirect) ?>">
-          <img src="<?= asset('icon-google.svg') ?>" alt="">
-          <span>구글로 로그인</span>
-        </a>
-        <?php else: ?>
-        <button type="button" class="login-social-btn" disabled title="키 설정 후 이용 가능">
-          <img src="<?= asset('icon-google.svg') ?>" alt="">
-          <span>구글로 로그인</span>
-        </button>
-        <?php endif; ?>
       </div>
 
       <p class="login-signup">계정이 없으신가요? <a href="<?= url('register') ?>">회원가입</a></p>

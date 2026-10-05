@@ -51,7 +51,7 @@ final class AiAdminApiController extends BaseController
             (new AiCreditService())->saveAdminSettings(request_json());
             $this->jsonSuccess(
                 (new AiCreditService())->adminSettings(),
-                'AI 크레딧 설정이 저장되었습니다.'
+                'AI 잉크 설정이 저장되었습니다.'
             );
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage(), null, 422);

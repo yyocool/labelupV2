@@ -230,13 +230,18 @@ function bindCartPage() {
     const address = (window.LabelUpAddress && typeof window.LabelUpAddress.combine === 'function')
       ? window.LabelUpAddress.combine(zip, base, detail)
       : [zip, base, detail].filter(Boolean).join(' ');
-    const shipName = String(fd.get('shipping_name') || '').trim();
-    const shipPhone = String(fd.get('shipping_phone') || '').trim();
-    if (!shipName || !shipPhone) {
+    const inkOnly = checkoutForm.dataset.inkOnly === '1';
+    const shipName = inkOnly
+      ? String(fd.get('customer_name') || '').trim()
+      : String(fd.get('shipping_name') || '').trim();
+    const shipPhone = inkOnly
+      ? String(fd.get('customer_phone') || '').trim()
+      : String(fd.get('shipping_phone') || '').trim();
+    if (!inkOnly && (!shipName || !shipPhone)) {
       showShopToast('수취인 이름과 연락처를 입력해 주세요.');
       return;
     }
-    if (!zip || !base) {
+    if (!inkOnly && (!zip || !base)) {
       showShopToast('주소 검색으로 배송지를 선택해 주세요.');
       return;
     }

@@ -35,6 +35,18 @@ final class CreditRepository extends BaseModel
         );
     }
 
+    public function hasSourceRef(string $source, string $sourceRef): bool
+    {
+        if ($source === '' || $sourceRef === '') {
+            return false;
+        }
+        $row = $this->fetchOne(
+            'SELECT id FROM credit_transactions WHERE source = :source AND source_ref = :ref LIMIT 1',
+            ['source' => $source, 'ref' => $sourceRef]
+        );
+        return $row !== null;
+    }
+
     public function addTransaction(array $data): int
     {
         $now = date('Y-m-d H:i:s');
@@ -253,7 +265,7 @@ final class CreditRepository extends BaseModel
     }
 
     /**
-     * 전체 회원 크레딧 요약.
+     * 전체 회원 잉크 요약.
      * @return array{granted:int,used:int,remaining:int,members_with_balance:int,members_in_debt:int}
      */
     public function globalTotals(): array

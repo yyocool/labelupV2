@@ -523,6 +523,8 @@ final class ShopRepository extends BaseModel
 
             'sale_price' => $data['sale_price'] !== null && $data['sale_price'] !== '' ? (int) $data['sale_price'] : null,
 
+            'ink_amount' => isset($data['ink_amount']) && $data['ink_amount'] !== '' && (int) $data['ink_amount'] > 0 ? (int) $data['ink_amount'] : null,
+
             'stock_qty' => (int) $data['stock_qty'],
 
             'status' => $data['status'] ?? 'draft',
@@ -549,7 +551,7 @@ final class ShopRepository extends BaseModel
 
             $this->execute(
 
-                'UPDATE shop_products SET category_id=:category_id,spec_id=:spec_id,name=:name,sku=:sku,price=:price,sale_price=:sale_price,stock_qty=:stock_qty,status=:status,description=:description,meta_json=:meta_json,compat_formtec=:compat_formtec,compat_ilabel=:compat_ilabel,compat_anylabel=:compat_anylabel,sort_order=:sort_order,thumbnail=:thumbnail,updated_at=:now WHERE id=:id',
+                'UPDATE shop_products SET category_id=:category_id,spec_id=:spec_id,name=:name,sku=:sku,price=:price,sale_price=:sale_price,ink_amount=:ink_amount,stock_qty=:stock_qty,status=:status,description=:description,meta_json=:meta_json,compat_formtec=:compat_formtec,compat_ilabel=:compat_ilabel,compat_anylabel=:compat_anylabel,sort_order=:sort_order,thumbnail=:thumbnail,updated_at=:now WHERE id=:id',
 
                 $params + ['id' => $id]
 
@@ -566,6 +568,7 @@ final class ShopRepository extends BaseModel
             'sku' => $params['sku'],
             'price' => $params['price'],
             'sale_price' => $params['sale_price'],
+            'ink_amount' => $params['ink_amount'],
             'stock_qty' => $params['stock_qty'],
             'status' => $params['status'],
             'description' => $params['description'],
@@ -581,7 +584,7 @@ final class ShopRepository extends BaseModel
 
         $this->execute(
 
-            'INSERT INTO shop_products (category_id,spec_id,name,sku,price,sale_price,stock_qty,status,description,meta_json,compat_formtec,compat_ilabel,compat_anylabel,sort_order,thumbnail,created_at,updated_at) VALUES (:category_id,:spec_id,:name,:sku,:price,:sale_price,:stock_qty,:status,:description,:meta_json,:compat_formtec,:compat_ilabel,:compat_anylabel,:sort_order,:thumbnail,:created_at,:updated_at)',
+            'INSERT INTO shop_products (category_id,spec_id,name,sku,price,sale_price,ink_amount,stock_qty,status,description,meta_json,compat_formtec,compat_ilabel,compat_anylabel,sort_order,thumbnail,created_at,updated_at) VALUES (:category_id,:spec_id,:name,:sku,:price,:sale_price,:ink_amount,:stock_qty,:status,:description,:meta_json,:compat_formtec,:compat_ilabel,:compat_anylabel,:sort_order,:thumbnail,:created_at,:updated_at)',
 
             $insertParams
 
@@ -1369,6 +1372,7 @@ final class ShopRepository extends BaseModel
              LEFT JOIN shop_categories c ON c.id = p.category_id
              LEFT JOIN label_specs s ON s.id = p.spec_id
              WHERE p.status IN ('active','soldout')
+               AND (p.ink_amount IS NULL OR p.ink_amount = 0)
              ORDER BY p.sort_order ASC, p.name ASC, p.id DESC
              LIMIT 500"
         );
@@ -1900,6 +1904,9 @@ final class ShopRepository extends BaseModel
                 $qty = (int) ($item['qty'] ?? 1);
                 if ($pid > 0 && $qty > 0) {
                     $fresh = $this->findActiveProduct($pid);
+                    if ($fresh && (int) ($fresh['ink_amount'] ?? 0) > 0) {
+                        continue;
+                    }
                     $left = max(0, (int) ($fresh['stock_qty'] ?? 0) - $qty);
                     $this->execute(
                         'UPDATE shop_products SET stock_qty = :qty, status = :status, updated_at = :now WHERE id = :id',
@@ -1929,6 +1936,22 @@ final class ShopRepository extends BaseModel
     }
 
     /** @return array<string, mixed>|null */
+    /** @return array<int, array<string, mixed>> */
+    public function inkGrantRows(int $orderId): array
+    {
+        if ($orderId <= 0) {
+            return [];
+        }
+        return $this->fetchAll(
+            'SELECT o.user_id, o.order_no, i.qty, i.product_name, p.ink_amount
+             FROM shop_orders o
+             INNER JOIN shop_order_items i ON i.order_id = o.id
+             INNER JOIN shop_products p ON p.id = i.product_id
+             WHERE o.id = :id AND p.ink_amount > 0',
+            ['id' => $orderId]
+        );
+    }
+
     public function findOrderByNo(string $orderNo): ?array
     {
         $orderNo = trim($orderNo);

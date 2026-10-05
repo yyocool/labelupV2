@@ -57,12 +57,14 @@ $statuses = ['active', 'soldout', 'hidden', 'draft'];
       </td>
       <td>
         <strong><?= e($row['name']) ?></strong>
+        <?php if ((int) ($row['ink_amount'] ?? 0) <= 0): ?>
         <form class="admin-compat-row js-compat-form" data-id="<?= (int) $row['id'] ?>">
           <label><?= "\u{D3FC}\u{D14D}" ?><textarea name="compat_formtec" rows="2"><?= e(\App\Helpers\ShopCompatHelper::toMultiline($row['compat_formtec'] ?? null)) ?></textarea></label>
           <label><?= "\u{C544}\u{C774}\u{B77C}\u{BCA8}" ?><textarea name="compat_ilabel" rows="2"><?= e(\App\Helpers\ShopCompatHelper::toMultiline($row['compat_ilabel'] ?? null)) ?></textarea></label>
           <label><?= "\u{C560}\u{B2C8}\u{B77C}\u{BCA8}" ?><textarea name="compat_anylabel" rows="2"><?= e(\App\Helpers\ShopCompatHelper::toMultiline($row['compat_anylabel'] ?? null)) ?></textarea></label>
           <button type="submit" class="admin-btn admin-btn--sm"><?= "\u{C800}\u{C7A5}" ?></button>
         </form>
+        <?php endif; ?>
       </td>
       <td><code><?= e($row['sku']) ?></code></td>
       <td><?php
@@ -70,7 +72,7 @@ $statuses = ['active', 'soldout', 'hidden', 'draft'];
         $catName = trim((string) ($row['category_name'] ?? ''));
         echo e($parentCat !== '' && $catName !== '' ? $parentCat . ' / ' . $catName : ($catName !== '' ? $catName : '-'));
       ?></td>
-      <td><?= e($row['spec_name'] ?? '-') ?></td>
+      <td><?php if ((int) ($row['ink_amount'] ?? 0) > 0): ?><?= number_format((int) $row['ink_amount']) ?> 잉크<?php else: ?><?= e($row['spec_name'] ?? '-') ?><?php endif; ?></td>
       <td><?= number_format((int) $row['price']) ?>원<?php if (!empty($row['sale_price'])): ?> <small class="admin-muted">→ <?= number_format((int) $row['sale_price']) ?>원</small><?php endif; ?></td>
       <td>
         <?php
@@ -83,7 +85,7 @@ $statuses = ['active', 'soldout', 'hidden', 'draft'];
         <?= count($activeOptions) ?>개<?php if (count($rowOptions) > count($activeOptions)): ?><small class="admin-muted"> / 전체 <?= count($rowOptions) ?></small><?php endif; ?>
         <?php endif; ?>
       </td>
-      <td><?= number_format((int) $row['stock_qty']) ?></td>
+      <td><?php if ((int) ($row['ink_amount'] ?? 0) > 0): ?><span class="admin-muted">디지털</span><?php else: ?><?= number_format((int) $row['stock_qty']) ?><?php endif; ?></td>
       <td><?= e(ShopAdminService::productStatusLabel((string) ($row['status'] ?? ''))) ?></td>
       <td>
         <?php

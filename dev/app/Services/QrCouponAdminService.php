@@ -139,10 +139,10 @@ final class QrCouponAdminService
     }
 
     /**
-     * 정상 소비자가 기준 제조단가·최대지급액·토큰·크레딧.
+     * 정상 소비자가 기준 제조단가·최대지급액·토큰·잉크.
      * 제조단가 = 소비자가의 20%, 최대지급액 = 제조단가의 3%.
      * 토큰량은 기본 ChatGPT 모델의 입력 75%·출력 25% 혼합 단가.
-     * 크레딧환산은 1원 = 10 C (CreditService::CREDITS_PER_KRW).
+     * 잉크환산은 1원 = 10 C (CreditService::CREDITS_PER_KRW).
      *
      * @return array{manufacturing_cost:int,max_payout:int,token_amount:int,credit_equivalent:int}
      */
@@ -174,11 +174,11 @@ final class QrCouponAdminService
         $normalized = null;
         if ($creditAmount !== null && $creditAmount !== '') {
             if (!is_numeric($creditAmount)) {
-                throw new RuntimeException('지급 크레딧은 숫자로 입력해 주세요.');
+                throw new RuntimeException('지급 잉크는 숫자로 입력해 주세요.');
             }
             $normalized = (int) $creditAmount;
             if ($normalized < 0) {
-                throw new RuntimeException('지급 크레딧은 0 이상이어야 합니다.');
+                throw new RuntimeException('지급 잉크는 0 이상이어야 합니다.');
             }
         }
 
@@ -672,7 +672,7 @@ final class QrCouponAdminService
                     'w' => 36,
                     'h' => 12,
                     'rotation' => 0,
-                    'text' => "스캔하고\n크레딧 받기",
+                    'text' => "스캔하고\n잉크 받기",
                     'fontFamily' => 'Pretendard',
                     'fontSize' => 8,
                     'fontWeight' => 700,

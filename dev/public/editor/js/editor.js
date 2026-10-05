@@ -1057,7 +1057,7 @@ window.labelUpEditor = {
       credit.type = 'button';
       credit.className = 'ed-btn';
       credit.setAttribute('data-ed-m-credit', '1');
-      credit.textContent = '남은 크레딧';
+      credit.textContent = '남은 잉크';
       credit.addEventListener('click', function (e) {
         e.preventDefault();
         var chip = document.getElementById('lu-credit-chip');
@@ -3070,11 +3070,11 @@ window.labelUpEditor = {
     var strong = chip.querySelector('strong');
     var em = chip.querySelector('em');
     if (strong) strong.textContent = bal.toLocaleString('ko-KR') + ' C';
-    if (em) em.textContent = bal < 0 ? '미정산' : '남은 크레딧';
+    if (em) em.textContent = bal < 0 ? '미정산' : '남은 잉크';
     chip.hidden = false;
     chip.classList.remove('is-guest');
     chip.classList.toggle('is-debt', bal < 0);
-    chip.title = bal < 0 ? '마이너스 잔액 · 충전 시 자동 차감' : '내 크레딧';
+    chip.title = bal < 0 ? '마이너스 잔액 · 충전 시 자동 차감' : '내 잉크';
     this._creditGuest = false;
     this.syncMobileCreditButton();
   },
@@ -3113,7 +3113,7 @@ window.labelUpEditor = {
       chip.className = 'ed-credit-chip';
       chip.hidden = true;
       chip.innerHTML = '<span class="ed-credit-chip__ic" aria-hidden="true">C</span>' +
-        '<span class="ed-credit-chip__meta"><em>남은 크레딧</em><strong>0 C</strong></span>';
+        '<span class="ed-credit-chip__meta"><em>남은 잉크</em><strong>0 C</strong></span>';
       host.appendChild(chip);
       chip.addEventListener('click', function () {
         if (state.guest) {
@@ -3137,8 +3137,8 @@ window.labelUpEditor = {
         // 비로그인: 잔액을 알 수 없으므로 칩을 숨긴다 (0 C처럼 보이게 하지 않음)
         chip.hidden = true;
         chip.classList.add('is-guest');
-        chip.title = '로그인하면 남은 크레딧을 볼 수 있습니다';
-        if (em) em.textContent = '크레딧';
+        chip.title = '로그인하면 남은 잉크를 볼 수 있습니다';
+        if (em) em.textContent = '잉크';
         if (strong) strong.textContent = '로그인';
         self.syncMobileCreditButton();
         return;
@@ -3148,8 +3148,8 @@ window.labelUpEditor = {
       chip.hidden = false;
       chip.title = Number(state.balance) < 0
         ? '마이너스 잔액 · 충전 시 자동 차감'
-        : '크레딧 사용 이력 보기';
-      if (em) em.textContent = Number(state.balance) < 0 ? '미정산' : '남은 크레딧';
+        : '잉크 사용 이력 보기';
+      if (em) em.textContent = Number(state.balance) < 0 ? '미정산' : '남은 잉크';
       if (strong) strong.textContent = fmt(state.balance);
       self.syncMobileCreditButton();
       if (document.querySelector('.ed.is-mobile')) self.ensureMobileDrawerExtras();
@@ -3159,7 +3159,7 @@ window.labelUpEditor = {
       var amt = Number(item.amount) || 0;
       var plus = amt >= 0;
       return '<div class="ed-credit-row">' +
-        '<div><strong>' + escapeHtml(item.description || item.tx_type_label || '크레딧') + '</strong>' +
+        '<div><strong>' + escapeHtml(item.description || item.tx_type_label || '잉크') + '</strong>' +
         '<span>' + escapeHtml(when(item.created_at)) + ' · ' + escapeHtml(item.tx_type_label || '') +
         (item.source_label ? ' · ' + escapeHtml(item.source_label) : '') + '</span></div>' +
         '<b class="' + (plus ? 'is-plus' : 'is-minus') + '">' + (plus ? '+' : '') + fmt(amt) + '</b></div>';
@@ -3179,7 +3179,7 @@ window.labelUpEditor = {
       if (bal) bal.textContent = fmt(state.balance);
       if (list) {
         if (!state.items.length) {
-          list.innerHTML = '<p class="ed-credit-empty">크레딧 사용·적립 내역이 없습니다.</p>';
+          list.innerHTML = '<p class="ed-credit-empty">잉크 사용·적립 내역이 없습니다.</p>';
         } else {
           list.innerHTML = state.items.map(rowHtml).join('');
         }
@@ -3193,8 +3193,8 @@ window.labelUpEditor = {
       root.id = 'lu-credit-modal';
       root.className = 'ed-modal ed-credit-modal';
       root.innerHTML = '<div class="ed-modal__card ed-modal__card--confirm ed-credit-modal__card" role="dialog" aria-modal="true" aria-labelledby="lu-credit-title">' +
-        '<div class="ed-modal__head"><div><h3 id="lu-credit-title">크레딧 사용 이력</h3>' +
-        '<p>남은 크레딧 <strong data-credit-balance>0 C</strong></p></div>' +
+        '<div class="ed-modal__head"><div><h3 id="lu-credit-title">잉크 사용 이력</h3>' +
+        '<p>남은 잉크 <strong data-credit-balance>0 C</strong></p></div>' +
         '<button type="button" class="ed-modal__close" data-credit-close aria-label="닫기">×</button></div>' +
         '<div class="ed-modal__body"><div class="ed-credit-list" data-credit-list></div></div>' +
         '<div class="ed-modal__foot"><a class="ed-btn" href="/account#credits">마이페이지에서 보기</a>' +
@@ -3356,6 +3356,8 @@ window.labelUpEditor = {
       if (existing) existing.remove();
 
       var oauthEnabled = { naver: true, kakao: true, google: true };
+      var snsHold = false;
+      var snsHoldMessage = '준비중입니다 이용에 불편을 드려 죄송합니다';
       try {
         var oauthRes = await fetch(self.apiUrl('/api/auth/oauth'), {
           method: 'GET',
@@ -3367,6 +3369,8 @@ window.labelUpEditor = {
           oauthEnabled.naver = !!oauthJson.data.naver;
           oauthEnabled.kakao = !!oauthJson.data.kakao;
           oauthEnabled.google = !!oauthJson.data.google;
+          snsHold = !!oauthJson.data.sns_hold;
+          if (oauthJson.data.sns_hold_message) snsHoldMessage = String(oauthJson.data.sns_hold_message);
         }
       } catch (e) { /* keep defaults */ }
 
@@ -3387,6 +3391,11 @@ window.labelUpEditor = {
           { key: 'google', label: '구글로 ' + verb, icon: '/assets/icon-google.svg' }
         ];
         return '<div class="lu-auth-gate__social' + row + '">' + providers.map(function (p) {
+          if (snsHold) {
+            return '<button type="button" class="lu-auth-gate__social-btn' + compact + '" data-sns-hold="1">' +
+              '<img src="' + p.icon + '" alt="">' +
+              '<span>' + p.label + '</span></button>';
+          }
           if (oauthEnabled[p.key]) {
             return '<a class="lu-auth-gate__social-btn' + compact + '" href="' + self.apiUrl('/auth/' + p.key) + redirectQ + '">' +
               '<img src="' + p.icon + '" alt="">' +
@@ -3449,6 +3458,19 @@ window.labelUpEditor = {
 
       root.addEventListener('click', function (e) {
         if (e.target && e.target.closest && e.target.closest('[data-lu-auth-close]')) close(false);
+      });
+
+      root.querySelectorAll('[data-sns-hold]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var form = btn.closest('form');
+          var err = form && form.querySelector('.lu-auth-gate__error');
+          if (err) {
+            err.hidden = false;
+            err.textContent = snsHoldMessage;
+          } else {
+            window.alert(snsHoldMessage);
+          }
+        });
       });
 
       root.querySelectorAll('[data-lu-auth-tab]').forEach(function (btn) {

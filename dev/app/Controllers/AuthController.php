@@ -11,6 +11,7 @@ use App\Services\AuthService;
 use App\Services\EventPopupService;
 use App\Services\OAuthService;
 use App\Services\ShopService;
+use App\Services\SiteModeService;
 use RuntimeException;
 
 final class AuthController extends BaseController
@@ -31,10 +32,12 @@ final class AuthController extends BaseController
         $oauth = new OAuthService();
         $flash = (string) ($_SESSION['auth_flash'] ?? '');
         unset($_SESSION['auth_flash']);
+        $siteMode = new SiteModeService();
         $this->render('auth/login', [
             'pageTitle' => '로그인 — 라벨업',
             'redirectUrl' => url(ltrim($redirectPath, '/')),
             'oauthEnabled' => $oauth->configuredMap(),
+            'snsHold' => $siteMode->isTempOpen(),
             'authFlash' => $flash,
         ]);
     }
@@ -47,9 +50,11 @@ final class AuthController extends BaseController
         $oauth = new OAuthService();
         $flash = (string) ($_SESSION['auth_flash'] ?? '');
         unset($_SESSION['auth_flash']);
+        $siteMode = new SiteModeService();
         $this->render('auth/register', [
             'pageTitle' => '회원가입 — 라벨업',
             'oauthEnabled' => $oauth->configuredMap(),
+            'snsHold' => $siteMode->isTempOpen(),
             'authFlash' => $flash,
         ]);
     }
@@ -58,6 +63,10 @@ final class AuthController extends BaseController
     {
         $provider = strtolower(trim($provider));
         $oauth = new OAuthService();
+        if ((new SiteModeService())->isTempOpen()) {
+            $_SESSION['auth_flash'] = SiteModeService::SNS_HOLD_MESSAGE;
+            redirect($this->snsHoldBackPath());
+        }
         if (!$oauth->isSupported($provider)) {
             $_SESSION['auth_flash'] = '지원하지 않는 소셜 로그인입니다.';
             redirect('/login');
@@ -85,6 +94,10 @@ final class AuthController extends BaseController
     {
         $provider = strtolower(trim($provider));
         $oauth = new OAuthService();
+        if ((new SiteModeService())->isTempOpen()) {
+            $_SESSION['auth_flash'] = SiteModeService::SNS_HOLD_MESSAGE;
+            redirect($this->snsHoldBackPath());
+        }
         $error = trim((string) ($_GET['error'] ?? $_GET['error_description'] ?? ''));
         if ($error !== '') {
             $_SESSION['auth_flash'] = '소셜 로그인이 취소되었거나 실패했습니다.';
@@ -118,6 +131,16 @@ final class AuthController extends BaseController
             $_SESSION['auth_flash'] = $e->getMessage();
             redirect('/login');
         }
+    }
+
+    private function snsHoldBackPath(): string
+    {
+        $ref = (string) ($_SERVER['HTTP_REFERER'] ?? '');
+        $path = (string) (parse_url($ref, PHP_URL_PATH) ?? '');
+        if (str_contains($path, '/register')) {
+            return '/register';
+        }
+        return '/login';
     }
 
     public function account(): void

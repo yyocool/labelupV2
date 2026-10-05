@@ -9,7 +9,7 @@ use RuntimeException;
 
 final class CreditService
 {
-    /** 원화 1원당 크레딧 수 (1원 : 10 C) */
+    /** 원화 1원당 잉크 수 (1원 : 10 C) */
     public const CREDITS_PER_KRW = 10;
 
     private CreditRepository $repo;
@@ -63,7 +63,7 @@ final class CreditService
         $current = $this->repo->getBalance($userId);
         $next = $current + $amount;
         if ($next < 0) {
-            throw new RuntimeException('크레딧 잔액이 부족합니다.');
+            throw new RuntimeException('잉크 잔액이 부족합니다.');
         }
         $this->repo->setBalance($userId, $next);
         $this->repo->addTransaction([
@@ -82,13 +82,48 @@ final class CreditService
         return $next;
     }
 
+    public function grantPurchase(int $userId, int $amount, string $description, string $sourceRef): int
+    {
+        if ($userId <= 0 || $amount <= 0) {
+            return $this->balance($userId);
+        }
+        if ($this->repo->hasSourceRef('order', $sourceRef)) {
+            return $this->balance($userId);
+        }
+        $description = trim($description);
+        if ($description === '') {
+            $description = '잉크 충전 구매';
+        }
+        if (mb_strlen($description) > 255) {
+            $description = mb_substr($description, 0, 252) . '...';
+        }
+        $this->repo->ensureBalanceRow($userId);
+        $current = $this->repo->getBalance($userId);
+        $next = $current + $amount;
+        $this->repo->setBalance($userId, $next);
+        $this->repo->addTransaction([
+            'user_id' => $userId,
+            'amount' => $amount,
+            'balance_after' => $next,
+            'tx_type' => 'earn',
+            'source' => 'order',
+            'source_ref' => $sourceRef,
+            'description' => $description,
+            'admin_id' => null,
+        ]);
+        $notifier = new NotificationService();
+        $notifier->notifyCreditChange($userId, $amount, $next, $description);
+        $notifier->maybeNotifyCreditLow($userId, $current, $next);
+        return $next;
+    }
+
     public function grant(int $userId, int $amount, string $reason, int $adminId): int
     {
         if ($amount <= 0) {
-            throw new RuntimeException('지급 크레딧은 1 이상이어야 합니다.');
+            throw new RuntimeException('지급 잉크는 1 이상이어야 합니다.');
         }
         if ($amount > 10000000) {
-            throw new RuntimeException('한 번에 지급할 수 있는 크레딧은 10,000,000 C까지입니다.');
+            throw new RuntimeException('한 번에 지급할 수 있는 잉크는 10,000,000 C까지입니다.');
         }
         $reason = trim($reason);
         if ($reason === '') {
@@ -112,12 +147,12 @@ final class CreditService
             throw new RuntimeException('유효하지 않은 회원입니다.');
         }
         if ($amount <= 0) {
-            throw new RuntimeException('사용 크레딧은 1 이상이어야 합니다.');
+            throw new RuntimeException('사용 잉크는 1 이상이어야 합니다.');
         }
         $this->repo->ensureBalanceRow($userId);
         $current = $this->repo->getBalance($userId);
         if (!$allowOverdraft && $current < $amount) {
-            throw new RuntimeException('크레딧 잔액이 부족합니다.');
+            throw new RuntimeException('잉크 잔액이 부족합니다.');
         }
         $next = $current - $amount;
         $this->repo->setBalance($userId, $next);

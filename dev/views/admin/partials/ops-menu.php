@@ -6,9 +6,9 @@ $opsMenus = [
     ['key' => 'ops-event-popups', 'label' => '이벤트 팝업관리', 'href' => 'admin/ops/event-popups', 'ic' => '◎'],
     ['key' => 'ops-faq', 'label' => 'FAQ 관리', 'href' => 'admin/ops/faq', 'ic' => '?'],
     ['key' => 'ops-inquiries', 'label' => '1:1 문의', 'href' => 'admin/ops/inquiries', 'ic' => '✉'],
-    ['key' => 'ops-credit-rewards', 'label' => '크레딧보상 관리', 'href' => 'admin/ops/credit-rewards', 'ic' => '◈'],
-    ['key' => 'ops-credit-usage', 'label' => '크레딧 사용 설정', 'href' => 'admin/ops/credit-usage', 'ic' => 'C'],
-    ['key' => 'ops-purchase-credits', 'label' => '구매크레딧', 'href' => 'admin/ops/purchase-credits', 'ic' => '▣'],
+    ['key' => 'ops-credit-rewards', 'label' => '잉크보상 관리', 'href' => 'admin/ops/credit-rewards', 'ic' => '◈'],
+    ['key' => 'ops-credit-usage', 'label' => '잉크 사용 설정', 'href' => 'admin/ops/credit-usage', 'ic' => 'C'],
+    ['key' => 'ops-purchase-credits', 'label' => '구매잉크', 'href' => 'admin/ops/purchase-credits', 'ic' => '▣'],
 ];
 $opsMenus = admin_filter_menu_items($opsMenus);
 $isOpsOpen = ($menuGroup ?? '') === 'ops'

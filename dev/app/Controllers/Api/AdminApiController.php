@@ -82,7 +82,7 @@ final class AdminApiController extends BaseController
         $credit = (int) ($payload['credit_amount'] ?? 0);
         $message = '회원이 추가되었습니다.';
         if ($credit > 0) {
-            // 회원은 이미 만들어졌다. 크레딧 지급만 실패해도 등록은 되돌리지 않고 알린다.
+            // 회원은 이미 만들어졌다. 잉크 지급만 실패해도 등록은 되돌리지 않고 알린다.
             try {
                 (new CreditAdminService())->grantUserCredit(
                     $userId,
@@ -90,9 +90,9 @@ final class AdminApiController extends BaseController
                     trim((string) ($payload['credit_reason'] ?? '')) ?: '관리자 회원 등록 지급',
                     (int) $this->auth->adminId()
                 );
-                $message = '회원이 추가되고 크레딧 ' . number_format($credit) . ' C가 지급되었습니다.';
+                $message = '회원이 추가되고 잉크 ' . number_format($credit) . ' C가 지급되었습니다.';
             } catch (RuntimeException $e) {
-                $message = '회원은 추가되었지만 크레딧 지급에 실패했습니다. ' . $e->getMessage();
+                $message = '회원은 추가되었지만 잉크 지급에 실패했습니다. ' . $e->getMessage();
             }
         }
 

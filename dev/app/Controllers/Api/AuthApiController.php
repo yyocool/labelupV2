@@ -9,6 +9,7 @@ use App\Middleware\AuthMiddleware;
 use App\Services\AccountRecoveryService;
 use App\Services\AuthService;
 use App\Services\OAuthService;
+use App\Services\SiteModeService;
 use App\Services\UserService;
 use RuntimeException;
 
@@ -73,7 +74,11 @@ final class AuthApiController extends BaseController
 
     public function oauthProviders(): never
     {
-        $this->jsonSuccess((new OAuthService())->configuredMap());
+        $siteMode = new SiteModeService();
+        $this->jsonSuccess(array_merge((new OAuthService())->configuredMap(), [
+            'sns_hold' => $siteMode->isTempOpen(),
+            'sns_hold_message' => $siteMode->isTempOpen() ? SiteModeService::SNS_HOLD_MESSAGE : '',
+        ]));
     }
 
     public function checkEmail(): never

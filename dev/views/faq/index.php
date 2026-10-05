@@ -15,7 +15,7 @@
 <body class="account-page faq-page">
 <?php marketing_render_body_start(); ?>
 <div class="app" id="userApp">
-<script>try{if(localStorage.getItem('labelup_sidebar_collapsed')==='1')document.getElementById('userApp').classList.add('is-sidebar-collapsed')}catch(e){}</script>
+<script>(function(){var app=document.getElementById('userApp');if(!app)return;var mobile=window.matchMedia('(max-width:1080px)').matches;var collapsed=false;try{collapsed=localStorage.getItem('labelup_sidebar_collapsed')==='1'}catch(e){}if(mobile||collapsed)app.classList.add('is-sidebar-collapsed')})();</script>
 <?php require view_path('home/partials/sidebar.php'); ?>
 <?php require view_path('home/partials/sidebar-toggle.php'); ?>
 <main class="main account-main">
@@ -37,7 +37,7 @@
       <div>
         <p class="faq-kicker">고객센터</p>
         <h1>자주 묻는 질문</h1>
-        <p>라벨 디자인, 쇼핑, 크레딧, 주문까지 자주 묻는 내용을 모아 두었습니다.</p>
+        <p>라벨 디자인, 쇼핑, 잉크, 주문까지 자주 묻는 내용을 모아 두었습니다.</p>
       </div>
       <a class="account-btn account-btn--primary" href="<?= url('editor/?new=1') ?>">새 디자인 만들기</a>
     </section>

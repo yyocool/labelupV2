@@ -52,7 +52,7 @@
         const on = !!prefs[key];
         return '<li><span>' + (m.label || key) + '</span><em>' + (on ? '수신' : '꺼짐') + '</em></li>';
       }).join('') +
-        '<li><span>크레딧 부족 기준</span><em>' + Number(prefs.low_credit_threshold || 100).toLocaleString() + ' C</em></li>';
+        '<li><span>잉크 부족 기준</span><em>' + Number(prefs.low_credit_threshold || 100).toLocaleString() + ' C</em></li>';
     }
     if (notifFields) {
       const meta = prefs.meta || {};

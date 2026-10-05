@@ -250,12 +250,13 @@ function buildCategorySelectOptions(categories, selected) {
       else if (Number(next.depth || 0) === 0) break;
     }
     const id = String(cat.id);
-    html += `<option value="${escHtml(id)}"${sel === id ? ' selected' : ''}>${escHtml(cat.name || '')}${children.length ? '  · 1차' : ''}</option>`;
+    const slug = escHtml(cat.slug || '');
+    html += `<option value="${escHtml(id)}" data-slug="${slug}"${sel === id ? ' selected' : ''}>${escHtml(cat.name || '')}${children.length ? '  · 1차' : ''}</option>`;
     if (!children.length) continue;
     html += `<optgroup label="${escHtml(cat.name || '')} · 2차">`;
     children.forEach((child) => {
       const cid = String(child.id);
-      html += `<option value="${escHtml(cid)}"${sel === cid ? ' selected' : ''}>└ ${escHtml(child.name || '')}</option>`;
+      html += `<option value="${escHtml(cid)}" data-slug="${escHtml(child.slug || '')}"${sel === cid ? ' selected' : ''}>└ ${escHtml(child.name || '')}</option>`;
     });
     html += '</optgroup>';
   }
@@ -486,9 +487,10 @@ function buildProductForm(row = {}) {
     selectClass: 'admin-select--category',
     htmlOptions: buildCategorySelectOptions(shopMeta.categories || [], row.category_id),
   });
-  html += shopField('라벨 규격', 'spec_id', row.spec_id || '', 'select', {
+  html += `<div class="js-ink-only">${shopField('지급 잉크', 'ink_amount', row.ink_amount || '', 'number', { required: false, step: 1 })}</div>`;
+  html += `<div class="js-label-only">${shopField('라벨 규격', 'spec_id', row.spec_id || '', 'select', {
     options: [{ v: '', t: '선택 안함' }, ...shopMeta.specs.map((s) => ({ v: s.id, t: s.name }))],
-  });
+  })}</div>`;
   html += shopField('상태', 'status', row.status || 'draft', 'select', {
     options: [
       { v: 'draft', t: '임시저장' }, { v: 'active', t: '판매중' },
@@ -498,7 +500,7 @@ function buildProductForm(row = {}) {
   html += shopField('정렬', 'sort_order', row.sort_order ?? 0, 'number');
   html += '</div></section>';
 
-  html += '<section class="admin-product-section"><h4 class="admin-product-section-title">\uD638\uD658\uCF54\uB4DC</h4>';
+  html += '<section class="admin-product-section js-label-only"><h4 class="admin-product-section-title">\uD638\uD658\uCF54\uB4DC</h4>';
   html += '<p class="admin-muted" style="margin:0 0 8px;font-size:12px">\uD3FC\uD14D\u00B7\uC544\uC774\uB77C\uBCA8\u00B7\uC560\uB2C8\uB77C\uBCA8 \uCF54\uB4DC\uB294 \uD55C \uC904\uC5D0 \uD558\uB098 \uB610\uB294 \uC27C\uD45C\uB85C \uC5EC\uB7EC \uAC1C\uB97C \uC785\uB825\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.</p>';
   html += '<div class="admin-product-form-grid">';
   html += shopField('\uD3FC\uD14D', 'compat_formtec', compatToMultiline(row.compat_formtec), 'textarea', { rows: 3, full: true });
@@ -509,18 +511,18 @@ function buildProductForm(row = {}) {
   html += '<section class="admin-product-section"><h4 class="admin-product-section-title">가격 · 재고</h4><div class="admin-product-form-grid">';
   html += shopField('정가(원)', 'price', row.price ?? 0, 'number', { required: true });
   html += shopField('할인가(원)', 'sale_price', row.sale_price ?? '', 'number');
-  html += shopField('재고', 'stock_qty', row.stock_qty ?? 0, 'number', { required: true });
+  html += `<div class="js-label-only">${shopField('재고', 'stock_qty', row.stock_qty ?? 0, 'number', { required: true })}</div>`;
   html += '</div></section>';
 
-  html += '<section class="admin-product-section"><h4 class="admin-product-section-title">상품 스펙 · 물류 정보</h4><div class="admin-product-form-grid">';
+  html += '<section class="admin-product-section js-label-only"><h4 class="admin-product-section-title">상품 스펙 · 물류 정보</h4><div class="admin-product-form-grid">';
   html += buildProductMetaFields(productMeta);
   html += '</div></section>';
 
-  html += '<section class="admin-product-section"><h4 class="admin-product-section-title">옵션</h4>';
+  html += '<section class="admin-product-section js-label-only"><h4 class="admin-product-section-title">옵션</h4>';
   html += buildProductOptionsSection();
   html += '</section>';
 
-  html += '<section class="admin-product-section"><h4 class="admin-product-section-title">이미지</h4>';
+  html += '<section class="admin-product-section js-label-only"><h4 class="admin-product-section-title">이미지</h4>';
   html += buildProductImagesSection(row.thumbnail || '');
   html += shopField('대표 이미지 경로', 'thumbnail_path_display', row.thumbnail || '', 'readonly', { full: true });
   html += '</section>';
@@ -890,6 +892,37 @@ function bindProductImageEvents() {
   };
 }
 
+function selectedCategorySlug() {
+  const sel = document.querySelector('#shopModalForm [name="category_id"]');
+  return sel?.selectedOptions?.[0]?.dataset.slug || '';
+}
+
+function syncInkSku() {
+  const form = document.querySelector('#shopModalForm');
+  const amount = form?.querySelector('[name="ink_amount"]');
+  const sku = form?.querySelector('[name="sku"]');
+  if (!amount || !sku) return;
+  const current = sku.value.trim();
+  if (current && !/^INK-\d+$/.test(current)) return;
+  const n = Number(amount.value || 0);
+  if (n > 0) sku.value = `INK-${n}`;
+}
+
+function applyInkProductMode() {
+  const form = document.querySelector('#shopModalForm .admin-product-form');
+  if (!form) return;
+  const ink = selectedCategorySlug() === 'ink-charge';
+  form.classList.toggle('is-ink', ink);
+  form.querySelectorAll('.js-ink-only').forEach((el) => { el.hidden = !ink; });
+  form.querySelectorAll('.js-label-only').forEach((el) => { el.hidden = ink; });
+  const stock = form.querySelector('[name="stock_qty"]');
+  const inkInput = form.querySelector('[name="ink_amount"]');
+  if (stock) stock.required = !ink;
+  if (inkInput) inkInput.required = ink;
+  if (ink && stock) stock.value = '999999';
+  if (ink) syncInkSku();
+}
+
 function openShopModal(entity, row = {}) {
   const modal = document.getElementById('shopModal');
   const form = document.getElementById('shopModalForm');
@@ -917,6 +950,11 @@ function openShopModal(entity, row = {}) {
     initProductOptionsState(row);
     bindProductOptionEvents();
     initProductSummernote();
+    applyInkProductMode();
+    form.querySelector('[name="category_id"]')?.addEventListener('change', applyInkProductMode);
+    form.querySelector('[name="ink_amount"]')?.addEventListener('input', () => {
+      if (selectedCategorySlug() === 'ink-charge') syncInkSku();
+    });
   } else if (entity === 'category') {
     initCategoryImage(row.image_path || '');
   } else if (entity === 'spec') {
@@ -1008,7 +1046,15 @@ if (shopForm) {
         }));
         const primary = productImagesState.find((img) => img.is_primary) || productImagesState[0];
         data.thumbnail = primary?.image_path || data.thumbnail || '';
-        data.options = productOptionsState
+        if (selectedCategorySlug() === 'ink-charge') {
+          data.stock_qty = 999999;
+          data.spec_id = '';
+          data.options = [];
+          if (!String(data.sku || '').trim() && Number(data.ink_amount || 0) > 0) {
+            data.sku = `INK-${data.ink_amount}`;
+          }
+        }
+        data.options = data.options || productOptionsState
           .filter((opt) => String(opt.name || '').trim() !== '')
           .map((opt, i) => ({
             id: Number(opt.id || 0),

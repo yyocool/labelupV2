@@ -10,7 +10,6 @@ $isActive = static fn (string ...$keys): string => in_array($shopSubNav, $keys, 
 <aside class="sidebar sidebar--shop">
   <div class="brand">
     <a href="<?= url('/') ?>" aria-label="labelup 홈"><img class="brand-img" src="<?= asset('logo.png') ?>" alt="labelup"></a>
-    <strong class="brand-name">labelup</strong>
     <small>라벨업 쇼핑몰</small>
   </div>
   <a class="create create--shop" href="<?= url('shop/products') ?>">⌕ &nbsp;상품 검색하기</a>

@@ -30,7 +30,7 @@ final class QrCouponAdminApiController extends BaseController
             $groupNo = (int) ($payload['group_no'] ?? 0);
             $credit = $payload['credit_amount'] ?? null;
             $saved = $this->service->saveCreditAmount($groupNo, $credit);
-            $this->jsonSuccess($saved, '지급 크레딧이 저장되었습니다.');
+            $this->jsonSuccess($saved, '지급 잉크가 저장되었습니다.');
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage());
         }

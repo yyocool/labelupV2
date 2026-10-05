@@ -13,8 +13,12 @@
     <div class="shop-cart-list">
       <?php foreach ($cart['items'] as $item): ?>
       <article class="shop-cart-item" data-cart-line data-product-id="<?= (int) $item['id'] ?>" data-option-id="<?= (int) ($item['option_id'] ?? 0) ?>">
-        <a class="shop-cart-thumb" href="<?= url('shop/products/' . (int) $item['id']) ?>">
+        <a class="shop-cart-thumb<?= !empty($item['is_ink']) ? ' shop-cart-thumb--ink' : '' ?>" href="<?= url('shop/products/' . (int) $item['id']) ?>">
+          <?php if (!empty($item['is_ink']) && ($item['thumbnail'] ?? '') === ''): ?>
+          <span class="shop-ink-visual shop-ink-visual--card"><small>INK</small><strong><?= number_format((int) ($item['ink_amount'] ?? 0)) ?></strong></span>
+          <?php else: ?>
           <img src="<?= e($shopService->productThumb($item)) ?>" alt="">
+          <?php endif; ?>
         </a>
         <div class="shop-cart-info">
           <a href="<?= url('shop/products/' . (int) $item['id']) ?>"><strong><?= e((string) $item['name']) ?></strong></a>
@@ -37,10 +41,10 @@
       <?php endforeach; ?>
     </div>
 
-    <form id="shopCheckoutForm" class="shop-checkout-form" data-checkout-address>
+    <form id="shopCheckoutForm" class="shop-checkout-form" data-checkout-address data-ink-only="<?= !empty($cart['ink_only']) ? '1' : '0' ?>">
       <header class="shop-co-pagehead">
         <h2>주문서</h2>
-        <p>구매자 · 수취인 · 배송 정보를 나눠 확인한 뒤 주문을 접수해 주세요.</p>
+        <p><?= !empty($cart['ink_only']) ? '구매자 정보를 확인한 뒤 결제하면 잉크가 계정에 지급됩니다.' : '구매자 · 수취인 · 배송 정보를 나눠 확인한 뒤 주문을 접수해 주세요.' ?></p>
       </header>
 
       <section class="shop-co-block" aria-labelledby="shop-co-buyer">
@@ -62,6 +66,7 @@
         </div>
       </section>
 
+      <?php if (empty($cart['ink_only'])): ?>
       <section class="shop-co-block" aria-labelledby="shop-co-ship">
         <header class="shop-co-block__head">
           <span class="shop-co-ico shop-co-ico--rose" aria-hidden="true">
@@ -103,7 +108,9 @@
           </div>
         </div>
       </section>
+      <?php endif; ?>
 
+      <?php if (empty($cart['ink_only'])): ?>
       <section class="shop-co-block" aria-labelledby="shop-co-memo">
         <header class="shop-co-block__head">
           <span class="shop-co-ico shop-co-ico--gold" aria-hidden="true">
@@ -118,6 +125,7 @@
           <label class="shop-co-field"><span class="shop-co-lab">배송 메모</span><textarea name="shipping_memo" maxlength="255" rows="2" placeholder="문 앞, 경비실, 연락 후 배송 등"></textarea></label>
         </div>
       </section>
+      <?php endif; ?>
     </form>
   </div>
 
@@ -150,7 +158,7 @@
       <div><dt>배송비</dt><dd id="cartShipping"><?= $cart['shipping_fee'] === 0 ? '무료' : e($shopService->formatPrice($cart['shipping_fee'])) ?></dd></div>
       <div class="shop-cart-total"><dt>결제 예정</dt><dd id="cartTotal"><?= e($shopService->formatPrice($cart['total'])) ?></dd></div>
     </dl>
-    <p class="shop-cart-note">5만원 이상 구매 시 배송비 무료</p>
+    <p class="shop-cart-note"><?= !empty($cart['ink_only']) ? '잉크는 배송 없이 결제 후 계정에 지급됩니다.' : '5만원 이상 구매 시 배송비 무료' ?></p>
     <?php $tossEnabled = !empty($tossEnabled); ?>
     <button type="submit" class="shop-btn shop-btn--primary shop-btn--block" form="shopCheckoutForm">
       <?= $tossEnabled ? '주문하고 결제하기' : '주문 접수' ?>

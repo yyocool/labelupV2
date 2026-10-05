@@ -9,7 +9,7 @@ $grades = $grades ?? [];
 <div class="admin-head">
   <div>
     <h1>회원 관리</h1>
-    <p>총 <?= number_format($total) ?>명 · 회원에게 크레딧을 지급하고 지급 사유·이력을 확인할 수 있습니다.</p>
+    <p>총 <?= number_format($total) ?>명 · 회원에게 잉크를 지급하고 지급 사유·이력을 확인할 수 있습니다.</p>
   </div>
   <div class="admin-head-actions">
     <button type="button" class="admin-btn admin-btn--primary" id="userCreateOpen">+ 회원 추가</button>
@@ -36,7 +36,7 @@ $grades = $grades ?? [];
         <th>이메일</th>
         <th>이름</th>
         <th>회사</th>
-        <th>크레딧</th>
+        <th>잉크</th>
         <th>회원등급</th>
         <th>상태</th>
         <th>가입일</th>
@@ -83,7 +83,7 @@ $grades = $grades ?? [];
               data-user-email="<?= e($row['email'] ?? '') ?>"
               data-user-name="<?= e($row['name'] ?? '') ?>"
               data-balance="<?= (int) ($row['credit_balance'] ?? 0) ?>"
-            >크레딧 지급</button>
+            >잉크 지급</button>
             <button
               class="admin-btn admin-btn--sm js-credit-grant-history"
               type="button"
@@ -120,7 +120,7 @@ $grades = $grades ?? [];
 ?>
 <section class="admin-section">
   <div class="admin-section-head">
-    <h2 class="admin-section-title">최근 크레딧 지급 이력</h2>
+    <h2 class="admin-section-title">최근 잉크 지급 이력</h2>
     <p class="admin-muted">총 <?= number_format($grantTotal) ?>건 · 관리자가 임의 지급한 내역입니다.</p>
   </div>
   <div class="admin-table-wrap">
@@ -210,12 +210,12 @@ $grades = $grades ?? [];
           </select>
         </label>
         <label class="admin-field">
-          <span>가입 크레딧</span>
+          <span>가입 잉크</span>
           <input class="admin-input" type="number" name="credit_amount" min="0" max="10000000" step="1" value="0">
           <small>0이면 지급하지 않습니다. <?= e(\App\Services\CreditService::ratioLabel()) ?></small>
         </label>
         <label class="admin-field admin-field--full">
-          <span>크레딧 지급 사유</span>
+          <span>잉크 지급 사유</span>
           <input class="admin-input" type="text" name="credit_reason" maxlength="255" placeholder="예: 관리자 직접 등록 지급">
         </label>
         <label class="admin-field admin-field--full admin-field--inline-check">
@@ -235,14 +235,14 @@ $grades = $grades ?? [];
   <div class="admin-modal-backdrop" data-close="creditGrantModal"></div>
   <div class="admin-modal-panel" role="dialog" aria-modal="true" aria-labelledby="creditGrantTitle">
     <div class="admin-modal-head">
-      <h2 id="creditGrantTitle">크레딧 지급</h2>
+      <h2 id="creditGrantTitle">잉크 지급</h2>
       <button type="button" class="admin-modal-close" data-close="creditGrantModal" aria-label="닫기">×</button>
     </div>
     <form id="creditGrantForm" class="admin-modal-body">
       <input type="hidden" name="user_id" id="creditGrantUserId">
       <p class="admin-grant-target" id="creditGrantTarget">회원을 선택하세요.</p>
       <label class="admin-field">
-        <span>지급 크레딧</span>
+        <span>지급 잉크</span>
         <input class="admin-input" type="number" name="amount" min="1" max="10000000" step="1" required placeholder="예: 5000">
         <small class="admin-muted"><?= e(\App\Services\CreditService::ratioLabel()) ?></small>
       </label>

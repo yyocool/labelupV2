@@ -349,6 +349,12 @@ document.addEventListener('DOMContentLoaded', () => {
   bindPasswordToggles();
   bindLegalModal();
   bindRecoveryModal();
+  document.querySelectorAll('.js-sns-hold').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const message = btn.getAttribute('data-sns-message') || '준비중입니다 이용에 불편을 드려 죄송합니다';
+      showAlert(document.getElementById('authAlert'), message);
+    });
+  });
 
   const loginForm = document.getElementById('loginForm');
   if (loginForm) {

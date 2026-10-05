@@ -9,6 +9,7 @@ $modes = $siteMode['modes'] ?? [];
 $saveUrl = url('api/admin/site-mode/save');
 $modeLabels = [
     'development' => '개발 모드',
+    'temp_open' => '임시 오픈',
     'production' => '운영 모드',
     'maintenance' => '유지보수 모드',
 ];
@@ -63,7 +64,7 @@ $modeLabels = [
 </form>
 
 <style>
-.admin-mode-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:8px}
+.admin-mode-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:8px}
 .admin-mode-card{position:relative;display:flex;flex-direction:column;gap:8px;padding:16px 14px;border:1px solid #e5e7eb;border-radius:14px;background:#fff;cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s;user-select:none}
 .admin-mode-card input{position:absolute;opacity:0;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
 .admin-mode-card strong{font-size:15px;color:#111827}
@@ -143,7 +144,9 @@ $modeLabels = [
       }
       var extra = savedMode === 'maintenance'
         ? ' 공개 사이트는 유지보수 페이지로 전환됩니다. (관리자 메뉴는 그대로 사용 가능)'
-        : '';
+        : (savedMode === 'temp_open'
+          ? ' SNS 로그인·회원가입은 준비중 안내만 표시됩니다.'
+          : '');
       showAlert((data.message || '저장되었습니다.') + ' → ' + (modeLabels[savedMode] || savedMode) + '.' + extra, true);
     } catch (err) {
       showAlert(err.message || '저장에 실패했습니다.', false);

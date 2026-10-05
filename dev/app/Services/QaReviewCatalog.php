@@ -41,7 +41,7 @@ final class QaReviewCatalog
             $u('user-compat', '홈·공통', '호환 코드 조회', '/compat', '폼텍/아이라벨/애니라벨 코드 검색'),
             $u('user-compat-qr', '홈·공통', '호환 코드 QR 샘플', '/compat/qr', 'QR 샘플 페이지 표시'),
             $u('user-qr-coupon-info', '홈·공통', 'QR 쿠폰 안내', '/qr-coupon', '안내 문구·사용 방법'),
-            $u('user-qr-coupon-redeem', '홈·공통', 'QR 쿠폰 사용', '/qr-coupon/{code}', '코드 인식·로그인·크레딧 지급', false),
+            $u('user-qr-coupon-redeem', '홈·공통', 'QR 쿠폰 사용', '/qr-coupon/{code}', '코드 인식·로그인·잉크 지급', false),
 
             // 홈 AI (라비)
             $u('user-home-ai-open', '홈 AI(라비)', '채팅 패널 열기', '/', '홈 라비 채팅 UI 오픈·예시 칩'),
@@ -49,7 +49,7 @@ final class QaReviewCatalog
             $u('user-home-ai-clipart', '홈 AI(라비)', '클립아트 생성', '/', '클립아트 생성·미리보기·편집기 이동'),
             $u('user-home-ai-template', '홈 AI(라비)', '템플릿 생성', '/', '완성 템플릿 생성·편집기 열기'),
             $u('user-home-ai-attach', '홈 AI(라비)', '파일 첨부', '/', '이미지·엑셀·타사포맷 첨부 인식'),
-            $u('user-home-ai-credit', '홈 AI(라비)', '크레딧 차감', '/', '의도별 크레딧 차감·잔액 부족 안내'),
+            $u('user-home-ai-credit', '홈 AI(라비)', '잉크 차감', '/', '의도별 잉크 차감·잔액 부족 안내'),
 
             // 편집기 기본
             $u('ed-boot', '편집기 기본', '편집기 로드', '/editor/', 'Blazor 로드·초기 캔버스·상태바'),
@@ -59,7 +59,7 @@ final class QaReviewCatalog
             $u('ed-undo-redo', '편집기 기본', '실행취소/다시실행', '/editor/', '히스토리 Undo/Redo'),
             $u('ed-zoom-pan', '편집기 기본', '확대/이동', '/editor/', '줌·패닝·맞춤보기'),
             $u('ed-tutorial', '편집기 기본', '튜토리얼', '/editor/', '첫 사용자 가이드·단계 이동'),
-            $u('ed-credit-chip', '편집기 기본', '크레딧 표시', '/editor/', '잔여 크레딧 칩·이력 팝업'),
+            $u('ed-credit-chip', '편집기 기본', '잉크 표시', '/editor/', '잔여 잉크 칩·이력 팝업'),
 
             // 편집기 객체·도구
             $u('ed-tool-text', '편집기 도구', '일반텍스트', '/editor/', '추가·편집·서식(글꼴/크기/색/정렬)'),
@@ -92,7 +92,7 @@ final class QaReviewCatalog
             // 편집기 AI (라비)
             $u('ed-labi-open', '편집기 AI(라비)', '라비 패널', '/editor/', '편집기 내 라비 다이얼로그 오픈'),
             $u('ed-labi-recommend', '편집기 AI(라비)', '상품/용지 추천', '/editor/', '추천 결과·용지/상품 적용'),
-            $u('ed-labi-clipart', '편집기 AI(라비)', '클립아트 생성·삽입', '/editor/', '생성 후 캔버스 삽입·크레딧 차감'),
+            $u('ed-labi-clipart', '편집기 AI(라비)', '클립아트 생성·삽입', '/editor/', '생성 후 캔버스 삽입·잉크 차감'),
             $u('ed-labi-template', '편집기 AI(라비)', '템플릿 생성·적용', '/editor/', '완성 디자인 생성·편집 시작'),
             $u('ed-labi-attach', '편집기 AI(라비)', '첨부 기반 작업', '/editor/', '이미지·시트·타사포맷 첨부 처리'),
             $u('ed-labi-vendor', '편집기 AI(라비)', '타사포맷→라비 변환', '/editor/', '라비에서 타사파일 받아 변환 적용'),
@@ -119,7 +119,7 @@ final class QaReviewCatalog
             $u('user-reset', '회원', '비밀번호 재설정', '/reset-password', '재설정 메일·토큰 처리'),
             $u('user-account-profile', '회원', '마이페이지 프로필', '/account', '이름·연락처 수정'),
             $u('user-account-orders', '회원', '주문 내역', '/account', '주문 목록·상태 확인'),
-            $u('user-account-credits', '회원', '크레딧/알림', '/account', '잔액·이력·알림 설정'),
+            $u('user-account-credits', '회원', '잉크/알림', '/account', '잔액·이력·알림 설정'),
             $u('user-account-address', '회원', '배송지 관리', '/account', '주소 추가·수정·삭제'),
         ];
     }
@@ -143,16 +143,16 @@ final class QaReviewCatalog
             $a('admin-qa-sheet', '공통', '기능 검수 시트', '/admin/qa-review', '개발자/고객사 상태 저장'),
 
             $a('admin-users', '운영관리', '회원 목록', '/admin/users', '검색·등급·상태'),
-            $a('admin-user-credit', '운영관리', '회원 크레딧 조정', '/admin/users', '지급/차감·이력'),
+            $a('admin-user-credit', '운영관리', '회원 잉크 조정', '/admin/users', '지급/차감·이력'),
             $a('admin-user-detail', '운영관리', '회원 상세', '/admin/users/{id}', '상세 정보·이력', false),
             $a('admin-settings-legal', '운영관리', '약관 운영설정', '/admin/settings', '약관 문서 저장'),
             $a('admin-hero', '운영관리', '히어로 이미지', '/admin/ops/hero-slides', '등록·정렬·공개'),
             $a('admin-popups', '운영관리', '이벤트 팝업', '/admin/ops/event-popups', '기간·노출·저장'),
             $a('admin-faq', '운영관리', 'FAQ 관리', '/admin/ops/faq', 'CRUD·정렬'),
             $a('admin-inquiries', '운영관리', '1:1 문의', '/admin/ops/inquiries', '답변·상태변경'),
-            $a('admin-credit-rewards', '운영관리', '크레딧보상 규칙', '/admin/ops/credit-rewards', '규칙 저장/삭제'),
-            $a('admin-credit-usage', '운영관리', '크레딧 사용 설정', '/admin/ops/credit-usage', 'AI 의도별 차감·통계'),
-            $a('admin-purchase-credits', '운영관리', '구매크레딧', '/admin/ops/purchase-credits', 'QR그룹 크레딧·지급이력'),
+            $a('admin-credit-rewards', '운영관리', '잉크보상 규칙', '/admin/ops/credit-rewards', '규칙 저장/삭제'),
+            $a('admin-credit-usage', '운영관리', '잉크 사용 설정', '/admin/ops/credit-usage', 'AI 의도별 차감·통계'),
+            $a('admin-purchase-credits', '운영관리', '구매잉크', '/admin/ops/purchase-credits', 'QR그룹 잉크·지급이력'),
 
             $a('admin-qr-generate', 'QR쿠폰', '쿠폰 생성', '/admin/qr-coupons', '그룹·수량 생성'),
             $a('admin-qr-print', 'QR쿠폰', '인쇄/출력', '/admin/qr-coupons', '인쇄 템플릿·출력상태'),
@@ -165,7 +165,7 @@ final class QaReviewCatalog
             $a('admin-seo', '설정', 'SEO 설정', '/admin/settings/seo', '메타·페이지 SEO'),
             $a('admin-tracking', '설정', '광고 스크립트', '/admin/settings/tracking', '트래킹·ads.txt'),
 
-            $a('admin-ai-credit', 'AI 관리', 'AI 크레딧 설정', '/admin/ai/credit-settings', '모델/의도 크레딧'),
+            $a('admin-ai-credit', 'AI 관리', 'AI 잉크 설정', '/admin/ai/credit-settings', '모델/의도 잉크'),
             $a('admin-ai-prompts', 'AI 관리', '예시프롬프트', '/admin/ai/example-prompts', '프롬프트 CRUD'),
             $a('admin-ai-token-logs', 'AI 관리', '토큰사용로그', '/admin/ai/token-logs', '로그·내보내기'),
             $a('admin-ai-member', 'AI 관리', '회원별 사용', '/admin/ai/member-usage', '회원별 집계'),

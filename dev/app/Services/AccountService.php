@@ -62,7 +62,7 @@ final class AccountService
             'usage' => [
                 'used' => $usageUsed,
                 'limit' => $usageLimit,
-                'label' => (string) ($aiCredit['label'] ?? '이번 달 AI 사용 크레딧'),
+                'label' => (string) ($aiCredit['label'] ?? '이번 달 AI 사용 잉크'),
             ],
             'cliparts' => $myCliparts,
             'clipartCount' => $clipartCount,

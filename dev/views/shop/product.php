@@ -10,7 +10,10 @@ $gallery = $shopService->productGallery($product);
 $options = $shopService->productOptions($product);
 $hasOptions = $options !== [];
 $sellableOptions = array_values(array_filter($options, static fn (array $o): bool => !$o['soldout']));
-$isSoldout = ($product['status'] ?? '') === 'soldout' || (int) ($product['stock_qty'] ?? 0) <= 0
+$isInk = $shopService->isInkProduct($product);
+$inkAmount = (int) ($product['ink_amount'] ?? 0);
+$isSoldout = ($product['status'] ?? '') === 'soldout'
+    || (!$isInk && (int) ($product['stock_qty'] ?? 0) <= 0)
     || ($hasOptions && $sellableOptions === []);
 $onSale = !empty($product['sale_price']) && (int) $product['sale_price'] < (int) $product['price'];
 $headerHtml = trim((string) ($pageLayout['header_html'] ?? ''));
@@ -29,6 +32,10 @@ if (!is_array($footerBlocks) || $footerBlocks === []) {
         $footerBlocks = [['html' => $footerHtml, 'image_url' => $footerImageUrl, 'kind' => 'footer']];
     }
 }
+if ($isInk) {
+    $headerBlocks = [];
+    $footerBlocks = [];
+}
 $hasHeader = $headerBlocks !== [];
 $hasFooter = $footerBlocks !== [];
 $hasEditable = $shopService->hasEditableSpec($product);
@@ -45,10 +52,18 @@ $descSpecRows = \App\Helpers\ShopProductDescriptionHelper::pairRows($descSpecs);
 $hasDetailBody = $detailHtml !== '' || $description !== '';
 $hashtags = is_array($pageLayout['hashtags'] ?? null) ? $pageLayout['hashtags'] : [];
 ?>
-<article class="shop-detail">
+<article class="shop-detail<?= $isInk ? ' shop-detail--ink' : '' ?>">
   <div class="shop-detail-gallery">
     <div class="shop-detail-gallery__frame">
+      <?php if ($isInk && trim((string) ($product['thumbnail'] ?? '')) === ''): ?>
+      <div class="shop-ink-visual" id="shopDetailMainImage">
+        <small>INK</small>
+        <strong><?= number_format($inkAmount) ?></strong>
+        <span>잉크</span>
+      </div>
+      <?php else: ?>
       <img id="shopDetailMainImage" src="<?= e($gallery[0]['url']) ?>" alt="<?= e((string) $product['name']) ?>">
+      <?php endif; ?>
       <div class="shop-detail-social">
         <button type="button"
                 class="shop-social-btn js-wishlist-toggle<?= !empty($wished) ? ' is-on' : '' ?>"
@@ -123,11 +138,19 @@ $hashtags = is_array($pageLayout['hashtags'] ?? null) ? $pageLayout['hashtags'] 
       <?php endif; ?>
       <strong><?= e($shopService->formatPrice($unit)) ?></strong>
       <em class="shop-detail-stock <?= $isSoldout ? 'is-soldout' : '' ?>">
-        <?= $isSoldout ? '품절' : '재고 ' . number_format((int) $product['stock_qty']) . '개' ?>
+        <?php if ($isSoldout): ?>품절<?php elseif ($isInk): ?>결제 후 바로 지급<?php else: ?>재고 <?= number_format((int) $product['stock_qty']) ?>개<?php endif; ?>
       </em>
     </div>
 
-    <?php if (!empty($product['spec_name']) || !empty($product['material']) || !empty($product['labels_per_sheet'])): ?>
+    <?php if ($isInk): ?>
+    <ul class="shop-detail-specs">
+      <li>
+        <span>지급 잉크</span>
+        <strong><?= number_format($inkAmount) ?> 잉크</strong>
+      </li>
+    </ul>
+    <p class="shop-ink-note">구독이 아닌 1회 충전 상품입니다. 결제가 완료되면 구매한 수량만큼 계정에 잉크가 지급됩니다.</p>
+    <?php elseif (!empty($product['spec_name']) || !empty($product['material']) || !empty($product['labels_per_sheet'])): ?>
     <ul class="shop-detail-specs">
       <?php if ($product['width_mm'] !== null && $product['width_mm'] !== '' && $product['height_mm'] !== null && $product['height_mm'] !== ''): ?>
       <li>
@@ -203,7 +226,7 @@ $hashtags = is_array($pageLayout['hashtags'] ?? null) ? $pageLayout['hashtags'] 
       <div class="shop-detail-buy">
         <div class="shop-qty" aria-label="수량">
           <button type="button" class="shop-qty-btn" data-qty-minus aria-label="수량 감소">−</button>
-          <input type="number" id="productQty" value="1" min="1" max="<?= (int) $product['stock_qty'] ?>" aria-label="수량 입력">
+          <input type="number" id="productQty" value="1" min="1" max="<?= $isInk ? 20 : (int) $product['stock_qty'] ?>" aria-label="수량 입력">
           <button type="button" class="shop-qty-btn" data-qty-plus aria-label="수량 증가">+</button>
         </div>
         <button type="button" class="shop-btn shop-btn--primary shop-detail-buy__cart" data-add-cart="<?= (int) $product['id'] ?>" data-qty-input="#productQty"<?= $hasOptions ? ' data-option-select="#productOption"' : '' ?>>장바구니 담기</button>

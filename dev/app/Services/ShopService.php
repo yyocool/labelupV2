@@ -181,9 +181,11 @@ final class ShopService
             $item['option_id'] = $optionId;
             $item['option_name'] = (string) ($option['name'] ?? '');
             $item['option_price_delta'] = (int) ($option['price_delta'] ?? 0);
-            $item['available_qty'] = $option !== null
-                ? (int) $option['stock_qty']
-                : (int) ($product['stock_qty'] ?? 0);
+            $item['available_qty'] = $this->isInkProduct($product)
+                ? 20
+                : ($option !== null
+                    ? (int) $option['stock_qty']
+                    : (int) ($product['stock_qty'] ?? 0));
             $item['line_key'] = self::cartLineKey((int) $product['id'], $optionId);
             if ($suffix !== '') {
                 $item['sku'] = (string) $product['sku'] . '-' . $suffix;
@@ -197,7 +199,11 @@ final class ShopService
     {
         $items = $this->cartItems();
         $subtotal = array_sum(array_column($items, 'line_total'));
-        $shipping = $subtotal >= 50000 || $subtotal === 0 ? 0 : 3000;
+        $inkOnly = $items !== [] && !in_array(false, array_map(
+            static fn (array $item): bool => (int) ($item['ink_amount'] ?? 0) > 0,
+            $items
+        ), true);
+        $shipping = $inkOnly || $subtotal >= 50000 || $subtotal === 0 ? 0 : 3000;
         $presented = [];
         foreach ($items as $item) {
             $row = $this->presentPublicProduct($item);
@@ -223,6 +229,7 @@ final class ShopService
             'total' => $subtotal + $shipping,
             'total_label' => $this->formatPrice($subtotal + $shipping),
             'count' => $this->cartCount(),
+            'ink_only' => $inkOnly,
         ];
     }
 
@@ -233,14 +240,17 @@ final class ShopService
         $list = (int) ($product['price'] ?? 0);
         $sale = $product['sale_price'] ?? null;
         $onSale = $sale !== null && $sale !== '' && (int) $sale > 0 && (int) $sale < $list;
-        $thumb = ShopProductImageService::resolveUrl((string) ($product['thumbnail'] ?? ''));
-        if ($thumb === '') {
+        $inkAmount = (int) ($product['ink_amount'] ?? 0);
+        $isInk = $inkAmount > 0;
+        $hasPhoto = trim((string) ($product['thumbnail'] ?? '')) !== '';
+        $thumb = $hasPhoto ? ShopProductImageService::resolveUrl((string) $product['thumbnail']) : '';
+        if ($thumb === '' && !$isInk) {
             $thumb = asset('hero-tall-1.webp');
         }
         $w = $product['width_mm'] ?? null;
         $h = $product['height_mm'] ?? null;
         $labels = isset($product['labels_per_sheet']) ? (int) $product['labels_per_sheet'] : 0;
-        $soldout = ($product['status'] ?? '') === 'soldout' || (int) ($product['stock_qty'] ?? 0) <= 0;
+        $soldout = ($product['status'] ?? '') === 'soldout' || (!$isInk && (int) ($product['stock_qty'] ?? 0) <= 0);
         $spec = trim(implode(' · ', array_filter([
             (string) ($product['material'] ?? ''),
             (string) ($product['shape'] ?? ''),
@@ -267,6 +277,8 @@ final class ShopService
             'price_label' => $this->formatPrice($unit),
             'list_price_label' => $this->formatPrice($list),
             'on_sale' => $onSale,
+            'ink_amount' => $isInk ? $inkAmount : null,
+            'is_ink' => $isInk,
             'stock_qty' => (int) ($product['stock_qty'] ?? 0),
             'soldout' => $soldout,
             'thumbnail' => $thumb,
@@ -344,7 +356,21 @@ final class ShopService
         if ($name === '' || $email === '' || $phone === '') {
             throw new RuntimeException('구매자 이름, 이메일, 연락처를 모두 입력해 주세요.');
         }
-        if ($shipName === '' || $shipPhone === '' || $address === '') {
+        $inkOnly = $items !== [] && !in_array(false, array_map(
+            fn (array $item): bool => $this->isInkProduct($item),
+            $items
+        ), true);
+        if ($inkOnly) {
+            if ($shipName === '') {
+                $shipName = $name;
+            }
+            if ($shipPhone === '') {
+                $shipPhone = $phone;
+            }
+            if ($address === '') {
+                $address = '디지털 지급 (배송 없음)';
+            }
+        } elseif ($shipName === '' || $shipPhone === '' || $address === '') {
             throw new RuntimeException('수취인 이름, 연락처, 배송지를 모두 입력해 주세요.');
         }
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -462,6 +488,7 @@ final class ShopService
             'payment_method' => TossPaymentsService::methodLabel($confirmed),
             'raw' => $confirmed,
         ]);
+        $this->grantPurchasedInk((int) $order['id']);
 
         return [
             'order_no' => (string) $order['order_no'],
@@ -552,13 +579,14 @@ final class ShopService
         if (!$product) {
             throw new RuntimeException('판매 중인 상품을 찾을 수 없습니다.');
         }
-        if (($product['status'] ?? '') === 'soldout' || (int) ($product['stock_qty'] ?? 0) <= 0) {
+        $isInk = $this->isInkProduct($product);
+        if (!$isInk && (($product['status'] ?? '') === 'soldout' || (int) ($product['stock_qty'] ?? 0) <= 0)) {
             throw new RuntimeException('품절된 상품입니다.');
         }
 
         $option = $this->resolveRequiredOption($productId, $optionId);
         $optionId = (int) ($option['id'] ?? 0);
-        $available = $option !== null ? (int) $option['stock_qty'] : (int) $product['stock_qty'];
+        $available = $isInk ? 20 : ($option !== null ? (int) $option['stock_qty'] : (int) $product['stock_qty']);
         if ($available <= 0) {
             throw new RuntimeException($option !== null ? '선택한 옵션이 품절되었습니다.' : '품절된 상품입니다.');
         }
@@ -594,7 +622,9 @@ final class ShopService
         if ($optionId > 0 && $option === null) {
             throw new RuntimeException('선택할 수 없는 옵션입니다.');
         }
-        $available = $option !== null ? (int) $option['stock_qty'] : (int) $product['stock_qty'];
+        $available = $this->isInkProduct($product)
+            ? 20
+            : ($option !== null ? (int) $option['stock_qty'] : (int) $product['stock_qty']);
         $qty = max(1, min($qty, $available));
 
         $cart = $this->rawCart();
@@ -770,8 +800,54 @@ final class ShopService
         return url('editor/') . ($qs !== '' ? ('?' . $qs) : '');
     }
 
+    public function isInkProduct(array $product): bool
+    {
+        return (int) ($product['ink_amount'] ?? 0) > 0;
+    }
+
+    public function activeProductIdBySku(string $sku): int
+    {
+        $row = $this->repo->findProductBySku(trim($sku));
+        if (!$row || !in_array((string) ($row['status'] ?? ''), ['active', 'soldout'], true)) {
+            return 0;
+        }
+        return (int) ($row['id'] ?? 0);
+    }
+
+    public function grantPurchasedInk(int $orderId): void
+    {
+        $rows = $this->repo->inkGrantRows($orderId);
+        if ($rows === []) {
+            return;
+        }
+        $userId = (int) ($rows[0]['user_id'] ?? 0);
+        $orderNo = (string) ($rows[0]['order_no'] ?? '');
+        if ($userId <= 0) {
+            return;
+        }
+        $total = 0;
+        $names = [];
+        foreach ($rows as $row) {
+            $qty = max(1, (int) ($row['qty'] ?? 1));
+            $total += (int) ($row['ink_amount'] ?? 0) * $qty;
+            $names[] = (string) ($row['product_name'] ?? '잉크') . ' ×' . $qty;
+        }
+        if ($total <= 0) {
+            return;
+        }
+        $label = '잉크 충전 구매';
+        if ($orderNo !== '') {
+            $label .= ' (' . $orderNo . ')';
+        }
+        $label .= ' ' . implode(', ', $names);
+        (new CreditService())->grantPurchase($userId, $total, $label, 'shop-order:' . $orderId);
+    }
+
     public function hasEditableSpec(array $product): bool
     {
+        if ($this->isInkProduct($product)) {
+            return false;
+        }
         $sku = trim((string) ($product['sku'] ?? ''));
         if ($sku !== '') {
             return true;

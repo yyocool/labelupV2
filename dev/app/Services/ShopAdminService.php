@@ -443,8 +443,17 @@ final class ShopAdminService
     {
         $name = trim((string) ($data['name'] ?? ''));
         $sku = trim((string) ($data['sku'] ?? ''));
+        $category = $this->repo->findCategoryById((int) ($data['category_id'] ?? 0));
+        $isInk = (string) ($category['slug'] ?? '') === 'ink-charge';
+        $inkAmount = $isInk ? (int) ($data['ink_amount'] ?? 0) : 0;
+        if ($isInk && $sku === '' && $inkAmount > 0) {
+            $sku = 'INK-' . $inkAmount;
+        }
         if ($name === '' || $sku === '') {
             throw new RuntimeException('상품명과 SKU를 입력해주세요.');
+        }
+        if ($isInk && $inkAmount <= 0) {
+            throw new RuntimeException('지급 잉크를 입력해주세요.');
         }
 
         $images = is_array($data['images'] ?? null) ? $data['images'] : [];
@@ -452,8 +461,17 @@ final class ShopAdminService
         if ($thumbnail === '' && $images !== []) {
             $thumbnail = ShopProductImageService::normalizePublicPath((string) ($images[0]['image_path'] ?? ''));
         }
+        if ($isInk && $thumbnail === '' && $images === []) {
+            $thumbnail = '/assets/categories/cat_ink-charge.png';
+            $images = [['image_path' => $thumbnail, 'sort_order' => 0, 'is_primary' => 1]];
+        }
 
         $meta = is_array($data['meta'] ?? null) ? $data['meta'] : [];
+        if ($isInk) {
+            $data['spec_id'] = null;
+            $data['stock_qty'] = 999999;
+            $data['options'] = [];
+        }
 
         $id = $this->repo->saveProduct([
             'id' => (int) ($data['id'] ?? 0),
@@ -463,6 +481,7 @@ final class ShopAdminService
             'sku' => $sku,
             'price' => (int) ($data['price'] ?? 0),
             'sale_price' => $data['sale_price'] ?? null,
+            'ink_amount' => $isInk ? $inkAmount : null,
             'stock_qty' => (int) ($data['stock_qty'] ?? 0),
             'status' => (string) ($data['status'] ?? 'draft'),
             'description' => trim((string) ($data['description'] ?? '')),
@@ -598,6 +617,9 @@ final class ShopAdminService
             }
             $this->repo->updateOrder($id, $payload);
             $this->notifyOrderStatusChange($current, $payload['status'], $payload['tracking_no']);
+            if ($payload['payment_status'] === 'paid' && (string) ($current['payment_status'] ?? '') !== 'paid') {
+                (new ShopService())->grantPurchasedInk($id);
+            }
             $updated++;
         }
         return $updated;
@@ -628,6 +650,10 @@ final class ShopAdminService
             'tracking_no' => $tracking,
         ]);
         $this->notifyOrderStatusChange($before, $status, $tracking);
+        $payStatus = (string) ($data['payment_status'] ?? 'pending');
+        if ($payStatus === 'paid' && (string) ($before['payment_status'] ?? '') !== 'paid') {
+            (new ShopService())->grantPurchasedInk($id);
+        }
     }
 
     /** @param array<string, mixed>|null $before */

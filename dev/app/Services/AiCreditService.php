@@ -128,10 +128,10 @@ final class AiCreditService
         if ($balance <= 0) {
             $msg = $balance < 0
                 ? sprintf(
-                    'AI 크레딧이 마이너스(%s)입니다. 충전하면 부족한 만큼 먼저 차감된 뒤 사용할 수 있어요.',
+                    'AI 잉크가 마이너스(%s)입니다. 충전하면 부족한 만큼 먼저 차감된 뒤 사용할 수 있어요.',
                     CreditService::format($balance)
                 )
-                : 'AI 크레딧이 없습니다. 마이페이지에서 충전한 뒤 다시 이용해 주세요.';
+                : 'AI 잉크가 없습니다. 마이페이지에서 충전한 뒤 다시 이용해 주세요.';
             throw new RuntimeException($msg);
         }
     }
@@ -213,7 +213,7 @@ final class AiCreditService
         return [
             'used' => $used,
             'limit' => (int) ($cfg['monthly_budget'] ?? 0),
-            'label' => '이번 달 AI 사용 크레딧',
+            'label' => '이번 달 AI 사용 잉크',
             'balance' => $this->credits->balance($userId),
             'enabled' => $this->isEnabled(),
             'items' => $items,

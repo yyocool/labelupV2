@@ -205,7 +205,7 @@
   border:1px solid var(--login-line);
   border-radius:12px;
   background:#fff;
-  font-size:14px;font-weight:600;color:var(--charcoal);
+  font:inherit;font-size:14px;font-weight:600;color:var(--charcoal);
   text-decoration:none;
   cursor:pointer;
   transition:background .15s,border-color .15s;
