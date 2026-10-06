@@ -87,6 +87,28 @@ public static class HitTest
         return new SKPoint(lx, ly);
     }
 
+    /// <summary>
+    /// 회전까지 반영한 항목의 외곽 네모(mm). 항목이 라벨 밖으로 얼마나 나갔는지 재는 데 쓴다.
+    /// 회전이 없으면 바로 제 네모를 돌려주고, 있으면 돌린 네 꼭지를 감싸는 네모를 계산한다.
+    /// </summary>
+    public static SKRect Bounds(DesignObject o)
+    {
+        var rot = o.Rotation % 360f;
+        if (MathF.Abs(rot) < 0.01f)
+            return new SKRect(o.X, o.Y, o.X + o.Width, o.Y + o.Height);
+
+        var rad = rot * MathF.PI / 180f;
+        var cos = MathF.Abs(MathF.Cos(rad));
+        var sin = MathF.Abs(MathF.Sin(rad));
+        var hw = o.Width / 2f;
+        var hh = o.Height / 2f;
+        var ex = hw * cos + hh * sin;
+        var ey = hw * sin + hh * cos;
+        var cx = o.X + hw;
+        var cy = o.Y + hh;
+        return new SKRect(cx - ex, cy - ey, cx + ex, cy + ey);
+    }
+
     private static float Dist(float x1, float y1, float x2, float y2)
     {
         var dx = x1 - x2;

@@ -29,14 +29,21 @@
     var frame = LabelFrame();
     var rTop = frame.Oy - Gap - Ruler;
     var rLeft = frame.Ox - Gap - Ruler;
+    // 라벨 밖으로 나간 항목까지 보이도록 그림판만 사방으로 넓힌다. 자·안내선과 좌표 계산은
+    // 그대로 라벨 왼쪽 위(Ox, Oy)를 기준으로 두므로 다른 곳은 손댈 것이 없다.
+    var bleedXPx = frame.BleedX * frame.Scale;
+    var bleedYPx = frame.BleedY * frame.Scale;
   }
   <div class="canvas-stage__skia"
-       style="@($"left:{frame.Ox:0.##}px;top:{frame.Oy:0.##}px;width:{Math.Max(8, frame.LabelW):0.##}px;height:{Math.Max(8, frame.LabelH):0.##}px")">
+       style="@($"left:{frame.Ox - bleedXPx:0.##}px;top:{frame.Oy - bleedYPx:0.##}px;width:{Math.Max(8, frame.LabelW + bleedXPx * 2f):0.##}px;height:{Math.Max(8, frame.LabelH + bleedYPx * 2f):0.##}px")">
     <SKCanvasView @ref="_view"
                   class="skia-view"
                   IgnorePixelScaling="true"
                   OnPaintSurface="OnPaintSurface" />
   </div>
+  <div class="canvas-stage__frame"
+       style="@($"left:{frame.Ox:0.##}px;top:{frame.Oy:0.##}px;width:{Math.Max(8, frame.LabelW):0.##}px;height:{Math.Max(8, frame.LabelH):0.##}px")"
+       aria-hidden="true"></div>
   <div class="ed-guides" aria-hidden="true">
     <div class="ed-guides__h" style="@($"left:{frame.Ox:0.##}px;top:{rTop:0.##}px;width:{frame.LabelW:0.##}px")">
       @foreach (var mark in RulerMarks(Session.Document.WidthMm, frame.Scale))
@@ -63,7 +70,7 @@
   </div>
   @if (InlineEdit is { } editing)
   {
-    var style = InlineEditStyle(editing, frame);
+    var style = InlineEditStyle(editing, frame.Ox, frame.Oy, frame.Scale);
     <div class="ed-inline-edit"
          style="@style.Outer"
          title="내용 편집 중 — Esc 취소, 바깥을 누르면 완료"
@@ -487,17 +494,16 @@
     /// 편집기 자리와 글자 크기. 상자는 mm를 96dpi 픽셀로 만들고 화면 배율만큼 한 번에 줄인다.
     /// 이러면 HTML이 pt로 적은 글자 크기가 SkiaSharp가 mm로 그린 크기와 맞는다.
     /// </summary>
-    private (string Outer, string Inner) InlineEditStyle(
-        DesignObject o, (float Ox, float Oy, float Scale, float LabelW, float LabelH) frame)
+    private (string Outer, string Inner) InlineEditStyle(DesignObject o, float ox, float oy, float viewScale)
     {
-        var left = frame.Ox + o.X * frame.Scale;
-        var top = frame.Oy + o.Y * frame.Scale;
-        var w = Math.Max(4f, o.Width * frame.Scale);
-        var h = Math.Max(4f, o.Height * frame.Scale);
+        var left = ox + o.X * viewScale;
+        var top = oy + o.Y * viewScale;
+        var w = Math.Max(4f, o.Width * viewScale);
+        var h = Math.Max(4f, o.Height * viewScale);
         var rotate = Math.Abs(o.Rotation) > 0.01f ? $"transform:rotate({o.Rotation:0.##}deg);" : "";
         var outer = $"left:{left:0.##}px;top:{top:0.##}px;width:{w:0.##}px;height:{h:0.##}px;{rotate}";
 
-        var zoom = frame.Scale / CssPxPerMm;
+        var zoom = viewScale / CssPxPerMm;
         var padX = DocumentRenderer.TextPadX(o) * CssPxPerMm;
         var justify = o.VerticalAlign switch
         {
@@ -589,7 +595,7 @@
     [JSInvokable]
     public void OnRichBlur() => EndInlineEdit(keep: true);
 
-    private (float Ox, float Oy, float Scale, float LabelW, float LabelH) LabelFrame()
+    private (float Ox, float Oy, float Scale, float LabelW, float LabelH, float BleedX, float BleedY) LabelFrame()
     {
         var scale = Session.PxPerMm * Session.Zoom;
         var labelW = Session.Document.WidthMm * scale;
@@ -598,7 +604,36 @@
         var minPad = _viewW < 900 ? 8f : pad;
         var ox = Math.Max(minPad, (_viewW - labelW) / 2f) + Session.PanX;
         var oy = Math.Max(minPad, (_viewH - labelH) / 2f) + Session.PanY;
-        return (ox, oy, scale, labelW, labelH);
+        var (bleedX, bleedY) = BleedMm();
+        return (ox, oy, scale, labelW, labelH, bleedX, bleedY);
+    }
+
+    /// <summary>
+    /// 라벨 밖으로 삐져나온 항목을 보여 주려고 그림판을 사방으로 넓힐 여유(mm).
+    /// 실제로 넘친 만큼만 넓히되 라벨 한 변의 1/4 단위로 끊어 올린다. 그래야 항목을 끌 때마다
+    /// 그림판 크기가 바뀌어 표면을 다시 만드는 일이 없다. 한 변 길이까지만 넓혀 그리기 비용을 묶는다.
+    /// 넘친 항목이 없으면 0 이라 여느 때는 예전과 똑같은 크기로 그린다.
+    /// </summary>
+    private (float X, float Y) BleedMm()
+    {
+        var doc = Session.Document;
+        var needX = 0f;
+        var needY = 0f;
+        foreach (var obj in Session.CurrentCell.Objects)
+        {
+            if (!obj.Visible) continue;
+            var b = HitTest.Bounds(obj);
+            needX = Math.Max(needX, Math.Max(-b.Left, b.Right - doc.WidthMm));
+            needY = Math.Max(needY, Math.Max(-b.Top, b.Bottom - doc.HeightMm));
+        }
+        return (Step(needX, doc.WidthMm), Step(needY, doc.HeightMm));
+
+        static float Step(float need, float span)
+        {
+            if (need <= 0.05f || span <= 0.01f) return 0f;
+            var step = span / 4f;
+            return Math.Min(MathF.Ceiling(need / step) * step, span);
+        }
     }
 
     private sealed class RulerMark
@@ -654,12 +689,16 @@
         canvas.Clear(new SKColor(0xF4, 0xF1, 0xEE));
 
         var doc = Session.Document;
+        // 그림판은 라벨 밖으로 나간 항목을 보여 주려고 사방이 넓어져 있다. 넓어진 양은 실제
+        // 표면 크기에서 되짚어 구한다. 그러면 라벨은 언제나 자·좌표계와 똑같은 배율로 그려지고,
+        // 표면 크기가 한 틱 늦게 따라와도 배율이 어긋나지 않는다.
         var scale = Session.PxPerMm * Session.Zoom;
-        if (info.Width > 8 && doc.WidthMm > 0.01f)
-            scale = info.Width / doc.WidthMm;
+        var bleedX = Math.Max(0f, (info.Width - doc.WidthMm * scale) / 2f);
+        var bleedY = Math.Max(0f, (info.Height - doc.HeightMm * scale) / 2f);
 
         canvas.Save();
         canvas.Scale(scale);
+        canvas.Translate(bleedX / scale, bleedY / scale);
         DocumentRenderer.DrawCell(
             canvas,
             doc,
@@ -671,7 +710,8 @@
                     return;
                 DrawLabelGridMm(canvas, doc.WidthMm, doc.HeightMm);
             },
-            skipObjectId: _inlineId);
+            skipObjectId: _inlineId,
+            clipObjects: false);
         if (Fonts.IsReady)
         {
             foreach (var sel in Session.SelectedObjects)
@@ -680,7 +720,7 @@
         canvas.Restore();
 
         if (_marquee)
-            DrawMarquee(canvas, 0, 0, scale);
+            DrawMarquee(canvas, bleedX, bleedY, scale);
     }
 
     private static float RulerStep(float zoom)
@@ -889,7 +929,7 @@
 
     private (float DocX, float DocY) ScreenToDoc(float sx, float sy)
     {
-        var (ox, oy, scale, _, _) = LabelFrame();
+        var (ox, oy, scale, _, _, _, _) = LabelFrame();
         return ((sx - ox) / scale, (sy - oy) / scale);
     }
 

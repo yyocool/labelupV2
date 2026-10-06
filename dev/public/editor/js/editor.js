@@ -2072,6 +2072,7 @@ window.labelUpEditor = {
     var mobile = !!(document.querySelector('.ed.is-mobile') || document.documentElement.classList.contains('is-ed-mobile'));
     if (mobile) {
       rail.classList.remove('is-two-col');
+      rail.classList.remove('is-rail-scroll');
       this._railKey = '';
       return;
     }
@@ -2087,7 +2088,15 @@ window.labelUpEditor = {
     }
     if (two) {
       // 한 줄로 되돌릴 때는 여유를 두어 경계에서 왔다 갔다 하지 않게 한다.
-      if (this._railNeed && avail >= this._railNeed + 16) rail.classList.remove('is-two-col');
+      if (this._railNeed && avail >= this._railNeed + 16) {
+        rail.classList.remove('is-two-col');
+        rail.classList.remove('is-rail-scroll');
+        return;
+      }
+      // 두 줄로도 모자랄 때만 굴림틀로 만든다. 굴림틀이 되면 도형 목록이 판넬 바깥 오른쪽으로
+      // 나가지 못하고 잘리거나 가로 굴림대를 만들므로, 정말 넘칠 때가 아니면 붙이지 않는다.
+      rail.classList.remove('is-rail-scroll');
+      if (bar.scrollHeight > bar.clientHeight + 1) rail.classList.add('is-rail-scroll');
       return;
     }
     this._railNeed = bar.scrollHeight;

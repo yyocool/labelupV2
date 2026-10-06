@@ -880,15 +880,23 @@ html[data-ed-save="off"] .ed-autosave:hover {
 .canvas-stage[data-cursor="rotate"] .canvas-stage__skia {
   cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19.2 12a7.2 7.2 0 1 1-2.1-5.1'/%3E%3Cpath d='M19.2 3.6v4.2h-4.2'/%3E%3C/g%3E%3Cg fill='none' stroke='%23231f20' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19.2 12a7.2 7.2 0 1 1-2.1-5.1'/%3E%3Cpath d='M19.2 3.6v4.2h-4.2'/%3E%3C/g%3E%3C/svg%3E") 12 12, crosshair;
 }
+/* 그림판. 라벨 밖으로 삐져나온 항목도 보여 주어야 하므로 라벨보다 넓어질 수 있다.
+   보이는 라벨 테두리는 .canvas-stage__frame 이 따로 맡아 늘 라벨 크기를 지킨다. */
 .canvas-stage__skia {
   position: absolute;
   z-index: 1;
   box-sizing: border-box;
-  background: #fff;
+  overflow: hidden;
+  pointer-events: none;
+}
+/* 라벨 테두리. 바탕은 비워 두어 그림판에 그린 라벨 바탕색이 그대로 보이게 한다. */
+.canvas-stage__frame {
+  position: absolute;
+  z-index: 2;
+  box-sizing: border-box;
   border: 1.6px solid rgba(123, 40, 64, 0.82);
   border-radius: 4px;
   box-shadow: 0 10px 22px rgba(46, 42, 39, 0.12);
-  overflow: hidden;
   pointer-events: none;
 }
 .skia-view,
@@ -2521,7 +2529,10 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   flex-wrap: wrap;
   align-content: flex-start;
   column-gap: 2px;
-  /* 두 줄로도 모자랄 만큼 창이 낮으면 마지막 수단으로 굴린다. */
+}
+/* 두 줄로도 모자랄 만큼 창이 낮을 때만 굴린다. 굴림틀이 되면 도형 목록처럼 판넬 바깥으로
+   나가는 것이 잘리거나 가로 굴림대를 만들므로, JS 가 정말 넘칠 때만 이 클래스를 붙인다. */
+.ed:not(.is-mobile) .ed-float-tools.is-rail-scroll .ed-float-tools__bar {
   overflow-y: auto;
   scrollbar-width: thin;
 }
@@ -2555,20 +2566,24 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 .ed:not(.is-mobile) .ed-float-tools.is-two-col .ed-float-tools__group > *,
 .ed:not(.is-mobile) .ed-float-tools.is-two-col .ed-float-tools__bar > .ed-tut-reopen,
 .ed:not(.is-mobile) .ed-float-tools.is-two-col .ed-float-tools__bar > .ed-corner-fab {
-  flex: 0 0 calc(50% - 1px);
-  width: calc(50% - 1px);
-  max-width: calc(50% - 1px);
+  /* 두 칸 + 칸 사이 2px 가 안쪽 너비(124px)에 딱 맞으면 화면 배율에 따라 소수점이 반올림되며
+     한 칸이 밀려 내려가거나 가로 굴림대가 생긴다. 1px 씩 덜 먹여 여유를 둔다. */
+  flex: 0 0 calc(50% - 2px);
+  width: calc(50% - 2px);
+  max-width: calc(50% - 2px);
 }
 /* 한 줄일 때는 용지·템플릿 묶음을 맨 아래로 밀지만, 두 줄일 때는 차례대로 놓는다. */
 .ed:not(.is-mobile) .ed-float-tools.is-two-col .ed-float-tools__group--stack {
   margin-top: 0;
 }
-/* 도형 목록은 판넬 바깥 오른쪽에 편다. 칸이 반 폭이라 기준을 판넬로 옮긴다. */
+/* 도형 목록은 판넬 바깥 오른쪽에 편다. 칸이 반 폭이라 가로 기준을 판넬로 옮긴다.
+   세로는 top:auto 로 두어 제자리(도형 단추가 선 줄)를 그대로 쓴다. */
 .ed:not(.is-mobile) .ed-float-tools.is-two-col .ed-float-tools__shape {
   position: static;
 }
 .ed:not(.is-mobile) .ed-float-tools.is-two-col .ed-shape-pop {
-  top: 8px;
+  top: auto;
+  bottom: auto;
   left: calc(100% + 8px);
 }
 /* 판넬이 넓어진 만큼 작업 공간도 비켜 준다. */

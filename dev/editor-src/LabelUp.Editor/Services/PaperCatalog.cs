@@ -1,5 +1,7 @@
 using System.Text.Json;
 using LabelUp.Editor.Models;
+using LabelUp.Editor.Rendering;
+using SkiaSharp;
 
 namespace LabelUp.Editor.Services;
 
@@ -178,8 +180,24 @@ public sealed class PaperCatalog
         paper.Name = string.IsNullOrWhiteSpace(item.Name) ? paper.Name : item.Name;
         if (!string.IsNullOrWhiteSpace(item.CategoryName))
             paper.Category = item.CategoryName!;
-        if (!string.IsNullOrWhiteSpace(item.Shape))
-            paper.Shape.Kind = MapShapeKind(item.Shape);
+
+        // 규격에 커스텀 외곽 Path가 적혀 있으면 그 모양을 그대로 쓴다. 예전에는 여기서 Kind만
+        // 'svg'로 바꾸고 Path는 넘기지 않아, 형태가 '맞춤'인 용지가 아무 말 없이 네모로 그려졌다.
+        if (!string.IsNullOrWhiteSpace(item.CustomPathSvg))
+        {
+            var (shape, read) = BuildShopShape(item, paper.LabelWidthMm, paper.LabelHeightMm);
+            paper.Shape = shape;
+            ApplyClosedShapeSlots(paper, read);
+        }
+        else if (!string.IsNullOrWhiteSpace(item.Shape))
+        {
+            var kind = MapShapeKind(item.Shape);
+            // '맞춤'인데 Path가 어디에도 없으면 그릴 것이 없다. 네모로 낮춰 두어야 모양 테두리를
+            // 덧그리는 쪽에서 헛되이 네모 윤곽을 한 번 더 그리지 않는다.
+            if (kind == "svg" && string.IsNullOrWhiteSpace(paper.Shape.Svg))
+                kind = paper.Shape.CornerRadiusMm > 0f ? "roundrect" : "rect";
+            paper.Shape.Kind = kind;
+        }
         return paper;
     }
 
@@ -217,14 +235,9 @@ public sealed class PaperCatalog
             pageH = Math.Max(pageH, needH);
         }
 
-        if (item.LabelsPerSheet > 0 && cols * rows != item.LabelsPerSheet)
-        {
-            var mismatch = "용지 규격에 이상이 있습니다. 열 × 행 수가 칸수와 맞지 않습니다.\n"
-                           + $"용지번호 {(string.IsNullOrWhiteSpace(item.Sku) ? $"P{item.Id}" : item.Sku.Trim())} · "
-                           + $"{cols}열 × {rows}행 = {cols * rows}칸 ≠ {item.LabelsPerSheet}칸";
-            issue = issue is null ? mismatch : issue + "\n\n" + mismatch;
-            EditorLog.Warn($"규격 칸수 불일치: {item.Sku} {cols}×{rows}={cols * rows} ≠ {item.LabelsPerSheet}칸");
-        }
+        // 칸수가 맞는지는 맨 끝에서 본다. 형태가 '맞춤'이면 SVG 안의 닫힌 도형만큼 칸이 늘어나
+        // 열×행보다 많아지므로, 펼치기 전에 비교하면 멀쩡한 규격을 틀렸다고 알리게 된다.
+        var (shape, svgRead) = BuildShopShape(item, lw, lh);
 
         var paper = new PaperSpec
         {
@@ -242,7 +255,7 @@ public sealed class PaperCatalog
             HGapMm = hGap,
             VGapMm = vGap,
             LabelColor = NormalizeLabelColor(item.LabelColor),
-            Shape = BuildShopShape(item, lw, lh),
+            Shape = shape,
             LayoutIssue = issue
         };
 
@@ -259,7 +272,86 @@ public sealed class PaperCatalog
             paper.BottomMarginMm = Math.Max(0f, pageH - usedH - tm);
         }
 
+        // 여백이 다 정해진 뒤에 펼쳐야 칸 자리가 맞는다. 격자 자리를 기준으로 삼기 때문이다.
+        ApplyClosedShapeSlots(paper, svgRead);
+        AppendCountIssue(paper, item);
         return paper;
+    }
+
+    /// <summary>
+    /// 규격 SVG 안의 닫힌 도형을 편집 칸으로 펼친다. 격자 칸 하나가 SVG 한 장이고,
+    /// 그 안의 닫힌 도형 하나하나가 편집할 수 있는 라벨 한 칸이 된다.
+    /// 도형이 하나뿐일 때도 같은 규칙으로 다뤄 칸이 도형 크기에 딱 맞게 된다.
+    /// </summary>
+    private static void ApplyClosedShapeSlots(PaperSpec paper, SvgShapeImporter.Result? read)
+    {
+        if (read is null || read.Closed.Count == 0) return;
+
+        // CustomSlots를 아직 안 넣었으므로 여기서는 격자 자리가 나온다.
+        var grid = paper.EnumerateSlots().ToList();
+        if (grid.Count == 0) return;
+
+        var closed = read.Closed;
+        var slots = new List<LabelSlot>(grid.Count * closed.Count);
+        var cuts = new List<string>(grid.Count * read.FrameCuts.Count);
+        foreach (var cell in grid)
+        {
+            foreach (var piece in closed)
+            {
+                slots.Add(new LabelSlot(
+                    cell.Col, cell.Row, slots.Count,
+                    cell.X + piece.XMm, cell.Y + piece.YMm,
+                    piece.WMm, piece.HMm,
+                    piece.Shape.Clone()));
+            }
+
+            // 칸 밖 칼선은 격자 칸마다 되풀이되므로 여기서 시트 좌표로 옮겨 둔다.
+            foreach (var d in read.FrameCuts)
+            {
+                var moved = TranslatePathData(d, cell.X, cell.Y);
+                if (moved is not null) cuts.Add(moved);
+            }
+        }
+
+        paper.CustomSlots = slots;
+        paper.SheetCutPaths = cuts.Count > 0 ? cuts : null;
+        paper.LabelWidthMm = slots[0].W;
+        paper.LabelHeightMm = slots[0].H;
+        // 칸마다 제 모양을 들고 있으니 용지 기본 모양은 받침으로만 남긴다.
+        paper.Shape = new PaperShape { Kind = "rect", CornerRadiusMm = 0f };
+
+        EditorLog.Info($"규격 SVG를 편집 칸으로 펼쳤습니다: 격자 {grid.Count}칸 × 닫힌 도형 "
+                       + $"{closed.Count}개 = {slots.Count}칸 · 칸 밖 칼선 {cuts.Count}개 "
+                       + $"· 첫 칸 {slots[0].W:0.###}×{slots[0].H:0.###}mm");
+    }
+
+    /// <summary>Path를 통째로 옮긴다. 라벨 칸 기준 칼선을 시트 기준으로 바꿀 때 쓴다.</summary>
+    private static string? TranslatePathData(string d, float dx, float dy)
+    {
+        var path = SKPath.ParseSvgPathData(d);
+        if (path is null) return null;
+        using (path)
+        {
+            path.Transform(SKMatrix.CreateTranslation(dx, dy));
+            var moved = path.ToSvgPathData();
+            return string.IsNullOrWhiteSpace(moved) ? null : moved;
+        }
+    }
+
+    /// <summary>실제 칸수가 규격에 적힌 칸수와 다르면 사용자에게 알린다.</summary>
+    private static void AppendCountIssue(PaperSpec paper, ShopPaperItem item)
+    {
+        var actual = paper.LabelsPerPage;
+        if (item.LabelsPerSheet <= 0 || actual == item.LabelsPerSheet) return;
+
+        var no = string.IsNullOrWhiteSpace(item.Sku) ? $"P{item.Id}" : item.Sku.Trim();
+        var how = paper.CustomSlots is { Count: > 0 }
+            ? $"SVG 닫힌 도형으로 펼친 {actual}칸"
+            : $"{paper.Columns}열 × {paper.Rows}행 = {actual}칸";
+        var mismatch = "용지 규격에 이상이 있습니다. 칸수가 맞지 않습니다.\n"
+                       + $"용지번호 {no} · {how} ≠ 규격에 적힌 {item.LabelsPerSheet}칸";
+        paper.LayoutIssue = paper.LayoutIssue is null ? mismatch : paper.LayoutIssue + "\n\n" + mismatch;
+        EditorLog.Warn($"규격 칸수 불일치: {no} {how} ≠ {item.LabelsPerSheet}칸");
     }
 
     private static readonly Dictionary<string, (float W, float H)> StandardPaperSizes =
@@ -325,8 +417,13 @@ public sealed class PaperCatalog
         static bool IsHex(string s) => s.All(Uri.IsHexDigit);
     }
 
-    /// <summary>DB의 형태·모서리반경·커스텀 Path를 편집기 도형으로 바꾼다.</summary>
-    private static PaperShape BuildShopShape(ShopPaperItem item, float lw, float lh)
+    /// <summary>
+    /// DB의 형태·모서리반경·커스텀 Path를 편집기 도형으로 바꾼다.
+    /// 형태가 '맞춤'이고 올린 것이 SVG 마크업이면, 읽어 낸 칸·칼선도 함께 돌려준다.
+    /// 부르는 쪽이 여백을 정한 뒤 이것을 편집 칸으로 펼친다.
+    /// </summary>
+    private static (PaperShape Shape, SvgShapeImporter.Result? Svg) BuildShopShape(
+        ShopPaperItem item, float lw, float lh)
     {
         var limit = Math.Min(lw, lh) / 2f;
         var rx = Math.Clamp(item.CornerRadiusXMm ?? 0f, 0f, limit);
@@ -353,7 +450,7 @@ public sealed class PaperCatalog
                                + $"{raw:0.###}mm → {limit:0.###}mm (칸 {lw:0.#}×{lh:0.#}mm)");
         }
 
-        return new PaperShape
+        var shape = new PaperShape
         {
             Kind = kind,
             CornerRadiusMm = rx,
@@ -362,6 +459,37 @@ public sealed class PaperCatalog
             Svg = svg.Length > 0 ? svg : null,
             SvgIsLabelMm = false
         };
+
+        if (kind != "svg") return (shape, null);
+
+        // 올린 것이 SVG 마크업이면 안에 든 요소를 모두 꺼내 라벨 칸 mm 좌표로 바꾼다.
+        // 맨 path 문자열이거나 읽지 못하면 결과가 null이고, 그때는 예전처럼 외곽 한 장만 쓴다.
+        if (SvgShapeImporter.Read(svg, lw, lh, SlotModeOf(item.Shape)) is not { } read)
+            return (shape, null);
+
+        // 닫힌 도형을 칸으로 펼칠 수 있으면 이 모양은 받침으로만 쓰이고 칸 모양이 대신 쓰인다.
+        // 펼칠 수 없을 때(닫힌 도형이 없을 때)는 SVG를 외곽 + 가이드로 그려 적어도 보이게 한다.
+        if (read.Closed.Count == 0)
+        {
+            shape.Svg = read.Outline;
+            shape.Guides = read.Guides;
+            shape.GuidesIncludeOutline = true;
+            shape.SvgIsLabelMm = true;
+        }
+
+        return (shape, read);
+    }
+
+    /// <summary>
+    /// 규격의 형태 값으로 겹친 칼선을 어떻게 다룰지 정한다.
+    /// '맞춤 도넛'은 바깥·안쪽 칼선 사이가 편집 칸이고, 그 밖의 맞춤은 안쪽 칼선 안이 편집 칸이다.
+    /// </summary>
+    private static SvgShapeImporter.SlotMode SlotModeOf(string? shape)
+    {
+        var text = (shape ?? "").Trim().ToLowerInvariant();
+        return text.Contains("donut") || text.Contains("도넛")
+            ? SvgShapeImporter.SlotMode.Donut
+            : SvgShapeImporter.SlotMode.Inner;
     }
 
     public PaperSpec? Find(string? paperNo)

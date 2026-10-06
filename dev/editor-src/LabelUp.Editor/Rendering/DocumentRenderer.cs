@@ -185,12 +185,15 @@ public static class DocumentRenderer
         bool drawCutLines = true,
         bool drawShapeEdge = true,
         string? skipObjectId = null,
-        bool paintBackground = true)
+        bool paintBackground = true,
+        bool clipObjects = true)
     {
         var w = widthMm ?? doc.WidthMm;
         var h = heightMm ?? doc.HeightMm;
         var shape = doc.Paper.ShapeFor(cell.Index);
         using var clip = CreateLabelPath(shape, w, h);
+
+        // 바탕·격자·안내선은 라벨 안에만 머물러야 하므로 늘 라벨 모양으로 오려 둔다.
         canvas.Save();
         canvas.ClipPath(clip, SKClipOperation.Intersect, antialias: true);
 
@@ -220,6 +223,15 @@ public static class DocumentRenderer
         if (drawCutLines)
             DrawGuides(canvas, shape, w, h);
 
+        canvas.Restore();
+
+        // 항목은 편집 화면에서만 라벨 밖까지 보여 준다. 라벨보다 큰 글상자·그림을 넣었을 때
+        // 안쪽 조각만 보이면 무엇이 얼마나 넘쳤는지 알 수 없어 손보기 어렵기 때문이다.
+        // 인쇄·내보내기(forExport)는 실제로 찍히는 범위만 보여야 하므로 그대로 오려 낸다.
+        canvas.Save();
+        if (clipObjects || forExport)
+            canvas.ClipPath(clip, SKClipOperation.Intersect, antialias: true);
+
         foreach (var obj in cell.OrderedObjects())
         {
             // 캔버스에서 바로 고치고 있는 글상자는 HTML 편집기가 같은 자리에 글을 얹으므로 건너뛴다.
@@ -229,7 +241,9 @@ public static class DocumentRenderer
 
         // 하트·원처럼 네모가 아닌 라벨은 테두리를 그려야 모양이 보인다. 편집기 화면은 제 테두리를
         // 위에서 그렸으니 여기는 내보내기 전용이다. 인쇄 시트는 칼선을 따로 그리므로 끄고 부른다.
-        if (drawShapeEdge && drawCutLines && forExport && shape.Kind is "svg" or "ellipse" or "circle")
+        // 규격 SVG를 통째로 풀어 넣은 용지는 가이드가 외곽까지 제 선으로 그리므로 건너뛴다.
+        if (drawShapeEdge && drawCutLines && forExport && !shape.GuidesIncludeOutline
+            && shape.Kind is "svg" or "ellipse" or "circle")
         {
             using var outline = new SKPaint
             {
@@ -384,12 +398,27 @@ public static class DocumentRenderer
         canvas.DrawPath(guide, guidePaint);
     }
 
+    /// <summary>
+    /// 규격에 적어 둔 외곽 Path를 꺼낸다. SVG 마크업이면 안에 든 d= 를 모두 모아 잇는다.
+    /// 2SET·4SET 처럼 외곽이 여러 조각인 용지는 path 가 여러 개인데, 첫 조각만 읽으면
+    /// 나머지가 사라질 뿐 아니라 남은 한 조각이 칸 크기로 늘어나 엉뚱한 자리에 그려진다.
+    /// </summary>
     private static string ExtractPath(string svg)
     {
-        var match = Regex.Match(svg, """\bd\s*=\s*(["'])(.*?)\1""", RegexOptions.Singleline | RegexOptions.IgnoreCase);
-        if (match.Success)
-            return match.Groups[2].Value;
-        return svg;
+        var matches = Regex.Matches(svg, """\bd\s*=\s*(["'])(.*?)\1""",
+            RegexOptions.Singleline | RegexOptions.IgnoreCase);
+        if (matches.Count == 0)
+            return svg;
+
+        var sb = new System.Text.StringBuilder();
+        foreach (Match m in matches)
+        {
+            var d = m.Groups[2].Value.Trim();
+            if (d.Length == 0) continue;
+            if (sb.Length > 0) sb.Append(' ');
+            sb.Append(d);
+        }
+        return sb.Length > 0 ? sb.ToString() : svg;
     }
 
     public static void DrawObject(SKCanvas canvas, DesignObject obj, Func<DesignObject, string>? resolve = null)
@@ -2755,9 +2784,16 @@ public static class DocumentRenderer
         doc.EnsureStructure();
         pageIndex = Math.Clamp(pageIndex, 0, doc.Pages.Count - 1);
         var paper = doc.Paper;
-        var scale = dpi / 25.4f;
-        var w = Math.Max(1, (int)Math.Ceiling(paper.PaperWidthMm * scale));
-        var h = Math.Max(1, (int)Math.Ceiling(paper.PaperHeightMm * scale));
+        var pageW = Math.Max(0.01f, paper.PaperWidthMm);
+        var pageH = Math.Max(0.01f, paper.PaperHeightMm);
+        var w = Math.Max(1, (int)Math.Ceiling(pageW * (dpi / 25.4f)));
+        var h = Math.Max(1, (int)Math.Ceiling(pageH * (dpi / 25.4f)));
+        // 그림은 올림한 정수 픽셀에 용지가 꼭 맞도록 배율을 되잡는다. dpi/25.4 를 그대로 쓰면
+        // 올림한 끄트머리 한 줄만큼 그림이 용지보다 작아지는데, 인쇄 때 이 그림을 용지 크기
+        // (210.000mm × 297.000mm)에 맞춰 넣으므로 그만큼 전체가 줄어 아래 행이 위로 당겨진다.
+        // A4·180dpi 기준 세로 0.039mm 차이라 눈에 띄지는 않지만, 1:1 이 아니게 되는 것은 막는다.
+        var scaleX = w / pageW;
+        var scaleY = h / pageH;
         var info = new SKImageInfo(w, h, SKColorType.Rgba8888, SKAlphaType.Premul);
         using var surface = SKSurface.Create(info);
         var canvas = surface.Canvas;
@@ -2765,7 +2801,7 @@ public static class DocumentRenderer
         // 프린터가 그 자리에 아무것도 뿌리지 않는다.
         var paperBg = ColorUtil.Parse(paper.LabelColor);
         canvas.Clear(paintPaperColor && paperBg.Alpha != 0 ? paperBg : SKColors.White);
-        canvas.Scale(scale);
+        canvas.Scale(scaleX, scaleY);
         canvas.Translate(offsetXMm, offsetYMm);
 
         var page = doc.Pages[pageIndex];
@@ -2786,7 +2822,11 @@ public static class DocumentRenderer
                 drawCutLines: drawCutLines,
                 drawShapeEdge: false,
                 paintBackground: paintPaperColor);
-            if (drawCutLines)
+            // 규격 SVG가 곧 칼선인 용지(형태 '맞춤')는 DrawCell 안에서 SVG를 제 선으로 이미 그렸다.
+            // 여기서 빨간 기본 외곽을 또 그리면 같은 자리에 두 겹이 되고, 그 외곽은 선 굵기까지
+            // 합친 테두리라 실제 칼선보다 바깥으로 번져 자리 맞춤을 방해한다.
+            var slotShape = paper.ShapeFor(slot);
+            if (drawCutLines && !slotShape.GuidesIncludeOutline)
             {
                 using var outline = new SKPaint
                 {
@@ -2795,10 +2835,29 @@ public static class DocumentRenderer
                     Style = SKPaintStyle.Stroke,
                     StrokeWidth = 0.18f
                 };
-                using var path = CreateLabelPath(paper.ShapeFor(slot), slot.W, slot.H);
+                using var path = CreateLabelPath(slotShape, slot.W, slot.H);
                 canvas.DrawPath(path, outline);
             }
             canvas.Restore();
+        }
+
+        // 편집 칸에 속하지 않는 칼선('맞춤 일반'의 바깥 칼선 등). 칸 밖이라 칸 반복문에서는
+        // 그릴 수 없고, 좌표가 이미 시트 기준이므로 옮기지 않고 그대로 그린다.
+        if (drawCutLines && paper.SheetCutPaths is { Count: > 0 } sheetCuts)
+        {
+            using var frame = new SKPaint
+            {
+                Color = new SKColor(0xC4, 0x28, 0x3A),
+                IsAntialias = true,
+                Style = SKPaintStyle.Stroke,
+                StrokeWidth = 0.18f
+            };
+            foreach (var d in sheetCuts)
+            {
+                var path = SKPath.ParseSvgPathData(d);
+                if (path is null) continue;
+                using (path) canvas.DrawPath(path, frame);
+            }
         }
 
         using var image = surface.Snapshot();

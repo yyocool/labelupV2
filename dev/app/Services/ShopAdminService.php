@@ -245,7 +245,7 @@ final class ShopAdminService
             'height_mm' => $height,
             'paper_size' => self::normalizePaperSize($data['paper_size'] ?? null),
             'material' => trim((string) ($data['material'] ?? '')),
-            'shape' => (string) ($data['shape'] ?? 'rect'),
+            'shape' => self::normalizeShape($data['shape'] ?? null),
             'labels_per_sheet' => $data['labels_per_sheet'] ?? null,
             'top_margin_mm' => self::normalizeMm($data['top_margin_mm'] ?? null),
             'left_margin_mm' => self::normalizeMm($data['left_margin_mm'] ?? null),
@@ -260,6 +260,18 @@ final class ShopAdminService
             'description' => trim((string) ($data['description'] ?? '')),
             'is_active' => !empty($data['is_active']),
         ]);
+    }
+
+    /**
+     * 라벨 형태. DB가 ENUM이라 목록 밖 값이 오면 저장 자체가 실패하므로 여기서 걸러 둔다.
+     * custom은 '맞춤 일반'(안쪽 칼선 안만 편집), custom_donut은 '맞춤 도넛'(칼선 사이만 편집).
+     */
+    private const SHAPES = ['rect', 'round', 'custom', 'custom_donut'];
+
+    private static function normalizeShape(mixed $value): string
+    {
+        $text = strtolower(trim((string) ($value ?? '')));
+        return in_array($text, self::SHAPES, true) ? $text : 'rect';
     }
 
     /** 용지 규격은 목록 밖 값도 받되 기호는 막는다. 예: A4, A3, Letter, 100x150. */

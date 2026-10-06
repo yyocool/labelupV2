@@ -375,7 +375,12 @@ function buildSpecForm(row = {}) {
 
   html += '<section class="admin-product-section"><h4 class="admin-product-section-title">라벨 모양</h4><div class="admin-product-form-grid">';
   html += shopField('형태', 'shape', row.shape || 'rect', 'select', {
-    options: [{ v: 'rect', t: '사각' }, { v: 'round', t: '원형' }, { v: 'custom', t: '맞춤' }],
+    options: [
+      { v: 'rect', t: '사각' },
+      { v: 'round', t: '원형' },
+      { v: 'custom', t: '맞춤 일반 (안쪽 칼선 안만 편집)' },
+      { v: 'custom_donut', t: '맞춤 도넛 (칼선 사이만 편집)' },
+    ],
   });
   html += buildColorField('라벨 바탕색', 'label_color', row.label_color);
   html += shopField('모서리 가로 반경(mm)', 'corner_radius_x_mm', trimDecimal(row.corner_radius_x_mm), 'number', { step: '0.001', min: 0 });

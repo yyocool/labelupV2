@@ -45,6 +45,12 @@ public sealed class PaperSpec
     /// <summary>불규칙 용지. 있으면 격자 대신 이 좌표를 쓴다 (X/Y/H/W 순으로 저장된 배열).</summary>
     public List<LabelSlot>? CustomSlots { get; set; }
 
+    /// <summary>
+    /// 편집 칸에 속하지 않는 칼선(Path d, 좌표는 시트 mm). '맞춤 일반'에서 편집 영역 밖에
+    /// 남는 바깥 칼선이 여기 들어간다. 칼선 인쇄를 켰을 때만 그린다.
+    /// </summary>
+    public List<string>? SheetCutPaths { get; set; }
+
     [JsonIgnore]
     public int LabelsPerPage => CustomSlots is { Count: > 0 }
         ? CustomSlots.Count
@@ -78,7 +84,8 @@ public sealed class PaperSpec
             DesignImageUrl = DesignImageUrl,
             CustomSlots = CustomSlots is { Count: > 0 }
                 ? CustomSlots.Select(s => s with { Shape = s.Shape?.Clone() }).ToList()
-                : null
+                : null,
+            SheetCutPaths = SheetCutPaths is { Count: > 0 } ? [.. SheetCutPaths] : null
         };
     }
 
@@ -165,6 +172,13 @@ public sealed class PaperShape
     public string? GuideSvg { get; set; }
     /// <summary>WMF 가이드(채운 글자·그림자·내부 선). 좌표는 라벨 mm.</summary>
     public List<PaperGuidePath>? Guides { get; set; }
+    /// <summary>
+    /// <see cref="Guides"/>에 외곽 조각까지 들어 있으면 true. 규격 SVG를 통째로 풀어 넣은
+    /// 경우가 그렇다. 이때 외곽은 가이드가 제 선 굵기·색으로 이미 그리므로, 그리는 쪽이
+    /// 칼선용 기본 테두리를 한 번 더 덧그리지 않아야 선이 두 겹으로 굵어지지 않는다.
+    /// WMF 용지는 외곽을 <see cref="Svg"/>에만 두므로 false 그대로다.
+    /// </summary>
+    public bool GuidesIncludeOutline { get; set; }
     /// <summary>Svg/GuideSvg 좌표가 이미 라벨 mm이면 true. 하트 등 0–100 path는 false.</summary>
     public bool SvgIsLabelMm { get; set; }
     public PaperHole? Hole { get; set; }
@@ -192,6 +206,7 @@ public sealed class PaperShape
         Svg = Svg,
         GuideSvg = GuideSvg,
         Guides = Guides?.Select(g => g.Clone()).ToList(),
+        GuidesIncludeOutline = GuidesIncludeOutline,
         SvgIsLabelMm = SvgIsLabelMm,
         Hole = Hole is null ? null : new PaperHole
         {
@@ -212,7 +227,7 @@ public sealed class PaperShape
             "roundrect" =>
                 $"<rect x='{x}' y='{y}' width='{w}' height='{h}' rx='{CornerRadiusMm}' ry='{RadiusYMm}' fill='{fillEsc}' stroke='{stroke}' stroke-width='0.25'/>",
             "svg" when !string.IsNullOrWhiteSpace(Svg) =>
-                $"<g transform='translate({x.ToString("0.###", CultureInfo.InvariantCulture)},{y.ToString("0.###", CultureInfo.InvariantCulture)})'>{WrapShapeSvg(Svg!, w, h, fillEsc)}{WrapGuides(this, w, h)}</g>",
+                $"<g transform='translate({x.ToString("0.###", CultureInfo.InvariantCulture)},{y.ToString("0.###", CultureInfo.InvariantCulture)})'>{WrapShapeSvg(this, w, h, fillEsc)}{WrapGuides(this, w, h)}</g>",
             _ =>
                 $"<rect x='{x}' y='{y}' width='{w}' height='{h}' rx='0.6' ry='0.6' fill='{fillEsc}' stroke='{stroke}' stroke-width='0.25'/>"
         };
@@ -237,11 +252,33 @@ public sealed class PaperShape
                + $" fill='{fill}' stroke='{stroke}' stroke-width='0.25'/>";
     }
 
-    private static string WrapShapeSvg(string svg, float w, float h, string fill)
+    /// <summary>
+    /// 미리보기용 외곽 한 장. 가이드가 외곽까지 그리는 용지는 바탕만 깔고 선은 생략한다.
+    /// 그러지 않으면 같은 자리에 선이 두 겹으로 그려진다.
+    /// 도넛 칸처럼 구멍이 달려 있으면 구멍 Path를 같이 넣고 홀짝 규칙으로 뚫어 보여 준다.
+    /// </summary>
+    private static string WrapShapeSvg(PaperShape shape, float w, float h, string fill)
     {
+        var svg = shape.Svg ?? "";
         if (svg.Contains("<svg", StringComparison.OrdinalIgnoreCase))
             return svg;
-        return $"<svg viewBox='0 0 {w.ToString("0.###", CultureInfo.InvariantCulture)} {h.ToString("0.###", CultureInfo.InvariantCulture)}' width='{w.ToString("0.###", CultureInfo.InvariantCulture)}' height='{h.ToString("0.###", CultureInfo.InvariantCulture)}'><path d='{svg}' fill='{fill}' stroke='#2E2A27' stroke-width='0.25'/></svg>";
+
+        var inv = CultureInfo.InvariantCulture;
+        var edge = shape.GuidesIncludeOutline ? "none" : "#2E2A27";
+        var rule = "";
+        if (shape.Guides is { Count: > 0 })
+        {
+            var sb = new StringBuilder(svg);
+            foreach (var g in shape.Guides)
+            {
+                if (!g.IsHole || string.IsNullOrWhiteSpace(g.D)) continue;
+                sb.Append(' ').Append(g.D);
+                rule = " fill-rule='evenodd'";
+            }
+            svg = sb.ToString();
+        }
+
+        return $"<svg viewBox='0 0 {w.ToString("0.###", inv)} {h.ToString("0.###", inv)}' width='{w.ToString("0.###", inv)}' height='{h.ToString("0.###", inv)}'><path d='{svg}' fill='{fill}' stroke='{edge}' stroke-width='0.25'{rule}/></svg>";
     }
 
     private static string WrapGuides(PaperShape shape, float w, float h)
