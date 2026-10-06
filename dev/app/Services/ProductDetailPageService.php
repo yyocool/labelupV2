@@ -54,8 +54,8 @@ final class ProductDetailPageService
     {
         $product = $this->requireProduct($productId);
         $row = $this->repo->findByProductId($productId);
-        $stored = self::imagesOnlyHtml((string) ($row['html_content'] ?? ''));
-        $html = $stored !== '' ? $stored : $this->composedImageHtml($product);
+        $stored = self::sanitizeDetailHtml((string) ($row['html_content'] ?? ''));
+        $html = $stored !== '' ? $stored : self::composeProductImages($product);
         return [
             'product_id' => $productId,
             'product_name' => (string) ($product['name'] ?? ''),
@@ -233,7 +233,7 @@ final class ProductDetailPageService
     public function save(int $productId, string $html): array
     {
         $this->requireProduct($productId);
-        $this->repo->saveForProduct($productId, self::imagesOnlyHtml($html), 'published');
+        $this->repo->saveForProduct($productId, self::sanitizeDetailHtml($html), 'published');
         return $this->getForEdit($productId);
     }
 
@@ -242,7 +242,7 @@ final class ProductDetailPageService
      *
      * @param array<string, mixed> $product
      */
-    private function composedImageHtml(array $product): string
+    public static function composeProductImages(array $product): string
     {
         $items = [
             [(string) ($product['header_image'] ?? ''), '헤더 이미지'],
@@ -252,15 +252,23 @@ final class ProductDetailPageService
         $tags = [];
         foreach ($items as [$path, $alt]) {
             $src = self::cleanImageSrc(ShopProductImageService::normalizePublicPath($path));
-            if ($src === '' || !is_file(public_path(ltrim($src, '/')))) {
+            if ($src === '') {
                 continue;
             }
-            $tags[] = '<img src="' . htmlspecialchars($src, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars($alt, ENT_QUOTES, 'UTF-8') . '">';
+            $tags[] = '<p><img src="' . htmlspecialchars($src, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars($alt, ENT_QUOTES, 'UTF-8') . '"></p>';
         }
         return implode('', $tags);
     }
 
-    /** 이미지 태그만 남긴다. p, div, style 같은 다른 태그는 저장하지 않는다. */
+    /**
+     * @param array<string, mixed> $product
+     */
+    private function composedImageHtml(array $product): string
+    {
+        return self::composeProductImages($product);
+    }
+
+    /** 이미지 태그만 남긴다. (이미지 ZIP 구성 등 보조용) */
     public static function imagesOnlyHtml(string $html): string
     {
         if (trim($html) === '' || !preg_match_all('/<img\b[^>]*>/iu', $html, $matches)) {
@@ -284,6 +292,53 @@ final class ProductDetailPageService
         return implode('', $tags);
     }
 
+    /**
+     * WYSIWYG 상세 HTML을 저장·노출용으로 정리한다.
+     * 스크립트/이벤트 속성은 제거하고, img src는 /assets/ 경로만 허용한다.
+     */
+    public static function sanitizeDetailHtml(string $html): string
+    {
+        $html = trim($html);
+        if ($html === '' || $html === '<p><br></p>' || $html === '<p></p>' || $html === '<br>') {
+            return '';
+        }
+
+        // 위험 태그 제거
+        $html = preg_replace('#<(script|style|iframe|object|embed|link|meta)\b[^>]*>.*?</\1>#isu', '', $html) ?? $html;
+        $html = preg_replace('#<(script|style|iframe|object|embed|link|meta)\b[^>]*/?>#iu', '', $html) ?? $html;
+        // on* 이벤트 속성 제거
+        $html = preg_replace('/\s+on[a-z]+\s*=\s*(".*?"|\'.*?\'|[^\s>]+)/iu', '', $html) ?? $html;
+        // javascript: URL 제거
+        $html = preg_replace('/\s(href|src)\s*=\s*([\'"])\s*javascript:[^\'"]*\2/iu', '', $html) ?? $html;
+
+        // img src 를 /assets/ 만 허용
+        $html = preg_replace_callback('/<img\b[^>]*>/iu', static function (array $m): string {
+            $tag = $m[0];
+            if (!preg_match('/\bsrc\s*=\s*(["\'])(.*?)\1/iu', $tag, $srcMatch)) {
+                return '';
+            }
+            $src = self::cleanImageSrc(html_entity_decode($srcMatch[2], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+            if ($src === '') {
+                return '';
+            }
+            $alt = '';
+            if (preg_match('/\balt\s*=\s*(["\'])(.*?)\1/iu', $tag, $altMatch)) {
+                $alt = trim(html_entity_decode($altMatch[2], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+            }
+            return '<img src="' . htmlspecialchars($src, ENT_QUOTES, 'UTF-8')
+                . '" alt="' . htmlspecialchars($alt, ENT_QUOTES, 'UTF-8') . '">';
+        }, $html) ?? $html;
+
+        if ($html === '' || $html === '<p><br></p>' || $html === '<p></p>' || $html === '<br>') {
+            return '';
+        }
+        $plain = trim(html_entity_decode(strip_tags($html, '<img>'), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        if ($plain === '' && stripos($html, '<img') === false) {
+            return '';
+        }
+        return $html;
+    }
+
     private static function cleanImageSrc(string $src): string
     {
         $src = trim(html_entity_decode($src, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
@@ -291,13 +346,17 @@ final class ProductDetailPageService
             return '';
         }
         $src = preg_replace('/[?#].*$/', '', $src) ?? $src;
-        if (preg_match('#^https?://[^/]+(/assets/.+)$#i', $src, $match) === 1) {
+        if (preg_match('#^https?://[^/]+(/.*)$#i', $src, $match) === 1) {
             $src = $match[1];
+        }
+        $src = rawurldecode($src);
+        if ($src !== '' && $src[0] !== '/') {
+            $src = '/' . ltrim($src, '/');
         }
         if (!str_starts_with($src, '/assets/') || str_contains($src, '..')) {
             return '';
         }
-        if (preg_match('#^/assets/[A-Za-z0-9_./-]+$#', $src) !== 1) {
+        if (preg_match('#^/assets/[^\x00-\x1f]+$#u', $src) !== 1) {
             return '';
         }
         return $src;

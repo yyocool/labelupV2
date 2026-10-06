@@ -97,7 +97,11 @@ final class ShopService
     private function withDetailHtml(array $product, bool $publishedOnly): array
     {
         $html = (new ProductDetailPageRepository())->findHtmlByProductId((int) ($product['id'] ?? 0), $publishedOnly);
-        $product['detail_html'] = $html ?? '';
+        $html = $html ? ProductDetailPageService::sanitizeDetailHtml($html) : '';
+        if ($html === '') {
+            $html = ProductDetailPageService::composeProductImages($product);
+        }
+        $product['detail_html'] = $html;
         return $product;
     }
 

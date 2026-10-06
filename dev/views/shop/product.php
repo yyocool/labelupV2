@@ -49,7 +49,9 @@ $descParsed = \App\Helpers\ShopProductDescriptionHelper::parse($description);
 $descSpecs = $descParsed['specs'];
 $descProse = $descParsed['prose'];
 $descSpecRows = \App\Helpers\ShopProductDescriptionHelper::pairRows($descSpecs);
-$hasDetailBody = $detailHtml !== '' || $description !== '';
+// 상품 146: 상단/하단 상세 레이아웃만 쓰고, 자동 「상품 설명」 스펙표는 노출하지 않는다.
+$hideAutoDescription = (int) ($product['id'] ?? 0) === 146;
+$hasDetailBody = $detailHtml !== '' || (!$hideAutoDescription && $description !== '');
 $hashtags = is_array($pageLayout['hashtags'] ?? null) ? $pageLayout['hashtags'] : [];
 ?>
 <article class="shop-detail<?= $isInk ? ' shop-detail--ink' : '' ?>">

@@ -617,17 +617,17 @@ document.querySelectorAll('.js-product-detail-images').forEach((btn) => {
 const DETAIL_HTML_EDITOR_OPTS = {
   lang: 'ko-KR',
   height: 520,
-  placeholder: '헤더, 상품규격, 촬영 이미지가 위에서부터 들어갑니다.',
+  placeholder: '상품 상세페이지에 표시할 글·이미지·표 등을 입력하세요.',
   dialogsInBody: true,
   toolbar: [
-    ['insert', ['picture', 'multiImage']],
-    ['view', ['codeview']],
+    ['style', ['style']],
+    ['font', ['bold', 'italic', 'underline', 'clear']],
+    ['fontsize', ['fontsize']],
+    ['color', ['color']],
+    ['para', ['ul', 'ol', 'paragraph']],
+    ['insert', ['link', 'picture', 'multiImage', 'table', 'hr']],
+    ['view', ['fullscreen', 'codeview']],
   ],
-  callbacks: {
-    onChange() {
-      enforceDetailImagesOnly(jQuery('.js-product-detail-html'));
-    },
-  },
 };
 
 function escapeDetailAttr(value) {
@@ -637,40 +637,29 @@ function escapeDetailAttr(value) {
     .replace(/</g, '&lt;');
 }
 
-/** 에디터 HTML에서 img 만 남긴다. 경로는 /assets/ 로 맞춘다. */
-function detailImagesOnlyHtml(html) {
-  const doc = new DOMParser().parseFromString(String(html || ''), 'text/html');
-  return [...doc.querySelectorAll('img')].map((img) => {
+/** img src 를 /assets/ 경로로 정리한다. (본문 HTML은 그대로 유지) */
+function normalizeDetailImageSrcs(html) {
+  const doc = new DOMParser().parseFromString(`<div id="lu-root">${String(html || '')}</div>`, 'text/html');
+  const root = doc.getElementById('lu-root');
+  if (!root) return String(html || '');
+  root.querySelectorAll('img').forEach((img) => {
     let src = (img.getAttribute('src') || '').trim().replace(/[?#].*$/, '');
     if (/^https?:/i.test(src)) {
-      try { src = new URL(src).pathname; } catch (e) { return ''; }
+      try { src = new URL(src).pathname; } catch (e) { src = ''; }
     }
-    if (!src.startsWith('/assets/') || src.includes('..')) return '';
-    return `<img src="${escapeDetailAttr(src)}" alt="${escapeDetailAttr(img.getAttribute('alt') || '')}">`;
-  }).filter(Boolean).join('');
+    if (!src.startsWith('/assets/') || src.includes('..')) {
+      img.remove();
+      return;
+    }
+    img.setAttribute('src', src);
+    if (!img.hasAttribute('alt')) img.setAttribute('alt', '');
+  });
+  return root.innerHTML;
 }
 
 function isEmptyDetailEditorHtml(html) {
   const compact = String(html || '').replace(/\s/g, '').toLowerCase();
   return compact === '' || compact === '<p><br></p>' || compact === '<p></p>' || compact === '<br>';
-}
-
-let detailImageNormalizeLock = false;
-
-function enforceDetailImagesOnly($el) {
-  if (detailImageNormalizeLock || !$el || !$el.length) return;
-  const editable = $el.next('.note-editor').find('.note-editable').get(0);
-  if (!editable) return;
-  const raw = editable.innerHTML || '';
-  const clean = detailImagesOnlyHtml(raw);
-  if (clean === '' && isEmptyDetailEditorHtml(raw)) return;
-  if (raw.replace(/\s/g, '') === clean.replace(/\s/g, '')) return;
-  detailImageNormalizeLock = true;
-  try {
-    $el.summernote('code', clean);
-  } finally {
-    detailImageNormalizeLock = false;
-  }
 }
 
 function destroyDetailHtmlEditor() {
@@ -1079,8 +1068,18 @@ async function applyImageQueue() {
   if (!target || !urls.length || !window.jQuery) return;
   const $el = jQuery(target);
   if (target.classList.contains('js-product-detail-html')) {
-    const current = detailImagesOnlyHtml($el.summernote('code'));
-    const added = detailImagesOnlyHtml(urls.map((url) => `<img src="${escapeDetailAttr(url)}" alt="">`).join(''));
+    const current = normalizeDetailImageSrcs($el.summernote('code'));
+    const added = urls
+      .map((url) => {
+        let src = String(url || '').trim().replace(/[?#].*$/, '');
+        if (/^https?:/i.test(src)) {
+          try { src = new URL(src).pathname; } catch (e) { return ''; }
+        }
+        if (!src.startsWith('/assets/') || src.includes('..')) return '';
+        return `<p><img src="${escapeDetailAttr(src)}" alt=""></p>`;
+      })
+      .filter(Boolean)
+      .join('');
     $el.summernote('code', current + added);
     return;
   }
@@ -1281,7 +1280,7 @@ if (detailHtmlForm) {
     try {
       const saved = await PageSettingsAPI.post(PageSettingsAPI.endpoints.detailSave, {
         product_id: productId,
-        html_content: detailImagesOnlyHtml(getPageSettingsEditorCode('.js-product-detail-html')),
+        html_content: normalizeDetailImageSrcs(getPageSettingsEditorCode('.js-product-detail-html')),
       });
       const detail = saved.data || {};
       updateDetailStatusBadge(productId, !!detail.has_detail_page);

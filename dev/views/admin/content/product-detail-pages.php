@@ -221,7 +221,7 @@ $queryParams = array_filter([
       </div>
     </form>
     <div class="admin-modal-foot">
-      <p class="admin-muted admin-detail-html-hint">헤더, 상품규격, 촬영 이미지가 위에서부터 들어갑니다. 저장되는 내용은 이미지 태그만 사용합니다.</p>
+      <p class="admin-muted admin-detail-html-hint">글·이미지·표 등 WYSIWYG 내용이 상품 상세페이지 본문에 그대로 표시됩니다. 비우면 상세 본문 등록이 해제됩니다.</p>
       <button type="button" class="admin-btn js-product-detail-html-close">취소</button>
       <button type="submit" form="productDetailHtmlForm" class="admin-btn admin-btn--primary" id="productDetailHtmlSaveBtn">저장</button>
     </div>
