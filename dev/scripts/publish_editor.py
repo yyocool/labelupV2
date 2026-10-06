@@ -6,6 +6,7 @@ import hashlib
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 BOOT_SENTINEL = "BOOTSTAMP"
@@ -97,10 +98,51 @@ def write_charset_shim(out: Path) -> None:
     print("Wrote index.php charset shim")
 
 
+def clean_intermediates() -> None:
+    """Force the native relink, because MSBuild will happily skip it.
+
+    WasmBuildNative=true means the P/Invoke table is generated from the managed
+    assemblies and compiled into dotnet.native.wasm at publish time. MSBuild
+    decides whether to redo that native link from file timestamps, and it gets
+    the call wrong when only the set of P/Invokes changes: adding a new
+    SkiaSharp call does not make any input look newer than dotnet.native.wasm,
+    so the old module is reused and the new entry is simply absent from its
+    table.
+
+    Nothing warns about it. The publish succeeds, every file verifies, and the
+    app dies at runtime the first time that call is reached - Mono cannot find
+    the interp-to-native trampoline and aborts the whole runtime with
+    aot-runtime-wasm.c "<disabled>" and exit(1). That shipped once already: the
+    deployed dotnet.native.wasm was 125 bytes smaller than a clean build's
+    because it was missing sk_paint_get_fill_path and friends.
+
+    A clean relink costs about a minute and a half. A native module that does
+    not match the assemblies costs a dead editor in production.
+    """
+    for name in ("obj", "bin"):
+        target = PROJECT / name
+        # Windows hands out transient directory locks (search indexer, antivirus,
+        # a just-closed MSBuild node), so one failed rmtree means "wait", not
+        # "give up" - giving up here would silently reuse the stale native build.
+        for attempt in range(1, 6):
+            if not target.exists():
+                break
+            try:
+                shutil.rmtree(target)
+            except PermissionError as ex:
+                if attempt == 5:
+                    raise
+                print(f"{name}/ locked ({ex.strerror}); retrying in 3s")
+                time.sleep(3)
+    print("Cleared obj/ and bin/ to force a fresh native relink")
+
+
 def main() -> int:
     if not PROJECT.exists():
         print(f"Missing project: {PROJECT}", file=sys.stderr)
         return 1
+
+    clean_intermediates()
 
     if OUT.exists():
         shutil.rmtree(OUT)
