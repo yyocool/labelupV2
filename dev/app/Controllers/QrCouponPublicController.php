@@ -89,7 +89,7 @@ final class QrCouponPublicController extends BaseController
         }
 
         $this->render('qr-coupon/index', [
-            'pageTitle' => '라벨 구매 크레딧 쿠폰 — 라벨업',
+            'pageTitle' => '라벨 구매 잉크 쿠폰 — 라벨업',
             'year' => (int) date('Y'),
             'authUser' => $user,
             'page' => $page,

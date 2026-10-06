@@ -104,7 +104,7 @@
       <form id="notifPrefsForm">
         <div class="account-notif-prefs" id="notifPrefsFields"></div>
         <div class="account-field">
-          <label>크레딧 부족 경고 기준 (C)</label>
+          <label>잉크 부족 경고 기준 (C)</label>
           <input type="number" name="low_credit_threshold" id="notifLowThreshold" min="0" max="100000" step="10" value="100">
         </div>
         <button class="account-btn account-btn--primary account-btn--block" type="submit">설정 저장</button>

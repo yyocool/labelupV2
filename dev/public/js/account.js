@@ -52,7 +52,7 @@
         const on = !!prefs[key];
         return '<li><span>' + (m.label || key) + '</span><em>' + (on ? '수신' : '꺼짐') + '</em></li>';
       }).join('') +
-        '<li><span>크레딧 부족 기준</span><em>' + Number(prefs.low_credit_threshold || 100).toLocaleString() + ' C</em></li>';
+        '<li><span>잉크 부족 기준</span><em>' + Number(prefs.low_credit_threshold || 100).toLocaleString() + ' C</em></li>';
     }
     if (notifFields) {
       const meta = prefs.meta || {};
@@ -201,6 +201,33 @@
       } catch (err) {
         showAlert(alert, err.message);
       } finally {
+        btn.disabled = false;
+      }
+    });
+  }
+
+  // 찜한 상품 — 해제하면 목록에서 바로 빠진다.
+  const wishList = document.getElementById('accountWishList');
+  if (wishList) {
+    const wishEmpty = document.getElementById('accountWishEmpty');
+    wishList.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.js-wish-remove');
+      if (!btn) return;
+      const productId = Number(btn.dataset.productId || 0);
+      if (!productId) return;
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/shop/wishlist/remove', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ product_id: productId }),
+        });
+        const json = await res.json();
+        if (!res.ok || json.success === false) throw new Error(json.message || '해제 실패');
+        btn.closest('[data-wish-product-id]')?.remove();
+        if (wishEmpty && !wishList.querySelector('[data-wish-product-id]')) wishEmpty.hidden = false;
+      } catch (err) {
         btn.disabled = false;
       }
     });

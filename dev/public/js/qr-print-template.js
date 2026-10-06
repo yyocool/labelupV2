@@ -72,7 +72,7 @@
         fontFamily: 'Pretendard', fontSize: 9, fontWeight: 800, align: 'left', fill: '#2E2A27',
       }),
       obj('text', {
-        x: 30, y: 18, w: 36, h: 12, text: '스캔하고\n크레딧 받기',
+        x: 30, y: 18, w: 36, h: 12, text: '스캔하고\n잉크 받기',
         fontFamily: 'Pretendard', fontSize: 8, fontWeight: 700, align: 'left', fill: '#7B2840',
       }),
     ];

@@ -50,7 +50,7 @@ function buildCreditForm(entity, row = {}, userId = 0) {
     html += creditField('보상 코드', 'code', row.code, 'text', { required: true });
     html += creditField('보상명', 'name', row.name, 'text', { required: true });
     html += creditField('설명', 'description', row.description, 'textarea');
-    html += creditField('크레딧', 'credit_amount', row.credit_amount ?? 0, 'number', { required: true, min: 0 });
+    html += creditField('잉크', 'credit_amount', row.credit_amount ?? 0, 'number', { required: true, min: 0 });
     html += creditField('트리거', 'trigger_type', row.trigger_type || 'event', 'select', {
       options: [
         { v: 'signup', t: '회원가입' }, { v: 'daily_login', t: '일일 접속' },
@@ -65,7 +65,7 @@ function buildCreditForm(entity, row = {}, userId = 0) {
   } else if (entity === 'purchase-product') {
     html += creditField('제품명', 'name', row.name, 'text', { required: true });
     html += creditField('SKU', 'sku', row.sku, 'text', { required: true });
-    html += creditField('지급 크레딧', 'credit_amount', row.credit_amount ?? 0, 'number', { required: true, min: 0 });
+    html += creditField('지급 잉크', 'credit_amount', row.credit_amount ?? 0, 'number', { required: true, min: 0 });
     html += creditField('설명', 'description', row.description, 'textarea');
     html += creditField('사용', 'is_active', row.is_active, 'checkbox');
   } else if (entity === 'generate-codes') {
@@ -178,7 +178,7 @@ document.getElementById('creditAdjustForm')?.addEventListener('submit', async (e
   body.user_id = Number(body.user_id);
   try {
     const res = await CreditAPI.post('/api/admin/credit/adjust', body);
-    showAdminAlert(`크레딧이 조정되었습니다. (잔액 ${Number(res.data?.balance || 0).toLocaleString()} C)`, 'success');
+    showAdminAlert(`잉크가 조정되었습니다. (잔액 ${Number(res.data?.balance || 0).toLocaleString()} C)`, 'success');
     window.location.reload();
   } catch (err) {
     showAdminAlert(err.message, 'error');
@@ -213,7 +213,7 @@ async function submitCreditGrant(form) {
     return;
   }
   if (amount <= 0) {
-    showAdminAlert('지급 크레딧은 1 이상이어야 합니다.', 'error');
+    showAdminAlert('지급 잉크는 1 이상이어야 합니다.', 'error');
     return;
   }
   if (!reason) {
@@ -228,7 +228,7 @@ async function submitCreditGrant(form) {
       amount,
       reason,
     });
-    showAdminAlert(`크레딧이 지급되었습니다. (잔액 ${Number(res.data?.balance || 0).toLocaleString()} C)`, 'success');
+    showAdminAlert(`잉크가 지급되었습니다. (잔액 ${Number(res.data?.balance || 0).toLocaleString()} C)`, 'success');
     window.location.reload();
   } catch (err) {
     showAdminAlert(err.message, 'error');

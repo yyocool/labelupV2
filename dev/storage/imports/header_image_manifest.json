@@ -1,0 +1,326 @@
+{
+  "written": [
+    {
+      "sku": "A101",
+      "category": "다용도라벨 (물류관리용)"
+    },
+    {
+      "sku": "A101F",
+      "category": "다용도라벨 (물류관리용)"
+    },
+    {
+      "sku": "A102",
+      "category": "다용도라벨 (물류관리용)"
+    },
+    {
+      "sku": "A103",
+      "category": "다용도라벨 (물류관리용)"
+    },
+    {
+      "sku": "A202",
+      "category": "다용도라벨 (물류관리용)"
+    },
+    {
+      "sku": "A203",
+      "category": "다용도라벨 (물류관리용)"
+    },
+    {
+      "sku": "A304",
+      "category": "다용도라벨 (물류관리용)"
+    },
+    {
+      "sku": "A106",
+      "category": "다용도라벨 (주소용)"
+    },
+    {
+      "sku": "A204",
+      "category": "다용도라벨 (주소용)"
+    },
+    {
+      "sku": "A205",
+      "category": "다용도라벨 (주소용)"
+    },
+    {
+      "sku": "A206",
+      "category": "다용도라벨 (주소용)"
+    },
+    {
+      "sku": "A207",
+      "category": "다용도라벨 (주소용)"
+    },
+    {
+      "sku": "A208",
+      "category": "다용도라벨 (주소용)"
+    },
+    {
+      "sku": "A209",
+      "category": "다용도라벨 (주소용)"
+    },
+    {
+      "sku": "A306",
+      "category": "다용도라벨 (주소용)"
+    },
+    {
+      "sku": "A307",
+      "category": "다용도라벨 (주소용)"
+    },
+    {
+      "sku": "A308",
+      "category": "다용도라벨 (주소용)"
+    },
+    {
+      "sku": "A309",
+      "category": "다용도라벨 (바코드용)"
+    },
+    {
+      "sku": "A410",
+      "category": "다용도라벨 (바코드용)"
+    },
+    {
+      "sku": "A412",
+      "category": "다용도라벨 (바코드용)"
+    },
+    {
+      "sku": "A609",
+      "category": "다용도라벨 (바코드용)"
+    },
+    {
+      "sku": "A512",
+      "category": "다용도라벨 (바코드용)"
+    },
+    {
+      "sku": "A513",
+      "category": "다용도라벨 (바코드용)"
+    },
+    {
+      "sku": "A105",
+      "category": "다용도라벨 (인덱스용)"
+    },
+    {
+      "sku": "A402",
+      "category": "다용도라벨 (인덱스용)"
+    },
+    {
+      "sku": "A109",
+      "category": "다용도라벨 (인덱스용)"
+    },
+    {
+      "sku": "A304R",
+      "category": "다용도라벨 (인덱스용)"
+    },
+    {
+      "sku": "A210",
+      "category": "다용도라벨 (인덱스용)"
+    },
+    {
+      "sku": "A406R",
+      "category": "다용도라벨 (인덱스용)"
+    },
+    {
+      "sku": "A311",
+      "category": "다용도라벨 (인덱스용)"
+    },
+    {
+      "sku": "A218",
+      "category": "다용도라벨 (인덱스용)"
+    },
+    {
+      "sku": "A318",
+      "category": "다용도라벨 (인덱스용)"
+    },
+    {
+      "sku": "A421",
+      "category": "다용도라벨 (인덱스용)"
+    },
+    {
+      "sku": "A616",
+      "category": "다용도라벨 (인덱스용)"
+    },
+    {
+      "sku": "A524",
+      "category": "다용도라벨 (인덱스용)"
+    },
+    {
+      "sku": "A529",
+      "category": "다용도라벨 (인덱스용)"
+    },
+    {
+      "sku": "A827",
+      "category": "다용도라벨 (인덱스용)"
+    },
+    {
+      "sku": "LG101",
+      "category": "광택 라벨"
+    },
+    {
+      "sku": "LG102",
+      "category": "광택 라벨"
+    },
+    {
+      "sku": "LG204",
+      "category": "광택 라벨"
+    },
+    {
+      "sku": "LG205",
+      "category": "광택 라벨"
+    },
+    {
+      "sku": "LG208",
+      "category": "광택 라벨"
+    },
+    {
+      "sku": "LG307",
+      "category": "광택 라벨"
+    },
+    {
+      "sku": "LW101",
+      "category": "방수 라벨"
+    },
+    {
+      "sku": "LW102",
+      "category": "방수 라벨"
+    },
+    {
+      "sku": "LW202",
+      "category": "방수 라벨"
+    },
+    {
+      "sku": "LW204",
+      "category": "방수 라벨"
+    },
+    {
+      "sku": "LW208",
+      "category": "방수 라벨"
+    },
+    {
+      "sku": "LW307",
+      "category": "방수 라벨"
+    },
+    {
+      "sku": "LW410",
+      "category": "방수 라벨"
+    },
+    {
+      "sku": "LW512",
+      "category": "방수 라벨"
+    },
+    {
+      "sku": "LT101",
+      "category": "반투명 라벨"
+    },
+    {
+      "sku": "LT102",
+      "category": "반투명 라벨"
+    },
+    {
+      "sku": "LT208",
+      "category": "반투명 라벨"
+    },
+    {
+      "sku": "LT307",
+      "category": "반투명 라벨"
+    },
+    {
+      "sku": "IC102",
+      "category": "잉크젯 투명 라벨"
+    },
+    {
+      "sku": "IC204",
+      "category": "잉크젯 투명 라벨"
+    },
+    {
+      "sku": "IC208",
+      "category": "잉크젯 투명 라벨"
+    },
+    {
+      "sku": "IC307",
+      "category": "잉크젯 투명 라벨"
+    },
+    {
+      "sku": "LC101",
+      "category": "레이저 투명 라벨"
+    },
+    {
+      "sku": "LC102",
+      "category": "레이저 투명 라벨"
+    },
+    {
+      "sku": "LC204",
+      "category": "레이저 투명 라벨"
+    },
+    {
+      "sku": "LC208",
+      "category": "레이저 투명 라벨"
+    },
+    {
+      "sku": "LC307",
+      "category": "레이저 투명 라벨"
+    },
+    {
+      "sku": "PC101",
+      "category": "보호용 필름"
+    },
+    {
+      "sku": "PC303",
+      "category": "보호용 필름"
+    },
+    {
+      "sku": "PC404",
+      "category": "보호용 필름"
+    },
+    {
+      "sku": "PC505",
+      "category": "보호용 필름"
+    },
+    {
+      "sku": "LN101R",
+      "category": "컬러 라벨(형광)"
+    },
+    {
+      "sku": "LN101G",
+      "category": "컬러 라벨(형광)"
+    },
+    {
+      "sku": "LN101Y",
+      "category": "컬러 라벨(형광)"
+    },
+    {
+      "sku": "AP101Y",
+      "category": "파스텔 컬러 라벨"
+    },
+    {
+      "sku": "AP101G",
+      "category": "파스텔 컬러 라벨"
+    },
+    {
+      "sku": "AP101P",
+      "category": "파스텔 컬러 라벨"
+    },
+    {
+      "sku": "AP101B",
+      "category": "파스텔 컬러 라벨"
+    },
+    {
+      "sku": "AK101",
+      "category": "크라프트 라벨"
+    },
+    {
+      "sku": "AK102",
+      "category": "크라프트 라벨"
+    },
+    {
+      "sku": "AK207",
+      "category": "크라프트 라벨"
+    },
+    {
+      "sku": "AK307",
+      "category": "크라프트 라벨"
+    }
+  ],
+  "skipped": [
+    "AD104",
+    "AD102",
+    "LT204",
+    "IC101F"
+  ]
+}

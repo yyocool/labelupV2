@@ -9,7 +9,10 @@ $grades = $grades ?? [];
 <div class="admin-head">
   <div>
     <h1>회원 관리</h1>
-    <p>총 <?= number_format($total) ?>명 · 회원에게 크레딧을 지급하고 지급 사유·이력을 확인할 수 있습니다.</p>
+    <p>총 <?= number_format($total) ?>명 · 회원에게 잉크를 지급하고 지급 사유·이력을 확인할 수 있습니다.</p>
+  </div>
+  <div class="admin-head-actions">
+    <button type="button" class="admin-btn admin-btn--primary" id="userCreateOpen">+ 회원 추가</button>
   </div>
 </div>
 
@@ -33,7 +36,7 @@ $grades = $grades ?? [];
         <th>이메일</th>
         <th>이름</th>
         <th>회사</th>
-        <th>크레딧</th>
+        <th>잉크</th>
         <th>회원등급</th>
         <th>상태</th>
         <th>가입일</th>
@@ -80,7 +83,7 @@ $grades = $grades ?? [];
               data-user-email="<?= e($row['email'] ?? '') ?>"
               data-user-name="<?= e($row['name'] ?? '') ?>"
               data-balance="<?= (int) ($row['credit_balance'] ?? 0) ?>"
-            >크레딧 지급</button>
+            >잉크 지급</button>
             <button
               class="admin-btn admin-btn--sm js-credit-grant-history"
               type="button"
@@ -117,7 +120,7 @@ $grades = $grades ?? [];
 ?>
 <section class="admin-section">
   <div class="admin-section-head">
-    <h2 class="admin-section-title">최근 크레딧 지급 이력</h2>
+    <h2 class="admin-section-title">최근 잉크 지급 이력</h2>
     <p class="admin-muted">총 <?= number_format($grantTotal) ?>건 · 관리자가 임의 지급한 내역입니다.</p>
   </div>
   <div class="admin-table-wrap">
@@ -157,18 +160,89 @@ $grades = $grades ?? [];
   </div>
 </section>
 
+<div class="admin-modal" id="userCreateModal" hidden>
+  <div class="admin-modal-backdrop" data-close="userCreateModal"></div>
+  <div class="admin-modal-panel admin-modal-panel--wide" role="dialog" aria-modal="true" aria-labelledby="userCreateTitle">
+    <div class="admin-modal-head">
+      <h2 id="userCreateTitle">회원 추가</h2>
+      <button type="button" class="admin-modal-close" data-close="userCreateModal" aria-label="닫기">×</button>
+    </div>
+    <form id="userCreateForm" class="admin-modal-body">
+      <div class="admin-form-grid">
+        <label class="admin-field">
+          <span>이메일 <em>필수</em></span>
+          <input class="admin-input" type="email" name="email" maxlength="190" required autocomplete="off" placeholder="member@example.com">
+          <small>로그인 아이디로 쓰입니다. 이미 가입된 이메일은 쓸 수 없습니다.</small>
+        </label>
+        <label class="admin-field">
+          <span>이름 <em>필수</em></span>
+          <input class="admin-input" type="text" name="name" maxlength="100" required autocomplete="off" placeholder="홍길동">
+        </label>
+        <div class="admin-field">
+          <span>비밀번호 <em>필수</em></span>
+          <div class="admin-input-row">
+            <input class="admin-input" type="text" name="password" id="userCreatePassword" maxlength="72" required autocomplete="new-password" placeholder="영문+숫자 8자 이상">
+            <button type="button" class="admin-btn admin-btn--sm" id="userCreatePasswordGen">자동 생성</button>
+          </div>
+          <small>회원에게 따로 알려주세요. 나중에 회원이 직접 변경할 수 있습니다.</small>
+        </div>
+        <label class="admin-field">
+          <span>연락처</span>
+          <input class="admin-input" type="tel" name="phone" maxlength="30" autocomplete="off" placeholder="010-0000-0000">
+        </label>
+        <label class="admin-field">
+          <span>회사명</span>
+          <input class="admin-input" type="text" name="company" maxlength="150" autocomplete="off" placeholder="(주)라벨업">
+        </label>
+        <label class="admin-field">
+          <span>회원등급</span>
+          <select class="admin-input" name="grade_id">
+            <?php foreach ($grades as $grade): ?>
+            <option value="<?= (int) $grade['id'] ?>"<?= !empty($grade['is_default']) ? ' selected' : '' ?>><?= e((string) $grade['name']) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </label>
+        <label class="admin-field">
+          <span>상태</span>
+          <select class="admin-input" name="status">
+            <option value="active" selected>활성</option>
+            <option value="inactive">비활성</option>
+          </select>
+        </label>
+        <label class="admin-field">
+          <span>가입 잉크</span>
+          <input class="admin-input" type="number" name="credit_amount" min="0" max="10000000" step="1" value="0">
+          <small>0이면 지급하지 않습니다. <?= e(\App\Services\CreditService::ratioLabel()) ?></small>
+        </label>
+        <label class="admin-field admin-field--full">
+          <span>잉크 지급 사유</span>
+          <input class="admin-input" type="text" name="credit_reason" maxlength="255" placeholder="예: 관리자 직접 등록 지급">
+        </label>
+        <label class="admin-field admin-field--full admin-field--inline-check">
+          <input type="checkbox" name="send_welcome" value="1">
+          <span>가입 환영 알림 보내기</span>
+        </label>
+      </div>
+    </form>
+    <div class="admin-modal-foot">
+      <button type="button" class="admin-btn" data-close="userCreateModal">취소</button>
+      <button type="submit" form="userCreateForm" class="admin-btn admin-btn--primary">회원 추가</button>
+    </div>
+  </div>
+</div>
+
 <div class="admin-modal" id="creditGrantModal" hidden>
   <div class="admin-modal-backdrop" data-close="creditGrantModal"></div>
   <div class="admin-modal-panel" role="dialog" aria-modal="true" aria-labelledby="creditGrantTitle">
     <div class="admin-modal-head">
-      <h2 id="creditGrantTitle">크레딧 지급</h2>
+      <h2 id="creditGrantTitle">잉크 지급</h2>
       <button type="button" class="admin-modal-close" data-close="creditGrantModal" aria-label="닫기">×</button>
     </div>
     <form id="creditGrantForm" class="admin-modal-body">
       <input type="hidden" name="user_id" id="creditGrantUserId">
       <p class="admin-grant-target" id="creditGrantTarget">회원을 선택하세요.</p>
       <label class="admin-field">
-        <span>지급 크레딧</span>
+        <span>지급 잉크</span>
         <input class="admin-input" type="number" name="amount" min="1" max="10000000" step="1" required placeholder="예: 5000">
         <small class="admin-muted"><?= e(\App\Services\CreditService::ratioLabel()) ?></small>
       </label>

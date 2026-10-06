@@ -22,7 +22,6 @@ $loginFor = static function (string $dest): string {
     <a href="<?= url('/') ?>" aria-label="labelup 홈">
       <img class="brand-img" src="<?= asset('logo.png') ?>" alt="labelup">
     </a>
-    <strong class="brand-name">labelup</strong>
     <small>라벨업 · AI 라벨 디자인</small>
   </div>
   <a class="create" href="<?= url('editor/?new=1') ?>">✎ &nbsp;새 디자인 만들기</a>
@@ -52,6 +51,11 @@ $loginFor = static function (string $dest): string {
       <a class="<?= $isLockerActive ? 'is-account-active' : '' ?>" href="<?= $sidebarLoggedIn ? url('locker') : e($loginFor('locker')) ?>"<?= $sidebarLoggedIn ? '' : ' title="로그인 후 이용할 수 있습니다"' ?>><span class="ico">▱</span>내 보관함</a>
       <a class="<?= $isTrashActive ? 'is-account-active' : '' ?>" href="<?= $sidebarLoggedIn ? url('trash') : e($loginFor('trash')) ?>"<?= $sidebarLoggedIn ? '' : ' title="로그인 후 이용할 수 있습니다"' ?>><span class="ico">♲</span>휴지통</a>
     </nav>
+    <a class="menu-labi" href="<?= url('guide/') ?>" target="_blank" rel="noopener noreferrer">
+      <span class="menu-labi__ico" aria-hidden="true">★</span>
+      <span>라비 소개</span>
+      <span class="menu-labi__tag">GUIDE</span>
+    </a>
   </div>
 
   <div class="sidebar-bottom">

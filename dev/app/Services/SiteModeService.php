@@ -8,13 +8,15 @@ use App\Repositories\SiteSettingsRepository;
 use RuntimeException;
 
 /**
- * 사이트 런타임 모드: development | production | maintenance
+ * 사이트 런타임 모드: development | temp_open | production | maintenance
  */
 final class SiteModeService
 {
     public const MODE_DEVELOPMENT = 'development';
+    public const MODE_TEMP_OPEN = 'temp_open';
     public const MODE_PRODUCTION = 'production';
     public const MODE_MAINTENANCE = 'maintenance';
+    public const SNS_HOLD_MESSAGE = '준비중입니다 이용에 불편을 드려 죄송합니다';
 
     /** @var array<string, string>|null */
     private static ?array $cache = null;
@@ -56,7 +58,7 @@ final class SiteModeService
     public function mode(): string
     {
         $raw = strtolower(trim((string) ($this->settings()['runtime_mode'] ?? '')));
-        if (in_array($raw, [self::MODE_DEVELOPMENT, self::MODE_PRODUCTION, self::MODE_MAINTENANCE], true)) {
+        if (in_array($raw, [self::MODE_DEVELOPMENT, self::MODE_TEMP_OPEN, self::MODE_PRODUCTION, self::MODE_MAINTENANCE], true)) {
             return $raw;
         }
         return $this->defaultMode();
@@ -75,6 +77,11 @@ final class SiteModeService
     public function isMaintenance(): bool
     {
         return $this->mode() === self::MODE_MAINTENANCE;
+    }
+
+    public function isTempOpen(): bool
+    {
+        return $this->mode() === self::MODE_TEMP_OPEN;
     }
 
     public function showAiUsage(): bool
@@ -118,6 +125,11 @@ final class SiteModeService
                     'desc' => 'AI 대화에 토큰·환산 금액과 디버그 정보를 표시합니다. 내부 점검용입니다.',
                 ],
                 [
+                    'value' => self::MODE_TEMP_OPEN,
+                    'label' => '임시 오픈',
+                    'desc' => '사이트는 열려 있지만 네이버·카카오·구글 로그인과 회원가입은 막아 둡니다. 이메일 가입·로그인은 그대로 이용할 수 있습니다.',
+                ],
+                [
                     'value' => self::MODE_PRODUCTION,
                     'label' => '운영 모드',
                     'desc' => '일반 서비스 상태입니다. 토큰·비용·디버그 정보는 사용자에게 숨깁니다.',
@@ -135,7 +147,7 @@ final class SiteModeService
     public function save(array $data): array
     {
         $mode = strtolower(trim((string) ($data['mode'] ?? '')));
-        if (!in_array($mode, [self::MODE_DEVELOPMENT, self::MODE_PRODUCTION, self::MODE_MAINTENANCE], true)) {
+        if (!in_array($mode, [self::MODE_DEVELOPMENT, self::MODE_TEMP_OPEN, self::MODE_PRODUCTION, self::MODE_MAINTENANCE], true)) {
             throw new RuntimeException('유효하지 않은 사이트 모드입니다.');
         }
         $title = trim((string) ($data['maintenance_title'] ?? ''));
@@ -170,6 +182,9 @@ final class SiteModeService
     {
         $path = rtrim($path, '/') ?: '/';
         if ($path === '/admin' || str_starts_with($path, '/admin/')) {
+            return true;
+        }
+        if ($path === '/partner' || str_starts_with($path, '/partner/')) {
             return true;
         }
         if (str_starts_with($path, '/api/admin')) {

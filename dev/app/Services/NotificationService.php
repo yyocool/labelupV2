@@ -33,12 +33,12 @@ final class NotificationService
             ],
             'pref_credit_low' => [
                 'key' => 'pref_credit_low',
-                'label' => '크레딧 부족 경고',
+                'label' => '잉크 부족 경고',
                 'hint' => '잔액이 설정 기준 이하로 내려갈 때',
             ],
             'pref_credit_change' => [
                 'key' => 'pref_credit_change',
-                'label' => '크레딧 변동',
+                'label' => '잉크 변동',
                 'hint' => '적립·사용·조정 시 알림',
             ],
             'pref_order_placed' => [
@@ -63,8 +63,8 @@ final class NotificationService
     {
         return match ($type) {
             self::TYPE_WELCOME => '환영',
-            self::TYPE_CREDIT_LOW => '크레딧 경고',
-            self::TYPE_CREDIT_CHANGE => '크레딧',
+            self::TYPE_CREDIT_LOW => '잉크 경고',
+            self::TYPE_CREDIT_CHANGE => '잉크',
             self::TYPE_ORDER_PLACED => '주문',
             self::TYPE_ORDER_STATUS => '배송',
             self::TYPE_SYSTEM => '공지',
@@ -153,7 +153,7 @@ final class NotificationService
             $userId,
             self::TYPE_WELCOME,
             '라벨업에 오신 것을 환영합니다',
-            $who . '마이페이지에서 알림·크레딧·주문을 확인할 수 있어요. 지금 바로 라벨을 디자인해 보세요.',
+            $who . '마이페이지에서 알림·잉크·주문을 확인할 수 있어요. 지금 바로 라벨을 디자인해 보세요.',
             url('account'),
             'user',
             (string) $userId
@@ -166,7 +166,7 @@ final class NotificationService
         $this->notify(
             $userId,
             self::TYPE_CREDIT_CHANGE,
-            '크레딧이 ' . ($amount >= 0 ? '적립' : '사용') . '되었습니다',
+            '잉크가 ' . ($amount >= 0 ? '적립' : '사용') . '되었습니다',
             trim($description) !== ''
                 ? $description . " ({$sign}" . number_format($amount) . ' C) · 잔액 ' . number_format($balanceAfter) . ' C'
                 : "{$sign}" . number_format($amount) . ' C · 잔액 ' . number_format($balanceAfter) . ' C',
@@ -195,7 +195,7 @@ final class NotificationService
         $this->notify(
             $userId,
             self::TYPE_CREDIT_LOW,
-            '크레딧이 얼마 남지 않았습니다',
+            '잉크가 얼마 남지 않았습니다',
             '현재 잔액 ' . number_format($next) . ' C (기준 ' . number_format($threshold) . ' C 이하). 마이페이지에서 내역을 확인해 주세요.',
             url('account') . '#credits',
             'credit',

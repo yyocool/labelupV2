@@ -431,6 +431,25 @@
   background:#e8f5ee;color:#0f6b4c;
 }
 .admin-page-category-form{padding:16px 18px;overflow:auto;max-height:min(70vh,720px)}
+.admin-hashtag-section{margin:0 0 18px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.admin-hashtag-section .admin-muted{margin:0 0 10px;font-size:12px}
+.admin-hashtag-list{display:flex;flex-wrap:wrap;gap:8px;min-height:38px}
+.admin-hashtag-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 8px 7px 14px;border-radius:999px;
+  background:#fff;border:1px solid #e4d3c4;color:#3a342f;
+  font-size:13.5px;font-weight:500;line-height:1.2;
+}
+.admin-hashtag-chip button{
+  width:18px;height:18px;border:0;border-radius:50%;padding:0;
+  background:transparent;color:#8a8178;font:inherit;font-size:14px;line-height:1;cursor:pointer;
+}
+.admin-hashtag-chip button:hover{background:#f6efe8;color:#3a342f}
+.admin-hashtag-add{display:flex;gap:8px;margin-top:10px;max-width:360px}
+.admin-hashtag-add input{
+  flex:1;min-width:0;height:36px;padding:0 12px;border:1px solid var(--line);border-radius:10px;
+  font:inherit;font-size:13px;
+}
 .admin-page-category-current{margin:0 0 12px;font-size:13px;color:var(--muted)}
 .admin-page-category-current strong{color:var(--charcoal)}
 @media (max-width:900px){
@@ -458,10 +477,84 @@
 }
 .admin-detail-html-form .admin-field--editor .note-editing-area{flex:1;min-height:0}
 .admin-detail-html-form .admin-field--editor .note-editable{min-height:420px}
+.admin-detail-html-form .note-editable img{
+  display:block;width:100%;max-width:100%;height:auto;margin:0;
+}
 .admin-modal-dialog--detail-html .admin-modal-foot{align-items:center;flex-wrap:wrap}
 .admin-detail-html-hint{margin-right:auto;max-width:62%}
 .admin-table-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+/* Summernote 다이얼로그는 dialogsInBody 로 body 에 붙으므로 .admin-modal(200) 위로 올린다.
+   백드롭도 같이 낮추지 않으면 기본값 1040 이 다이얼로그를 덮어 클릭이 막힌다. */
+.note-modal-backdrop{z-index:235 !important}
 .note-modal,.note-popover,.note-dropdown-menu{z-index:240 !important}
+/* 이미지 업로드·순서 조정 창. 에디터 모달 위에 겹쳐 뜬다. */
+.admin-modal--image-queue{z-index:250}
+.admin-modal-dialog--image-queue{width:min(860px,100%)}
+.admin-modal--image-queue.is-busy .admin-modal-close{opacity:.4;pointer-events:none}
+.admin-image-drop{
+  display:grid;justify-items:center;gap:6px;
+  padding:22px 16px;text-align:center;
+  border:2px dashed var(--line);border-radius:12px;background:#faf8f6;
+  transition:border-color .15s,background .15s;
+}
+.admin-image-drop.is-over{border-color:var(--accent);background:#fdf6f7}
+.admin-image-drop__lead{margin:0;font-size:14px;font-weight:700}
+.admin-image-drop__sub{margin:0;font-size:12px}
+.admin-image-drop button{margin-top:4px}
+.admin-image-queue-progress{
+  height:6px;margin-top:12px;overflow:hidden;
+  border-radius:999px;background:#ece7e2;
+}
+.admin-image-queue-progress__fill{
+  width:0;height:100%;border-radius:999px;background:var(--accent);
+  transition:width .2s;
+}
+.admin-image-queue-status{margin:6px 0 0;font-size:12px;color:var(--muted)}
+.admin-image-queue-hint{margin:12px 0 0;font-size:12px}
+.admin-image-queue{
+  display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;
+  padding:10px;
+  border:1px solid var(--line);border-radius:12px;background:#faf8f6;
+}
+/* display 를 지정하면 hidden 속성이 무시돼 빈 테두리만 남는다. */
+.admin-image-queue[hidden]{display:none}
+.admin-image-queue__item{
+  position:relative;margin:0;width:120px;padding:8px;
+  border:1px solid var(--line);border-radius:10px;background:#fff;
+}
+.admin-image-queue__item.is-done{cursor:grab}
+.admin-image-queue__item.is-uploading{border-color:var(--accent);opacity:.75}
+/* 호스팅 빈도 제한에 걸려 다시 보내기를 기다리는 중. 실패와 구분되게 둔다. */
+.admin-image-queue__item.is-waiting{border-color:#c98a2b;background:#fdf8f0}
+.admin-image-queue__item.is-waiting .admin-image-queue__no{background:#c98a2b}
+.admin-image-queue__item.is-error{border-color:#c0392b;background:#fdf3f2}
+.admin-image-queue__item.is-dragging{opacity:.4}
+.admin-image-queue__item.is-drop-target{border-color:var(--accent);box-shadow:0 0 0 2px rgba(123,45,62,.25)}
+.admin-image-queue__item img{
+  width:100%;height:90px;object-fit:contain;display:block;
+  border-radius:6px;background:#f4f2f0;pointer-events:none;
+}
+.admin-image-queue__no{
+  position:absolute;top:2px;left:2px;z-index:1;
+  min-width:20px;padding:2px 5px;
+  border-radius:6px;background:var(--accent);color:#fff;
+  font-size:11px;font-weight:700;text-align:center;line-height:1.3;
+}
+.admin-image-queue__item.is-error .admin-image-queue__no{background:#c0392b}
+.admin-image-queue__item.is-pending .admin-image-queue__no{background:var(--muted)}
+/* 파일명은 한 줄로 잘라 둔다. 전체 이름은 항목 툴팁에 있다. */
+.admin-image-queue__name{
+  margin:6px 0 0;font-size:11px;color:var(--muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+/* 실패 사유. 카드 폭이 좁아 줄바꿈을 허용한다. */
+.admin-image-queue__why{
+  margin:4px 0 0;font-size:11px;line-height:1.35;color:#b0392b;
+  word-break:keep-all;overflow-wrap:anywhere;
+}
+.admin-image-queue__tools{display:flex;gap:4px;margin-top:6px}
+.admin-image-queue__tools button{flex:1;padding:4px 2px;font-size:11px;line-height:1.2;min-width:0}
+.admin-image-queue-count{margin-right:auto;font-size:12px}
 .admin-modal-head-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
 .admin-preview-frame-wrap{padding:0 !important;overflow:hidden;background:#f4f4f7;min-height:min(80vh,900px)}
 .admin-preview-frame-wrap iframe{display:block;width:100%;height:min(80vh,900px);border:0;background:#fff}
@@ -505,6 +598,25 @@
 .admin-product-form .admin-field--editor textarea{min-height:0}
 .admin-product-form .admin-field--editor .note-editable{min-height:240px}
 .admin-product-images{display:flex;flex-wrap:wrap;gap:12px;margin:8px 0 10px;min-height:44px}
+
+.admin-chip{display:inline-block;margin-left:4px;padding:1px 7px;border-radius:999px;background:#f3eee9;border:1px solid #e3dcd6;font-size:11px;color:#6b635d;vertical-align:middle}
+
+/* 상품 옵션 편집 행 */
+.admin-option-rows{display:flex;flex-direction:column;gap:6px;margin:0 0 10px}
+.admin-option-empty{margin:0;padding:10px 0;font-size:12px}
+.admin-option-head,
+.admin-option-row{display:grid;grid-template-columns:minmax(0,2fr) 110px 90px 110px 48px 64px;gap:8px;align-items:center}
+.admin-option-head{font-size:11px;color:#8b827c;padding:0 2px}
+.admin-option-row{position:relative;padding-bottom:16px}
+/* box-sizing 이 없으면 패딩·테두리만큼 칸을 넘어 옆 칸과 겹친다 */
+.admin-option-row input[type=text],
+.admin-option-row input[type=number]{box-sizing:border-box;width:100%;min-width:0;padding:7px 9px;border:1px solid #e3dcd6;border-radius:8px;font-size:13px;background:#fff}
+.admin-option-check{display:flex;justify-content:center}
+.admin-option-preview{position:absolute;left:2px;bottom:0;font-size:11px;color:#8b827c}
+@media (max-width:900px){
+  .admin-option-head{display:none}
+  .admin-option-row{grid-template-columns:1fr 1fr;padding-bottom:20px}
+}
 .admin-product-image-item{width:96px}
 .admin-product-image-item img{
   width:100%;aspect-ratio:210/297;height:auto;object-fit:contain;
@@ -524,6 +636,16 @@
 .admin-modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:14px 18px;border-top:1px solid var(--line)}
 .admin-field--check{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600}
 .admin-field--check input{width:auto;height:auto}
+/* .admin-field 의 세로 배치를 되돌려 체크박스와 글을 한 줄에 둔다.
+   .admin-field 규칙이 이 아래에도 있어 클래스를 겹쳐 특이도를 올린다. */
+.admin-field.admin-field--inline-check{flex-direction:row;align-items:center;justify-content:flex-start;gap:8px}
+.admin-field.admin-field--inline-check input{width:auto;height:auto;flex:none}
+.admin-field.admin-field--inline-check span{font-weight:600}
+/* 입력칸 옆에 버튼을 붙일 때. 버튼은 제 너비를 지키고 입력칸이 남는 폭을 가진다. */
+.admin-input-row{display:flex;gap:6px;align-items:center;min-width:0}
+.admin-input-row .admin-input{flex:1;min-width:0}
+.admin-input-row .admin-btn{flex:none;white-space:nowrap}
+.admin-field span em{margin-left:2px;font-style:normal;font-weight:800;color:#c0392b}
 
 .admin-section{margin-top:28px}
 .admin-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
@@ -562,6 +684,22 @@
 .admin-thumb-btn:hover .admin-thumb{border-color:var(--accent);box-shadow:0 0 0 2px rgba(123,45,62,.18)}
 .admin-thumb--square{width:64px;aspect-ratio:1/1;object-fit:contain;border-radius:10px;background:#fff}
 .admin-thumb--spec{width:48px;aspect-ratio:210/297;object-fit:contain;border-radius:8px;background:#fff}
+.admin-thumb--sheet{
+  width:72px;max-height:108px;height:auto;aspect-ratio:auto;object-fit:cover;object-position:top;
+  border-radius:8px;background:#f7f3ee;
+}
+.admin-thumb--mockup{
+  width:64px;height:80px;aspect-ratio:auto;object-fit:contain;object-position:center;
+  border-radius:8px;background:#f7f3ee;
+}
+.admin-thumb--header{
+  width:72px;height:76px;aspect-ratio:auto;object-fit:cover;object-position:center;
+  border-radius:8px;background:#5A1124;
+}
+.admin-thumb--shoot{
+  width:72px;height:96px;aspect-ratio:auto;object-fit:cover;object-position:top;
+  border-radius:8px;background:#f7f3ee;
+}
 .admin-category-image-wrap{margin:8px 0 10px}
 .admin-category-image-preview{
   width:200px;height:200px;object-fit:contain;border-radius:14px;border:1px solid var(--line);background:#fff;display:block;

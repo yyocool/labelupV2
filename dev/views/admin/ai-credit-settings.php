@@ -5,8 +5,8 @@ $ratioLabel = \App\Services\CreditService::ratioLabel();
 ?>
 <div class="admin-head">
   <div>
-    <h1>AI 크레딧 설정</h1>
-    <p>회원이 홈/편집기에서 라비 AI를 사용할 때 차감할 크레딧을 기능별로 설정합니다. 환산 기준: <strong><?= e($ratioLabel) ?></strong></p>
+    <h1>AI 잉크 설정</h1>
+    <p>회원이 홈/편집기에서 라비 AI를 사용할 때 차감할 잉크를 기능별로 설정합니다. 환산 기준: <strong><?= e($ratioLabel) ?></strong></p>
   </div>
 </div>
 
@@ -17,9 +17,9 @@ $ratioLabel = \App\Services\CreditService::ratioLabel();
     <h2 class="admin-section-title">기본 설정</h2>
     <label class="admin-field admin-field--check">
       <input type="checkbox" name="is_enabled" value="1" <?= !empty($settings['is_enabled']) ? 'checked' : '' ?>>
-      <span>AI 사용 시 크레딧 차감 사용</span>
+      <span>AI 사용 시 잉크 차감 사용</span>
     </label>
-    <p class="admin-muted">끄면 AI는 크레딧 없이 동작합니다. 켜면 아래에서 설정한 비용만큼 회원 잔액에서 차감됩니다.</p>
+    <p class="admin-muted">끄면 AI는 잉크 없이 동작합니다. 켜면 아래에서 설정한 비용만큼 회원 잔액에서 차감됩니다.</p>
     <div class="admin-form-grid">
       <label class="admin-field">
         <span>월간 사용량 표시 한도 (C)</span>
@@ -35,7 +35,7 @@ $ratioLabel = \App\Services\CreditService::ratioLabel();
   </section>
 
   <section class="admin-panel" style="margin-top:1.25rem">
-    <h2 class="admin-section-title">기능별 차감 크레딧</h2>
+    <h2 class="admin-section-title">기능별 차감 잉크</h2>
     <div class="admin-table-wrap">
       <table class="admin-table" id="aiCreditCostTable">
         <thead>

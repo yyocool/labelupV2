@@ -1,0 +1,500 @@
+[
+  {
+    "sku": "A101",
+    "file": "A101.png",
+    "options": 3,
+    "category": "물류관리용"
+  },
+  {
+    "sku": "A101F",
+    "file": "A101F.png",
+    "options": 2,
+    "category": "물류관리용"
+  },
+  {
+    "sku": "A102",
+    "file": "A102.png",
+    "options": 3,
+    "category": "물류관리용"
+  },
+  {
+    "sku": "A103",
+    "file": "A103.png",
+    "options": 2,
+    "category": "물류관리용"
+  },
+  {
+    "sku": "A202",
+    "file": "A202.png",
+    "options": 2,
+    "category": "물류관리용"
+  },
+  {
+    "sku": "A203",
+    "file": "A203.png",
+    "options": 2,
+    "category": "물류관리용"
+  },
+  {
+    "sku": "A304",
+    "file": "A304.png",
+    "options": 2,
+    "category": "물류관리용"
+  },
+  {
+    "sku": "A106",
+    "file": "A106.png",
+    "options": 2,
+    "category": "주소용"
+  },
+  {
+    "sku": "A204",
+    "file": "A204.png",
+    "options": 3,
+    "category": "주소용"
+  },
+  {
+    "sku": "A205",
+    "file": "A205.png",
+    "options": 2,
+    "category": "주소용"
+  },
+  {
+    "sku": "A206",
+    "file": "A206.png",
+    "options": 2,
+    "category": "주소용"
+  },
+  {
+    "sku": "A207",
+    "file": "A207.png",
+    "options": 2,
+    "category": "주소용"
+  },
+  {
+    "sku": "A208",
+    "file": "A208.png",
+    "options": 3,
+    "category": "주소용"
+  },
+  {
+    "sku": "A209",
+    "file": "A209.png",
+    "options": 2,
+    "category": "주소용"
+  },
+  {
+    "sku": "A306",
+    "file": "A306.png",
+    "options": 2,
+    "category": "주소용"
+  },
+  {
+    "sku": "A307",
+    "file": "A307.png",
+    "options": 2,
+    "category": "주소용"
+  },
+  {
+    "sku": "A308",
+    "file": "A308.png",
+    "options": 2,
+    "category": "주소용"
+  },
+  {
+    "sku": "A309",
+    "file": "A309.png",
+    "options": 2,
+    "category": "바코드용"
+  },
+  {
+    "sku": "A410",
+    "file": "A410.png",
+    "options": 2,
+    "category": "바코드용"
+  },
+  {
+    "sku": "A412",
+    "file": "A412.png",
+    "options": 2,
+    "category": "바코드용"
+  },
+  {
+    "sku": "A609",
+    "file": "A609.png",
+    "options": 2,
+    "category": "바코드용"
+  },
+  {
+    "sku": "A512",
+    "file": "A512.png",
+    "options": 2,
+    "category": "바코드용"
+  },
+  {
+    "sku": "A513",
+    "file": "A513.png",
+    "options": 2,
+    "category": "바코드용"
+  },
+  {
+    "sku": "A105",
+    "file": "A105.png",
+    "options": 2,
+    "category": "인덱스용"
+  },
+  {
+    "sku": "A402",
+    "file": "A402.png",
+    "options": 2,
+    "category": "인덱스용"
+  },
+  {
+    "sku": "A109",
+    "file": "A109.png",
+    "options": 2,
+    "category": "인덱스용"
+  },
+  {
+    "sku": "A304R",
+    "file": "A304R.png",
+    "options": 2,
+    "category": "인덱스용"
+  },
+  {
+    "sku": "A210",
+    "file": "A210.png",
+    "options": 2,
+    "category": "인덱스용"
+  },
+  {
+    "sku": "A406R",
+    "file": "A406R.png",
+    "options": 2,
+    "category": "인덱스용"
+  },
+  {
+    "sku": "A311",
+    "file": "A311.png",
+    "options": 2,
+    "category": "인덱스용"
+  },
+  {
+    "sku": "A218",
+    "file": "A218.png",
+    "options": 2,
+    "category": "인덱스용"
+  },
+  {
+    "sku": "A318",
+    "file": "A318.png",
+    "options": 2,
+    "category": "인덱스용"
+  },
+  {
+    "sku": "A421",
+    "file": "A421.png",
+    "options": 2,
+    "category": "인덱스용"
+  },
+  {
+    "sku": "A616",
+    "file": "A616.png",
+    "options": 2,
+    "category": "인덱스용"
+  },
+  {
+    "sku": "A524",
+    "file": "A524.png",
+    "options": 2,
+    "category": "인덱스용"
+  },
+  {
+    "sku": "A529",
+    "file": "A529.png",
+    "options": 2,
+    "category": "인덱스용"
+  },
+  {
+    "sku": "A827",
+    "file": "A827.png",
+    "options": 2,
+    "category": "인덱스용"
+  },
+  {
+    "sku": "AD104",
+    "file": "AD104.png",
+    "options": 2,
+    "category": "정부문서화일 라벨"
+  },
+  {
+    "sku": "AD102",
+    "file": "AD102.png",
+    "options": 2,
+    "category": "정부문서화일 라벨"
+  },
+  {
+    "sku": "LG101",
+    "file": "LG101.png",
+    "options": 1,
+    "category": "광택 라벨"
+  },
+  {
+    "sku": "LG102",
+    "file": "LG102.png",
+    "options": 1,
+    "category": "광택 라벨"
+  },
+  {
+    "sku": "LG204",
+    "file": "LG204.png",
+    "options": 1,
+    "category": "광택 라벨"
+  },
+  {
+    "sku": "LG205",
+    "file": "LG205.png",
+    "options": 1,
+    "category": "광택 라벨"
+  },
+  {
+    "sku": "LG208",
+    "file": "LG208.png",
+    "options": 1,
+    "category": "광택 라벨"
+  },
+  {
+    "sku": "LG307",
+    "file": "LG307.png",
+    "options": 1,
+    "category": "광택 라벨"
+  },
+  {
+    "sku": "LW101",
+    "file": "LW101.png",
+    "options": 2,
+    "category": "방수 라벨"
+  },
+  {
+    "sku": "LW102",
+    "file": "LW102.png",
+    "options": 1,
+    "category": "방수 라벨"
+  },
+  {
+    "sku": "LW202",
+    "file": "LW202.png",
+    "options": 1,
+    "category": "방수 라벨"
+  },
+  {
+    "sku": "LW204",
+    "file": "LW204.png",
+    "options": 1,
+    "category": "방수 라벨"
+  },
+  {
+    "sku": "LW208",
+    "file": "LW208.png",
+    "options": 1,
+    "category": "방수 라벨"
+  },
+  {
+    "sku": "LW307",
+    "file": "LW307.png",
+    "options": 1,
+    "category": "방수 라벨"
+  },
+  {
+    "sku": "LW410",
+    "file": "LW410.png",
+    "options": 1,
+    "category": "방수 라벨"
+  },
+  {
+    "sku": "LW512",
+    "file": "LW512.png",
+    "options": 1,
+    "category": "방수 라벨"
+  },
+  {
+    "sku": "LT101",
+    "file": "LT101.png",
+    "options": 2,
+    "category": "반투명 라벨"
+  },
+  {
+    "sku": "LT102",
+    "file": "LT102.png",
+    "options": 1,
+    "category": "반투명 라벨"
+  },
+  {
+    "sku": "LT204",
+    "file": "LT204.png",
+    "options": 1,
+    "category": "반투명 라벨"
+  },
+  {
+    "sku": "LT208",
+    "file": "LT208.png",
+    "options": 1,
+    "category": "반투명 라벨"
+  },
+  {
+    "sku": "LT307",
+    "file": "LT307.png",
+    "options": 1,
+    "category": "반투명 라벨"
+  },
+  {
+    "sku": "IC101F",
+    "file": "IC101F.png",
+    "options": 2,
+    "category": "잉크젯 투명 라벨"
+  },
+  {
+    "sku": "IC102",
+    "file": "IC102.png",
+    "options": 1,
+    "category": "잉크젯 투명 라벨"
+  },
+  {
+    "sku": "IC204",
+    "file": "IC204.png",
+    "options": 1,
+    "category": "잉크젯 투명 라벨"
+  },
+  {
+    "sku": "IC208",
+    "file": "IC208.png",
+    "options": 1,
+    "category": "잉크젯 투명 라벨"
+  },
+  {
+    "sku": "IC307",
+    "file": "IC307.png",
+    "options": 1,
+    "category": "잉크젯 투명 라벨"
+  },
+  {
+    "sku": "LC101",
+    "file": "LC101.png",
+    "options": 2,
+    "category": "레이저 투명 라벨"
+  },
+  {
+    "sku": "LC102",
+    "file": "LC102.png",
+    "options": 1,
+    "category": "레이저 투명 라벨"
+  },
+  {
+    "sku": "LC204",
+    "file": "LC204.png",
+    "options": 1,
+    "category": "레이저 투명 라벨"
+  },
+  {
+    "sku": "LC208",
+    "file": "LC208.png",
+    "options": 1,
+    "category": "레이저 투명 라벨"
+  },
+  {
+    "sku": "LC307",
+    "file": "LC307.png",
+    "options": 1,
+    "category": "레이저 투명 라벨"
+  },
+  {
+    "sku": "PC101",
+    "file": "PC101.png",
+    "options": 1,
+    "category": "보호용 필름"
+  },
+  {
+    "sku": "PC303",
+    "file": "PC303.png",
+    "options": 1,
+    "category": "보호용 필름"
+  },
+  {
+    "sku": "PC404",
+    "file": "PC404.png",
+    "options": 1,
+    "category": "보호용 필름"
+  },
+  {
+    "sku": "PC505",
+    "file": "PC505.png",
+    "options": 1,
+    "category": "보호용 필름"
+  },
+  {
+    "sku": "LN101R",
+    "file": "LN101R.png",
+    "options": 1,
+    "category": "컬러 라벨(형광)"
+  },
+  {
+    "sku": "LN101G",
+    "file": "LN101G.png",
+    "options": 1,
+    "category": "컬러 라벨(형광)"
+  },
+  {
+    "sku": "LN101Y",
+    "file": "LN101Y.png",
+    "options": 1,
+    "category": "컬러 라벨(형광)"
+  },
+  {
+    "sku": "AP101Y",
+    "file": "AP101Y.png",
+    "options": 1,
+    "category": "파스텔 컬러 라벨"
+  },
+  {
+    "sku": "AP101G",
+    "file": "AP101G.png",
+    "options": 1,
+    "category": "파스텔 컬러 라벨"
+  },
+  {
+    "sku": "AP101P",
+    "file": "AP101P.png",
+    "options": 1,
+    "category": "파스텔 컬러 라벨"
+  },
+  {
+    "sku": "AP101B",
+    "file": "AP101B.png",
+    "options": 1,
+    "category": "파스텔 컬러 라벨"
+  },
+  {
+    "sku": "AK101",
+    "file": "AK101.png",
+    "options": 2,
+    "category": "크라프트 라벨"
+  },
+  {
+    "sku": "AK102",
+    "file": "AK102.png",
+    "options": 1,
+    "category": "크라프트 라벨"
+  },
+  {
+    "sku": "AK207",
+    "file": "AK207.png",
+    "options": 1,
+    "category": "크라프트 라벨"
+  },
+  {
+    "sku": "AK307",
+    "file": "AK307.png",
+    "options": 1,
+    "category": "크라프트 라벨"
+  }
+]

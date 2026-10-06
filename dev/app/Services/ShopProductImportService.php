@@ -19,7 +19,7 @@ final class ShopProductImportService
 
     /** @var array<string, string> */
     /** 제품분류(무료배포 QR 체계) slug 매핑 — 동일 분류는 하나의 slug로 통합 */
-    private const GROUP_SLUGS = [
+    public const GROUP_SLUGS = [
         '물류관리용/주소용/바코드용/인덱스용' => 'logistics-label',
         '다용도라벨' => 'logistics-label',
         '물류관리용 라벨' => 'logistics-use',
@@ -50,7 +50,7 @@ final class ShopProductImportService
     ];
 
     /** @var array<string, string> slug => parent slug */
-    private const CHILD_PARENTS = [
+    public const CHILD_PARENTS = [
         'logistics-use' => 'logistics-label',
         'address-label' => 'logistics-label',
         'barcode-label' => 'logistics-label',

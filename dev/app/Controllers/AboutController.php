@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Services\AuthService;
 use App\Services\CompanyInfoService;
+use App\Services\SiteModeService;
 
 final class AboutController extends BaseController
 {
@@ -21,6 +22,8 @@ final class AboutController extends BaseController
             'loginUrl' => url('login'),
             'registerUrl' => url('register'),
             'kakaoLoginUrl' => url('auth/kakao'),
+            'snsHold' => (new SiteModeService())->isTempOpen(),
+            'snsHoldMessage' => SiteModeService::SNS_HOLD_MESSAGE,
             'shopUrl' => url('shop'),
             'editorUrl' => url('editor/'),
             'faqUrl' => url('faq'),

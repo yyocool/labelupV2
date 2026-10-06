@@ -4,8 +4,8 @@ $items = $items ?? [];
 ?>
 <div class="admin-head">
   <div>
-    <h1>크레딧보상 관리</h1>
-    <p>사이트 내에서 지급되는 모든 크레딧 보상 규칙을 설정합니다. 환산 기준: <strong><?= e(\App\Services\CreditService::ratioLabel()) ?></strong></p>
+    <h1>잉크보상 관리</h1>
+    <p>사이트 내에서 지급되는 모든 잉크 보상 규칙을 설정합니다. 환산 기준: <strong><?= e(\App\Services\CreditService::ratioLabel()) ?></strong></p>
   </div>
   <div class="admin-head-actions">
     <button type="button" class="admin-btn admin-btn--primary js-credit-add" data-entity="reward">+ 보상 규칙 추가</button>
@@ -19,7 +19,7 @@ $items = $items ?? [];
         <th>코드</th>
         <th>보상명</th>
         <th>트리거</th>
-        <th>크레딧</th>
+        <th>잉크</th>
         <th>일일한도</th>
         <th>총한도</th>
         <th>정렬</th>

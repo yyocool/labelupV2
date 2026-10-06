@@ -24,7 +24,7 @@ final class CreditAdminController extends BaseController
 
     public function rewardRules(): void
     {
-        $this->renderAdmin('admin/credit-rewards', 'ops-credit-rewards', '운영관리 › 크레딧보상 관리', [
+        $this->renderAdmin('admin/credit-rewards', 'ops-credit-rewards', '운영관리 › 잉크보상 관리', [
             'items' => $this->credits->rewardRules(),
         ]);
     }
@@ -48,7 +48,7 @@ final class CreditAdminController extends BaseController
             // QR 테이블 미생성 시 빈 이력
         }
 
-        $this->renderAdmin('admin/purchase-credits', 'ops-purchase-credits', '운영관리 › 구매크레딧', [
+        $this->renderAdmin('admin/purchase-credits', 'ops-purchase-credits', '운영관리 › 구매잉크', [
             'matrix' => $matrix,
             'loadError' => $loadError,
             'history' => $history,
@@ -58,7 +58,7 @@ final class CreditAdminController extends BaseController
 
     public function creditUsage(): void
     {
-        $this->renderAdmin('admin/credit-usage', 'ops-credit-usage', '운영관리 › 크레딧 사용 설정', [
+        $this->renderAdmin('admin/credit-usage', 'ops-credit-usage', '운영관리 › 잉크 사용 설정', [
             'settings' => (new AiCreditService())->adminSettings(),
             'saveUrl' => url('api/admin/ops/credit-usage/save'),
         ]);

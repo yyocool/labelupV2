@@ -12,6 +12,7 @@ use App\Services\ProductDetailPageService;
 use App\Services\ShopAdminService;
 use App\Services\ShopService;
 use App\Services\UserAiClipartService;
+use RuntimeException;
 
 final class ContentAdminController extends BaseController
 {
@@ -193,6 +194,18 @@ final class ContentAdminController extends BaseController
             'isPublic' => $isPublic,
             'statusLabel' => ShopAdminService::productStatusLabel((string) ($product['status'] ?? '')),
         ]);
+    }
+
+    public function productDetailImages(string $id): void
+    {
+        $this->requireAdmin();
+        try {
+            $this->detailPages->streamImageZip((int) $id);
+        } catch (RuntimeException $e) {
+            http_response_code(422);
+            header('Content-Type: text/plain; charset=utf-8');
+            echo $e->getMessage();
+        }
     }
 
     private function requireAdmin(): void

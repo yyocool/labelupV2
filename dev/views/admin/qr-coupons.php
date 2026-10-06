@@ -71,14 +71,14 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
         <th class="qr-col-name">제품 분류</th>
         <th class="qr-col-sheets">매수/팩</th>
         <th class="qr-col-price">정상 소비자가</th>
-        <th class="qr-col-credit">지급크레딧</th>
+        <th class="qr-col-credit">지급잉크</th>
         <th class="qr-col-products">상품수</th>
         <th class="qr-col-qrcount">생성QR수</th>
         <th class="qr-col-actions">관리</th>
         <th class="qr-col-mfg" title="정상 소비자가 × 20%">제조단가</th>
         <th class="qr-col-payout" title="제조단가 × 3%">최대지급액</th>
         <th class="qr-col-tokens" title="최대지급액으로 사용 가능한 ChatGPT 토큰(입력75%/출력25% 혼합)">토큰량</th>
-        <th class="qr-col-credit-eq" title="최대지급액 → 크레딧(1원=10C)">크레딧환산</th>
+        <th class="qr-col-credit-eq" title="최대지급액 → 잉크(1원=10C)">잉크환산</th>
       </tr>
     </thead>
     <tbody>
@@ -142,7 +142,7 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
             value="<?= e($creditStr) ?>"
             data-group-no="<?= (int) $row['group_no'] ?>"
             data-prev="<?= e($creditStr) ?>"
-            aria-label="QR 그룹 <?= (int) $row['group_no'] ?> 지급크레딧"
+            aria-label="QR 그룹 <?= (int) $row['group_no'] ?> 지급잉크"
           >
         </td>
         <td class="qr-products">
@@ -187,10 +187,10 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
     <li>QR 그룹은 <b>제품 분류</b>별로 나누며, 같은 분류 안에서는 <b>정상 소비자가가 동일한 상품</b>을 하나의 그룹으로 묶습니다.</li>
     <li>그룹No. 아래 QR은 그룹 안내용(카테고리·매수) 주소입니다. <b>패키지 인쇄용 QR은 반드시 [QR코드생성]으로 만든 고유 쿠폰번호 URL</b>을 사용하세요.</li>
     <li>생성 URL 형식: <code>https://www.labelup.co.kr/qr-coupon?g=&amp;cat=&amp;sheets=&amp;code=LU01-XXXX</code> — <b>code</b>가 고객 고유 쿠폰번호입니다.</li>
-    <li><b>지급크레딧</b>은 목록에서 바로 수정·저장할 수 있으며, <b>구매크레딧</b> 메뉴에서도 동일 값이 적용됩니다.</li>
+    <li><b>지급잉크</b>은 목록에서 바로 수정·저장할 수 있으며, <b>구매잉크</b> 메뉴에서도 동일 값이 적용됩니다.</li>
     <li><b>제조단가</b> = 정상 소비자가 × 20%, <b>최대지급액</b> = 제조단가 × 3% (원 단위 반올림).</li>
     <li><b>토큰량</b>은 최대지급액으로 쓸 수 있는 ChatGPT 토큰(현재 기본 모델, 입력 75%·출력 25% 혼합 단가·서버 환율 기준)입니다.</li>
-    <li><b>크레딧환산</b>은 최대지급액을 <b>1원 = 10 C</b>로 환산한 값이며, 실제 지급크레딧 설정 참고용입니다.</li>
+    <li><b>잉크환산</b>은 최대지급액을 <b>1원 = 10 C</b>로 환산한 값이며, 실제 지급잉크 설정 참고용입니다.</li>
     <li><b>공통 출력템플릿</b>은 그룹별 템플릿이 없을 때 쓰는 기본 레이아웃입니다. QR 그룹No. 아래 <b>템플릿</b> 버튼으로 그룹마다 따로 편집·저장할 수 있습니다.</li>
     <li><b>프린트</b>·<b>QR코드 관리</b>에서 발급된 코드를 보고, <b>미사용만 보기</b>·선택 삭제로 재사용을 막을 수 있습니다. 사용·중지된 코드는 삭제할 수 없습니다.</li>
     <li>쿠폰 페이지 미리보기는 상단 <b>쿠폰페이지 미리보기</b> 버튼만 사용합니다.</li>
@@ -393,7 +393,7 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
           <thead>
             <tr>
               <th>코드</th>
-              <th>지급 크레딧</th>
+              <th>지급 잉크</th>
               <th>사용자</th>
               <th>사용일시</th>
             </tr>
@@ -818,7 +818,7 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
     if (text === '') return '';
     var num = Number(text);
     if (!Number.isFinite(num) || num < 0 || Math.floor(num) !== num) {
-      throw new Error('지급 크레딧은 0 이상의 정수로 입력해 주세요.');
+      throw new Error('지급 잉크는 0 이상의 정수로 입력해 주세요.');
     }
     return String(num);
   }
@@ -843,7 +843,7 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
       });
       input.value = next;
       input.setAttribute('data-prev', next);
-      showAdminAlert('QR 그룹 ' + groupNo + ' 지급 크레딧이 저장되었습니다.', 'success');
+      showAdminAlert('QR 그룹 ' + groupNo + ' 지급 잉크가 저장되었습니다.', 'success');
     } catch (err) {
       input.value = prev;
       showAdminAlert(err.message || '저장 실패', 'error');

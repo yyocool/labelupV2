@@ -1001,8 +1001,10 @@
             var w = ReadFloat(root, "width_mm", "widthMm", "w", "width");
             var h = ReadFloat(root, "height_mm", "heightMm", "h", "height");
             var sku = ReadString(root, "sku", "paper", "paperNo", "paper_no");
+            Session.Document.EnsureStructure();
+            var editing = DocumentHasObjects(Session.Document);
             History.Push(Session.Document);
-            if (w is > 0 && h is > 0)
+            if (!editing && w is > 0 && h is > 0)
             {
                 await Papers.EnsureLoadedAsync();
                 await Papers.EnsureShopPapersAsync();
@@ -1027,13 +1029,18 @@
             }
 
             Session.Document.EnsureStructure();
-            Session.CurrentCell.Objects.Clear();
-            PlaceLabiImage(dataUrl, true);
-            if (!string.IsNullOrWhiteSpace(title))
+            if (!editing)
+                Session.CurrentCell.Objects.Clear();
+            PlaceLabiImage(dataUrl, fillLabel: !editing);
+            if (!editing && !string.IsNullOrWhiteSpace(title))
                 Session.Document.Name = title!;
-            Session.Status = string.IsNullOrWhiteSpace(title)
-                ? "라비 템플릿을 편집기에 넣었습니다"
-                : $"「{title}」 템플릿으로 편집을 시작합니다";
+            Session.Status = editing
+                ? (string.IsNullOrWhiteSpace(title)
+                    ? "라비 템플릿을 현재 라벨에 추가했습니다"
+                    : $"「{title}」 템플릿을 현재 라벨에 추가했습니다")
+                : (string.IsNullOrWhiteSpace(title)
+                    ? "라비 템플릿을 편집기에 넣었습니다"
+                    : $"「{title}」 템플릿으로 편집을 시작합니다");
             Session.CloseDialog();
         }
         catch (Exception ex)
@@ -1051,6 +1058,26 @@
         {
             var doc = LabelDocumentJson.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json);
             doc.EnsureStructure();
+            Session.Document.EnsureStructure();
+            var editing = DocumentHasObjects(Session.Document);
+            if (editing && IsLabiPaperPlaceholder(doc))
+            {
+                await ApplyIncomingPaperKeepingDesign(doc);
+                return;
+            }
+            if (editing)
+            {
+                var added = AppendLabiDesign(doc);
+                Session.Status = added == 0
+                    ? "추가할 내용이 없습니다"
+                    : $"라비가 만든 내용 {added}개를 현재 라벨에 추가했습니다";
+                if (added > 0)
+                    Session.CloseDialog();
+                else
+                    Session.Notify();
+                return;
+            }
+
             doc.EnsurePagesForData();
             History.Push(Session.Document);
             Session.ReplaceDocument(doc);
@@ -1067,6 +1094,140 @@
             Session.Status = "데이터 템플릿을 적용하지 못했습니다";
             Session.Notify();
         }
+    }
+
+    private static bool DocumentHasObjects(LabelDocument doc)
+        => doc.Pages.Any(page => page.Cells.Any(cell => cell.Objects.Count > 0));
+
+    /// <summary>
+    /// 상품 추천이 빈 라벨 문서로 들어올 때 붙는 자리표시 글자.
+    /// 편집 중에는 이 글자를 올리지 않고 용지만 바꾼다.
+    /// </summary>
+    private static bool IsLabiPaperPlaceholder(LabelDocument doc)
+    {
+        var objects = doc.Pages.SelectMany(page => page.Cells).SelectMany(cell => cell.Objects).ToList();
+        if (objects.Count != 1) return false;
+        var only = objects[0];
+        return string.Equals(only.Id, "labiPaper1", StringComparison.Ordinal)
+               && string.Equals(only.Text?.Trim(), "라벨업", StringComparison.Ordinal);
+    }
+
+    private async Task ApplyIncomingPaperKeepingDesign(LabelDocument doc)
+    {
+        await Papers.EnsureLoadedAsync();
+        await Papers.EnsureShopPapersAsync();
+        var paper = doc.Paper.Clone();
+        ShopPaperItem? shop = null;
+        if (!string.IsNullOrWhiteSpace(paper.PaperNo))
+        {
+            shop = Papers.ShopPapers.FirstOrDefault(p =>
+                string.Equals(p.Sku, paper.PaperNo, StringComparison.OrdinalIgnoreCase));
+        }
+        if (shop is not null)
+            paper = Papers.FromShopProduct(shop) ?? paper;
+        History.Push(Session.Document);
+        Session.ApplyPaper(paper, shop?.Id, scaleObjects: true);
+        Session.Status = $"라비 추천 규격 「{paper.Name}」을 적용했습니다. 편집 내용은 유지됩니다";
+        Session.CloseDialog();
+    }
+
+    /// <summary>
+    /// 생성 문서의 첫 디자인을 현재 라벨 칸에 겹쳐 넣는다.
+    /// 용지·페이지·이미 있는 오브젝트는 바꾸지 않고, 새 묶음은 라벨 안에 맞춰 가운데 둔다.
+    /// </summary>
+    private int AppendLabiDesign(LabelDocument incoming)
+    {
+        var source = incoming.Pages
+            .SelectMany(page => page.Cells)
+            .FirstOrDefault(cell => cell.Objects.Count > 0);
+        if (source is null || source.Objects.Count == 0)
+            return 0;
+
+        var srcW = Math.Max(1f, incoming.Paper.LabelWidthMm > 0 ? incoming.Paper.LabelWidthMm : incoming.WidthMm);
+        var srcH = Math.Max(1f, incoming.Paper.LabelHeightMm > 0 ? incoming.Paper.LabelHeightMm : incoming.HeightMm);
+        var dstW = Math.Max(1f, Session.Document.WidthMm);
+        var dstH = Math.Max(1f, Session.Document.HeightMm);
+        const float fit = 0.62f;
+        var scale = Math.Min(dstW / srcW, dstH / srcH) * fit;
+        if (scale <= 0.01f) scale = 0.62f;
+        var groupW = srcW * scale;
+        var groupH = srcH * scale;
+        var ox = (dstW - groupW) / 2f;
+        var oy = (dstH - groupH) / 2f;
+
+        History.Push(Session.Document);
+        var cell = Session.CurrentCell;
+        var z = cell.Objects.Count == 0 ? 0 : cell.Objects.Max(o => o.ZIndex);
+        var addedIds = new List<string>();
+        foreach (var src in source.Objects.OrderBy(o => o.ZIndex))
+        {
+            var copy = src.Clone();
+            copy.Id = Guid.NewGuid().ToString("N");
+            ScaleAppendedObject(copy, scale, ox, oy);
+            copy.ZIndex = ++z;
+            cell.Objects.Add(copy);
+            if (copy.Type == ObjectType.Text && TextModes.IsPlain(copy.TextMode))
+            {
+                TextModes.Unify(copy);
+                RichTextModel.Ensure(copy);
+            }
+            addedIds.Add(copy.Id);
+        }
+
+        MergeIncomingData(incoming);
+        Session.Dirty = true;
+        Session.Tool = EditorTool.Select;
+        Session.SelectMany(addedIds);
+        Session.InvalidateRender();
+        return addedIds.Count;
+    }
+
+    private static void ScaleAppendedObject(DesignObject obj, float scale, float ox, float oy)
+    {
+        obj.X = ox + obj.X * scale;
+        obj.Y = oy + obj.Y * scale;
+        obj.Width *= scale;
+        obj.Height *= scale;
+        obj.FontSize *= scale;
+        obj.StrokeWidth *= scale;
+        obj.LetterSpacing *= scale;
+        obj.TextPaddingXMm *= scale;
+        obj.TableBorderWidth *= scale;
+        if (obj.RichText is not { Count: > 0 }) return;
+        foreach (var span in obj.RichText.SelectMany(p => p.Spans))
+            span.FontSize *= scale;
+    }
+
+    private void MergeIncomingData(LabelDocument incoming)
+    {
+        if (incoming.Data is not { ColumnCount: > 0 }) return;
+        var current = Session.Document.Data;
+        if (current is not { ColumnCount: > 0 })
+        {
+            Session.Document.Data = incoming.Data.Clone();
+            Session.ShowDataPanelIfPresent();
+            return;
+        }
+
+        foreach (var col in incoming.Data.Columns)
+        {
+            if (current.Columns.Any(c => string.Equals(c, col, StringComparison.OrdinalIgnoreCase)))
+                continue;
+            var added = current.AddColumn(col);
+            var srcIndex = incoming.Data.Columns.FindIndex(c =>
+                string.Equals(c, col, StringComparison.OrdinalIgnoreCase));
+            var dstIndex = current.Columns.FindIndex(c =>
+                string.Equals(c, added, StringComparison.OrdinalIgnoreCase));
+            if (srcIndex < 0 || dstIndex < 0) continue;
+            var rows = Math.Min(current.Rows.Count, incoming.Data.Rows.Count);
+            for (var r = 0; r < rows; r++)
+            {
+                var srcRow = incoming.Data.Rows[r];
+                var value = srcIndex < srcRow.Count ? srcRow[srcIndex] ?? "" : "";
+                current.SetCell(r, dstIndex, value);
+            }
+        }
+        Session.ShowDataPanelIfPresent();
     }
 
     private async Task BindLabiDocumentToShopAsync(string? paperNo)

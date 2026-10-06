@@ -53,7 +53,7 @@ final class AiChatApiController extends BaseController
                 if (is_array($creditInfo) && !empty($creditInfo['was_overdraft'])) {
                     $debt = abs((int) ($creditInfo['balance'] ?? 0));
                     $note = sprintf(
-                        "\n\n이번 사용으로 크레딧이 마이너스(%s)가 되었어요. 다음에 충전하면 부족한 %s이(가) 먼저 차감됩니다.",
+                        "\n\n이번 사용으로 잉크가 마이너스(%s)가 되었어요. 다음에 충전하면 부족한 %s이(가) 먼저 차감됩니다.",
                         \App\Services\CreditService::format((int) ($creditInfo['balance'] ?? 0)),
                         \App\Services\CreditService::format($debt)
                     );
@@ -85,7 +85,7 @@ final class AiChatApiController extends BaseController
                 'show_ai_debug' => $siteMode->showAiDebug(),
             ]);
         } catch (RuntimeException $e) {
-            $status = str_contains($e->getMessage(), '크레딧') ? 402 : 502;
+            $status = str_contains($e->getMessage(), '잉크') ? 402 : 502;
             if ($status === 402) {
                 $this->jsonError($e->getMessage(), ['code' => 'insufficient_credit'], $status);
             }

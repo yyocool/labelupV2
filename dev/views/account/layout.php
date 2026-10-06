@@ -14,7 +14,7 @@
 <body class="account-page">
 <?php marketing_render_body_start(); ?>
 <div class="app" id="userApp">
-<script>try{if(localStorage.getItem('labelup_sidebar_collapsed')==='1')document.getElementById('userApp').classList.add('is-sidebar-collapsed')}catch(e){}</script>
+<script>(function(){var app=document.getElementById('userApp');if(!app)return;var mobile=window.matchMedia('(max-width:1080px)').matches;var collapsed=false;try{collapsed=localStorage.getItem('labelup_sidebar_collapsed')==='1'}catch(e){}if(mobile||collapsed)app.classList.add('is-sidebar-collapsed')})();</script>
 <?php require view_path('home/partials/sidebar.php'); ?>
 <?php require view_path('home/partials/sidebar-toggle.php'); ?>
 <main class="main account-main">

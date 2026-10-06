@@ -13,8 +13,8 @@ $qrCouponsUrl = url('admin/qr-coupons');
 ?>
 <div class="admin-head">
   <div>
-    <h1>구매크레딧</h1>
-    <p>QR쿠폰관리와 동일한 그룹 기준으로 지급 크레딧을 설정하고, 회원에게 지급된 이력을 확인합니다. 환산 기준: <strong><?= e(\App\Services\CreditService::ratioLabel()) ?></strong></p>
+    <h1>구매잉크</h1>
+    <p>QR쿠폰관리와 동일한 그룹 기준으로 지급 잉크를 설정하고, 회원에게 지급된 이력을 확인합니다. 환산 기준: <strong><?= e(\App\Services\CreditService::ratioLabel()) ?></strong></p>
   </div>
   <div class="admin-head-actions">
     <a class="admin-btn" href="<?= e($qrCouponsUrl) ?>">QR쿠폰관리 바로가기</a>
@@ -34,8 +34,8 @@ $qrCouponsUrl = url('admin/qr-coupons');
 </p>
 
 <section class="admin-section">
-  <h2 class="admin-section-title">그룹별 지급 크레딧 설정</h2>
-  <p class="admin-muted" style="margin-top:-4px;margin-bottom:10px">여기서 저장한 지급 크레딧은 <b>QR쿠폰관리</b>에도 즉시 동일하게 반영됩니다.</p>
+  <h2 class="admin-section-title">그룹별 지급 잉크 설정</h2>
+  <p class="admin-muted" style="margin-top:-4px;margin-bottom:10px">여기서 저장한 지급 잉크는 <b>QR쿠폰관리</b>에도 즉시 동일하게 반영됩니다.</p>
   <div class="admin-table-wrap qr-group-wrap">
     <table class="admin-table qr-group-table">
       <thead>
@@ -45,7 +45,7 @@ $qrCouponsUrl = url('admin/qr-coupons');
           <th class="qr-col-name">제품 분류</th>
           <th class="qr-col-sheets">매수/팩</th>
           <th class="qr-col-price">정상 소비자가</th>
-          <th class="qr-col-credit">지급크레딧</th>
+          <th class="qr-col-credit">지급잉크</th>
           <th class="qr-col-qrcount">생성QR</th>
           <th class="qr-col-actions">이력</th>
         </tr>
@@ -80,7 +80,7 @@ $qrCouponsUrl = url('admin/qr-coupons');
               value="<?= e($creditStr) ?>"
               data-group-no="<?= (int) $row['group_no'] ?>"
               data-prev="<?= e($creditStr) ?>"
-              aria-label="QR 그룹 <?= (int) $row['group_no'] ?> 지급크레딧"
+              aria-label="QR 그룹 <?= (int) $row['group_no'] ?> 지급잉크"
             >
           </td>
           <td class="qr-qrcount"><?= number_format((int) ($row['generated_qr_count'] ?? 0)) ?>개</td>
@@ -115,7 +115,7 @@ $qrCouponsUrl = url('admin/qr-coupons');
           <th>그룹</th>
           <th>제품 분류</th>
           <th>매수</th>
-          <th>지급 크레딧</th>
+          <th>지급 잉크</th>
           <th>회원</th>
           <th>지급일시</th>
         </tr>
@@ -178,7 +178,7 @@ $qrCouponsUrl = url('admin/qr-coupons');
           <thead>
             <tr>
               <th>쿠폰번호</th>
-              <th>지급 크레딧</th>
+              <th>지급 잉크</th>
               <th>회원</th>
               <th>지급일시</th>
             </tr>
@@ -227,7 +227,7 @@ $qrCouponsUrl = url('admin/qr-coupons');
     if (text === '') return '';
     var num = Number(text);
     if (!Number.isFinite(num) || num < 0 || Math.floor(num) !== num) {
-      throw new Error('지급 크레딧은 0 이상의 정수로 입력해 주세요.');
+      throw new Error('지급 잉크는 0 이상의 정수로 입력해 주세요.');
     }
     return String(num);
   }
@@ -256,7 +256,7 @@ $qrCouponsUrl = url('admin/qr-coupons');
       input.classList.remove('is-saving');
       input.classList.add('is-saved');
       setTimeout(function () { input.classList.remove('is-saved'); }, 900);
-      showAlert('QR 그룹 ' + groupNo + ' 지급 크레딧이 저장되었습니다. (QR쿠폰관리에도 동일 적용)', 'success');
+      showAlert('QR 그룹 ' + groupNo + ' 지급 잉크가 저장되었습니다. (QR쿠폰관리에도 동일 적용)', 'success');
     } catch (err) {
       input.value = prev;
       showAlert(err.message || '저장 실패', 'error');

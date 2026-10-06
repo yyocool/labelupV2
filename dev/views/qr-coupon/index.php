@@ -21,9 +21,9 @@ $homeUrl = (string) ($homeUrl ?? url('/'));
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title><?= e($pageTitle ?? '라벨 구매 크레딧 쿠폰 — 라벨업') ?></title>
+  <title><?= e($pageTitle ?? '라벨 구매 잉크 쿠폰 — 라벨업') ?></title>
   <meta name="robots" content="noindex,nofollow">
-  <meta name="description" content="라벨용지 구매 고객을 위한 LabelUp 크레딧 쿠폰 페이지">
+  <meta name="description" content="라벨용지 구매 고객을 위한 LabelUp 잉크 쿠폰 페이지">
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
   <link rel="stylesheet" href="<?= css('brand.css') ?>">
@@ -97,7 +97,7 @@ $homeUrl = (string) ($homeUrl ?? url('/'));
           <?php if (!empty($group['sheets_per_pack'])): ?>
           · <?= number_format((int) $group['sheets_per_pack']) ?>매
           <?php endif; ?>
-          를 선택해 주셔서 감사드립니다. 아래 쿠폰번호로 크레딧 혜택을 받아 보세요.
+          를 선택해 주셔서 감사드립니다. 아래 쿠폰번호로 잉크 혜택을 받아 보세요.
         </p>
       </div>
     </section>
@@ -105,7 +105,7 @@ $homeUrl = (string) ($homeUrl ?? url('/'));
     <section class="qr-panel qr-coupon-box">
       <div class="qr-section-head">
         <h2>고객님의 QR 쿠폰번호</h2>
-        <p>로그인하시면 이 쿠폰번호로 크레딧이 지급됩니다.</p>
+        <p>로그인하시면 이 쿠폰번호로 잉크가 지급됩니다.</p>
       </div>
 
       <?php if ($hasCouponCode): ?>
@@ -132,7 +132,7 @@ $homeUrl = (string) ($homeUrl ?? url('/'));
           <strong><?= number_format((int) ($group['sheets_per_pack'] ?? 0)) ?>매</strong>
         </li>
         <li>
-          <span>지급 예정 크레딧</span>
+          <span>지급 예정 잉크</span>
           <strong><?= $creditLabel ? e($creditLabel) : '미정' ?></strong>
         </li>
       </ul>
@@ -140,8 +140,8 @@ $homeUrl = (string) ($homeUrl ?? url('/'));
 
     <section class="qr-panel qr-howto">
       <div class="qr-section-head">
-        <h2>크레딧 받는 방법</h2>
-        <p>로그인만 하시면 쿠폰번호 기준으로 크레딧이 지급됩니다.</p>
+        <h2>잉크 받는 방법</h2>
+        <p>로그인만 하시면 쿠폰번호 기준으로 잉크가 지급됩니다.</p>
       </div>
       <div class="qr-howto-grid">
         <div class="qr-howto-copy">
@@ -160,18 +160,18 @@ $homeUrl = (string) ($homeUrl ?? url('/'));
             </li>
             <li>
               <div class="qr-step-body">
-                <strong>크레딧 지급</strong>
-                <span>로그인 후 이 페이지로 돌아오면 쿠폰이 적용되어 크레딧이 지급됩니다.</span>
+                <strong>잉크 지급</strong>
+                <span>로그인 후 이 페이지로 돌아오면 쿠폰이 적용되어 잉크가 지급됩니다.</span>
               </div>
             </li>
           </ol>
           <?php if (!$isPreview): ?>
           <div class="qr-cta-actions">
             <?php if ($authUser): ?>
-            <p class="qr-howto-note">이미 로그인되어 있습니다. 쿠폰 사용(크레딧 지급) 기능은 곧 제공됩니다.</p>
-            <a class="qr-btn qr-btn--primary" href="<?= url('account') ?>">마이페이지에서 크레딧 확인</a>
+            <p class="qr-howto-note">이미 로그인되어 있습니다. 쿠폰 사용(잉크 지급) 기능은 곧 제공됩니다.</p>
+            <a class="qr-btn qr-btn--primary" href="<?= url('account') ?>">마이페이지에서 잉크 확인</a>
             <?php else: ?>
-            <a class="qr-btn" href="<?= e($loginUrl ?? url('login')) ?>">로그인하고 크레딧 받기</a>
+            <a class="qr-btn" href="<?= e($loginUrl ?? url('login')) ?>">로그인하고 잉크 받기</a>
             <a class="qr-btn qr-btn--primary" href="<?= e($registerUrl ?? url('register')) ?>">회원가입 하고 혜택 받기</a>
             <?php endif; ?>
           </div>
@@ -180,7 +180,7 @@ $homeUrl = (string) ($homeUrl ?? url('/'));
         <figure class="qr-howto-figure">
           <img
             src="<?= asset('qr-coupon/howto-credit.png') ?>"
-            alt="1 상품 QR 스캔, 2 로그인, 3 크레딧 지급 안내"
+            alt="1 상품 QR 스캔, 2 로그인, 3 잉크 지급 안내"
             width="1200"
             height="900"
             loading="lazy"

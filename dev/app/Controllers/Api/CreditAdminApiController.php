@@ -28,7 +28,7 @@ final class CreditAdminApiController extends BaseController
         $this->guard();
         try {
             $id = $this->credits->saveRewardRule(request_json());
-            $this->jsonSuccess(['id' => $id], '크레딧 보상 규칙이 저장되었습니다.');
+            $this->jsonSuccess(['id' => $id], '잉크 보상 규칙이 저장되었습니다.');
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage(), null, 422);
         }
@@ -46,7 +46,7 @@ final class CreditAdminApiController extends BaseController
         $this->guard();
         try {
             $id = $this->credits->savePurchaseProduct(request_json());
-            $this->jsonSuccess(['id' => $id], '구매크레딧 제품이 저장되었습니다.');
+            $this->jsonSuccess(['id' => $id], '구매잉크 제품이 저장되었습니다.');
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage(), null, 422);
         }
@@ -86,7 +86,7 @@ final class CreditAdminApiController extends BaseController
                 (string) ($data['description'] ?? '관리자 조정'),
                 (int) $this->auth->adminId()
             );
-            $this->jsonSuccess(['balance' => $balance], '크레딧이 조정되었습니다.');
+            $this->jsonSuccess(['balance' => $balance], '잉크가 조정되었습니다.');
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage(), null, 422);
         }
@@ -104,7 +104,7 @@ final class CreditAdminApiController extends BaseController
                 $reason,
                 (int) $this->auth->adminId()
             );
-            $this->jsonSuccess(['balance' => $balance], '크레딧이 지급되었습니다.');
+            $this->jsonSuccess(['balance' => $balance], '잉크가 지급되었습니다.');
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage(), null, 422);
         }
@@ -129,7 +129,7 @@ final class CreditAdminApiController extends BaseController
         }
     }
 
-    /** 구매크레딧/QR쿠폰 공통 — 그룹 지급 크레딧 저장 */
+    /** 구매잉크/QR쿠폰 공통 — 그룹 지급 잉크 저장 */
     public function savePurchaseGroupCredit(): never
     {
         $this->guard();
@@ -139,13 +139,13 @@ final class CreditAdminApiController extends BaseController
                 (int) ($payload['group_no'] ?? 0),
                 $payload['credit_amount'] ?? null
             );
-            $this->jsonSuccess($saved, '지급 크레딧이 저장되었습니다. (QR쿠폰관리에도 동일 적용)');
+            $this->jsonSuccess($saved, '지급 잉크가 저장되었습니다. (QR쿠폰관리에도 동일 적용)');
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage(), null, 422);
         }
     }
 
-    /** 구매크레딧 — 그룹별 지급 이력 */
+    /** 구매잉크 — 그룹별 지급 이력 */
     public function purchaseGroupUsageHistory(): never
     {
         $this->guard();
@@ -158,7 +158,7 @@ final class CreditAdminApiController extends BaseController
         }
     }
 
-    /** 운영관리 › 크레딧 사용 설정 저장 */
+    /** 운영관리 › 잉크 사용 설정 저장 */
     public function saveCreditUsage(): never
     {
         $this->guard();
@@ -166,14 +166,14 @@ final class CreditAdminApiController extends BaseController
             (new AiCreditService())->saveAdminSettings(request_json());
             $this->jsonSuccess(
                 (new AiCreditService())->adminSettings(),
-                '크레딧 사용 설정이 저장되었습니다.'
+                '잉크 사용 설정이 저장되었습니다.'
             );
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage(), null, 422);
         }
     }
 
-    /** 관리자 헤더용 전체 회원 크레딧 현황 */
+    /** 관리자 헤더용 전체 회원 잉크 현황 */
     public function overview(): never
     {
         $this->guard();

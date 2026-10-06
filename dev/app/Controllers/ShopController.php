@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\Services\AuthService;
 use App\Services\EventPopupService;
 use App\Services\ShopService;
+use App\Services\ShopWishlistService;
 
 final class ShopController extends BaseController
 {
@@ -86,6 +87,15 @@ final class ShopController extends BaseController
 
     public function product(string $id): void
     {
+        if (!ctype_digit($id)) {
+            $found = $this->shop->activeProductIdBySku($id);
+            if ($found <= 0) {
+                http_response_code(404);
+                view('errors/404');
+                return;
+            }
+            redirect('shop/products/' . $found);
+        }
         $product = $this->shop->productDetail((int) $id);
         if (!$product) {
             http_response_code(404);
@@ -130,6 +140,10 @@ final class ShopController extends BaseController
             ],
             'product' => $product,
             'pageLayout' => $this->shop->productPageLayout((int) ($product['category_id'] ?? 0)),
+            'wished' => (new ShopWishlistService())->has(
+                (int) ($this->auth->id() ?? 0),
+                (int) $product['id']
+            ),
             'related' => array_values(array_filter(
                 $related['items'],
                 static fn (array $row): bool => (int) $row['id'] !== (int) $product['id']

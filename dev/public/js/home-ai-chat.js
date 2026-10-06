@@ -46,6 +46,19 @@ window.LabelUpLabiChat = {
 
   /** @type {{role:'user'|'assistant', content:string|Array}[]} */
   const history = [];
+  const LABI_MODE_KEY = 'labelup.labi.mode.v1';
+  const LABI_MODES = [
+    { id: 'auto', label: '자동' },
+    { id: 'chat', label: '대화' },
+    { id: 'clipart', label: '클립아트' },
+    { id: 'template', label: '템플릿' },
+  ];
+  let labiMode = 'auto';
+  const CHAT_STORE_KEY = 'labelup.labi.chat.v1';
+  const CHAT_STORE_LEGACY = ['labelup.labi.chat.v1.home', 'labelup.labi.chat.v1.editor'];
+  /** @type {Array<Record<string, any>>} */
+  const transcript = [];
+  let restoringChat = false;
   /** @type {{id:string, kind:'image'|'text'|'file', name:string, dataUrl?:string, text?:string}[]} */
   let pendingAttachments = [];
   let sending = false;
@@ -120,6 +133,7 @@ window.LabelUpLabiChat = {
       if (ok) {
         isLoggedIn = true;
         if (input) input.removeAttribute('readonly');
+        if (!transcript.length) restoreChat();
         return true;
       }
       return false;
@@ -906,14 +920,18 @@ window.LabelUpLabiChat = {
     ];
   }
 
-  function buildChoiceCard(choices, onChoice) {
+  function buildChoiceCard(choices, onChoice, picked) {
     const list = Array.isArray(choices) && choices.length ? choices : defaultImageChoices();
     const wrap = document.createElement('div');
     wrap.className = 'ai-choice-row';
+    const pickedId = picked ? String(picked) : '';
+    if (pickedId) wrap.dataset.locked = '1';
     list.forEach((choice) => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = `ai-choice-btn${choice.id === 'generate_template' || choice.id === 'translate_yes' ? ' ai-choice-btn--tpl' : ''}`;
+      if (pickedId && choice.id === pickedId) btn.classList.add('is-picked');
+      if (pickedId) btn.disabled = true;
       btn.innerHTML = `
         <strong>${escapeHtml(choice.title || '')}</strong>
         <span>${escapeHtml(choice.desc || '')}</span>`;
@@ -935,6 +953,19 @@ window.LabelUpLabiChat = {
   function appendMessage(role, content, extras = {}) {
     if (!chatLog) return;
     setChatActive(true);
+    const record = extras.restore ? null : {
+      role,
+      content: String(content || ''),
+      attachments: extras.attachments || null,
+      product: extras.product || null,
+      clipart: extras.clipart || null,
+      template: extras.template || null,
+      choices: extras.choices || null,
+      vendor: extras.vendor || null,
+      usage: extras.usage || null,
+      picked: null,
+    };
+    if (record) transcript.push(record);
 
     const item = document.createElement('article');
     item.className = `ai-chat-msg ai-chat-msg--${role}`;
@@ -978,7 +1009,14 @@ window.LabelUpLabiChat = {
       body.appendChild(buildTemplateCard(extras.template));
     }
     if (extras.choices) {
-      body.appendChild(buildChoiceCard(extras.choices, extras.onChoice));
+      body.appendChild(buildChoiceCard(extras.choices, (id) => {
+        if (record) {
+          record.picked = id;
+          saveChat();
+        }
+        if (typeof extras.onChoice === 'function') extras.onChoice(id);
+        else chooseLabiIntent(id);
+      }, extras.picked));
     }
     if (extras.vendor) {
       body.appendChild(buildVendorCard(extras.vendor));
@@ -992,6 +1030,7 @@ window.LabelUpLabiChat = {
     item.appendChild(body);
     chatLog.appendChild(item);
     chatLog.scrollTop = chatLog.scrollHeight;
+    if (record) saveChat();
   }
 
   function buildUsageMeta(usage, debugMode) {
@@ -1083,6 +1122,7 @@ window.LabelUpLabiChat = {
         msg.content = msg.content[0].text;
       }
     });
+    saveChat();
   }
 
   function historyHasImage() {
@@ -1347,8 +1387,8 @@ window.LabelUpLabiChat = {
       const amount = pill.querySelector('.credit-pill-amount');
       if (amount) amount.textContent = label;
       const lab = pill.querySelector('.credit-pill-label');
-      if (lab) lab.textContent = isDebt ? '미정산' : '내 크레딧';
-      pill.title = isDebt ? '마이너스 잔액 · 충전 시 자동 차감' : '내 크레딧';
+      if (lab) lab.textContent = isDebt ? '미정산' : '내 잉크';
+      pill.title = isDebt ? '마이너스 잔액 · 충전 시 자동 차감' : '내 잉크';
     });
     document.querySelectorAll('.credit-pill-amount').forEach((el) => {
       if (!el.closest('.credit-pill')) el.textContent = label;
@@ -1403,6 +1443,7 @@ window.LabelUpLabiChat = {
         usage: payload.usage || null,
       });
       history.push({ role: 'assistant', content: reply });
+      saveChat();
       updateCreditDisplays(payload.credit || null);
       if (payload.template && payload.template.document) {
         if (payload.template.dataset) compactOfficeHistory();
@@ -1411,7 +1452,7 @@ window.LabelUpLabiChat = {
     } catch (err) {
       removeTyping(typing);
       const msg = err && err.status === 402
-        ? (err.message || 'AI 크레딧이 부족합니다.')
+        ? (err.message || 'AI 잉크가 부족합니다.')
         : (err.message || '오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
       appendMessage('assistant', msg);
     } finally {
@@ -1435,6 +1476,7 @@ window.LabelUpLabiChat = {
     const label = labels[intent] || '이걸로 진행해 주세요';
     appendMessage('user', label);
     history.push({ role: 'user', content: label });
+    saveChat();
     await requestLabi(intent);
   }
 
@@ -1453,6 +1495,7 @@ window.LabelUpLabiChat = {
       || (attachmentsHaveImage(attachments) ? '이미지를 보냈어요.' : '첨부 파일을 확인해 주세요.');
     appendMessage('user', displayText, { attachments });
     history.push({ role: 'user', content });
+    saveChat();
 
     input.value = '';
     pendingAttachments = [];
@@ -1467,11 +1510,7 @@ window.LabelUpLabiChat = {
       await openVendorInEditor(vendorAtt);
       return;
     }
-    if (attachmentsHaveOffice(attachments) && !explicitClipart) {
-      await requestLabi('generate_data_template');
-      return;
-    }
-    if (hasImage && attachmentsHaveImage(attachments) && !explicitClipart && !explicitTemplate) {
+    if (labiMode === 'auto' && hasImage && attachmentsHaveImage(attachments) && !explicitClipart && !explicitTemplate) {
       appendMessage('assistant', '첨부하신 이미지를 봤어요. 어떤 걸 만들어 드릴까요?', {
         choices: defaultImageChoices(),
       });
@@ -1479,10 +1518,23 @@ window.LabelUpLabiChat = {
         role: 'assistant',
         content: '첨부하신 이미지를 봤어요. 클립아트를 그릴지, 라벨 템플릿을 만들지 알려 주세요.',
       });
+      saveChat();
       return;
     }
 
-    await requestLabi(explicitTemplate ? 'generate_template' : (explicitClipart ? 'generate_clipart' : ''));
+    await requestLabi(intentForLabiMode(displayText, attachments));
+  }
+
+  function intentForLabiMode(displayText, attachments) {
+    if (labiMode === 'chat') return 'chat';
+    if (labiMode === 'clipart') return 'generate_clipart';
+    if (labiMode === 'template') {
+      return attachmentsHaveOffice(attachments) ? 'generate_data_template' : 'generate_template';
+    }
+    if (attachmentsHaveOffice(attachments) && !isClipartRequest(displayText)) return 'generate_data_template';
+    if (isTemplateRequest(displayText)) return 'generate_template';
+    if (isClipartRequest(displayText)) return 'generate_clipart';
+    return '';
   }
 
   input.addEventListener('focus', async (e) => {
@@ -1617,6 +1669,214 @@ window.LabelUpLabiChat = {
       if (items.length) renderExamplePrompts(items);
     } catch (e) { /* keep SSR / fallback chips */ }
   }
+
+  function slimApiMessage(msg) {
+    if (!msg || (msg.role !== 'user' && msg.role !== 'assistant')) return null;
+    if (typeof msg.content === 'string') {
+      const text = msg.content.trim();
+      return text ? { role: msg.role, content: text.slice(0, 8000) } : null;
+    }
+    if (!Array.isArray(msg.content)) return null;
+    const texts = [];
+    let image = false;
+    let file = false;
+    msg.content.forEach((part) => {
+      if (!part || typeof part !== 'object') return;
+      if (part.type === 'text' && part.text) texts.push(String(part.text));
+      else if (part.type === 'image_url') image = true;
+      else if (part.type === 'file') file = true;
+    });
+    let content = texts.join('\n').trim();
+    if (image) content += (content ? '\n' : '') + '[이미지 첨부]';
+    if (file) content += (content ? '\n' : '') + '[파일 첨부]';
+    content = content.slice(0, 8000);
+    return content ? { role: msg.role, content } : null;
+  }
+
+  function slimStoredValue(value, depth) {
+    if (value == null) return value;
+    if (typeof value === 'string') return value.length > 80000 ? value.slice(0, 200) : value;
+    if (typeof value !== 'object') return value;
+    if ((depth || 0) > 6) return null;
+    if (Array.isArray(value)) return value.slice(0, 40).map((item) => slimStoredValue(item, (depth || 0) + 1));
+    const out = {};
+    Object.keys(value).forEach((key) => {
+      if (key === 'document' || key === 'file') return;
+      if (key === 'dataUrl' && typeof value[key] === 'string' && value[key].length > 80000) return;
+      out[key] = slimStoredValue(value[key], (depth || 0) + 1);
+    });
+    return out;
+  }
+
+  function saveChat() {
+    if (!isLoggedIn || restoringChat) return;
+    const payload = {
+      transcript: transcript.slice(-40).map((entry) => slimStoredValue(entry, 0)).filter(Boolean),
+      history: history.slice(-40).map(slimApiMessage).filter(Boolean),
+    };
+    try {
+      localStorage.setItem(CHAT_STORE_KEY, JSON.stringify(payload));
+    } catch (e) {
+      try {
+        payload.transcript = payload.transcript.slice(-12);
+        payload.history = payload.history.slice(-12);
+        localStorage.setItem(CHAT_STORE_KEY, JSON.stringify(payload));
+      } catch (err) { /* 용량이 넘치면 이번 저장만 건너뛴다 */ }
+    }
+  }
+
+  function readChatPayload(key) {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(key) || 'null');
+      if (!parsed || !Array.isArray(parsed.transcript) || !parsed.transcript.length) return null;
+      return parsed;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function loadSavedChat() {
+    const shared = readChatPayload(CHAT_STORE_KEY);
+    if (shared) return shared;
+    const legacy = CHAT_STORE_LEGACY.map(readChatPayload).filter(Boolean);
+    if (!legacy.length) return null;
+    if (legacy.length === 1) return legacy[0];
+    return {
+      transcript: legacy.flatMap((item) => item.transcript).slice(-40),
+      history: legacy.flatMap((item) => (Array.isArray(item.history) ? item.history : [])).slice(-40),
+    };
+  }
+
+  function paintTranscript() {
+    if (!chatLog || !transcript.length) return;
+    restoringChat = true;
+    const demo = chatLog.querySelector('.ai-demo-thread');
+    if (demo) demo.remove();
+    transcript.forEach((entry) => {
+      if (!entry || (entry.role !== 'user' && entry.role !== 'assistant')) return;
+      appendMessage(entry.role, entry.content || '', {
+        restore: true,
+        attachments: entry.attachments || null,
+        product: entry.product || null,
+        clipart: entry.clipart || null,
+        template: entry.template || null,
+        choices: entry.choices || null,
+        picked: entry.picked || null,
+        vendor: entry.vendor || null,
+        usage: entry.usage || null,
+      });
+    });
+    chatLog.hidden = false;
+    panel.classList.add('is-chat-active');
+    chatLog.scrollTop = chatLog.scrollHeight;
+    restoringChat = false;
+  }
+
+  function watchChatLog() {
+    if (!chatLog || chatLog.dataset.labiWatch === '1' || typeof MutationObserver !== 'function') return;
+    chatLog.dataset.labiWatch = '1';
+    const observer = new MutationObserver(() => {
+      if (restoringChat || !transcript.length) return;
+      const missing = !chatLog.querySelector('.ai-chat-msg');
+      if (!missing && !chatLog.hidden) return;
+      if (missing) paintTranscript();
+      else {
+        chatLog.hidden = false;
+        panel.classList.add('is-chat-active');
+      }
+    });
+    observer.observe(chatLog, { childList: true, attributes: true, attributeFilter: ['hidden'] });
+  }
+
+  function watchModeBar() {
+    if (!panel || panel.dataset.labiModeWatch === '1' || typeof MutationObserver !== 'function') return;
+    panel.dataset.labiModeWatch = '1';
+    const observer = new MutationObserver(() => {
+      if (!root.querySelector('[data-labi-mode-bar]')) ensureModeBar();
+    });
+    observer.observe(panel, { childList: true, subtree: true });
+  }
+
+  function readLabiMode() {
+    try {
+      const saved = localStorage.getItem(LABI_MODE_KEY);
+      if (LABI_MODES.some((mode) => mode.id === saved)) return saved;
+    } catch (err) { /* ignore */ }
+    return 'auto';
+  }
+
+  function applyModeHint() {
+    if (!input) return;
+    if (!input.dataset.labiPlaceholder) input.dataset.labiPlaceholder = input.placeholder || '';
+    const hints = {
+      auto: input.dataset.labiPlaceholder,
+      chat: '용지 추천이나 궁금한 점을 물어보세요. 텍스트로 답해 드려요',
+      clipart: '그릴 그림, 아이콘, 장식을 설명해 주세요',
+      template: '만들 라벨 디자인과 문구를 알려 주세요',
+    };
+    input.placeholder = hints[labiMode] || hints.auto;
+  }
+
+  function setLabiMode(id) {
+    if (!LABI_MODES.some((mode) => mode.id === id)) id = 'auto';
+    labiMode = id;
+    try { localStorage.setItem(LABI_MODE_KEY, id); } catch (err) { /* ignore */ }
+    root.querySelectorAll('[data-labi-mode]').forEach((btn) => {
+      const on = btn.getAttribute('data-labi-mode') === id;
+      btn.classList.toggle('is-on', on);
+      btn.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+    applyModeHint();
+  }
+
+  function ensureModeBar() {
+    const composer = root.querySelector('.prompt-composer');
+    if (!composer || composer.querySelector('[data-labi-mode-bar]')) return;
+    labiMode = readLabiMode();
+    const bar = document.createElement('div');
+    bar.className = 'labi-mode';
+    bar.dataset.labiModeBar = '1';
+    bar.setAttribute('role', 'radiogroup');
+    bar.setAttribute('aria-label', '라비 응답 방식');
+    LABI_MODES.forEach((mode) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'labi-mode__btn' + (mode.id === labiMode ? ' is-on' : '');
+      btn.dataset.labiMode = mode.id;
+      btn.setAttribute('role', 'radio');
+      btn.setAttribute('aria-checked', mode.id === labiMode ? 'true' : 'false');
+      btn.textContent = mode.label;
+      btn.addEventListener('click', () => setLabiMode(mode.id));
+      bar.appendChild(btn);
+    });
+    composer.insertBefore(bar, composer.firstChild);
+    applyModeHint();
+  }
+
+  function restoreChat() {
+    if (!isLoggedIn || !chatLog || transcript.length) return;
+    const saved = loadSavedChat();
+    const items = saved && Array.isArray(saved.transcript) ? saved.transcript : [];
+    if (!items.length) return;
+    items.forEach((entry) => {
+      if (!entry || (entry.role !== 'user' && entry.role !== 'assistant')) return;
+      transcript.push(entry);
+    });
+    if (Array.isArray(saved.history)) {
+      saved.history.forEach((msg) => {
+        const slim = slimApiMessage(msg);
+        if (slim) history.push(slim);
+      });
+    }
+    paintTranscript();
+    saveChat();
+    watchChatLog();
+  }
+
+  ensureModeBar();
+  restoreChat();
+  watchChatLog();
+  watchModeBar();
 
   await loadExamplePrompts();
   bindExampleChips();

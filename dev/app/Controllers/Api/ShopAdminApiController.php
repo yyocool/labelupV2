@@ -283,10 +283,33 @@ final class ShopAdminApiController extends BaseController
         $this->guard();
         try {
             if (empty($_FILES['images'])) {
-                throw new RuntimeException('업로드할 이미지를 선택해주세요.');
+                throw new RuntimeException('업로드할 이미지를 선택해주세요. (요청 용량이 서버 한도를 넘으면 내용이 비워져 도착합니다)');
             }
-            $urls = $this->shop->uploadProductPageImages($_FILES['images']);
-            $this->jsonSuccess(['urls' => $urls], '이미지가 업로드되었습니다.');
+            $fitWidth = (int) ($_POST['fit_width'] ?? 0);
+            if ($fitWidth < 0 || $fitWidth > 4096) {
+                $fitWidth = 0;
+            }
+            $results = $this->shop->uploadProductPageImages($_FILES['images'], $fitWidth);
+            $urls = [];
+            $failed = 0;
+            foreach ($results as $result) {
+                if ($result['path'] !== '') {
+                    $urls[] = $result['path'];
+                } else {
+                    $failed++;
+                }
+            }
+            if ($results === []) {
+                throw new RuntimeException('업로드할 이미지가 없습니다.');
+            }
+            // 전부 실패해도 예외로 던지지 않는다. 호출 측이 results 로 어느 파일이
+            // 왜 실패했는지 짚어야 하는데, 예외로 바꾸면 그 정보가 한 줄로 뭉개진다.
+            $this->jsonSuccess(
+                ['urls' => $urls, 'results' => $results, 'failed_count' => $failed],
+                $failed === 0
+                    ? '이미지가 업로드되었습니다.'
+                    : count($urls) . '장 업로드, ' . $failed . '장 실패했습니다.'
+            );
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage());
         }

@@ -8,6 +8,7 @@ use App\Controllers\BaseController;
 use App\Middleware\AuthMiddleware;
 use App\Services\AdminService;
 use App\Services\AuthService;
+use App\Services\CreditAdminService;
 use App\Services\LegalDocumentService;
 use App\Services\UserService;
 use RuntimeException;
@@ -64,6 +65,38 @@ final class AdminApiController extends BaseController
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage(), null, 422);
         }
+    }
+
+    public function createUser(): never
+    {
+        $this->requireAdmin();
+        $payload = request_json();
+
+        try {
+            $user = $this->users->createByAdmin($payload);
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
+        }
+
+        $userId = (int) ($user['id'] ?? 0);
+        $credit = (int) ($payload['credit_amount'] ?? 0);
+        $message = '회원이 추가되었습니다.';
+        if ($credit > 0) {
+            // 회원은 이미 만들어졌다. 잉크 지급만 실패해도 등록은 되돌리지 않고 알린다.
+            try {
+                (new CreditAdminService())->grantUserCredit(
+                    $userId,
+                    $credit,
+                    trim((string) ($payload['credit_reason'] ?? '')) ?: '관리자 회원 등록 지급',
+                    (int) $this->auth->adminId()
+                );
+                $message = '회원이 추가되고 잉크 ' . number_format($credit) . ' C가 지급되었습니다.';
+            } catch (RuntimeException $e) {
+                $message = '회원은 추가되었지만 잉크 지급에 실패했습니다. ' . $e->getMessage();
+            }
+        }
+
+        $this->jsonSuccess($this->users->sanitizeUser($user), $message);
     }
 
     public function updateUser(): never

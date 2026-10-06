@@ -1,6 +1,16 @@
 /* 쇼핑몰 — brand.css burgundy 팔레트 */
 .shop-page body,.shop-page{--shop-radius:16px}
 .menu a.is-active{background:var(--accent-soft);color:var(--accent);font-weight:800}
+.shop-ink-visual{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;min-height:320px;text-align:center;background:linear-gradient(165deg,#fff 0%,#f6e8ed 55%,#f3dbe3 100%);color:var(--accent,#7B2840)}
+.shop-ink-visual small{font-size:12px;font-weight:800;letter-spacing:.18em}
+.shop-ink-visual strong{font-size:44px;line-height:1.05;letter-spacing:-.04em}
+.shop-ink-visual span{font-size:16px;font-weight:800}
+.shop-ink-visual--card{min-height:180px;border-radius:12px}
+.shop-ink-visual--card strong{font-size:26px}
+.shop-ink-note{margin:0 0 14px;font-size:13px;line-height:1.55;color:#6b6560}
+.shop-cart-thumb .shop-ink-visual{min-height:72px;border-radius:10px}
+.shop-cart-thumb .shop-ink-visual strong{font-size:16px}
+.shop-cart-thumb--ink img{object-fit:contain;background:#fbf7f4}
 .sidebar--shop .group--shop-primary{margin-top:18px}
 .sidebar--shop .group--shop-primary .group-title{color:var(--accent);font-weight:800}
 .sidebar--shop .create--shop{background:linear-gradient(90deg,var(--accent),var(--accent-2))}
@@ -40,11 +50,14 @@
   box-shadow:0 4px 14px rgba(46,42,39,.04);
 }
 .shop-search input{
-  flex:1;border:0;background:transparent;
+  /* min-width:auto 로 두면 input 의 기본 크기(size=20) 아래로 줄지 않아
+     폼이 좁아질 때 옆의 검색 버튼을 밖으로 밀어낸다. */
+  flex:1;min-width:0;border:0;background:transparent;
   height:100%;padding:0 18px;font-size:13px;color:var(--ink);
 }
 .shop-search input:focus{outline:none}
 .shop-search-btn{
+  flex:none;
   width:44px;height:44px;border:0;background:transparent;
   font-size:20px;color:var(--accent);cursor:pointer;
 }
@@ -273,14 +286,39 @@
 }
 .shop-detail-gallery{min-width:0}
 .shop-detail-gallery__frame{
+  position:relative;
   display:grid;place-items:center;aspect-ratio:1/1;padding:18px;
   border-radius:18px;background:
     radial-gradient(120% 80% at 50% 0%, #fff 0%, #faf8f6 55%, #f3efe9 100%);
   border:1px solid #efeae4;
+  overflow:hidden;
 }
-.shop-detail-gallery__frame img{
+/* 썸네일 이미지까지 채우지 않도록 대표이미지만 고른다. */
+.shop-detail-gallery__frame > img{
   width:100%;height:100%;max-height:420px;object-fit:contain;display:block;
 }
+/* 이미지가 2장 이상일 때만 나오는 썸네일 줄. 대표이미지 위 좌측 하단 레이어. */
+.shop-detail-thumbs{
+  position:absolute;left:12px;bottom:12px;z-index:2;
+  /* 장수가 많아 줄이 넘치면 아래가 아니라 위로 쌓이게 한다. */
+  display:flex;flex-wrap:wrap-reverse;justify-content:flex-start;gap:6px;
+  max-width:calc(100% - 24px);
+  margin:0;padding:6px;list-style:none;
+  border-radius:12px;background:rgba(255,255,255,.78);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  box-shadow:0 2px 10px rgba(46,42,39,.12);
+}
+.shop-detail-thumb{
+  display:block;width:56px;padding:0;cursor:pointer;
+  border:1px solid rgba(28,26,34,.08);border-radius:8px;background:#fff;
+  overflow:hidden;transition:border-color .15s,box-shadow .15s,transform .15s;
+}
+.shop-detail-thumb img{
+  display:block;width:100%;height:auto;aspect-ratio:1/1;object-fit:contain;background:#faf8f6;
+}
+.shop-detail-thumb:hover{border-color:#d9cfc6;transform:translateY(-1px)}
+.shop-detail-thumb.is-active{border-color:var(--accent);box-shadow:0 0 0 2px rgba(123,45,62,.25)}
+.shop-detail-thumb:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .shop-detail-info{min-width:0;display:flex;flex-direction:column;gap:0}
 .shop-detail-topline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .shop-detail-info .shop-product-cat{
@@ -307,6 +345,15 @@
 .shop-detail-compat{margin:0 0 18px;padding:12px 14px;border-radius:14px;background:#fbfaf9;border:1px solid #f0ebe6}
 .shop-detail-compat-label{display:block;font-size:11px;font-weight:800;color:#6b7280;margin-bottom:8px}
 .shop-detail-compat-list{display:flex;flex-wrap:wrap;gap:6px}
+.shop-detail-hashtags{
+  display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:12px 0 0;padding:0;
+}
+.shop-detail-hashtags li{
+  display:inline-flex;align-items:center;
+  padding:7px 14px;border-radius:999px;
+  background:#fff;border:1px solid #e4d3c4;color:#3a342f;
+  font-size:13.5px;font-weight:500;line-height:1.2;
+}
 .shop-detail-compat-chip{display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;background:#fff;border:1px solid #eadfe3;color:#7b2840;font-size:11px;font-weight:800}
 .shop-detail-specs{
   list-style:none;margin:0 0 18px;padding:0;
@@ -329,11 +376,86 @@
 .shop-detail-stock{margin-left:auto;font-size:12px;font-style:normal;font-weight:700;color:var(--muted)}
 .shop-detail-stock.is-soldout{color:#9b1c1c}
 .shop-detail-actions{margin-top:4px;display:grid;gap:10px}
+.shop-detail-option{display:grid;gap:6px;padding:12px;border:1px solid var(--line,#e9e3dd);border-radius:12px;background:#fbf9f7}
+.shop-detail-option__lab{font-size:12px;font-weight:800;color:#1c1a22}
+.shop-detail-option__lab em{margin-left:4px;font-style:normal;font-size:11px;font-weight:700;color:var(--accent)}
+.shop-option-set{margin:0;padding:0;border:0;min-width:0}
+.shop-option-set .shop-detail-option__lab{padding:0;margin-bottom:8px}
+/* 숨긴 라디오를 격자 칸으로 세지 않도록 절대 배치하고, 기준점을 여기 둔다. */
+.shop-option-grid{
+  position:relative;
+  display:grid;gap:8px;
+  grid-template-columns:repeat(auto-fit,minmax(104px,1fr));
+}
+.shop-option-radio{
+  position:absolute;width:1px;height:1px;margin:-1px;padding:0;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;
+}
+.shop-option-card{
+  display:grid;gap:2px;justify-items:start;
+  padding:10px 12px;cursor:pointer;
+  border:1px solid #ddd5ce;border-radius:12px;background:#fff;
+  transition:border-color .15s,box-shadow .15s,background .15s,transform .15s;
+}
+.shop-option-card__name{font-size:13px;font-weight:800;color:#1c1a22;line-height:1.3}
+.shop-option-card__price{font-size:15px;font-weight:900;color:var(--charcoal);line-height:1.2}
+.shop-option-card__delta{font-size:11px;font-weight:700;color:var(--muted)}
+.shop-option-card__flag{font-size:11px;font-weight:800;color:#b0392b}
+.shop-option-card:hover{border-color:#c9bdb2;box-shadow:0 2px 10px rgba(46,42,39,.08);transform:translateY(-1px)}
+.shop-option-radio:checked + .shop-option-card{
+  border-color:var(--accent);background:#fdf6f7;
+  box-shadow:0 0 0 2px rgba(123,45,62,.18);
+}
+.shop-option-radio:checked + .shop-option-card .shop-option-card__price{color:var(--accent)}
+.shop-option-radio:checked + .shop-option-card .shop-option-card__delta{color:var(--accent)}
+.shop-option-radio:focus-visible + .shop-option-card{outline:2px solid var(--accent);outline-offset:2px}
+.shop-option-radio:disabled + .shop-option-card{
+  cursor:not-allowed;background:#f6f3f0;border-color:#e9e3dd;
+  box-shadow:none;transform:none;
+}
+.shop-option-radio:disabled + .shop-option-card .shop-option-card__name,
+.shop-option-radio:disabled + .shop-option-card .shop-option-card__price{
+  color:#a79e97;text-decoration:line-through;
+}
+.shop-detail-option__live{margin:0;font-size:12px;color:var(--muted)}
+.shop-detail-option__live strong{color:var(--accent);font-weight:900}
 .shop-detail-buy{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:stretch}
 .shop-detail-buy__cart{width:100%;min-height:48px;font-size:15px}
 .shop-detail-secondary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .shop-detail-secondary .shop-btn{width:100%;min-height:42px;font-size:13px}
 .shop-detail-secondary .shop-btn:only-child{grid-column:1/-1}
+/* 찜하기 / 공유하기 — 대표이미지 위에 떠 있는 레이어 */
+.shop-detail-social{
+  position:absolute;top:12px;right:12px;z-index:2;
+  display:flex;flex-direction:column;gap:8px;
+}
+.shop-social-btn{
+  position:relative;
+  display:grid;place-items:center;
+  width:40px;height:40px;padding:0;cursor:pointer;
+  border:1px solid rgba(28,26,34,.08);border-radius:50%;
+  background:rgba(255,255,255,.88);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  font:inherit;color:#6b6460;
+  box-shadow:0 2px 8px rgba(46,42,39,.12);
+  transition:color .15s,background .15s,box-shadow .15s,transform .15s;
+}
+.shop-social-btn:hover{
+  color:var(--charcoal);background:#fff;
+  box-shadow:0 4px 14px rgba(46,42,39,.18);transform:translateY(-1px);
+}
+.shop-social-btn:disabled{opacity:.55;cursor:default;transform:none}
+.shop-social-btn__ic{display:block;width:20px;height:20px}
+.shop-social-btn__ic svg{display:block;width:100%;height:100%}
+/* 아이콘만 남기고 글자는 읽어주기용으로 숨긴다. */
+.shop-social-btn__lab{
+  position:absolute;width:1px;height:1px;margin:-1px;padding:0;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;
+}
+.js-wishlist-toggle.is-on{color:var(--accent)}
+/* 찜한 상태에서는 하트를 채운다. */
+.js-wishlist-toggle.is-on .shop-social-btn__ic svg{fill:currentColor}
+.shop-social-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .shop-qty{
   display:inline-flex;align-items:center;height:48px;
   border:1px solid #e6e6ed;border-radius:12px;overflow:hidden;background:#fff;
@@ -357,13 +479,25 @@
   display:grid;
   gap:0;
 }
+/* 데스크톱에서는 상세 내용 묶음(공통헤더·카테고리헤더·본문·공통푸터)을 1049px 로 고정한다.
+   화면이 넓어질수록 에디터 이미지가 원본보다 늘어나 흐려지는 것을 막는다.
+   좁은 화면용 규칙은 아래 max-width:1080px 블록에 있으므로 여기서만 건드린다. */
+@media (min-width:1081px){
+  .shop-detail-longform{
+    width:1049px;
+    /* 창이 1049px 보다 좁아지는 구간에서는 넘치지 않고 따라 줄어든다. */
+    max-width:100%;
+    margin-left:auto;
+    margin-right:auto;
+  }
+}
 .shop-detail-longform__body{
   width:100%;
   max-width:100%;
   margin:0;
-  padding:24px 0;
+  padding:0;
   background:#fff;
-  border:1px solid #ececf2;
+  border:0;
   border-radius:0;
   box-sizing:border-box;
 }
@@ -385,19 +519,34 @@
   display:block;width:100%;max-width:100%;height:auto;max-height:none;
   object-fit:contain;border-radius:0;background:#fff;
 }
+/* 에디터 본문은 좌우 여백 없이 꽉 채운다. 헤더/푸터 이미지와 폭이 같아야 한다. */
 .shop-detail-page-html{
   width:100%;max-width:100%;box-sizing:border-box;
-  padding:20px 4px;font-size:14px;line-height:1.7;color:#2f3344;overflow-wrap:anywhere;
+  padding:0;font-size:14px;line-height:1.7;color:#2f3344;overflow-wrap:anywhere;
 }
-.shop-detail-page-html--full{padding:8px 20px 20px}
+.shop-detail-page-html--full{padding:0}
 .shop-detail-page-html h1,.shop-detail-page-html h2,.shop-detail-page-html h3{margin:0 0 10px;font-weight:900;color:var(--charcoal)}
 .shop-detail-page-html p{margin:0 0 10px}
 .shop-detail-page-html ul,.shop-detail-page-html ol{margin:0 0 10px;padding-left:1.2em}
-.shop-detail-page-html img{max-width:100%;width:100%;height:auto;border-radius:0;display:block}
 .shop-detail-page-html a{color:var(--accent);font-weight:700}
+/* 에디터가 넣은 이미지에는 폭 고정 인라인 스타일(style="width: 1032px")이 붙어 있는 경우가 있다.
+   인라인 스타일은 !important 없이는 덮을 수 없어 여기서 강제로 폭을 채운다. */
+.shop-detail-page-html img{
+  display:block;border-radius:0;
+  width:100% !important;max-width:100% !important;height:auto !important;
+}
+/* 글만 담은 블록은 화면 끝에 붙지 않게 안쪽 여백을 준다. */
+.shop-detail-page-html > h1,.shop-detail-page-html > h2,.shop-detail-page-html > h3,
+.shop-detail-page-html > h4,.shop-detail-page-html > p,.shop-detail-page-html > blockquote,
+.shop-detail-page-html > table{padding-left:20px;padding-right:20px}
+.shop-detail-page-html > ul,.shop-detail-page-html > ol{padding-left:calc(20px + 1.2em);padding-right:20px}
+/* 이미지를 담은 블록은 다시 꽉 채운다. 에디터는 <p> 하나에 이미지를 여러 장 넣기도 하므로
+   :only-child 로는 걸러지지 않는다. 이 규칙은 위 여백 규칙보다 뒤에 있어야 이긴다. */
+.shop-detail-page-html > *:has(img){padding-left:0;padding-right:0;margin-top:0;margin-bottom:0}
+/* 에디터 내용이 없을 때 쓰는 대체 블록. 감싸는 영역의 여백을 없앴으므로 여기서 띄운다. */
 .shop-detail-desc--full{
   width:100%;max-width:100%;box-sizing:border-box;
-  margin:0;padding:8px 20px 20px;border-top:0;
+  margin:0;padding:24px 20px 20px;border-top:0;
 }
 .shop-detail-desc--full h2{font-size:16px;margin:0 0 16px}
 .shop-detail-desc--full .shop-detail-desc__body{font-size:14px;line-height:1.75}
@@ -487,6 +636,7 @@
 }
 .shop-cart-thumb img{width:88px;height:88px;object-fit:cover;border-radius:10px;background:var(--ivory)}
 .shop-cart-info strong{display:block;font-size:14px;margin-bottom:4px;color:var(--charcoal)}
+.shop-cart-option{font-size:11px;font-weight:800;color:var(--accent)}
 .shop-cart-sku{font-size:11px;color:var(--muted)}
 .shop-cart-price{margin-top:6px;font-size:13px;font-weight:800;color:var(--accent)}
 .shop-cart-controls{display:grid;justify-items:end;gap:8px}
@@ -555,6 +705,7 @@
 .shop-co-items img{width:44px;height:44px;object-fit:cover;border-radius:8px;background:#f6f3ef}
 .shop-co-items strong{display:block;font-size:12px;line-height:1.35;color:#1c1a22}
 .shop-co-items span{display:block;margin-top:2px;font-size:11px;color:#8a8490;font-weight:700}
+.shop-co-items__opt{color:var(--accent)!important}
 .lu-checkout-block{border:1px solid #efe6e8;border-radius:14px;padding:12px;margin:0;display:grid;gap:8px;min-width:0}
 .lu-checkout-block legend{padding:0 6px;font-size:13px;font-weight:800;color:#1c1a22}
 .lu-checkout-block__tools{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
@@ -814,12 +965,17 @@ body.lu-postcode-open{overflow:hidden}
   .shop-wrap{grid-template-columns:1fr;padding:0 16px 100px}
   .shop-aside{display:none}
   .shop-topbar{padding:0 16px;flex-wrap:wrap;height:auto;padding-top:12px;padding-bottom:12px}
-  .shop-search{max-width:none;order:3;width:100%}
+  /* flex-basis 를 100% 로 줘야 로고·아이콘과 같은 줄에 끼지 않고 제 줄로 내려간다.
+     width:100% 만으로는 flex-basis:0 에 밀려 무시된다. */
+  .shop-search{max-width:none;order:3;flex:1 0 100%;width:100%}
   .shop-hero-inner{grid-template-columns:1fr}
   .shop-hero-visual img{height:180px}
   .shop-product-grid,.shop-spec-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .shop-detail{grid-template-columns:1fr;padding:20px;gap:22px}
   .shop-detail-gallery__frame{aspect-ratio:4/3;max-height:320px}
+  /* 액자가 낮아지므로 겹치는 면적을 줄인다. */
+  .shop-detail-thumbs{left:8px;bottom:8px;gap:4px;padding:4px}
+  .shop-detail-thumb{width:46px}
   .shop-detail-specs{grid-template-columns:repeat(3,minmax(0,1fr))}
   .shop-cart-layout{grid-template-columns:1fr}
   .shop-oc-hero,.shop-oc-summary,.shop-oc-grid,.shop-oc-more{grid-template-columns:1fr}
@@ -847,6 +1003,17 @@ body.lu-postcode-open{overflow:hidden}
 @media (max-width:560px){
   .shop-cat-icons{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
   .shop-cat-icon-box{width:72px;height:72px;font-size:16px}
+  .shop-cat-tile{padding:10px 6px 8px}
+  .shop-cat-icon{font-size:11px}
+  .shop-cat-icon-name{word-break:keep-all}
+  .shop-page-head{gap:12px;align-items:flex-start}
+  .shop-page-head h1{font-size:20px}
+  .shop-category-hero{width:84px;height:84px;flex-basis:84px;border-radius:14px}
+  .shop-filter-chip{min-height:34px;font-size:12px}
+  .shop-product-card--ink .shop-product-img{aspect-ratio:1/1;background:#fbf7f4}
+  .shop-detail--ink .shop-detail-gallery__frame{aspect-ratio:1/1;max-height:none}
+  .shop-cart-thumb img{width:72px;height:72px}
+  .shop-cart-thumb--ink img{object-fit:contain}
   .shop-cart-item{grid-template-columns:72px 1fr;grid-template-rows:auto auto}
   .shop-cart-controls{grid-column:1/-1;justify-items:stretch;grid-template-columns:1fr auto auto;align-items:center}
   .shop-detail{padding:16px;border-radius:18px}

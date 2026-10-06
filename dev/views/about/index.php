@@ -40,7 +40,11 @@ $companyRows = $companyRows ?? [];
       아래 이용 흐름은 <b>로그인 없이</b> 확인할 수 있습니다.
     </p>
     <div class="about-cta">
+      <?php if (!empty($snsHold)): ?>
+      <button type="button" class="about-btn about-btn--primary" id="aboutSnsHold" data-sns-message="<?= e((string) ($snsHoldMessage ?? '준비중입니다 이용에 불편을 드려 죄송합니다')) ?>">카카오로 시작하기</button>
+      <?php else: ?>
       <a class="about-btn about-btn--primary" href="<?= e($kakaoLoginUrl ?? url('auth/kakao')) ?>">카카오로 시작하기</a>
+      <?php endif; ?>
       <a class="about-btn" href="<?= e($loginUrl ?? url('login')) ?>">이메일 로그인</a>
       <a class="about-btn" href="<?= e($shopUrl ?? url('shop')) ?>">쇼핑몰 둘러보기</a>
     </div>
@@ -67,7 +71,7 @@ $companyRows = $companyRows ?? [];
       </li>
       <li>
         <strong>5. 마이페이지·고객지원</strong>
-        <span>계정·주문·크레딧은 마이페이지에서, 이용 방법은 FAQ(`/faq`)에서 확인합니다.</span>
+        <span>계정·주문·잉크는 마이페이지에서, 이용 방법은 FAQ(`/faq`)에서 확인합니다.</span>
       </li>
     </ol>
   </section>
@@ -119,5 +123,14 @@ $companyRows = $companyRows ?? [];
   <?php render_site_footer(['year' => $year ?? date('Y')]); ?>
 </main>
 <?php marketing_render_body_end(); ?>
+<script>
+(function () {
+  var btn = document.getElementById('aboutSnsHold');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    window.alert(btn.getAttribute('data-sns-message') || '준비중입니다 이용에 불편을 드려 죄송합니다');
+  });
+})();
+</script>
 </body>
 </html>

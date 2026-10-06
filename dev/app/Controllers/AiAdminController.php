@@ -139,10 +139,10 @@ final class AiAdminController extends BaseController
         (new AuthMiddleware($this->auth))->handle(true);
         view('admin/layout', [
             'contentTemplate' => 'admin/credit-usage',
-            'pageTitle' => 'AI 관리 › AI 크레딧 설정 — 라벨업 관리자',
+            'pageTitle' => 'AI 관리 › AI 잉크 설정 — 라벨업 관리자',
             'activeMenu' => 'ai-credit-settings',
             'menuGroup' => 'ai',
-            'crumbTitle' => 'AI 관리 › AI 크레딧 설정',
+            'crumbTitle' => 'AI 관리 › AI 잉크 설정',
             'user' => $this->auth->admin(),
             'settings' => (new AiCreditService())->adminSettings(),
             'saveUrl' => url('api/admin/ai/credit-settings/save'),

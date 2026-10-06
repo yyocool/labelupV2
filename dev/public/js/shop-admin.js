@@ -250,12 +250,13 @@ function buildCategorySelectOptions(categories, selected) {
       else if (Number(next.depth || 0) === 0) break;
     }
     const id = String(cat.id);
-    html += `<option value="${escHtml(id)}"${sel === id ? ' selected' : ''}>${escHtml(cat.name || '')}${children.length ? '  · 1차' : ''}</option>`;
+    const slug = escHtml(cat.slug || '');
+    html += `<option value="${escHtml(id)}" data-slug="${slug}"${sel === id ? ' selected' : ''}>${escHtml(cat.name || '')}${children.length ? '  · 1차' : ''}</option>`;
     if (!children.length) continue;
     html += `<optgroup label="${escHtml(cat.name || '')} · 2차">`;
     children.forEach((child) => {
       const cid = String(child.id);
-      html += `<option value="${escHtml(cid)}"${sel === cid ? ' selected' : ''}>└ ${escHtml(child.name || '')}</option>`;
+      html += `<option value="${escHtml(cid)}" data-slug="${escHtml(child.slug || '')}"${sel === cid ? ' selected' : ''}>└ ${escHtml(child.name || '')}</option>`;
     });
     html += '</optgroup>';
   }
@@ -491,9 +492,10 @@ function buildProductForm(row = {}) {
     selectClass: 'admin-select--category',
     htmlOptions: buildCategorySelectOptions(shopMeta.categories || [], row.category_id),
   });
-  html += shopField('라벨 규격', 'spec_id', row.spec_id || '', 'select', {
+  html += `<div class="js-ink-only">${shopField('지급 잉크', 'ink_amount', row.ink_amount || '', 'number', { required: false, step: 1 })}</div>`;
+  html += `<div class="js-label-only">${shopField('라벨 규격', 'spec_id', row.spec_id || '', 'select', {
     options: [{ v: '', t: '선택 안함' }, ...shopMeta.specs.map((s) => ({ v: s.id, t: s.name }))],
-  });
+  })}</div>`;
   html += shopField('상태', 'status', row.status || 'draft', 'select', {
     options: [
       { v: 'draft', t: '임시저장' }, { v: 'active', t: '판매중' },
@@ -503,7 +505,7 @@ function buildProductForm(row = {}) {
   html += shopField('정렬', 'sort_order', row.sort_order ?? 0, 'number');
   html += '</div></section>';
 
-  html += '<section class="admin-product-section"><h4 class="admin-product-section-title">\uD638\uD658\uCF54\uB4DC</h4>';
+  html += '<section class="admin-product-section js-label-only"><h4 class="admin-product-section-title">\uD638\uD658\uCF54\uB4DC</h4>';
   html += '<p class="admin-muted" style="margin:0 0 8px;font-size:12px">\uD3FC\uD14D\u00B7\uC544\uC774\uB77C\uBCA8\u00B7\uC560\uB2C8\uB77C\uBCA8 \uCF54\uB4DC\uB294 \uD55C \uC904\uC5D0 \uD558\uB098 \uB610\uB294 \uC27C\uD45C\uB85C \uC5EC\uB7EC \uAC1C\uB97C \uC785\uB825\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.</p>';
   html += '<div class="admin-product-form-grid">';
   html += shopField('\uD3FC\uD14D', 'compat_formtec', compatToMultiline(row.compat_formtec), 'textarea', { rows: 3, full: true });
@@ -514,14 +516,18 @@ function buildProductForm(row = {}) {
   html += '<section class="admin-product-section"><h4 class="admin-product-section-title">가격 · 재고</h4><div class="admin-product-form-grid">';
   html += shopField('정가(원)', 'price', row.price ?? 0, 'number', { required: true });
   html += shopField('할인가(원)', 'sale_price', row.sale_price ?? '', 'number');
-  html += shopField('재고', 'stock_qty', row.stock_qty ?? 0, 'number', { required: true });
+  html += `<div class="js-label-only">${shopField('재고', 'stock_qty', row.stock_qty ?? 0, 'number', { required: true })}</div>`;
   html += '</div></section>';
 
-  html += '<section class="admin-product-section"><h4 class="admin-product-section-title">상품 스펙 · 물류 정보</h4><div class="admin-product-form-grid">';
+  html += '<section class="admin-product-section js-label-only"><h4 class="admin-product-section-title">상품 스펙 · 물류 정보</h4><div class="admin-product-form-grid">';
   html += buildProductMetaFields(productMeta);
   html += '</div></section>';
 
-  html += '<section class="admin-product-section"><h4 class="admin-product-section-title">이미지</h4>';
+  html += '<section class="admin-product-section js-label-only"><h4 class="admin-product-section-title">옵션</h4>';
+  html += buildProductOptionsSection();
+  html += '</section>';
+
+  html += '<section class="admin-product-section js-label-only"><h4 class="admin-product-section-title">이미지</h4>';
   html += buildProductImagesSection(row.thumbnail || '');
   html += shopField('대표 이미지 경로', 'thumbnail_path_display', row.thumbnail || '', 'readonly', { full: true });
   html += '</section>';
@@ -556,19 +562,127 @@ function buildProductImagesSection(thumbnail = '') {
     </div>`;
 }
 
+/* ── 상품 옵션 (단일 선택형) ───────────────────────────── */
+
+let productOptionsState = [];
+
+function buildProductOptionsSection() {
+  return `
+    <div class="admin-field admin-field--full">
+      <p class="admin-muted" style="margin:0 0 8px;font-size:12px">옵션을 하나라도 등록하면 구매자는 상품 상세에서 옵션을 <b>반드시</b> 선택해야 합니다. 추가금액은 음수도 넣을 수 있고, 재고는 옵션별로 따로 관리됩니다.</p>
+      <div class="admin-option-rows" id="shopProductOptions"></div>
+      <button type="button" class="admin-btn admin-btn--sm" id="shopProductOptionAdd">+ 옵션 추가</button>
+    </div>`;
+}
+
+function initProductOptionsState(row = {}) {
+  productOptionsState = (row.options || []).map((opt, i) => ({
+    id: Number(opt.id || 0),
+    name: String(opt.name ?? ''),
+    price_delta: Number(opt.price_delta ?? 0),
+    stock_qty: Number(opt.stock_qty ?? 0),
+    sku_suffix: String(opt.sku_suffix ?? ''),
+    is_active: opt.is_active === undefined ? true : !!Number(opt.is_active),
+    sort_order: Number(opt.sort_order ?? i),
+  }));
+  renderProductOptions();
+}
+
+function renderProductOptions() {
+  const wrap = document.getElementById('shopProductOptions');
+  if (!wrap) return;
+  if (!productOptionsState.length) {
+    wrap.innerHTML = '<p class="admin-muted admin-option-empty">등록된 옵션이 없습니다. 옵션 없이 저장하면 기본가로만 판매됩니다.</p>';
+    return;
+  }
+  const base = Number(document.querySelector('#shopModalForm [name="sale_price"]')?.value || 0)
+    || Number(document.querySelector('#shopModalForm [name="price"]')?.value || 0);
+  wrap.innerHTML = `
+    <div class="admin-option-head">
+      <span>옵션명</span><span>추가금액(원)</span><span>재고</span><span>SKU 접미사</span><span>판매</span><span></span>
+    </div>
+    ${productOptionsState.map((opt, i) => {
+      const unit = Math.max(0, base + Number(opt.price_delta || 0));
+      return `
+      <div class="admin-option-row" data-option-index="${i}">
+        <input type="text" data-opt="name" value="${escHtml(opt.name)}" maxlength="120" placeholder="예: 무광 500매">
+        <input type="number" data-opt="price_delta" value="${Number(opt.price_delta || 0)}" step="100">
+        <input type="number" data-opt="stock_qty" value="${Number(opt.stock_qty || 0)}" min="0">
+        <input type="text" data-opt="sku_suffix" value="${escHtml(opt.sku_suffix)}" maxlength="40" placeholder="예: -M500">
+        <label class="admin-option-check"><input type="checkbox" data-opt="is_active"${opt.is_active ? ' checked' : ''}></label>
+        <button type="button" class="admin-btn admin-btn--sm admin-btn--danger" data-option-remove="${i}">삭제</button>
+        <small class="admin-option-preview">판매가 ${unit.toLocaleString()}원</small>
+      </div>`;
+    }).join('')}`;
+}
+
+function bindProductOptionEvents() {
+  const addBtn = document.getElementById('shopProductOptionAdd');
+  const wrap = document.getElementById('shopProductOptions');
+  if (!addBtn || !wrap) return;
+
+  addBtn.onclick = () => {
+    productOptionsState.push({
+      id: 0,
+      name: '',
+      price_delta: 0,
+      stock_qty: 0,
+      sku_suffix: '',
+      is_active: true,
+      sort_order: productOptionsState.length,
+    });
+    renderProductOptions();
+    wrap.querySelector('.admin-option-row:last-child [data-opt="name"]')?.focus();
+  };
+
+  wrap.addEventListener('input', (e) => {
+    const input = e.target.closest('[data-opt]');
+    if (!input) return;
+    const index = Number(input.closest('[data-option-index]')?.dataset.optionIndex ?? -1);
+    const opt = productOptionsState[index];
+    if (!opt) return;
+    const key = input.dataset.opt;
+    if (key === 'is_active') opt.is_active = input.checked;
+    else if (key === 'price_delta' || key === 'stock_qty') opt[key] = Number(input.value || 0);
+    else opt[key] = input.value;
+    if (key === 'price_delta') {
+      const base = Number(document.querySelector('#shopModalForm [name="sale_price"]')?.value || 0)
+        || Number(document.querySelector('#shopModalForm [name="price"]')?.value || 0);
+      const preview = input.closest('[data-option-index]')?.querySelector('.admin-option-preview');
+      if (preview) preview.textContent = `판매가 ${Math.max(0, base + Number(opt.price_delta || 0)).toLocaleString()}원`;
+    }
+  });
+
+  wrap.addEventListener('change', (e) => {
+    const box = e.target.closest('[data-opt="is_active"]');
+    if (!box) return;
+    const index = Number(box.closest('[data-option-index]')?.dataset.optionIndex ?? -1);
+    if (productOptionsState[index]) productOptionsState[index].is_active = box.checked;
+  });
+
+  wrap.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-option-remove]');
+    if (!btn) return;
+    productOptionsState.splice(Number(btn.dataset.optionRemove), 1);
+    renderProductOptions();
+  });
+}
+
 function orderItemSummary(row = {}) {
   const items = row.items || [];
   if (!items.length) return '-';
   const first = items[0];
+  const option = String(first.option_name || '').trim();
+  const name = `${first.product_name || ''}${option ? ` [${option}]` : ''}`;
   const extra = items.length > 1 ? ` \uC678 ${items.length - 1}\uAC74` : '';
-  return `${first.product_name || ''} x${first.qty || 0}${extra}`;
+  return `${name} x${first.qty || 0}${extra}`;
 }
 
 function buildOrderForm(row = {}) {
   const items = row.items || [];
   const itemRows = items.length
-    ? items.map((it) => `<tr><td>${escHtml(it.product_name)}</td><td>${escHtml(it.sku)}</td><td>${Number(it.qty || 0)}</td><td>${Number(it.unit_price || 0).toLocaleString()}</td><td>${Number(it.line_total || 0).toLocaleString()}</td></tr>`).join('')
-    : '<tr><td colspan="5">\uC0C1\uD488 \uC815\uBCF4\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.</td></tr>';
+    ? items.map((it) => `<tr><td>${escHtml(it.product_name)}</td><td>${escHtml(it.option_name || '-')}</td><td>${escHtml(it.sku)}</td><td>${Number(it.qty || 0)}</td><td>${Number(it.unit_price || 0).toLocaleString()}</td><td>${Number(it.line_total || 0).toLocaleString()}</td></tr>`).join('')
+    : '<tr><td colspan="6">\uC0C1\uD488 \uC815\uBCF4\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.</td></tr>';
   const carriers = (window.SHOP_ORDER_META && window.SHOP_ORDER_META.carriers) || ['CJ\uB300\uD55C\uD1B5\uC6B4', '\uC6B0\uCCB4\uAD6D\uD0DD\uBC30', '\uD55C\uC9C4\uD0DD\uBC30', '\uB86F\uB370\uD0DD\uBC30', '\uB85C\uC820\uD0DD\uBC30'];
   let html = `<input type="hidden" name="id" value="${row.id || 0}">`;
   html += `<div class="admin-order-detail">`;
@@ -585,7 +699,7 @@ function buildOrderForm(row = {}) {
   html += `<div class="admin-field"><label>\uD560\uC778</label><input type="text" value="${Number(row.discount_amount || 0).toLocaleString()}\uC6D0" readonly></div>`;
   html += `<div class="admin-field"><label>\uACB0\uC81C\uAE08\uC561</label><input type="text" value="${Number(row.total_amount || 0).toLocaleString()}\uC6D0" readonly></div>`;
   html += `</div>`;
-  html += `<table class="admin-table admin-order-items"><thead><tr><th>\uC0C1\uD488\uBA85</th><th>SKU</th><th>\uC218\uB7C9</th><th>\uB2E8\uAC00</th><th>\uAE08\uC561</th></tr></thead><tbody>${itemRows}</tbody></table>`;
+  html += `<table class="admin-table admin-order-items"><thead><tr><th>\uC0C1\uD488\uBA85</th><th>\uC635\uC158</th><th>SKU</th><th>\uC218\uB7C9</th><th>\uB2E8\uAC00</th><th>\uAE08\uC561</th></tr></thead><tbody>${itemRows}</tbody></table>`;
   html += '<div class="admin-order-detail__grid">';
   html += shopField('\uC8FC\uBB38\uC0C1\uD0DC', 'status', row.status || 'pending', 'select', {
     options: [
@@ -783,6 +897,37 @@ function bindProductImageEvents() {
   };
 }
 
+function selectedCategorySlug() {
+  const sel = document.querySelector('#shopModalForm [name="category_id"]');
+  return sel?.selectedOptions?.[0]?.dataset.slug || '';
+}
+
+function syncInkSku() {
+  const form = document.querySelector('#shopModalForm');
+  const amount = form?.querySelector('[name="ink_amount"]');
+  const sku = form?.querySelector('[name="sku"]');
+  if (!amount || !sku) return;
+  const current = sku.value.trim();
+  if (current && !/^INK-\d+$/.test(current)) return;
+  const n = Number(amount.value || 0);
+  if (n > 0) sku.value = `INK-${n}`;
+}
+
+function applyInkProductMode() {
+  const form = document.querySelector('#shopModalForm .admin-product-form');
+  if (!form) return;
+  const ink = selectedCategorySlug() === 'ink-charge';
+  form.classList.toggle('is-ink', ink);
+  form.querySelectorAll('.js-ink-only').forEach((el) => { el.hidden = !ink; });
+  form.querySelectorAll('.js-label-only').forEach((el) => { el.hidden = ink; });
+  const stock = form.querySelector('[name="stock_qty"]');
+  const inkInput = form.querySelector('[name="ink_amount"]');
+  if (stock) stock.required = !ink;
+  if (inkInput) inkInput.required = ink;
+  if (ink && stock) stock.value = '999999';
+  if (ink) syncInkSku();
+}
+
 function openShopModal(entity, row = {}) {
   const modal = document.getElementById('shopModal');
   const form = document.getElementById('shopModalForm');
@@ -807,7 +952,14 @@ function openShopModal(entity, row = {}) {
   if (entity === 'product') {
     initProductImagesState(row);
     bindProductImageEvents();
+    initProductOptionsState(row);
+    bindProductOptionEvents();
     initProductSummernote();
+    applyInkProductMode();
+    form.querySelector('[name="category_id"]')?.addEventListener('change', applyInkProductMode);
+    form.querySelector('[name="ink_amount"]')?.addEventListener('input', () => {
+      if (selectedCategorySlug() === 'ink-charge') syncInkSku();
+    });
   } else if (entity === 'category') {
     initCategoryImage(row.image_path || '');
   } else if (entity === 'spec') {
@@ -899,6 +1051,25 @@ if (shopForm) {
         }));
         const primary = productImagesState.find((img) => img.is_primary) || productImagesState[0];
         data.thumbnail = primary?.image_path || data.thumbnail || '';
+        if (selectedCategorySlug() === 'ink-charge') {
+          data.stock_qty = 999999;
+          data.spec_id = '';
+          data.options = [];
+          if (!String(data.sku || '').trim() && Number(data.ink_amount || 0) > 0) {
+            data.sku = `INK-${data.ink_amount}`;
+          }
+        }
+        data.options = data.options || productOptionsState
+          .filter((opt) => String(opt.name || '').trim() !== '')
+          .map((opt, i) => ({
+            id: Number(opt.id || 0),
+            name: String(opt.name).trim(),
+            price_delta: Number(opt.price_delta || 0),
+            stock_qty: Number(opt.stock_qty || 0),
+            sku_suffix: String(opt.sku_suffix || '').trim(),
+            is_active: opt.is_active ? 1 : 0,
+            sort_order: i,
+          }));
       } else if (entity === 'category') {
         data.image_path = categoryImagePath || document.getElementById('shopCategoryImagePath')?.value || '';
       } else if (entity === 'spec') {

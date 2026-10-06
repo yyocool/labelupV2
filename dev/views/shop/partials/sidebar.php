@@ -10,7 +10,6 @@ $isActive = static fn (string ...$keys): string => in_array($shopSubNav, $keys, 
 <aside class="sidebar sidebar--shop">
   <div class="brand">
     <a href="<?= url('/') ?>" aria-label="labelup 홈"><img class="brand-img" src="<?= asset('logo.png') ?>" alt="labelup"></a>
-    <strong class="brand-name">labelup</strong>
     <small>라벨업 쇼핑몰</small>
   </div>
   <a class="create create--shop" href="<?= url('shop/products') ?>">⌕ &nbsp;상품 검색하기</a>
@@ -21,7 +20,6 @@ $isActive = static fn (string ...$keys): string => in_array($shopSubNav, $keys, 
       <a class="<?= $isActive('home') ?>" href="<?= url('shop') ?>"><span class="ico">🏠</span>쇼핑몰 홈</a>
       <a class="<?= $isActive('products', 'product') ?>" href="<?= url('shop/products') ?>"><span class="ico">▦</span>전체 상품</a>
       <a class="<?= $isActive('cart') ?>" href="<?= url('shop/cart') ?>"><span class="ico">🛒</span>장바구니</a>
-      <a href="<?= url('shop/products') ?>?shape=rect"><span class="ico">▣</span>규격으로 찾기</a>
     </nav>
   </div>
 
@@ -62,29 +60,17 @@ $isActive = static fn (string ...$keys): string => in_array($shopSubNav, $keys, 
   </div>
   <?php endif; ?>
 
-  <div class="group">
-    <div class="group-title">쇼핑 가이드</div>
-    <nav class="menu">
-      <a href="<?= url('shop/products') ?>"><span class="ico">📐</span>규격 가이드</a>
-      <a href="<?= url('shop/products') ?>?category=label-paper"><span class="ico">📦</span>용지 샘플 안내</a>
-      <a href="#"><span class="ico">🖨</span>인쇄 가이드</a>
-      <a href="<?= url('faq') ?>"><span class="ico">?</span>자주 묻는 질문</a>
-    </nav>
-  </div>
-
   <div class="group group--shop-secondary">
     <div class="group-title">디자인 도구</div>
     <nav class="menu menu--compact">
       <a href="<?= url('editor/') ?>"><span class="ico">✎</span>라벨 디자인</a>
-      <a href="#"><span class="ico">▦</span>템플릿</a>
-      <a href="<?= url('shop/products') ?>?q="><span class="ico">⌕</span>규격 검색</a>
-      <a href="#"><span class="ico">⌘</span>바코드 / QR</a>
     </nav>
   </div>
 
   <div class="group">
     <div class="group-title">바로가기</div>
     <nav class="menu menu--compact">
+      <a href="<?= url('faq') ?>"><span class="ico">?</span>자주 묻는 질문</a>
       <a href="<?= url('/') ?>"><span class="ico">←</span>메인 홈</a>
       <a href="<?= url('account') ?>"><span class="ico">◎</span>마이페이지</a>
     </nav>

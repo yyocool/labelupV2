@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>라벨업AI 사용 가이드 (v2) | 라비와 함께 만드는 나만의 라벨</title>
+<meta name="description" content="AI 비서 라비에게 라벨 용지 추천과 클립아트 생성을 도움받고, 편집기에서 직접 완성해 출력하세요. 회원가입하면 5,000 Ink를 드려요.">
+<link rel="icon" href="assets/logo-labelup.png">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{
+  --ivory:#FBF8F3;
+  --ivory-2:#F5EEE6;
+  --ivory-3:#EFE5DA;
+  --wine-deep:#2E0B14;
+  --wine:#7A1F35;
+  --wine-strong:#5E1528;
+  --brand:#9C4858;
+  --rose:#E7A6B4;
+  --rose-2:#F4D9DF;
+  --ink:#26181C;
+  --ink-2:#5A4A4E;
+  --ink-3:#8A7A7E;
+  --line:rgba(122,31,53,.10);
+  --glass-bg:linear-gradient(155deg,rgba(255,255,255,.86) 0%,rgba(255,255,255,.55) 100%);
+  --glass-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 0 0 1px rgba(122,31,53,.07),0 30px 60px -34px rgba(94,21,40,.32);
+  --grad-wine:linear-gradient(135deg,#B8435F 0%,#7A1F35 55%,#4E1121 100%);
+  --nav-h:72px;
+  --max:1180px;
+  --font:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+body{margin:0;font-family:var(--font);color:var(--ink);background:var(--ivory);line-height:1.65;word-break:keep-all;overflow-wrap:break-word;overflow-x:clip;font-size:17px;-webkit-font-smoothing:antialiased}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:100;opacity:.05;mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .3 0 0 0 0 .1 0 0 0 0 .15 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+img{max-width:100%;height:auto;display:block}
+a{color:inherit}
+button{font:inherit;color:inherit}
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.skip{position:absolute;left:12px;top:-60px;z-index:200;background:#fff;color:var(--wine);padding:10px 16px;border-radius:10px;font-weight:700}
+.skip:focus{top:12px}
+:focus-visible{outline:3px solid var(--wine);outline-offset:3px;border-radius:8px}
+.wrap{position:relative;max-width:var(--max);margin:0 auto;padding:0 24px}
+
+/* ---------- 공통 시각 요소 ---------- */
+.glass{background:var(--glass-bg);box-shadow:var(--glass-shadow);backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);border-radius:28px}
+.ambient{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.orb{position:absolute;border-radius:50%;filter:saturate(.9);background:radial-gradient(circle at 30% 26%,#fff 0%,#F9E3E8 16%,#E3A2B2 52%,#A9465F 88%,#7A1F35 100%);box-shadow:inset -10px -16px 40px rgba(94,21,40,.25),0 30px 60px -20px rgba(122,31,53,.35);opacity:.42}
+.glow{position:absolute;border-radius:50%;background:radial-gradient(closest-side,rgba(196,90,115,.26),rgba(196,90,115,0))}
+.arc{position:absolute;left:50%;transform:translateX(-50%);width:max(1500px,150%);aspect-ratio:3.2/1;border-radius:50%;border-top:1.5px solid rgba(184,67,95,.55);box-shadow:inset 0 26px 40px -26px rgba(196,90,115,.55),0 -2px 22px -6px rgba(231,166,180,.9);-webkit-mask-image:linear-gradient(90deg,transparent 8%,#000 32%,#000 68%,transparent 92%);mask-image:linear-gradient(90deg,transparent 8%,#000 32%,#000 68%,transparent 92%)}
+.bigword{position:absolute;font-weight:900;line-height:.82;letter-spacing:-.06em;white-space:nowrap;color:transparent;-webkit-text-stroke:1.2px rgba(122,31,53,.075);background:linear-gradient(180deg,rgba(156,72,88,.085) 0%,rgba(156,72,88,0) 80%);-webkit-background-clip:text;background-clip:text;user-select:none}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;margin:0 0 18px;padding:7px 15px 7px 12px;border-radius:999px;background:rgba(255,255,255,.7);box-shadow:inset 0 1px 0 #fff,0 0 0 1px rgba(122,31,53,.10),0 8px 20px -12px rgba(94,21,40,.3);font-size:13.5px;font-weight:700;color:var(--wine);letter-spacing:.02em}
+.eyebrow::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--wine);box-shadow:0 0 0 3px rgba(184,67,95,.18),0 0 10px rgba(184,67,95,.8)}
+.hl{font-style:normal;background:var(--grad-wine);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* ---------- Buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:0 28px;border-radius:999px;font-weight:700;font-size:16px;text-decoration:none;cursor:pointer;border:1.5px solid transparent;transition:transform .2s,box-shadow .2s,background .2s,color .2s}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--grad-wine);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 14px 28px -14px rgba(122,31,53,.7)}
+.btn-primary:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 18px 34px -14px rgba(122,31,53,.85);transform:translateY(-1px)}
+.btn-line{background:rgba(255,255,255,.7);color:var(--wine);border-color:rgba(122,31,53,.35)}
+.btn-line:hover{background:#fff;border-color:var(--wine)}
+
+/* ---------- Hero : 캐럿 패턴 + 하단 글로우 ---------- */
+.hero{position:relative;overflow:hidden;min-height:clamp(620px,90vh,880px);display:flex;flex-direction:column;color:#fff;
+  background:
+    radial-gradient(70% 55% at 50% 104%,#FFF8F4 0%,#F9DCE2 18%,#E39AAE 36%,rgba(196,90,115,.55) 52%,rgba(122,31,53,0) 72%),
+    linear-gradient(180deg,#16040A 0%,#2A0912 32%,#4E1224 62%,#7A2440 82%,#F8F1EA 100%)}
+.hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:90px;background:linear-gradient(180deg,rgba(248,241,234,0),#F8F1EA);pointer-events:none}
+.hero-pattern{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hero-bar{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;padding:26px 24px 0}
+.hero-logo{height:22px;width:auto;filter:brightness(0) invert(1);opacity:.95}
+.hero-inner{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 24px 130px}
+.hero-badge{display:inline-flex;align-items:center;gap:10px;margin:0 0 28px;padding:8px 16px;border-radius:10px;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:#F6DDE3;font-size:14px;font-weight:600;letter-spacing:.08em}
+.hero-badge span{width:7px;height:7px;background:#F2B8C6;box-shadow:0 0 10px #F2B8C6}
+.hero-title{margin:0;font-size:clamp(44px,7.4vw,96px);line-height:1.12;letter-spacing:-.045em;font-weight:700;background:linear-gradient(180deg,#FFFFFF 0%,#FBE3E9 55%,#F2C2CE 100%);-webkit-background-clip:text;background-clip:text;color:transparent;text-wrap:balance}
+.hero-title em{font-style:normal;font-weight:800;background:linear-gradient(180deg,#FFD9E2 0%,#F3A9BC 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero-sub{margin:26px 0 0;color:#F1CDD6;font-size:clamp(16px,1.6vw,19px);font-weight:500}
+.hero-btns{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:38px}
+.hbtn{position:relative;display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:0 28px;border-radius:999px;font-size:16px;font-weight:700;text-decoration:none;border:1.5px solid transparent;transition:background .2s,border-color .2s,transform .2s}
+.hbtn:hover{transform:translateY(-1px)}
+.hbtn-light{background:#fff;color:var(--wine-strong);box-shadow:0 10px 26px -12px rgba(0,0,0,.5)}
+.hbtn-light:hover{background:#FBEFF2}
+.hbtn-dark{background:transparent;color:#fff;border-color:rgba(255,255,255,.55)}
+.hbtn-dark:hover{background:rgba(255,255,255,.1);border-color:#fff}
+.hbtn:focus-visible{outline:3px solid #fff;outline-offset:3px;border-radius:999px}
+@media (max-width:720px){
+  .hero{min-height:600px}
+  .hero-bar{padding-top:20px}
+  .hero-inner{padding:30px 20px 110px}
+  .hero-badge{margin-bottom:22px;font-size:13px}
+  .hero-sub{margin-top:18px}
+  .hero-btns{width:100%;flex-direction:column;margin-top:30px}
+  .hbtn{width:100%}
+}
+
+/* v2: 둥근 패널 + 상단 중앙의 작은 라비 */
+.hero{z-index:3;border-radius:0 0 56px 56px;min-height:clamp(680px,92vh,900px);
+  background:
+    radial-gradient(70% 60% at 50% 108%,#FBE3E8 0%,#EDB3C1 22%,rgba(214,128,150,.6) 45%,rgba(122,31,53,0) 72%),
+    linear-gradient(180deg,#16040A 0%,#2C0A14 30%,#561528 60%,#93405A 88%,#C9788E 100%)}
+.hero::after{display:none}
+.hero-bg{position:absolute;inset:0;overflow:hidden;border-radius:inherit}
+.hero-inner{padding-top:56px}
+.hero-char{position:relative;width:clamp(120px,12vw,168px);margin:0 auto 18px}
+.hero-char::before{content:"";position:absolute;left:50%;top:55%;width:260%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(closest-side,rgba(240,170,190,.42),rgba(240,170,190,.12) 55%,rgba(240,170,190,0))}
+.hero-char::after{content:"";position:absolute;left:50%;bottom:-14px;width:70%;height:14px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.45),rgba(0,0,0,0));animation:labiShadow 5s ease-in-out infinite}
+.hero-labi{position:relative;width:100%;height:auto;filter:drop-shadow(0 0 1px rgba(255,220,230,.6)) drop-shadow(0 18px 22px rgba(0,0,0,.35));animation:labiFloat 5s ease-in-out infinite}
+@keyframes labiFloat{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-10px) rotate(2deg)}}
+@keyframes labiShadow{0%,100%{opacity:1;transform:translateX(-50%) scale(1)}50%{opacity:.6;transform:translateX(-50%) scale(.85)}}
+@media (prefers-reduced-motion:reduce){.hero-labi,.hero-char::after{animation:none}}
+/* 배지를 라비의 말풍선처럼 */
+.hero-badge{position:relative;margin-top:14px;border-radius:999px;padding:10px 20px;background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
+.hero-badge::before{content:"";position:absolute;left:50%;top:-7px;width:14px;height:14px;transform:translateX(-50%) rotate(45deg);background:inherit;box-shadow:inset 1px 1px 0 rgba(255,255,255,.22);border-radius:3px 0 0 0;-webkit-clip-path:polygon(0 0,100% 0,0 100%);clip-path:polygon(0 0,100% 0,0 100%)}
+.free{padding-top:130px}
+@media (max-width:720px){
+  .hero{border-radius:0 0 34px 34px;min-height:660px}
+  .hero-char{width:112px;margin-bottom:14px}
+  .hero-inner{padding-top:40px}
+  .hero{min-height:700px}
+  .free{padding-top:110px}
+}
+
+/* ---------- Sticky TOC : 떠 있는 글래스 필 ---------- */
+.toc{position:sticky;top:12px;z-index:60;height:56px;margin:-28px 0 -28px;padding:0 16px;pointer-events:none}
+.toc-inner{pointer-events:auto;max-width:780px;margin:0 auto;height:56px;padding:6px;display:flex;align-items:center;gap:6px;border-radius:999px;background:rgba(255,255,255,.78);backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);box-shadow:inset 0 1px 0 #fff,0 0 0 1px rgba(122,31,53,.10),0 18px 40px -18px rgba(46,11,20,.45)}
+.toc a.toc-logo{flex:none;display:flex;align-items:center;padding:0 14px 0 16px;height:100%}
+.toc-logo img{height:18px;width:auto}
+.toc ul{list-style:none;margin:0;padding:0;display:flex;gap:4px;height:100%;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;flex:1;min-width:0;justify-content:flex-end}
+.toc ul::-webkit-scrollbar{display:none}
+.toc li{flex:none;height:100%}
+.toc ul a{display:flex;align-items:center;height:100%;padding:0 18px;border-radius:999px;text-decoration:none;color:var(--ink-2);font-weight:600;font-size:15px;white-space:nowrap;transition:background .2s,color .2s}
+.toc ul a:hover{color:var(--wine);background:rgba(122,31,53,.06)}
+.toc ul a[aria-current="true"]{background:var(--grad-wine);color:#fff;font-weight:700;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 8px 18px -10px rgba(122,31,53,.8)}
+.toc a:focus-visible{outline-offset:-3px}
+@media (max-width:720px){
+  .toc{padding:0 10px;height:52px;margin:-26px 0 -26px}
+  .toc a.toc-logo{display:none}
+  .toc-inner{height:52px;padding:5px}
+  .toc ul{justify-content:flex-start}
+  .toc ul a{padding:0 14px;font-size:14.5px}
+}
+
+/* ---------- Sections ---------- */
+section{position:relative;scroll-margin-top:calc(var(--nav-h) + 12px)}
+.sec{padding:120px 0}
+.sec > .wrap{z-index:1}
+.sec-head{position:relative;max-width:760px;margin:0 auto 56px;text-align:center}
+.sec-title{margin:0;text-wrap:balance;font-size:clamp(30px,4.2vw,48px);line-height:1.25;letter-spacing:-.035em;font-weight:800;color:var(--ink)}
+.sec-title:focus{outline:none}
+.sec-desc{margin:18px auto 0;color:var(--ink-2);font-size:18px;max-width:36em}
+@media (max-width:720px){.sec{padding:84px 0}.sec-head{margin-bottom:36px}.sec-desc{font-size:16.5px}}
+
+/* ---------- 무료 잉크 ---------- */
+.free{padding-top:110px;background:linear-gradient(180deg,#F8F1EA 0%,var(--ivory) 70%)}
+.free .arc{top:0}
+.free .glow.g1{width:760px;height:520px;left:50%;top:-80px;transform:translateX(-50%)}
+.free .orb.o1{width:120px;height:120px;left:-36px;top:440px}
+.free .orb.o2{width:64px;height:64px;right:6%;top:150px;opacity:.45}
+.free .orb.o3{width:200px;height:200px;right:-80px;bottom:120px;opacity:.35}
+.free-grid{display:grid;grid-template-columns:1fr;gap:22px}
+.free-main{position:relative;overflow:hidden;padding:52px 40px 52px 56px;display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:32px;align-items:center}
+.free-main::before{content:"";position:absolute;right:-6%;top:50%;width:62%;aspect-ratio:1;transform:translateY(-50%);border-radius:50%;background:radial-gradient(closest-side,rgba(231,166,180,.55),rgba(231,166,180,0));pointer-events:none}
+.free-main > *{grid-column:1;position:relative}
+.free-main .labi{grid-column:2;grid-row:1 / span 4;width:min(380px,36vw);margin:-20px 0 -24px;pointer-events:none;filter:drop-shadow(0 30px 30px rgba(94,21,40,.22))}
+.free-main h3{margin:0;display:inline-flex;align-self:start;justify-self:start;padding:6px 14px;border-radius:999px;background:rgba(122,31,53,.08);color:var(--wine);font-size:15px;font-weight:700}
+.free-main .big{display:flex;align-items:baseline;gap:12px;margin:16px 0 6px}
+.free-main .big strong{font-size:clamp(68px,9.5vw,132px);line-height:.95;font-weight:900;letter-spacing:-.055em;background:var(--grad-wine);-webkit-background-clip:text;background-clip:text;color:transparent;font-variant-numeric:tabular-nums;padding-right:.04em}
+.free-main .big span{font-size:clamp(28px,3.2vw,42px);font-weight:900;color:var(--brand);letter-spacing:-.02em}
+.free-main p{margin:6px 0 0;color:var(--ink-2);font-size:17.5px;max-width:24em}
+.free-main .btn{margin-top:30px;justify-self:start}
+
+.promo-banner{position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);align-items:center}
+.promo-banner .bigword{right:-1%;bottom:-8%;font-size:clamp(90px,12vw,160px);opacity:.7}
+.pb-text{position:relative;padding:48px 0 48px 56px}
+.pb-text > .pb-label{display:inline-flex;align-items:center;gap:8px;margin:0 0 16px;padding:6px 14px;border-radius:999px;background:var(--grad-wine);color:#fff;font-size:13.5px;font-weight:700}
+.pb-text h3{margin:0;font-size:clamp(26px,3vw,36px);line-height:1.28;letter-spacing:-.035em;font-weight:900;color:var(--ink)}
+.pb-text > p{margin:12px 0 0;color:var(--ink-2)}
+.pb-text .pill{display:flex;align-items:flex-start;gap:9px;margin-top:22px;padding:13px 16px;border-radius:16px;background:rgba(255,255,255,.75);box-shadow:inset 0 1px 0 #fff,0 0 0 1px rgba(122,31,53,.10);color:var(--wine-strong);font-size:15px;font-weight:600;line-height:1.5}
+.pb-text .pill svg{flex:none;margin-top:2px}
+.pb-text .note{font-size:14.5px;color:var(--ink-3);margin-top:12px}
+.pb-text .btn{margin-top:24px}
+.pb-visual{position:relative;margin:0;padding:40px 36px 30px;display:flex;flex-direction:column;align-items:center}
+.pb-visual::before{content:"";position:absolute;inset:12% 6% 18%;border-radius:50%;background:radial-gradient(closest-side,rgba(231,166,180,.55),rgba(231,166,180,0))}
+.pb-cards{position:relative;width:100%;max-width:470px;aspect-ratio:1.42/1}
+.pb-cards img{position:absolute;width:52%;height:auto;border-radius:10px;filter:drop-shadow(0 26px 30px rgba(80,25,40,.25))}
+.pb-cards .front{left:2%;top:7%;transform:rotate(-6deg)}
+.pb-cards .back{right:2%;top:0;transform:rotate(5deg)}
+.pb-visual figcaption{position:relative;margin-top:16px;font-size:13.5px;color:var(--ink-3);text-align:center}
+@media (max-width:900px){
+  .promo-banner{grid-template-columns:1fr}
+  .pb-text{padding:8px 28px 36px}
+  .pb-visual{order:-1;padding:34px 20px 18px}
+}
+@media (max-width:720px){
+  .free-main{padding:30px 22px 30px;column-gap:0}
+  .free-main .labi{grid-column:1;grid-row:auto;order:-1;width:min(290px,88%);justify-self:center;margin:0 0 18px}
+  .free-main .btn,.pb-text .btn{justify-self:stretch;width:100%}
+  .pb-text{padding:6px 22px 30px}
+}
+
+/* ---------- 서비스 소개 ---------- */
+.service{background:var(--ivory)}
+.service .bigword.w1{left:50%;transform:translateX(-50%);top:40px;font-size:clamp(130px,22vw,320px)}
+.service .orb.o1{width:90px;height:90px;left:5%;top:300px;opacity:.4}
+.service .orb.o2{width:170px;height:170px;right:-60px;top:700px;opacity:.35}
+.service .glow.g1{width:900px;height:600px;left:50%;top:420px;transform:translateX(-50%)}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.feat{position:relative;overflow:hidden;padding:30px 30px 34px;display:flex;flex-direction:column}
+.feat-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:26px}
+.feat-ic{height:76px;display:flex;align-items:flex-end}
+.feat-ic img{height:100%;width:auto;max-width:150px;object-fit:contain;filter:drop-shadow(0 10px 12px rgba(94,21,40,.22))}
+.feat-no{font-size:64px;line-height:.8;font-weight:900;letter-spacing:-.05em;color:transparent;-webkit-text-stroke:1.5px rgba(122,31,53,.18);font-variant-numeric:tabular-nums}
+.feat h3{margin:0 0 10px;font-size:22px;letter-spacing:-.03em;font-weight:800}
+.feat p{margin:0;color:var(--ink-2);font-size:16.5px}
+
+.connector{position:relative;height:72px;margin:0 auto;max-width:var(--max)}
+.connector svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+
+.edit{position:relative;overflow:hidden;padding:48px 52px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:44px;align-items:center}
+.edit h3{margin:0;font-size:clamp(25px,2.8vw,34px);line-height:1.32;letter-spacing:-.035em;font-weight:900}
+.edit > div > p{margin:16px 0 0;color:var(--ink-2)}
+.roles{display:grid;gap:14px}
+.role{position:relative;border-radius:22px;padding:24px 26px}
+.role h4{margin:0 0 14px;font-size:17px;font-weight:800;display:flex;align-items:center;gap:10px}
+.role .ic{width:36px;height:36px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;flex:none;overflow:hidden}
+.role .ic img{width:130%;max-width:none;height:auto}
+.role ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.role li{padding:8px 15px;border-radius:999px;font-size:15.5px;font-weight:600;line-height:1.4}
+.role-ai{background:var(--grad-wine);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 24px 40px -24px rgba(94,21,40,.8)}
+.role-ai::after{content:"";position:absolute;right:-30px;top:-40px;width:160px;height:160px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.22),rgba(255,255,255,0))}
+.role-ai .ic-labi{width:38px;height:38px;border-radius:0;overflow:visible}
+.role-ai .ic-labi img{width:100%;height:auto;filter:drop-shadow(0 4px 6px rgba(0,0,0,.3))}
+.role-ai li{background:rgba(255,255,255,.14);color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
+.role-me{background:rgba(255,255,255,.8);box-shadow:inset 0 0 0 1px rgba(122,31,53,.10);color:var(--wine-strong)}
+.role-me .ic{background:var(--grad-wine);color:#fff}
+.role-me li{background:#F8EEF0;color:var(--wine-strong);box-shadow:inset 0 0 0 1px rgba(122,31,53,.10)}
+
+/* 모바일 안내 */
+.mobile{position:relative;margin-top:24px;border-radius:32px;overflow:hidden;background:linear-gradient(160deg,#FFFDF9 0%,#F4EBE1 100%);box-shadow:inset 0 1px 0 #fff,0 0 0 1px rgba(122,31,53,.08),0 30px 60px -34px rgba(94,21,40,.3);display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:24px;align-items:center;padding:56px 48px 0 56px}
+.mobile .bigword{right:-1%;top:46%;font-size:clamp(110px,14vw,190px);transform:translateY(-50%)}
+.mobile .m-text{position:relative;padding-bottom:56px}
+.mobile .m-text .eyebrow{margin-bottom:16px}
+.mobile h3{margin:0;font-size:clamp(26px,3.1vw,38px);line-height:1.28;letter-spacing:-.035em;font-weight:900;text-wrap:balance}
+.mobile .m-text > p{margin:16px 0 0;color:var(--ink-2)}
+.m-stage{position:relative;align-self:end;min-height:460px;display:flex;justify-content:center;align-items:flex-end}
+.m-stage::before{content:"";position:absolute;left:50%;bottom:-120px;width:560px;height:560px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(closest-side,rgba(196,90,115,.32),rgba(196,90,115,0))}
+.phones{position:relative;display:flex;justify-content:center;align-items:flex-end;gap:20px;width:100%;padding-top:30px}
+.phone{margin:0;width:min(40%,215px)}
+.phone:first-child{margin-bottom:-26px}
+.phone .shot-btn{border:8px solid #241418;border-bottom:0;border-radius:36px 36px 0 0;background:#241418;box-shadow:0 -4px 0 rgba(255,255,255,.4) inset,0 30px 60px -20px rgba(46,11,20,.5)}
+.phone .shot-btn img{border-radius:28px 28px 0 0}
+.phone figcaption{display:none}
+.m-chips{list-style:none;margin:0;padding:0}
+.m-chips li{position:absolute;z-index:2;display:flex;align-items:center;gap:12px;max-width:250px;padding:14px 16px;border-radius:20px;background:rgba(255,255,255,.74);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:inset 0 1px 0 #fff,0 0 0 1px rgba(122,31,53,.08),0 24px 40px -22px rgba(46,11,20,.5);font-size:15px;font-weight:700;line-height:1.45;color:var(--ink)}
+.m-chips li b{flex:none;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:var(--grad-wine);color:#fff;font-size:13px;font-weight:900}
+.m-chips li:nth-child(1){left:-34px;top:96px}
+.m-chips li:nth-child(2){right:-20px;top:236px}
+@media (max-width:1020px){.m-chips li:nth-child(1){left:-20px}.m-chips li:nth-child(2){right:0}}
+@media (max-width:720px){.orb{display:none}}
+@media (max-width:900px){
+  .mobile{grid-template-columns:1fr;padding:38px 22px 0;gap:0}
+  .mobile .m-text{padding-bottom:22px}
+  .mobile .bigword{top:auto;bottom:220px;transform:none}
+  .m-stage{min-height:0;flex-direction:column;align-items:stretch}
+  .m-chips{display:grid;gap:10px;margin-bottom:26px;position:relative}
+  .m-chips li{position:static;max-width:none}
+  .phone:first-child{margin-bottom:-18px}
+}
+@media (max-width:420px){.phones{gap:10px}.phone .shot-btn{border-width:6px;border-radius:26px 26px 0 0}.phone .shot-btn img{border-radius:20px 20px 0 0}}
+@media (max-width:900px){.feat-grid{grid-template-columns:1fr}.connector{display:none}.edit{grid-template-columns:1fr;padding:32px 22px;gap:26px;margin-top:20px}}
+
+/* ---------- 사용 방법 ---------- */
+.guide{background:linear-gradient(180deg,var(--ivory) 0%,#F6EEE6 30%,#F6EEE6 70%,var(--ivory) 100%)}
+.guide .arc{top:40px}
+.guide .glow.g1{width:800px;height:560px;left:50%;top:-140px;transform:translateX(-50%)}
+.guide .orb.o1{width:150px;height:150px;left:-60px;top:900px;opacity:.35}
+.guide .orb.o2{width:80px;height:80px;right:4%;top:1700px;opacity:.4}
+.steps{position:relative;list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:28px}
+.step{position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(0,4fr) minmax(0,7fr);gap:48px;align-items:start;padding:44px}
+.step-text{position:relative}
+.step-num{display:block;font-size:110px;line-height:.78;font-weight:900;letter-spacing:-.06em;color:transparent;background:linear-gradient(180deg,rgba(156,72,88,.28),rgba(156,72,88,0) 90%);-webkit-background-clip:text;background-clip:text;margin:-6px 0 6px -4px;user-select:none}
+.step-badge{display:inline-flex;margin:0 0 14px}
+.step-badge b{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;background:var(--grad-wine);color:#fff;font-size:13.5px;font-weight:800;letter-spacing:.03em}
+.step h3{margin:0;font-size:clamp(23px,2.5vw,30px);letter-spacing:-.035em;line-height:1.32;font-weight:900}
+.step-text > p{margin:12px 0 0;color:var(--ink-2)}
+.prompt-ex{margin-top:24px}
+.prompt-ex small{display:block;font-size:13.5px;color:var(--ink-3);font-weight:600;margin-bottom:8px}
+.prompt-box{display:flex;align-items:center;gap:12px;padding:12px 12px 12px 14px;border-radius:18px;background:#fff;box-shadow:inset 0 0 0 1.5px rgba(184,67,95,.35),0 16px 30px -20px rgba(94,21,40,.5)}
+.prompt-box .spark{flex:none;width:34px;height:34px;border-radius:11px;background:#F8EEF0;display:inline-flex;align-items:center;justify-content:center;color:var(--wine)}
+.prompt-box q{quotes:none;flex:1;font-weight:700;color:var(--wine-strong);font-size:16px;line-height:1.45}
+.prompt-box .send{flex:none;width:34px;height:34px;border-radius:50%;background:var(--grad-wine);display:inline-flex;align-items:center;justify-content:center;color:#fff}
+.step-media{display:flex;flex-direction:column;gap:22px}
+.shot{margin:0}
+.shot-btn{display:block;width:100%;padding:0;border:0;border-radius:18px;background:#fff;cursor:zoom-in;overflow:hidden;box-shadow:0 0 0 1px rgba(122,31,53,.08),0 24px 48px -28px rgba(94,21,40,.5);position:relative;transition:transform .25s,box-shadow .25s}
+.shot-btn:hover{transform:translateY(-2px);box-shadow:0 0 0 1px rgba(122,31,53,.12),0 30px 56px -28px rgba(94,21,40,.6)}
+.shot-btn img{width:100%;height:auto}
+.shot-btn .zoom{position:absolute;right:12px;top:12px;display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;background:rgba(255,255,255,.85);backdrop-filter:blur(8px);color:var(--wine);border-radius:50%;box-shadow:0 0 0 1px rgba(122,31,53,.12),0 8px 16px -8px rgba(46,11,20,.4);opacity:0;transition:opacity .2s}
+.shot-btn:hover .zoom,.shot-btn:focus-visible .zoom{opacity:1}
+@media (hover:none){.shot-btn .zoom{opacity:.95;width:34px;height:34px}}
+.shot figcaption{margin-top:12px;font-size:15px;color:var(--ink-3);display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.shot figcaption b{color:var(--wine);font-weight:800;flex:none;font-size:13px;padding:3px 10px;border-radius:999px;background:rgba(122,31,53,.08)}
+.motion-ctrl{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;flex-wrap:wrap}
+.motion-ctrl figcaption{margin:0}
+.motion-btn{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 15px;border-radius:999px;border:0;background:#fff;box-shadow:inset 0 0 0 1px rgba(122,31,53,.18);font-size:14px;font-weight:700;color:var(--wine);cursor:pointer}
+.motion-btn:hover{box-shadow:inset 0 0 0 1.5px var(--wine)}
+.motion-btn svg{width:14px;height:14px}
+@media (max-width:900px){
+  .step{grid-template-columns:1fr;gap:22px;padding:28px 20px 26px}
+  .step-num{font-size:84px}
+}
+
+/* ---------- 잉크 사용량 ---------- */
+.usage-sec{background:var(--ivory)}
+.usage-sec .bigword{left:-2%;top:30px;font-size:clamp(160px,26vw,380px)}
+.usage-sec .orb.o1{width:110px;height:110px;right:7%;top:120px;opacity:.45}
+.usage-sec .glow.g1{width:700px;height:500px;left:-10%;top:260px}
+.up-def{display:grid;grid-template-columns:1.1fr 1fr;gap:22px;align-items:stretch}
+.rate{position:relative;overflow:hidden;padding:42px;display:flex;flex-direction:column;justify-content:center;background:var(--grad-wine);color:#fff;border-radius:28px;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 34px 60px -30px rgba(94,21,40,.75)}
+.rate::before{content:"";position:absolute;right:-90px;top:-90px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.5),rgba(255,255,255,.08) 45%,rgba(255,255,255,0) 70%)}
+.rate::after{content:"";position:absolute;left:-60px;bottom:-120px;width:280px;height:280px;border-radius:50%;border:1.5px dashed rgba(255,255,255,.22)}
+.rate > *{position:relative}
+.rate small{display:inline-flex;align-self:flex-start;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 1px rgba(255,255,255,.25);color:#fff;font-size:13.5px;font-weight:700}
+.rate .eq{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 14px;margin:18px 0 22px;font-weight:900;letter-spacing:-.04em}
+.rate .eq span{font-size:clamp(40px,5vw,60px);line-height:1.05}
+.rate .eq i{font-style:normal;color:var(--rose);font-size:30px}
+.rate ul{margin:0;padding:20px 0 0;border-top:1px solid rgba(255,255,255,.2);list-style:none;display:flex;flex-direction:column;gap:8px;font-size:16px;color:#F6DDE3}
+.rate li strong{color:#fff}
+.gen-card{margin:0;padding:16px 16px 14px;display:flex;flex-direction:column;justify-content:center}
+.gen-card img{width:100%;height:auto;border-radius:18px;box-shadow:0 0 0 1px rgba(122,31,53,.06)}
+.gen-card .motion-ctrl{padding:0 6px}
+.gen-card figcaption{margin:0;font-size:15px;color:var(--ink-3);display:flex;gap:10px;align-items:baseline}
+.gen-card figcaption b{color:var(--wine);font-weight:800;font-size:13px;padding:3px 10px;border-radius:999px;background:rgba(122,31,53,.08)}
+.usage{padding:36px 38px;display:flex;flex-direction:column;justify-content:center}
+.usage h3{margin:0 0 6px;font-size:20px;font-weight:800}
+.usage > p{margin:0 0 20px;color:var(--ink-3);font-size:15px}
+.usage-row{display:grid;grid-template-columns:1fr auto;gap:4px 16px;align-items:center;padding:20px 22px;margin-top:10px;border-radius:18px;background:rgba(255,255,255,.75);box-shadow:inset 0 0 0 1px rgba(122,31,53,.08)}
+.usage-row dt{font-weight:700;font-size:17px}
+.usage-row dd{margin:0;text-align:right}
+.usage-row dd strong{font-size:26px;font-weight:900;letter-spacing:-.03em;background:var(--grad-wine);-webkit-background-clip:text;background-clip:text;color:transparent}
+.usage-row dd span{display:block;font-size:14px;color:var(--ink-3)}
+.usage .fine{margin:18px 0 0;font-size:14.5px;color:var(--ink-3)}
+@media (max-width:900px){.up-def{grid-template-columns:1fr}.usage{padding:30px 22px}.gen-card{padding:12px 12px 10px}.usage-row{padding:16px}}
+
+.keep{gap:0}
+.keep h3 .hl{white-space:nowrap}
+.keep-badge{align-self:flex-start;display:inline-flex;padding:5px 12px;border-radius:999px;background:rgba(122,31,53,.08);color:var(--wine);font-size:13.5px;font-weight:700}
+.keep h3{margin:16px 0 0;font-size:clamp(24px,2.6vw,32px);line-height:1.3;letter-spacing:-.035em;font-weight:900}
+.keep > p{margin:14px 0 0;color:var(--ink-2);font-size:16.5px}
+.keep-path{margin-top:26px;display:flex;align-items:flex-start;gap:12px;padding:16px 18px;border-radius:18px;background:rgba(255,255,255,.8);box-shadow:inset 0 0 0 1px rgba(122,31,53,.10);font-size:15.5px;color:var(--ink-2);line-height:1.6}
+.keep-path .kp-ic{flex:none;width:34px;height:34px;border-radius:11px;background:var(--grad-wine);color:#fff;display:inline-flex;align-items:center;justify-content:center}
+.keep-path b{color:var(--wine-strong);font-weight:800;white-space:nowrap}
+.keep-path i{font-style:normal;color:var(--ink-3);margin:0 5px}
+.usage-note{margin:18px 4px 0;font-size:13px;line-height:1.6;color:var(--ink-3)}
+/* ---------- 잉크 단품 구매 ---------- */
+.buy{background:linear-gradient(180deg,var(--ivory) 0%,#F4EBE2 100%);overflow:clip}
+.buy .bigword{left:50%;transform:translateX(-50%);top:70px;font-size:clamp(150px,24vw,360px)}
+.buy .glow.g1{width:1000px;height:520px;left:50%;top:260px;transform:translateX(-50%)}
+.buy .orb.o1{width:130px;height:130px;left:-40px;top:520px;opacity:.45}
+.buy .orb.o2{width:70px;height:70px;right:6%;top:180px;opacity:.5}
+.buy-head{text-align:center;margin:0 auto 44px;max-width:760px}
+.buy-head .sec-head{margin:0 auto}
+.promo{display:inline-flex;align-items:center;gap:10px;margin:22px 0 0;padding:7px 18px 7px 7px;border-radius:999px;background:rgba(255,255,255,.8);box-shadow:inset 0 1px 0 #fff,0 0 0 1px rgba(122,31,53,.12);color:var(--wine-strong);font-weight:800;font-size:16px}
+.promo b{background:var(--grad-wine);color:#fff;border-radius:999px;padding:4px 12px;font-size:14px}
+.onetime{display:inline-flex;align-items:center;gap:8px;margin:14px 0 0;font-size:15px;color:var(--ink-2);font-weight:600}
+.onetime svg{flex:none;color:var(--wine)}
+.products{position:relative;list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px}
+.prod{position:relative;border-radius:26px;padding:8px;background:linear-gradient(160deg,rgba(255,255,255,.9),rgba(255,255,255,.5));backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:inset 0 1px 0 #fff,0 0 0 1px rgba(122,31,53,.08),0 30px 50px -30px rgba(94,21,40,.45);display:flex;flex-direction:column;transition:transform .25s,box-shadow .25s}
+.prod:hover{transform:translateY(-4px);box-shadow:inset 0 1px 0 #fff,0 0 0 1px rgba(122,31,53,.16),0 36px 60px -30px rgba(94,21,40,.55)}
+.prod-face{position:relative;border-radius:20px;padding:24px 18px 18px;flex:1;display:flex;flex-direction:column;background:linear-gradient(180deg,rgba(248,238,240,.9),rgba(255,255,255,.6) 55%)}
+.prod-face::before{content:"";position:absolute;left:18px;right:18px;top:118px;border-top:1.5px dashed rgba(122,31,53,.16)}
+.prod .tag{align-self:flex-start;font-size:12.5px;font-weight:800;color:#fff;background:var(--grad-wine);border-radius:999px;padding:3px 10px;line-height:1.5}
+.prod h3{margin:16px 0 0;font-size:clamp(22px,2vw,27px);font-weight:900;letter-spacing:-.04em;line-height:1.2;font-variant-numeric:tabular-nums;color:var(--ink)}
+.prod h3 span{font-size:.6em;color:var(--brand);margin-left:3px;font-weight:800}
+.prod .price{margin:34px 0 18px}
+.prod del{display:block;color:var(--ink-3);font-size:15px}
+.prod .sale{display:block;font-size:25px;font-weight:900;letter-spacing:-.03em;color:var(--wine-strong);font-variant-numeric:tabular-nums}
+.prod .sale small{font-size:15px;font-weight:700;margin-left:1px}
+.prod .btn{margin-top:auto;width:100%;min-height:46px;font-size:15.5px;padding:0 14px}
+@media (max-width:1080px){.products{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:720px){.products{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.prod{padding:6px;border-radius:22px}.prod-face{padding:18px 13px 14px;border-radius:17px}.prod-face::before{left:13px;right:13px;top:108px}}
+@media (max-width:380px){.products{grid-template-columns:1fr}}
+
+.sub{position:relative;margin-top:30px;border-radius:24px;padding:24px 30px;display:flex;align-items:center;gap:20px;background:rgba(255,255,255,.4);box-shadow:inset 0 0 0 1.5px rgba(122,31,53,.10);border:1.5px dashed rgba(122,31,53,.16)}
+.sub img{width:52px;height:52px;object-fit:cover;border-radius:16px;background:#fff;mix-blend-mode:multiply;opacity:.85;flex:none}
+.sub h3{margin:0;font-size:18px;font-weight:800;color:var(--ink-2);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sub h3 span{font-size:12.5px;font-weight:700;color:var(--ink-3);border-radius:999px;padding:3px 11px;background:rgba(255,255,255,.8);box-shadow:inset 0 0 0 1px rgba(122,31,53,.12)}
+.sub p{margin:5px 0 0;color:var(--ink-3);font-size:15.5px}
+@media (max-width:560px){.sub{padding:20px;gap:14px}.sub img{width:44px;height:44px}}
+
+/* ---------- FAQ ---------- */
+.faq{background:var(--ivory)}
+.faq .bigword{right:-3%;top:60px;font-size:clamp(150px,22vw,320px)}
+.faq .orb.o1{width:90px;height:90px;left:4%;bottom:120px;opacity:.4}
+.faq-wrap{display:grid;grid-template-columns:1fr 2fr;gap:56px;align-items:start}
+.faq-side{position:sticky;top:calc(var(--nav-h) + 40px)}
+.faq-side .eyebrow{margin-bottom:16px}
+.faq-side .sec-title{text-align:left}
+.faq-side .labi-chip{margin-top:30px;display:inline-flex;align-items:center;gap:12px;padding:8px 18px 8px 8px;border-radius:999px;background:rgba(255,255,255,.8);box-shadow:inset 0 1px 0 #fff,0 0 0 1px rgba(122,31,53,.10),0 14px 28px -18px rgba(94,21,40,.5);font-size:14.5px;font-weight:700;color:var(--wine-strong)}
+.faq-side .labi-chip img{width:52px;height:52px;border-radius:50%;object-fit:cover;object-position:12% 50%;background:#fff;mix-blend-mode:multiply}
+.faq-list{padding:10px 34px}
+.faq-list details{border-bottom:1px solid var(--line)}
+.faq-list details:last-child{border-bottom:0}
+.faq-list summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:16px;padding:24px 4px;font-weight:700;font-size:18px;line-height:1.45}
+.faq-list summary::-webkit-details-marker{display:none}
+.faq-list summary .q{flex:none;width:34px;height:34px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;background:rgba(122,31,53,.08);color:var(--wine);font-weight:900;font-size:15px}
+.faq-list summary .t{flex:1}
+.faq-list summary .pm{flex:none;width:30px;height:30px;border-radius:50%;background:#fff;box-shadow:inset 0 0 0 1px rgba(122,31,53,.14);position:relative;transition:background .2s}
+.faq-list summary .pm::before,.faq-list summary .pm::after{content:"";position:absolute;left:50%;top:50%;width:11px;height:2px;background:var(--wine);transform:translate(-50%,-50%);transition:transform .2s}
+.faq-list summary .pm::after{transform:translate(-50%,-50%) rotate(90deg)}
+.faq-list details[open] summary .q{background:var(--grad-wine);color:#fff}
+.faq-list details[open] summary .pm{background:var(--grad-wine);box-shadow:none}
+.faq-list details[open] summary .pm::before{background:#fff}
+.faq-list details[open] summary .pm::after{transform:translate(-50%,-50%) rotate(0);background:#fff}
+.faq-list summary:hover .t{color:var(--wine)}
+.faq-list summary:focus-visible{outline-offset:-2px}
+.faq-a{display:flex;gap:16px;padding:0 4px 26px}
+.faq-a .q{flex:none;width:34px;text-align:center;color:var(--ink-3);font-weight:900}
+.faq-a p{margin:0;color:var(--ink-2);padding:16px 20px;border-radius:16px;background:rgba(248,238,240,.7);flex:1}
+@media (max-width:900px){.faq-wrap{grid-template-columns:1fr;gap:26px}.faq-side{position:static}.faq-list{padding:4px 18px}.faq-list summary{font-size:16.5px;gap:12px}.faq-a{gap:12px}.faq-a .q{width:34px}}
+
+/* ---------- Footer ---------- */
+footer{position:relative;overflow:hidden;background:linear-gradient(180deg,var(--ivory) 0%,#F1E6DC 100%);padding:80px 0 calc(48px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
+footer .arc{top:0}
+footer .bigword{left:50%;transform:translateX(-50%);bottom:-0.12em;font-size:clamp(90px,17vw,250px)}
+footer .wrap{z-index:1;display:flex;flex-direction:column;align-items:center;gap:22px;text-align:center}
+footer img{height:26px;width:auto}
+footer .btn{min-height:54px}
+footer .f-space{height:8px}
+
+/* ---------- Lightbox ---------- */
+.lightbox{border:0;padding:0;margin:auto;background:transparent;max-width:min(1400px,96vw);max-height:94vh;width:100%;overflow:visible}
+.lightbox::backdrop{background:rgba(38,24,28,.78);backdrop-filter:blur(6px)}
+.lightbox figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:12px}
+.lightbox img{max-width:100%;max-height:calc(94vh - 90px);width:auto;height:auto;border-radius:14px;background:#fff}
+.lightbox figcaption{color:#F6E6EA;font-size:15px;text-align:center;padding:0 12px}
+.lb-close{position:fixed;top:max(16px,env(safe-area-inset-top,0px));right:16px;width:48px;height:48px;border-radius:50%;border:0;background:#fff;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.lb-close svg{width:22px;height:22px}
+.lb-close:focus-visible{outline:3px solid var(--rose);outline-offset:3px}
+
+/* ---------- Toast ---------- */
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:rgba(38,24,28,.92);backdrop-filter:blur(10px);color:#fff;padding:14px 20px;border-radius:16px;font-size:15px;font-weight:600;max-width:calc(100vw - 32px);width:max-content;box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:150}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+<a class="skip" href="#free">본문으로 건너뛰기</a>
+
+<!-- ===== 상단 메인 이미지 (확정 이미지 그대로) ===== -->
+<header class="hero" id="top">
+  <div class="hero-bg" aria-hidden="true"><canvas class="hero-pattern"></canvas></div>
+  <div class="hero-bar">
+    <img class="hero-logo" src="assets/logo-labelup.png" alt="LABEL UP" width="861" height="244">
+  </div>
+  <div class="hero-inner">
+    <div class="hero-char" aria-hidden="true"><img class="hero-labi" src="assets/labi-hero.webp" alt="" width="495" height="488"></div>
+    <p class="hero-badge"><span aria-hidden="true"></span>라벨업AI 사용 가이드</p>
+    <h1 class="hero-title">AI로 쉽게 만드는<br><em>나만의 라벨</em></h1>
+    <p class="hero-sub">용지 추천부터 클립아트 생성까지, 라비와 함께</p>
+    <div class="hero-btns">
+      <a class="hbtn hbtn-light" href="#" data-link="signup">무료 잉크 받고 시작하기</a>
+      <a class="hbtn hbtn-dark" href="#guide" data-scroll>사용 방법 보기</a>
+    </div>
+  </div>
+</header>
+
+<!-- ===== 고정 목차 ===== -->
+<nav class="toc" aria-label="페이지 목차">
+  <div class="toc-inner">
+    <a class="toc-logo" href="#top" data-scroll aria-label="라벨업 맨 위로"><img src="assets/logo-labelup.png" alt="LABEL UP" width="861" height="244"></a>
+    <ul>
+      <li><a href="#free" data-scroll data-target="free">무료 잉크 혜택</a></li>
+      <li><a href="#service" data-scroll data-target="service">서비스 소개</a></li>
+      <li><a href="#guide" data-scroll data-target="guide">사용 방법</a></li>
+      <li><a href="#up-usage" data-scroll data-target="up-usage">잉크 구매</a></li>
+      <li><a href="#faq" data-scroll data-target="faq">FAQ</a></li>
+    </ul>
+  </div>
+</nav>
+
+<main id="main">
+
+<!-- ===== 무료 잉크 혜택 ===== -->
+<section id="free" class="sec free" aria-labelledby="free-title" data-nav="free">
+  <div class="ambient" aria-hidden="true">
+    <div class="glow g1"></div><div class="arc"></div>
+    
+  </div>
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Free Ink</p>
+      <h2 id="free-title" class="sec-title" tabindex="-1">처음이라면 <em class="hl">무료 잉크</em>로 시작하세요</h2>
+    </div>
+    <div class="free-grid">
+      <article class="glass free-main">
+        <img class="labi" src="assets/signup-visual.webp" alt="" width="1204" height="1101">
+        <h3>가입하면 5,000 Ink</h3>
+        <div class="big" aria-hidden="true"><strong>5,000</strong><span>Ink</span></div>
+        <p>회원가입하고 받은 무료 잉크로 라비의 AI 기능을 경험해보세요.</p>
+        <a class="btn btn-primary" href="#" data-link="signup">회원가입하고 잉크 받기</a>
+      </article>
+
+      <article class="glass promo-banner" aria-labelledby="promo-title">
+        <div class="pb-text">
+          <p class="pb-label">라벨업 용지 구매 혜택</p>
+          <h3 id="promo-title">용지를 구매하면 추가 잉크</h3>
+          <p>라벨업 용지 패키지에 동봉된 땡큐카드에서 무료 잉크 혜택을 확인하세요.</p>
+          <p class="pill">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 17h4v4"/></svg>
+            땡큐카드의 QR을 통해 무료 잉크 지급 안내를 확인할 수 있어요.
+          </p>
+          <p class="note">무료 잉크 지급량은 구매 제품 가격에 따라 달라집니다.</p>
+          <a class="btn btn-line" href="#" data-link="paperShop">라벨업 용지 보러 가기</a>
+        </div>
+        <figure class="pb-visual">
+          <div class="pb-cards">
+            <img class="front" src="assets/thankyou-front.webp" width="844" height="1046"
+              alt="땡큐카드 앞면. Thank you 문구 아래 '라벨업을 구매해 주셔서 감사합니다. 감사한 마음을 담아 구매해주신 고객님께 무료 AI 크레딧을 드립니다.'라는 안내와, '뒷면 QR코드를 스캔해보세요!' 말풍선을 든 라비 캐릭터.">
+            <img class="back" src="assets/thankyou-back.webp" width="845" height="1046"
+              alt="땡큐카드 뒷면. Free Credit 제목 아래 QR코드와 '다용도 20매' 표기, 'AI로 쉽게 만드는 나만의 라벨 무료로 경험해보세요!' 문구, LABEL UP 로고.">
+          </div>
+          <figcaption>패키지에 동봉되는 땡큐카드 예시예요. 이미지 속 QR은 예시용이라 스캔되지 않아요.</figcaption>
+        </figure>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 서비스 소개 ===== -->
+<section id="service" class="sec service" aria-labelledby="service-title" data-nav="service">
+  <div class="ambient" aria-hidden="true">
+    <span class="bigword w1">LABI</span>
+    <div class="glow g1"></div>
+    
+  </div>
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Service</p>
+      <h2 id="service-title" class="sec-title" tabindex="-1">용지 찾기부터 그림 만들기까지, <em class="hl">라비에게 물어보세요</em></h2>
+      <p class="sec-desc">라벨업AI는 AI 비서 라비(LABI)와 대화하며 라벨 용지를 찾고, 라벨에 쓸 클립아트를 만드는 서비스예요.</p>
+    </div>
+
+    <div class="feat-grid">
+      <article class="glass feat">
+        <div class="feat-top">
+          <span class="feat-ic"><img src="assets/labi-face-cut.webp" alt="" width="495" height="488"></span>
+          <span class="feat-no" aria-hidden="true">01</span>
+        </div>
+        <h3>딱 맞는 용지 추천</h3>
+        <p>무엇에 사용할 라벨인지 알려주세요. 용도에 맞는 라벨 용지를 찾는 데 도움을 드려요.</p>
+      </article>
+      <article class="glass feat">
+        <div class="feat-top">
+          <span class="feat-ic"><img src="assets/labi-search-cut.webp" alt="" width="471" height="307"></span>
+          <span class="feat-no" aria-hidden="true">02</span>
+        </div>
+        <h3>사용하던 규격 찾기</h3>
+        <p>기존에 사용하던 타사 브랜드명과 품목코드를 알려주시면, 이에 맞는 라벨업 용지를 찾아드려요.</p>
+      </article>
+      <article class="glass feat">
+        <div class="feat-top">
+          <span class="feat-ic"><img src="assets/labi-laptop-cut.webp" alt="" width="443" height="361"></span>
+          <span class="feat-no" aria-hidden="true">03</span>
+        </div>
+        <h3>필요한 클립아트 생성</h3>
+        <p>원하는 그림과 스타일을 입력하면, 라벨에 사용할 클립아트 이미지를 만들어드려요.</p>
+      </article>
+    </div>
+
+    <div class="connector" aria-hidden="true">
+      <svg viewBox="0 0 1132 72" preserveAspectRatio="none">
+        <g fill="none" stroke="#B8435F" stroke-opacity=".45" stroke-width="1.5" stroke-dasharray="3 5" vector-effect="non-scaling-stroke">
+          <path d="M188 0 V30 Q188 36 194 36 H938 Q944 36 944 30 V0"/>
+          <path d="M566 0 V72"/>
+        </g>
+        <circle cx="566" cy="36" r="5" fill="#7A1F35"/>
+        <circle cx="566" cy="36" r="11" fill="#B8435F" fill-opacity=".18"/>
+      </svg>
+    </div>
+
+    <div class="glass edit">
+      <div>
+        <h3>생성한 이미지를 적용하고,<br><em class="hl">내 문구로 완성하세요</em></h3>
+        <p>클립아트를 편집기 캔버스에 적용한 뒤, 필요한 텍스트를 직접 입력하고 크기와 배치를 조정하세요. 편집을 마치면 편집 화면에서 출력할 수 있어요.</p>
+      </div>
+      <div class="roles">
+        <div class="role role-ai">
+          <h4><span class="ic ic-labi"><img src="assets/labi-face-cut.webp" alt="" width="495" height="488"></span>라비가 도와줘요</h4>
+          <ul>
+            <li>용지 추천</li>
+            <li>호환 규격 찾기</li>
+            <li>클립아트 생성</li>
+          </ul>
+        </div>
+        <div class="role role-me">
+          <h4><span class="ic" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>사용자가 완성해요</h4>
+          <ul>
+            <li>텍스트 입력</li>
+            <li>크기와 배치 편집</li>
+            <li>최종 확인 및 출력</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile">
+      <div class="m-text">
+        <p class="eyebrow">Anywhere</p>
+        <h3>모바일에서도 AI 생성부터 편집까지, <em class="hl">언제 어디서나</em></h3>
+        <p>PC 앞이 아니어도 괜찮아요. 휴대폰 브라우저에서 라비에게 용지 추천과 클립아트 생성을 요청하고, 편집기에서 문구와 배치까지 쉽게 다듬을 수 있어요.</p>
+      </div>
+      <div class="m-stage">
+        <ul class="m-chips">
+          <li><b aria-hidden="true">1</b><span>라비와 대화하며 용지 찾기·클립아트 만들기</span></li>
+          <li><b aria-hidden="true">2</b><span>모바일 편집기에서 텍스트 입력과 크기·배치 조정</span></li>
+        </ul>
+        <div class="phones">
+          <figure class="phone">
+            <button class="shot-btn" type="button" data-zoom aria-label="크게 보기: 모바일에서 라비와 대화하는 화면">
+              <img src="assets/mobile-chat.webp" width="600" height="1012" loading="lazy"
+                alt="휴대폰 화면의 라벨업AI. '라비와 라벨 만들기' 창이 아래에서 올라와 있고, 입력창과 라벨 추천·주소 라벨·바코드·원형 스티커 빠른 선택 버튼이 보인다.">
+            </button>
+            <figcaption>모바일에서 라비와 대화하는 화면</figcaption>
+          </figure>
+          <figure class="phone">
+            <button class="shot-btn" type="button" data-zoom aria-label="크게 보기: 모바일 라벨 편집기 화면">
+              <img src="assets/mobile-editor.webp" width="600" height="1010" loading="lazy"
+                alt="휴대폰 화면의 라벨업 편집기. 위쪽에 색상·테두리·글꼴·회전 설정이 있고, 99.1×38.1mm 캔버스에 '라벨업' 텍스트가 선택되어 있으며, 아래에 선택·텍스트·바코드·QR·이미지·시트·레이어 도구가 있다.">
+            </button>
+            <figcaption>모바일 라벨 편집기 화면</figcaption>
+          </figure>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 사용 방법 ===== -->
+<section id="guide" class="sec guide" aria-labelledby="guide-title" data-nav="guide">
+  <div class="ambient" aria-hidden="true">
+    <div class="glow g1"></div><div class="arc"></div>
+    
+  </div>
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">How to</p>
+      <h2 id="guide-title" class="sec-title" tabindex="-1">라비와 함께, <em class="hl">이렇게 만들어보세요</em></h2>
+      <p class="sec-desc">실제 라벨업AI 화면으로 순서를 확인해보세요. 이미지를 누르면 크게 볼 수 있어요.</p>
+    </div>
+
+    <ol class="steps">
+      <!-- STEP 1 -->
+      <li class="glass step">
+        <div class="step-text">
+          <span class="step-num" aria-hidden="true">01</span>
+          <p class="step-badge"><b>STEP 1</b></p>
+          <h3>사용할 용지 찾기</h3>
+          <p>라벨의 용도를 알려주거나, 기존에 사용하던 타사 브랜드명과 품목코드로 맞는 규격을 찾아보세요.</p>
+        </div>
+        <div class="step-media">
+          <figure class="shot">
+            <button class="shot-btn" type="button" data-zoom aria-label="크게 보기: 용도를 알려주고 용지를 추천받은 화면">
+              <img src="assets/step1-purpose.webp" width="916" height="638" loading="lazy"
+                alt="라비와 라벨 만들기 대화창. 사용자가 가격표 라벨 상품을 추천해달라고 입력하자, 라비가 A106-20 주소용라벨 6칸 20매 용지를 추천하고 미리보기, 편집기에 적용, 상품 보기 버튼이 있는 상품 카드를 보여주는 화면.">
+              <span class="zoom" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2M11 8.5v5M8.5 11h5"/></svg></span>
+            </button>
+            <figcaption><b>용도로 찾기</b>가격표 라벨로 쓸 용지를 추천받은 화면</figcaption>
+          </figure>
+          <figure class="shot">
+            <button class="shot-btn" type="button" data-zoom aria-label="크게 보기: 기존 품목코드로 맞는 규격을 찾은 화면">
+              <img src="assets/step1-compatible.webp" width="916" height="653" loading="lazy"
+                alt="라비와 라벨 만들기 대화창. 사용자가 기존에 쓰던 타사 품목코드 3170번과 맞는 규격을 추천해달라고 입력하자, 라비가 63.5 x 46.5mm 규격을 설명하고 A306-20 주소용라벨 18칸 20매 용지를 추천하는 화면.">
+              <span class="zoom" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2M11 8.5v5M8.5 11h5"/></svg></span>
+            </button>
+            <figcaption><b>기존 규격으로 찾기</b>사용하던 품목코드를 알려주고 맞는 용지를 찾은 화면</figcaption>
+          </figure>
+        </div>
+      </li>
+
+      <!-- STEP 2 -->
+      <li class="glass step">
+        <div class="step-text">
+          <span class="step-num" aria-hidden="true">02</span>
+          <p class="step-badge"><b>STEP 2</b></p>
+          <h3>원하는 클립아트 만들기</h3>
+          <p>필요한 그림의 대상과 스타일을 입력하고, 생성된 이미지를 확인하세요.</p>
+          <div class="prompt-ex">
+            <small>이렇게 입력해볼 수 있어요 (예시)</small>
+            <div class="prompt-box">
+              <span class="spark" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c.6 4.6 2.4 6.4 7 7-4.6.6-6.4 2.4-7 7-.6-4.6-2.4-6.4-7-7 4.6-.6 6.4-2.4 7-7Z"/></svg></span>
+              <q>귀여운 초코칩 쿠키 클립아트를 만들어줘.</q>
+              <span class="send" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+            </div>
+          </div>
+        </div>
+        <div class="step-media">
+          <figure class="shot">
+            <button class="shot-btn" type="button" data-zoom aria-label="크게 보기: 라비가 생성한 클립아트 결과 화면">
+              <img src="assets/step2-clipart.webp" width="916" height="480" loading="lazy"
+                alt="라비와 라벨 만들기 대화창에 클립아트 생성 결과 카드가 표시된 화면. 초코칩 쿠키 그림과 함께 '라비가 그린 클립아트' 제목, 확대보기와 편집기에 적용 버튼이 있다.">
+              <span class="zoom" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2M11 8.5v5M8.5 11h5"/></svg></span>
+            </button>
+            <figcaption><b>생성 결과</b>만들어진 클립아트를 확인하고 편집기에 적용할 수 있어요</figcaption>
+          </figure>
+        </div>
+      </li>
+
+      <!-- STEP 3 -->
+      <li class="glass step">
+        <div class="step-text">
+          <span class="step-num" aria-hidden="true">03</span>
+          <p class="step-badge"><b>STEP 3</b></p>
+          <h3>편집기에 적용하고 직접 편집하기</h3>
+          <p>생성된 이미지를 캔버스에 적용한 뒤, 상품명과 가격 등 필요한 문구를 입력하고 크기와 배치를 조정하세요.</p>
+        </div>
+        <div class="step-media">
+          <figure class="shot" id="motion-shot">
+            <button class="shot-btn" type="button" data-zoom aria-label="크게 보기: 캔버스에 적용한 클립아트의 위치와 크기를 조정하는 화면">
+              <img id="motion-img" src="assets/step3-apply.gif" data-gif="assets/step3-apply.gif" data-still="assets/step3-apply-still.webp" width="880" height="469" loading="lazy"
+                alt="라벨 편집기 캔버스에 적용된 쿠키 클립아트를 드래그해 왼쪽으로 옮기고 크기를 키워 기존 텍스트 옆에 배치하는 화면.">
+              <span class="zoom" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2M11 8.5v5M8.5 11h5"/></svg></span>
+            </button>
+            <div class="motion-ctrl">
+              <figcaption><b>배치 조정</b>적용한 이미지를 옮기고 크기를 맞추는 모습</figcaption>
+              <button class="motion-btn" type="button" id="motion-toggle" aria-pressed="false">
+                <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" id="motion-icon"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg>
+                <span id="motion-label">움직임 멈추기</span>
+              </button>
+            </div>
+          </figure>
+          <figure class="shot">
+            <button class="shot-btn" type="button" data-zoom aria-label="크게 보기: 상품명과 가격을 직접 입력한 편집 화면">
+              <img src="assets/step3-edit.webp" width="1600" height="641" loading="lazy"
+                alt="라벨 편집기 전체 화면. 캔버스에 쿠키 클립아트, '초코칩쿠키' 문구, '3,500원' 가격이 배치되어 있고, 오른쪽 레이어 패널에 3,500원, 이미지, 초코칩쿠키 레이어가 각각 표시된다.">
+              <span class="zoom" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2M11 8.5v5M8.5 11h5"/></svg></span>
+            </button>
+            <figcaption><b>문구 입력</b>상품명과 가격을 직접 입력하고 배치한 화면</figcaption>
+          </figure>
+        </div>
+      </li>
+
+      <!-- STEP 4 -->
+      <li class="glass step">
+        <div class="step-text">
+          <span class="step-num" aria-hidden="true">04</span>
+          <p class="step-badge"><b>STEP 4</b></p>
+          <h3>확인하고 출력하기</h3>
+          <p>완성된 라벨을 미리보기로 확인한 뒤, 편집 화면의 인쇄 기능으로 출력하세요.</p>
+        </div>
+        <div class="step-media">
+          <figure class="shot">
+            <button class="shot-btn" type="button" data-zoom aria-label="크게 보기: 출력 전 미리보기 화면">
+              <img src="assets/step4-preview.webp" width="1076" height="580" loading="lazy"
+                alt="'편집기에서 출력' 창. 왼쪽에 초코칩쿠키 3,500원 라벨이 2열 7행으로 배치된 용지 미리보기가 있고, 오른쪽에 인쇄 위치 조정 항목, 아래에 PDF용 PNG 저장과 출력 버튼이 있다.">
+              <span class="zoom" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2M11 8.5v5M8.5 11h5"/></svg></span>
+            </button>
+            <figcaption><b>미리보기</b>용지 전체 배치를 확인한 뒤 출력 버튼을 눌러요</figcaption>
+          </figure>
+        </div>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- ===== 잉크 사용량 안내 ===== -->
+<section id="up-usage" class="sec usage-sec" aria-labelledby="up-title" data-nav="up-usage">
+  <div class="ambient" aria-hidden="true">
+    <div class="glow g1"></div>
+  </div>
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Credit</p>
+      <h2 id="up-title" class="sec-title" tabindex="-1">라비의 AI 기능을 이용하는 크레딧, <em class="hl">잉크</em></h2>
+      <p class="sec-desc">잉크(Ink)는 라벨업AI에서 이미지 생성과 텍스트 대화 등 AI 기능을 사용할 때 소모되는 크레딧이에요.</p>
+    </div>
+    <div class="up-def">
+      <figure class="glass gen-card">
+        <img id="gen-img" src="assets/ai-generate.gif" data-gif="assets/ai-generate.gif" data-still="assets/ai-generate-still.webp" width="640" height="480" loading="lazy"
+          alt="라비에게 '귀여운 초코칩 쿠키 클립아트를 만들어줘.'라고 입력하면 라비가 클립아트를 그리는 중이라고 답한 뒤, 쿠키 클립아트가 담긴 결과 카드가 나타나는 과정을 보여주는 예시 애니메이션.">
+        <div class="motion-ctrl">
+          <figcaption><b>예시</b>라비가 클립아트를 만드는 과정</figcaption>
+          <button class="motion-btn" type="button" id="gen-toggle" aria-pressed="false">
+            <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" id="gen-icon"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg>
+            <span id="gen-label">움직임 멈추기</span>
+          </button>
+        </div>
+      </figure>
+      <div class="glass usage keep">
+        <span class="keep-badge">한 번 만들면</span>
+        <h3>생성한 클립아트는 <em class="hl">평생 무료</em>로 사용해요</h3>
+        <p>한 번 생성한 이미지는 매번 새로 만들 필요 없이, 언제든 다시 꺼내 쓸 수 있어요.</p>
+        <div class="keep-path">
+          <span class="kp-ic" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg></span>
+          <span>내가 만든 클립아트는 편집기의 <b>클립아트</b><i aria-hidden="true">›</i><b>사용자 데이터</b>에서 확인할 수 있어요.</span>
+        </div>
+      </div>
+    </div>
+    <p class="usage-note">※ 이미지 생성 시 약 1,000 Ink 상당이 소모되며, 생성되는 이미지에 따라 소모량은 다를 수 있어요. 라비와의 대화에도 잉크가 사용돼요.</p>
+  </div>
+</section>
+
+<!-- ===== 잉크 단품 구매 ===== -->
+<section id="up-buy" class="sec buy" aria-labelledby="buy-title" data-nav="up-usage">
+  <div class="ambient" aria-hidden="true">
+    <div class="glow g1"></div>
+  </div>
+  <div class="wrap">
+    <div class="buy-head">
+      <div class="sec-head">
+        <p class="eyebrow">Ink Charge</p>
+        <h2 id="buy-title" class="sec-title" tabindex="-1">필요한 만큼 <em class="hl">잉크 충전하기</em></h2>
+        <p class="promo"><b>30%</b>런칭 기념, 잉크 단품 상품 30% 할인</p>
+      </div>
+      <p class="onetime">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>
+        구독이 아닌, 한 번 결제하는 일회성 충전 상품이에요
+      </p>
+    </div>
+    <ul class="products" id="products"></ul>
+
+    <!-- 구독 서비스 예고 -->
+    <aside class="sub" aria-labelledby="sub-title">
+      <img src="assets/labi-face.webp" alt="" width="540" height="500">
+      <div>
+        <h3 id="sub-title">잉크 구독 서비스 <span>Coming soon</span></h3>
+        <p>정기적으로 잉크를 이용할 수 있는 구독 서비스를 준비하고 있어요.</p>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ===== FAQ ===== -->
+<section id="faq" class="sec faq" aria-labelledby="faq-title" data-nav="faq">
+  <div class="ambient" aria-hidden="true">
+  </div>
+  <div class="wrap faq-wrap">
+    <div class="faq-side">
+      <p class="eyebrow">FAQ</p>
+      <h2 id="faq-title" class="sec-title" tabindex="-1">자주 묻는 질문</h2>
+      <span class="labi-chip" aria-hidden="true"><img src="assets/labi-help.webp" alt="" width="480" height="320">라비가 알려드려요</span>
+    </div>
+    <div class="glass faq-list">
+      <details>
+        <summary><span class="q" aria-hidden="true">Q</span><span class="t">AI가 라벨 전체를 완성해주나요?</span><span class="pm" aria-hidden="true"></span></summary>
+        <div class="faq-a"><span class="q" aria-hidden="true">A</span><p>라비는 용지 추천과 클립아트 이미지 생성을 도와줘요. 생성한 이미지를 편집기에 적용한 뒤, 필요한 텍스트 입력과 크기·배치 편집은 직접 진행해주세요.</p></div>
+      </details>
+      <details>
+        <summary><span class="q" aria-hidden="true">Q</span><span class="t">기존에 사용하던 타사 용지와 맞는 제품도 찾을 수 있나요?</span><span class="pm" aria-hidden="true"></span></summary>
+        <div class="faq-a"><span class="q" aria-hidden="true">A</span><p>라비에게 기존에 사용하던 브랜드명과 품목코드를 알려주세요. 이에 맞는 라벨업 용지를 찾는 데 도움을 받을 수 있어요.</p></div>
+      </details>
+      <details>
+        <summary><span class="q" aria-hidden="true">Q</span><span class="t">무료 잉크는 어떻게 받을 수 있나요?</span><span class="pm" aria-hidden="true"></span></summary>
+        <div class="faq-a"><span class="q" aria-hidden="true">A</span><p>회원가입 시 5,000 Ink를 받을 수 있어요. 라벨업 용지를 구매하면 패키지에 동봉된 땡큐카드에서 추가 무료 잉크 혜택을 확인할 수 있으며, 지급량은 제품 가격에 따라 달라요.</p></div>
+      </details>
+      <details>
+        <summary><span class="q" aria-hidden="true">Q</span><span class="t">잉크는 어디에 사용하나요?</span><span class="pm" aria-hidden="true"></span></summary>
+        <div class="faq-a"><span class="q" aria-hidden="true">A</span><p>클립아트 이미지 생성과 텍스트 대화 등 라비의 AI 기능을 이용할 때 사용해요.</p></div>
+      </details>
+      <details>
+        <summary><span class="q" aria-hidden="true">Q</span><span class="t">잉크 단품 구매는 구독 상품인가요?</span><span class="pm" aria-hidden="true"></span></summary>
+        <div class="faq-a"><span class="q" aria-hidden="true">A</span><p>아니요. 현재 안내된 상품은 필요한 잉크를 일회성으로 구매하는 단품 충전 상품이에요. 구독 서비스는 준비 중이에요.</p></div>
+      </details>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="ambient" aria-hidden="true"><div class="arc"></div></div>
+  <div class="wrap">
+    <img src="assets/logo-labelup.png" alt="LABEL UP" width="861" height="244">
+    <a class="btn btn-primary" href="#" data-link="signup">무료 잉크 받고 시작하기</a>
+    <div class="f-space" aria-hidden="true"></div>
+  </div>
+</footer>
+
+<!-- 이미지 확대 -->
+<dialog class="lightbox" id="lightbox" aria-label="이미지 크게 보기">
+  <figure>
+    <img id="lb-img" alt="">
+    <figcaption id="lb-cap"></figcaption>
+  </figure>
+  <button class="lb-close" type="button" id="lb-close" aria-label="닫기">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* =========================================================
+   링크 설정 — URL은 이곳에서만 바꾸면 됩니다.
+   비워두면 버튼을 눌렀을 때 '아직 연결되지 않았다'는 안내가 표시돼요.
+   ========================================================= */
+const LINKS = {
+  signup:    "/register",   // 회원가입 페이지
+  paperShop: "/shop",       // 라벨업 용지 판매 페이지
+  buyInk: {
+    "50000":  "/shop/products/INK-50000",
+    "80000":  "/shop/products/INK-80000",
+    "100000": "/shop/products/INK-100000",
+    "150000": "/shop/products/INK-150000",
+    "200000": "/shop/products/INK-200000"
+  }
+};
+
+/* 잉크 단품 상품 (런칭 기념 30% 할인) */
+const PRODUCTS = [
+  { up: 50000,  regular: 5000,  sale: 3500 },
+  { up: 80000,  regular: 8000,  sale: 5600 },
+  { up: 100000, regular: 10000, sale: 7000 },
+  { up: 150000, regular: 15000, sale: 10500 },
+  { up: 200000, regular: 20000, sale: 14000 }
+];
+
+(function(){
+  const fmt = n => n.toLocaleString("ko-KR");
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+  /* ---------- 상품 카드 ---------- */
+  const list = document.getElementById("products");
+  list.innerHTML = PRODUCTS.map(p => `
+    <li class="prod">
+      <div class="prod-face">
+        <span class="tag">30% 할인</span>
+        <h3>${fmt(p.up)}<span>Ink</span></h3>
+        <p class="price">
+          <del><span class="sr-only">정상가 </span>${fmt(p.regular)}원</del>
+          <span class="sale"><span class="sr-only">할인 판매가 </span>${fmt(p.sale)}<small>원</small></span>
+        </p>
+        <a class="btn btn-primary" href="#" data-link="buyInk" data-key="${p.up}" aria-label="${fmt(p.up)} Ink 구매하기, ${fmt(p.sale)}원">구매하기</a>
+      </div>
+    </li>`).join("");
+
+  /* ---------- 외부 링크 연결 ---------- */
+  const toast = document.getElementById("toast");
+  let toastTimer;
+  function showToast(msg){
+    toast.textContent = msg;
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
+  }
+  function resolve(el){
+    const key = el.dataset.link;
+    if (key === "buyInk") return (LINKS.buyInk || {})[el.dataset.key] || "";
+    return LINKS[key] || "";
+  }
+  document.querySelectorAll("[data-link]").forEach(el => {
+    const url = resolve(el);
+    if (url) { el.setAttribute("href", url); }
+    else {
+      el.setAttribute("role", "button");
+      el.addEventListener("click", e => {
+        e.preventDefault();
+        showToast("아직 연결된 페이지가 없어요. 링크가 준비되면 이용할 수 있어요.");
+      });
+    }
+  });
+
+  /* ---------- 목차: 부드러운 이동 + 포커스 ---------- */
+  document.querySelectorAll("a[data-scroll]").forEach(a => {
+    a.addEventListener("click", e => {
+      const id = a.getAttribute("href").slice(1);
+      if (id === "top") {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: reduceMotion.matches ? "auto" : "smooth" });
+        return;
+      }
+      const sec = document.getElementById(id);
+      if (!sec) return;
+      e.preventDefault();
+      sec.scrollIntoView({ behavior: reduceMotion.matches ? "auto" : "smooth", block: "start" });
+      history.replaceState(null, "", "#" + id);
+      const heading = sec.querySelector("[tabindex='-1']");
+      if (heading) heading.focus({ preventScroll: true });
+    });
+  });
+
+  /* ---------- 목차: 현재 영역 강조 ---------- */
+  const navLinks = [...document.querySelectorAll(".toc a[data-target]")];
+  const sections = [...document.querySelectorAll("section[data-nav]")];
+  const tocList = document.querySelector(".toc ul");
+  let current = null;
+  function updateActive(){
+    const navH = document.querySelector(".toc").offsetHeight;
+    const line = navH + window.innerHeight * 0.25;
+    let active = null;
+    for (const s of sections) {
+      if (s.getBoundingClientRect().top <= line) active = s.dataset.nav;
+    }
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) active = sections[sections.length-1].dataset.nav;
+    if (active === current) return;
+    current = active;
+    navLinks.forEach(a => {
+      const on = a.dataset.target === active;
+      if (on) {
+        a.setAttribute("aria-current", "true");
+        const l = a.parentElement.offsetLeft, w = a.parentElement.offsetWidth;
+        if (l < tocList.scrollLeft || l + w > tocList.scrollLeft + tocList.clientWidth) {
+          tocList.scrollTo({ left: l - 16, behavior: reduceMotion.matches ? "auto" : "smooth" });
+        }
+      } else a.removeAttribute("aria-current");
+    });
+  }
+  let ticking = false;
+  window.addEventListener("scroll", () => {
+    if (!ticking) { requestAnimationFrame(() => { updateActive(); ticking = false; }); ticking = true; }
+  }, { passive: true });
+  window.addEventListener("resize", updateActive);
+  updateActive();
+
+  /* ---------- 움직이는 이미지 정지/재생 ---------- */
+  const mImg = document.getElementById("motion-img");
+  const mBtn = document.getElementById("motion-toggle");
+  const mLabel = document.getElementById("motion-label");
+  const mIcon = document.getElementById("motion-icon");
+  const PAUSE = '<rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/>';
+  const PLAY = '<path d="M4 2.5v11a1 1 0 0 0 1.5.86l9-5.5a1 1 0 0 0 0-1.72l-9-5.5A1 1 0 0 0 4 2.5Z"/>';
+  function setMotion(play){
+    mImg.src = play ? mImg.dataset.gif : mImg.dataset.still;
+    mBtn.setAttribute("aria-pressed", String(!play));
+    mLabel.textContent = play ? "움직임 멈추기" : "움직임 재생";
+    mIcon.innerHTML = play ? PAUSE : PLAY;
+  }
+  let playing = !reduceMotion.matches;
+  setMotion(playing);
+  mBtn.addEventListener("click", () => { playing = !playing; setMotion(playing); });
+
+  /* ---------- 이미지 확대 ---------- */
+  const lb = document.getElementById("lightbox");
+  const lbImg = document.getElementById("lb-img");
+  const lbCap = document.getElementById("lb-cap");
+  let opener = null;
+  document.querySelectorAll("[data-zoom]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const img = btn.querySelector("img");
+      const cap = btn.closest("figure").querySelector("figcaption");
+      opener = btn;
+      lbImg.src = img.currentSrc || img.src;
+      lbImg.alt = img.alt;
+      lbCap.textContent = cap ? cap.textContent.trim() : "";
+      if (typeof lb.showModal === "function") lb.showModal(); else lb.setAttribute("open", "");
+      document.getElementById("lb-close").focus();
+    });
+  });
+  function closeLb(){ if (lb.open) { lb.close ? lb.close() : lb.removeAttribute("open"); } }
+  document.getElementById("lb-close").addEventListener("click", closeLb);
+  lb.addEventListener("click", e => { if (e.target === lb) closeLb(); });
+  lb.addEventListener("close", () => { lbImg.removeAttribute("src"); if (opener) opener.focus(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && lb.open) closeLb(); });
+})();
+</script>
+<script>
+/* 상단 메인 배경: 제목을 둘러싼 원형 도트 패턴 */
+(function(){
+  const cv=document.querySelector('.hero-pattern'); if(!cv) return;
+  const ctx=cv.getContext('2d');
+  function rnd(seed){return function(){seed=(seed*16807)%2147483647;return (seed-1)/2147483646;};}
+  const ss=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t);};
+  function draw(){
+    const r=cv.getBoundingClientRect(), dpr=Math.min(window.devicePixelRatio||1,2);
+    const W=r.width,H=r.height; if(!W||!H) return;
+    cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
+    const mobile=W<720, cell=mobile?14:16, R=rnd(11);
+    const cx=W/2, cy=H*0.47;
+    const rad=mobile?Math.max(W*0.62,H*0.36):Math.min(W*0.36,H*0.5);
+    const dot=mobile?1.6:2;
+    for(let y=cell/2;y<H;y+=cell){
+      const ty=y/H;
+      for(let x=cell/2;x<W;x+=cell){
+        const v=R(), keep=R();
+        const d=Math.hypot(x-cx,(y-cy)*1.05)/rad;
+        const ring=ss(0.78,1.02,d)*(1-ss(1.18,1.75,d));
+        if(ring<=0.02||keep>ring*0.95) continue;
+        const a=ring*(0.25+0.75*v*v)*(1-ss(0.82,0.98,ty))*ss(0.0,0.12,ty);
+        if(a<0.04) continue;
+        ctx.fillStyle=ty<0.9?`rgba(246,205,216,${(a*0.75).toFixed(3)})`:`rgba(156,72,88,${(a*0.4).toFixed(3)})`;
+        ctx.fillRect(Math.round(x-dot/2),Math.round(y-dot/2),dot,dot);
+      }
+    }
+  }
+  let t; window.addEventListener('resize',()=>{clearTimeout(t);t=setTimeout(draw,120);});
+  draw();
+})();
+</script>
+<script>
+(function(){
+  const img=document.getElementById('gen-img'), btn=document.getElementById('gen-toggle');
+  if(!img||!btn) return;
+  const lab=document.getElementById('gen-label'), ic=document.getElementById('gen-icon');
+  const PAUSE='<rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/>';
+  const PLAY='<path d="M4 2.5v11a1 1 0 0 0 1.5.86l9-5.5a1 1 0 0 0 0-1.72l-9-5.5A1 1 0 0 0 4 2.5Z"/>';
+  let playing=!window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function set(p){img.src=p?img.dataset.gif:img.dataset.still;btn.setAttribute('aria-pressed',String(!p));lab.textContent=p?'움직임 멈추기':'움직임 재생';ic.innerHTML=p?PAUSE:PLAY;}
+  set(playing); btn.addEventListener('click',()=>{playing=!playing;set(playing);});
+})();
+</script>
+</body>
+</html>

@@ -31,6 +31,11 @@
       <?php require view_path('admin/partials/ai-menu.php'); ?>
       <?php require view_path('admin/partials/ops-menu.php'); ?>
       <?php require view_path('admin/partials/settings-menu.php'); ?>
+      <?php if (admin_can_menu('partners')): ?>
+      <a class="admin-lnb-item<?= ($activeMenu ?? '') === 'partners' ? ' is-active' : '' ?>" href="<?= url('admin/partners') ?>" title="협력사 관리">
+        <span class="ic">◇</span><span class="label">협력사 관리</span>
+      </a>
+      <?php endif; ?>
       <?php if (admin_can_menu('qr-coupons')): ?>
       <a class="admin-lnb-item<?= ($activeMenu ?? '') === 'qr-coupons' ? ' is-active' : '' ?>" href="<?= url('admin/qr-coupons') ?>" title="QR쿠폰관리">
         <span class="ic">▦</span><span class="label">QR쿠폰관리</span>
@@ -91,9 +96,9 @@
               'content-user-designs' => '컨텐츠관리 › 사용자디자인',
               'content-templates' => '컨텐츠관리 › 템플릿관리',
               'content-product-detail-pages' => '컨텐츠관리 › 상세페이지관리',
-              'ops-credit-rewards' => '운영관리 › 크레딧보상 관리',
-              'ops-credit-usage' => '운영관리 › 크레딧 사용 설정',
-              'ops-purchase-credits' => '운영관리 › 구매크레딧',
+              'ops-credit-rewards' => '운영관리 › 잉크보상 관리',
+              'ops-credit-usage' => '운영관리 › 잉크 사용 설정',
+              'ops-purchase-credits' => '운영관리 › 구매잉크',
               'ops-hero-slides' => '운영관리 › 히어로 이미지 관리',
               'ops-event-popups' => '운영관리 › 이벤트 팝업관리',
               'ops-faq' => '운영관리 › FAQ 관리',
@@ -108,6 +113,7 @@
               'settings-intro' => '설정 › 인트로설정',
               'settings-seo' => '설정 › SEO 설정',
               'settings-tracking' => '설정 › 광고 스크립트',
+              'partners' => '협력사 관리',
               'qr-coupons' => 'QR쿠폰관리',
               default => '대시보드',
           };
@@ -122,7 +128,7 @@
             $creditOverview = ['granted' => 0, 'used' => 0, 'remaining' => 0];
         }
       ?>
-      <button type="button" class="admin-credit-summary" id="adminCreditSummaryBtn" title="크레딧 상세 현황" aria-haspopup="dialog">
+      <button type="button" class="admin-credit-summary" id="adminCreditSummaryBtn" title="잉크 상세 현황" aria-haspopup="dialog">
         <span class="admin-credit-summary__item">
           <em>지급</em>
           <strong data-credit-granted><?= number_format((int) ($creditOverview['granted'] ?? 0)) ?></strong>
@@ -229,7 +235,7 @@
   <div class="admin-modal-backdrop" data-close="adminCreditOverviewModal"></div>
   <div class="admin-modal-panel admin-modal-panel--wide" role="dialog" aria-modal="true" aria-labelledby="adminCreditOverviewTitle">
     <div class="admin-modal-head">
-      <h2 id="adminCreditOverviewTitle">전체 회원 크레딧 현황</h2>
+      <h2 id="adminCreditOverviewTitle">전체 회원 잉크 현황</h2>
       <button type="button" class="admin-modal-close" data-close="adminCreditOverviewModal" aria-label="닫기">×</button>
     </div>
     <div class="admin-modal-body" id="adminCreditOverviewBody">
@@ -250,6 +256,9 @@ window.LABELUP_ADMIN_CREDIT_OVERVIEW_URL = <?= json_encode(url('api/admin/credit
 <?php endif; ?>
 <?php if (($activeMenu ?? '') === 'settings-member-grades'): ?>
 <script src="<?= js('admin-grades.js') ?>"></script>
+<?php endif; ?>
+<?php if (($activeMenu ?? '') === 'partners'): ?>
+<script src="<?= js('admin-partners.js') ?>"></script>
 <?php endif; ?>
 </body>
 </html>

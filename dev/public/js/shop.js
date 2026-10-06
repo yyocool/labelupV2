@@ -7,7 +7,10 @@ const ShopAPI = {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || data.success === false) {
-      throw new Error(data.message || '요청 처리 중 오류가 발생했습니다.');
+      const err = new Error(data.message || '요청 처리 중 오류가 발생했습니다.');
+      // 호출하는 쪽에서 401(로그인 필요)을 구분해야 한다.
+      err.status = res.status;
+      throw err;
     }
     return data;
   },
@@ -43,21 +46,61 @@ function showShopToast(message) {
   showShopToast._timer = setTimeout(() => toast.classList.remove('is-show'), 2200);
 }
 
-async function addToCart(productId, qty = 1) {
-  const res = await ShopAPI.post('/api/shop/cart/add', { product_id: productId, qty });
+async function addToCart(productId, qty = 1, optionId = 0) {
+  const res = await ShopAPI.post('/api/shop/cart/add', { product_id: productId, qty, option_id: optionId });
   updateCartBadges(res.data?.count ?? 0);
   showShopToast(res.message || '장바구니에 담았습니다.');
   return res;
 }
 
-async function updateCartQty(productId, qty) {
-  const res = await ShopAPI.post('/api/shop/cart/update', { product_id: productId, qty });
+async function updateCartQty(productId, qty, optionId = 0) {
+  const res = await ShopAPI.post('/api/shop/cart/update', { product_id: productId, qty, option_id: optionId });
   return res;
 }
 
-async function removeFromCart(productId) {
-  const res = await ShopAPI.post('/api/shop/cart/remove', { product_id: productId });
+async function removeFromCart(productId, optionId = 0) {
+  const res = await ShopAPI.post('/api/shop/cart/remove', { product_id: productId, option_id: optionId });
   return res;
+}
+
+/* 옵션 컨트롤은 라디오 버튼 묶음(상품 상세)과 select(그 외) 두 꼴이 있다. */
+
+/** 고른 옵션 엘리먼트. 아직 고르지 않았으면 null. */
+function pickedOptionEl(root) {
+  if (!root) return null;
+  if (root.tagName === 'SELECT') return root.value ? root.selectedOptions[0] : null;
+  return root.querySelector('input[type=radio]:checked');
+}
+
+function optionIdOf(root) {
+  return Number(pickedOptionEl(root)?.value || 0);
+}
+
+function focusOptionControl(root) {
+  if (!root) return;
+  const el = root.tagName === 'SELECT' ? root : root.querySelector('input[type=radio]:not(:disabled)');
+  el?.focus();
+}
+
+/** 옵션을 고르면 결제 금액과 수량 상한이 함께 바뀐다. */
+function bindOptionSelects() {
+  document.querySelectorAll('[data-option-price-target]').forEach((root) => {
+    const target = document.querySelector(root.dataset.optionPriceTarget);
+    const qtyInput = document.getElementById('productQty');
+    const sync = () => {
+      const picked = pickedOptionEl(root);
+      if (!picked) return;
+      const unit = Number(picked.dataset.unit || 0);
+      const stock = Number(picked.dataset.stock || 0);
+      if (target) target.textContent = `${unit.toLocaleString()}원`;
+      if (qtyInput) {
+        qtyInput.max = String(Math.max(1, stock));
+        if (Number(qtyInput.value || 1) > stock) qtyInput.value = String(Math.max(1, stock));
+      }
+    };
+    root.addEventListener('change', sync);
+    sync();
+  });
 }
 
 function bindQtyControls() {
@@ -88,9 +131,20 @@ function bindAddCartButtons() {
         const input = document.querySelector(qtySel);
         if (input) qty = Number(input.value || 1);
       }
+      let optionId = 0;
+      const optSel = btn.dataset.optionSelect;
+      if (optSel) {
+        const control = document.querySelector(optSel);
+        optionId = optionIdOf(control);
+        if (!optionId) {
+          showShopToast('옵션을 선택해 주세요.');
+          focusOptionControl(control);
+          return;
+        }
+      }
       btn.disabled = true;
       try {
-        await addToCart(id, qty);
+        await addToCart(id, qty, optionId);
       } catch (err) {
         showShopToast(err.message);
       } finally {
@@ -112,14 +166,24 @@ function bindCartPage() {
     updateCartBadges(data.count ?? 0);
   };
 
+  /** 같은 상품이라도 옵션이 다르면 다른 줄이므로 줄 단위로 읽는다. */
+  const cartLine = (el) => {
+    const row = el.closest('[data-cart-line]');
+    if (!row) return null;
+    return {
+      productId: Number(row.dataset.productId || 0),
+      optionId: Number(row.dataset.optionId || 0),
+      input: row.querySelector('[data-cart-qty]'),
+    };
+  };
+
   document.querySelectorAll('[data-cart-minus]').forEach((btn) => {
     btn.addEventListener('click', async () => {
-      const id = Number(btn.dataset.cartMinus);
-      const input = document.querySelector(`[data-cart-qty="${id}"]`);
-      const next = Math.max(1, Number(input?.value || 1) - 1);
+      const line = cartLine(btn);
+      if (!line) return;
+      const next = Math.max(1, Number(line.input?.value || 1) - 1);
       try {
-        const res = await updateCartQty(id, next);
-        if (input) input.value = String(next);
+        await updateCartQty(line.productId, next, line.optionId);
         location.reload();
       } catch (err) {
         showShopToast(err.message);
@@ -129,12 +193,12 @@ function bindCartPage() {
 
   document.querySelectorAll('[data-cart-plus]').forEach((btn) => {
     btn.addEventListener('click', async () => {
-      const id = Number(btn.dataset.cartPlus);
-      const input = document.querySelector(`[data-cart-qty="${id}"]`);
-      const max = Number(input?.max || 999);
-      const next = Math.min(max, Number(input?.value || 1) + 1);
+      const line = cartLine(btn);
+      if (!line) return;
+      const max = Number(line.input?.max || 999);
+      const next = Math.min(max, Number(line.input?.value || 1) + 1);
       try {
-        await updateCartQty(id, next);
+        await updateCartQty(line.productId, next, line.optionId);
         location.reload();
       } catch (err) {
         showShopToast(err.message);
@@ -144,9 +208,11 @@ function bindCartPage() {
 
   document.querySelectorAll('[data-cart-remove]').forEach((btn) => {
     btn.addEventListener('click', async () => {
+      const line = cartLine(btn);
+      if (!line) return;
       if (!confirm('장바구니에서 삭제할까요?')) return;
       try {
-        await removeFromCart(Number(btn.dataset.cartRemove));
+        await removeFromCart(line.productId, line.optionId);
         location.reload();
       } catch (err) {
         showShopToast(err.message);
@@ -164,13 +230,18 @@ function bindCartPage() {
     const address = (window.LabelUpAddress && typeof window.LabelUpAddress.combine === 'function')
       ? window.LabelUpAddress.combine(zip, base, detail)
       : [zip, base, detail].filter(Boolean).join(' ');
-    const shipName = String(fd.get('shipping_name') || '').trim();
-    const shipPhone = String(fd.get('shipping_phone') || '').trim();
-    if (!shipName || !shipPhone) {
+    const inkOnly = checkoutForm.dataset.inkOnly === '1';
+    const shipName = inkOnly
+      ? String(fd.get('customer_name') || '').trim()
+      : String(fd.get('shipping_name') || '').trim();
+    const shipPhone = inkOnly
+      ? String(fd.get('customer_phone') || '').trim()
+      : String(fd.get('shipping_phone') || '').trim();
+    if (!inkOnly && (!shipName || !shipPhone)) {
       showShopToast('수취인 이름과 연락처를 입력해 주세요.');
       return;
     }
-    if (!zip || !base) {
+    if (!inkOnly && (!zip || !base)) {
       showShopToast('주소 검색으로 배송지를 선택해 주세요.');
       return;
     }
@@ -227,8 +298,119 @@ function bindCartPage() {
   });
 }
 
+/** 상품 상세 갤러리 — 썸네일을 누르면 큰 이미지를 바꾼다. */
+function bindDetailGallery() {
+  const main = document.getElementById('shopDetailMainImage');
+  const thumbs = Array.from(document.querySelectorAll('.shop-detail-thumb'));
+  if (!main || thumbs.length < 2) return;
+
+  const show = (btn) => {
+    const src = btn.dataset.gallerySrc;
+    if (!src || main.src === src) return;
+    main.src = src;
+    thumbs.forEach((el) => {
+      const on = el === btn;
+      el.classList.toggle('is-active', on);
+      el.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  };
+
+  thumbs.forEach((btn) => {
+    btn.addEventListener('click', () => show(btn));
+    // 좌우 방향키로도 넘긴다.
+    btn.addEventListener('keydown', (e) => {
+      const step = e.key === 'ArrowRight' ? 1 : (e.key === 'ArrowLeft' ? -1 : 0);
+      if (!step) return;
+      e.preventDefault();
+      const next = thumbs[(thumbs.indexOf(btn) + step + thumbs.length) % thumbs.length];
+      next.focus();
+      show(next);
+    });
+  });
+}
+
+function goLogin() {
+  const back = window.location.pathname + window.location.search;
+  window.location.href = `/login?redirect=${encodeURIComponent(back)}`;
+}
+
+/** 찜하기 — 누를 때마다 담기/빼기가 번갈아 일어난다. */
+function bindWishlistButtons() {
+  document.querySelectorAll('.js-wishlist-toggle').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const productId = Number(btn.dataset.productId || 0);
+      if (!productId || btn.disabled) return;
+      btn.disabled = true;
+      try {
+        const res = await ShopAPI.post('/api/shop/wishlist/toggle', { product_id: productId });
+        const on = !!res.data?.wished;
+        btn.classList.toggle('is-on', on);
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        // 이미지 위 레이어에서는 아이콘만 보이므로 툴팁도 함께 맞춘다.
+        const text = on ? '찜 해제' : '찜하기';
+        const label = btn.querySelector('.shop-social-btn__lab');
+        if (label) label.textContent = text;
+        btn.title = text;
+        showShopToast(res.message || (on ? '찜 목록에 담았습니다.' : '찜 목록에서 뺐습니다.'));
+      } catch (err) {
+        showShopToast(err.message);
+        if (err.status === 401) setTimeout(goLogin, 900);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+}
+
+/** 현재 주소를 클립보드로 복사한다. 보안 컨텍스트가 아니면 execCommand 로 넘어간다. */
+async function copyCurrentUrl() {
+  const url = window.location.href;
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(url);
+    return;
+  }
+  const ta = document.createElement('textarea');
+  ta.value = url;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  const ok = document.execCommand('copy');
+  document.body.removeChild(ta);
+  if (!ok) throw new Error('주소를 복사하지 못했습니다.');
+}
+
+/** 공유하기 — 기기가 공유 시트를 지원하면 그걸 쓰고, 없으면 주소를 복사한다. */
+function bindShareButtons() {
+  document.querySelectorAll('.js-share-product').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const title = btn.dataset.shareTitle || document.title;
+      if (navigator.share) {
+        try {
+          await navigator.share({ title, url: window.location.href });
+          return;
+        } catch (err) {
+          // 사용자가 공유 시트를 닫은 경우는 알림을 띄우지 않는다.
+          if (err?.name === 'AbortError') return;
+        }
+      }
+      try {
+        await copyCurrentUrl();
+        showShopToast('상품 주소를 복사했습니다.');
+      } catch (err) {
+        showShopToast(err.message);
+      }
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   bindQtyControls();
+  bindDetailGallery();
+  bindWishlistButtons();
+  bindShareButtons();
+  bindOptionSelects();
   bindAddCartButtons();
   bindCartPage();
   document.getElementById('shopOrderPrint')?.addEventListener('click', () => window.print());

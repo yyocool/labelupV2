@@ -109,6 +109,8 @@ final class AdminAccessService
             '/api/admin/site-mode' => 'settings-environment',
             '/admin/settings/tracking' => 'settings-tracking',
             '/api/admin/marketing' => 'settings-tracking',
+            '/admin/partners' => 'partners',
+            '/api/admin/partners' => 'partners',
             '/admin/users' => 'users',
             '/api/admin/users' => 'users',
             '/api/admin/credit/adjust' => 'users',

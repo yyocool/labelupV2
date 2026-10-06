@@ -17,6 +17,16 @@ use App\Services\ShopProductImageService;
 final class ShopRepository extends BaseModel
 
 {
+    /** 일괄 임포트로 들어온 상품임을 meta_json 에 남기는 키. */
+    public const IMPORT_BATCH_META_KEY = 'import_batch';
+
+    /** product_id 로 상품에 딸려 있는 테이블. 상품을 지울 때 함께 비운다. */
+    private const PRODUCT_CHILD_TABLES = [
+        'shop_product_options',
+        'shop_product_images',
+        'shop_product_detail_pages',
+        'shop_product_wishlists',
+    ];
 
     public function dashboardStats(): array
 
@@ -475,6 +485,7 @@ final class ShopRepository extends BaseModel
             "SELECT p.*,
                     c.name AS category_name,
                     c.parent_id AS category_parent_id,
+                    c.is_active AS category_is_active,
                     pc.name AS parent_category_name,
                     s.name AS spec_name
              FROM shop_products p
@@ -512,6 +523,8 @@ final class ShopRepository extends BaseModel
 
             'sale_price' => $data['sale_price'] !== null && $data['sale_price'] !== '' ? (int) $data['sale_price'] : null,
 
+            'ink_amount' => isset($data['ink_amount']) && $data['ink_amount'] !== '' && (int) $data['ink_amount'] > 0 ? (int) $data['ink_amount'] : null,
+
             'stock_qty' => (int) $data['stock_qty'],
 
             'status' => $data['status'] ?? 'draft',
@@ -538,7 +551,7 @@ final class ShopRepository extends BaseModel
 
             $this->execute(
 
-                'UPDATE shop_products SET category_id=:category_id,spec_id=:spec_id,name=:name,sku=:sku,price=:price,sale_price=:sale_price,stock_qty=:stock_qty,status=:status,description=:description,meta_json=:meta_json,compat_formtec=:compat_formtec,compat_ilabel=:compat_ilabel,compat_anylabel=:compat_anylabel,sort_order=:sort_order,thumbnail=:thumbnail,updated_at=:now WHERE id=:id',
+                'UPDATE shop_products SET category_id=:category_id,spec_id=:spec_id,name=:name,sku=:sku,price=:price,sale_price=:sale_price,ink_amount=:ink_amount,stock_qty=:stock_qty,status=:status,description=:description,meta_json=:meta_json,compat_formtec=:compat_formtec,compat_ilabel=:compat_ilabel,compat_anylabel=:compat_anylabel,sort_order=:sort_order,thumbnail=:thumbnail,updated_at=:now WHERE id=:id',
 
                 $params + ['id' => $id]
 
@@ -555,6 +568,7 @@ final class ShopRepository extends BaseModel
             'sku' => $params['sku'],
             'price' => $params['price'],
             'sale_price' => $params['sale_price'],
+            'ink_amount' => $params['ink_amount'],
             'stock_qty' => $params['stock_qty'],
             'status' => $params['status'],
             'description' => $params['description'],
@@ -570,7 +584,7 @@ final class ShopRepository extends BaseModel
 
         $this->execute(
 
-            'INSERT INTO shop_products (category_id,spec_id,name,sku,price,sale_price,stock_qty,status,description,meta_json,compat_formtec,compat_ilabel,compat_anylabel,sort_order,thumbnail,created_at,updated_at) VALUES (:category_id,:spec_id,:name,:sku,:price,:sale_price,:stock_qty,:status,:description,:meta_json,:compat_formtec,:compat_ilabel,:compat_anylabel,:sort_order,:thumbnail,:created_at,:updated_at)',
+            'INSERT INTO shop_products (category_id,spec_id,name,sku,price,sale_price,ink_amount,stock_qty,status,description,meta_json,compat_formtec,compat_ilabel,compat_anylabel,sort_order,thumbnail,created_at,updated_at) VALUES (:category_id,:spec_id,:name,:sku,:price,:sale_price,:ink_amount,:stock_qty,:status,:description,:meta_json,:compat_formtec,:compat_ilabel,:compat_anylabel,:sort_order,:thumbnail,:created_at,:updated_at)',
 
             $insertParams
 
@@ -586,8 +600,187 @@ final class ShopRepository extends BaseModel
 
     {
 
+        $this->execute('DELETE FROM shop_product_options WHERE product_id = :id', ['id' => $id]);
+
         $this->execute('DELETE FROM shop_products WHERE id = :id', ['id' => $id]);
 
+    }
+
+    /**
+     * SKU 만 따로 바꾼다. 신규 임포트가 기본 품번(A101)을 쓰려면 그 자리를 점유한
+     * 구 상품을 원래 품번(A101-20)으로 되돌려야 한다. 다른 값은 건드리지 않는다.
+     */
+    public function updateProductSku(int $id, string $sku): void
+    {
+        $this->execute(
+            'UPDATE shop_products SET sku = :sku, updated_at = :now WHERE id = :id',
+            ['sku' => $sku, 'now' => date('Y-m-d H:i:s'), 'id' => $id]
+        );
+    }
+
+    /**
+     * meta_json 에 지정한 임포트 배치 표시가 없는 상품 — 즉 신규 등록분이 아닌 구 상품.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function productsNotInImportBatch(string $batch): array
+    {
+        return $this->fetchAll(
+            'SELECT id, sku, name, status, category_id, meta_json
+             FROM shop_products
+             WHERE meta_json IS NULL
+                OR meta_json NOT LIKE :needle
+             ORDER BY id ASC',
+            ['needle' => '%"' . self::IMPORT_BATCH_META_KEY . '":"' . $batch . '"%']
+        );
+    }
+
+    /**
+     * 상품에 딸린 행 수를 센다. 삭제 전 미리보기와 삭제 결과 보고에 쓴다.
+     *
+     * @return array<string, int>
+     */
+    public function productRelationCounts(int $id): array
+    {
+        $counts = [];
+        foreach (self::PRODUCT_CHILD_TABLES as $table) {
+            $row = $this->fetchOne("SELECT COUNT(*) AS cnt FROM {$table} WHERE product_id = :id", ['id' => $id]);
+            $counts[$table] = (int) ($row['cnt'] ?? 0);
+        }
+        $row = $this->fetchOne('SELECT COUNT(*) AS cnt FROM shop_order_items WHERE product_id = :id', ['id' => $id]);
+        $counts['shop_order_items'] = (int) ($row['cnt'] ?? 0);
+        return $counts;
+    }
+
+    /**
+     * 상품과 딸린 행(옵션·이미지·상세페이지·찜)을 모두 지운다.
+     * 주문 내역(shop_order_items)은 주문 당시 스냅샷이라 남겨 둔다.
+     */
+    public function purgeProduct(int $id): void
+    {
+        foreach (self::PRODUCT_CHILD_TABLES as $table) {
+            $this->execute("DELETE FROM {$table} WHERE product_id = :id", ['id' => $id]);
+        }
+        $this->execute('DELETE FROM shop_products WHERE id = :id', ['id' => $id]);
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function productOptions(int $productId, bool $activeOnly = false): array
+    {
+        if ($productId <= 0) {
+            return [];
+        }
+        $cond = $activeOnly ? ' AND is_active = 1' : '';
+        return $this->fetchAll(
+            'SELECT * FROM shop_product_options
+             WHERE product_id = :pid' . $cond . '
+             ORDER BY sort_order ASC, id ASC',
+            ['pid' => $productId]
+        );
+    }
+
+    /** @return array<string, mixed>|null */
+    public function findProductOption(int $productId, int $optionId, bool $activeOnly = true): ?array
+    {
+        if ($productId <= 0 || $optionId <= 0) {
+            return null;
+        }
+        $cond = $activeOnly ? ' AND is_active = 1' : '';
+        $row = $this->fetchOne(
+            'SELECT * FROM shop_product_options
+             WHERE id = :id AND product_id = :pid' . $cond . '
+             LIMIT 1',
+            ['id' => $optionId, 'pid' => $productId]
+        );
+        return $row ?: null;
+    }
+
+    /**
+     * 관리자 상품 목록에서 N+1 쿼리를 피하려고 전체 옵션을 한 번에 가져온다.
+     *
+     * @return array<int, array<int, array<string, mixed>>>
+     */
+    public function allProductOptionsGrouped(): array
+    {
+        $rows = $this->fetchAll(
+            'SELECT * FROM shop_product_options ORDER BY product_id ASC, sort_order ASC, id ASC'
+        );
+        $out = [];
+        foreach ($rows as $row) {
+            $out[(int) $row['product_id']][] = $row;
+        }
+        return $out;
+    }
+
+    /**
+     * 전달된 목록을 그대로 반영한다. 빠진 옵션은 삭제하되,
+     * 주문 내역은 shop_order_items에 스냅샷으로 남으므로 영향받지 않는다.
+     *
+     * @param array<int, array<string, mixed>> $options
+     */
+    public function syncProductOptions(int $productId, array $options): void
+    {
+        if ($productId <= 0) {
+            return;
+        }
+        $now = date('Y-m-d H:i:s');
+        $keepIds = [];
+
+        foreach (array_values($options) as $index => $option) {
+            $name = trim((string) ($option['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+            $params = [
+                'product_id' => $productId,
+                'name' => mb_substr($name, 0, 120),
+                'price_delta' => (int) ($option['price_delta'] ?? 0),
+                'stock_qty' => max(0, (int) ($option['stock_qty'] ?? 0)),
+                'sku_suffix' => $this->nullableText($option['sku_suffix'] ?? null),
+                'is_active' => !empty($option['is_active']) ? 1 : 0,
+                'sort_order' => (int) ($option['sort_order'] ?? $index),
+                'now' => $now,
+            ];
+            $optionId = (int) ($option['id'] ?? 0);
+            if ($optionId > 0) {
+                $params['id'] = $optionId;
+                $this->execute(
+                    'UPDATE shop_product_options
+                     SET name = :name, price_delta = :price_delta, stock_qty = :stock_qty,
+                         sku_suffix = :sku_suffix, is_active = :is_active, sort_order = :sort_order,
+                         updated_at = :now
+                     WHERE id = :id AND product_id = :product_id',
+                    $params
+                );
+                $keepIds[] = $optionId;
+                continue;
+            }
+            $this->execute(
+                'INSERT INTO shop_product_options
+                    (product_id, name, price_delta, stock_qty, sku_suffix, is_active, sort_order, created_at, updated_at)
+                 VALUES
+                    (:product_id, :name, :price_delta, :stock_qty, :sku_suffix, :is_active, :sort_order, :now, :now)',
+                $params
+            );
+            $keepIds[] = (int) $this->lastInsertId();
+        }
+
+        if ($keepIds === []) {
+            $this->execute('DELETE FROM shop_product_options WHERE product_id = :pid', ['pid' => $productId]);
+            return;
+        }
+        $placeholders = [];
+        $params = ['pid' => $productId];
+        foreach ($keepIds as $i => $id) {
+            $key = 'keep' . $i;
+            $placeholders[] = ':' . $key;
+            $params[$key] = $id;
+        }
+        $this->execute(
+            'DELETE FROM shop_product_options
+             WHERE product_id = :pid AND id NOT IN (' . implode(',', $placeholders) . ')',
+            $params
+        );
     }
 
 
@@ -894,10 +1087,12 @@ final class ShopRepository extends BaseModel
     public function ordersByUser(int $userId, int $limit = 5): array
     {
         $limit = max(1, min(20, $limit));
-        return $this->fetchAll(
+        $orders = $this->fetchAll(
             "SELECT * FROM shop_orders WHERE user_id = :user_id ORDER BY id DESC LIMIT {$limit}",
             ['user_id' => $userId]
         );
+        $this->attachOrderItems($orders);
+        return $orders;
     }
 
     public function countOrdersByUser(int $userId, string $status = ''): int
@@ -1177,6 +1372,7 @@ final class ShopRepository extends BaseModel
              LEFT JOIN shop_categories c ON c.id = p.category_id
              LEFT JOIN label_specs s ON s.id = p.spec_id
              WHERE p.status IN ('active','soldout')
+               AND (p.ink_amount IS NULL OR p.ink_amount = 0)
              ORDER BY p.sort_order ASC, p.name ASC, p.id DESC
              LIMIT 500"
         );
@@ -1687,14 +1883,18 @@ final class ShopRepository extends BaseModel
             );
             $orderId = (int) $this->lastInsertId();
             foreach ($items as $item) {
+                $optionId = (int) ($item['option_id'] ?? 0);
                 $this->execute(
-                    'INSERT INTO shop_order_items (order_id, product_id, product_name, sku, qty, unit_price, line_total)
-                     VALUES (:order_id, :product_id, :product_name, :sku, :qty, :unit_price, :line_total)',
+                    'INSERT INTO shop_order_items (order_id, product_id, option_id, product_name, sku, option_name, option_price_delta, qty, unit_price, line_total)
+                     VALUES (:order_id, :product_id, :option_id, :product_name, :sku, :option_name, :option_price_delta, :qty, :unit_price, :line_total)',
                     [
                         'order_id' => $orderId,
                         'product_id' => (int) ($item['id'] ?? 0) ?: null,
+                        'option_id' => $optionId > 0 ? $optionId : null,
                         'product_name' => (string) ($item['name'] ?? ''),
                         'sku' => (string) ($item['sku'] ?? ''),
+                        'option_name' => $this->nullableText($item['option_name'] ?? null),
+                        'option_price_delta' => (int) ($item['option_price_delta'] ?? 0),
                         'qty' => (int) ($item['qty'] ?? 1),
                         'unit_price' => (int) ($item['unit_price'] ?? 0),
                         'line_total' => (int) ($item['line_total'] ?? 0),
@@ -1704,6 +1904,9 @@ final class ShopRepository extends BaseModel
                 $qty = (int) ($item['qty'] ?? 1);
                 if ($pid > 0 && $qty > 0) {
                     $fresh = $this->findActiveProduct($pid);
+                    if ($fresh && (int) ($fresh['ink_amount'] ?? 0) > 0) {
+                        continue;
+                    }
                     $left = max(0, (int) ($fresh['stock_qty'] ?? 0) - $qty);
                     $this->execute(
                         'UPDATE shop_products SET stock_qty = :qty, status = :status, updated_at = :now WHERE id = :id',
@@ -1713,6 +1916,14 @@ final class ShopRepository extends BaseModel
                             'now' => $now,
                             'id' => $pid,
                         ]
+                    );
+                }
+                if ($optionId > 0 && $qty > 0) {
+                    $this->execute(
+                        'UPDATE shop_product_options
+                         SET stock_qty = GREATEST(0, stock_qty - :qty), updated_at = :now
+                         WHERE id = :id AND product_id = :pid',
+                        ['qty' => $qty, 'now' => $now, 'id' => $optionId, 'pid' => $pid]
                     );
                 }
             }
@@ -1725,6 +1936,22 @@ final class ShopRepository extends BaseModel
     }
 
     /** @return array<string, mixed>|null */
+    /** @return array<int, array<string, mixed>> */
+    public function inkGrantRows(int $orderId): array
+    {
+        if ($orderId <= 0) {
+            return [];
+        }
+        return $this->fetchAll(
+            'SELECT o.user_id, o.order_no, i.qty, i.product_name, p.ink_amount
+             FROM shop_orders o
+             INNER JOIN shop_order_items i ON i.order_id = o.id
+             INNER JOIN shop_products p ON p.id = i.product_id
+             WHERE o.id = :id AND p.ink_amount > 0',
+            ['id' => $orderId]
+        );
+    }
+
     public function findOrderByNo(string $orderNo): ?array
     {
         $orderNo = trim($orderNo);

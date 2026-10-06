@@ -5108,6 +5108,16 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
 .ed-labi .prompt-composer { display: flex; flex-direction: column; gap: 8px; flex: 0 0 auto; }
+.ed-labi .labi-mode { display: flex; flex-wrap: wrap; gap: 6px; }
+.ed-labi .labi-mode__btn {
+  height: 32px; padding: 0 13px; border-radius: 999px; border: 1px solid #e4e2ec;
+  background: #fff; color: #4e5364; font-size: 12px; font-weight: 800; letter-spacing: -.2px; cursor: pointer;
+}
+.ed-labi .labi-mode__btn.is-on {
+  border-color: transparent;
+  background: linear-gradient(90deg, var(--accent, #7B2840), var(--accent-2, #9a3d56));
+  color: #fff; box-shadow: 0 6px 14px rgba(123, 40, 64, .18);
+}
 .ed-labi .prompt-tools { display: flex; flex-direction: column; gap: 8px; flex: 0 0 auto; align-items: center; }
 .ed-labi .prompt-tool-btn {
   width: 40px; height: 40px; border: 1px solid #e8e7f2; border-radius: 12px;
@@ -5226,7 +5236,7 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 }
 .ed-labi .ai-chat-log {
   flex: 1 1 auto;
-  min-height: 180px;
+  min-height: 0;
   max-height: min(420px, 46vh);
   overflow-y: auto;
   margin: 0 0 12px;
@@ -5658,6 +5668,14 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   text-overflow: ellipsis;
 }
 .ed-shop-cart-item span { display: block; margin-top: 5px; font-size: 12px; color: #8a8490; }
+.ed-shop-cart-item .ed-shop-cart-opt { color: #7B2840; font-weight: 700; }
+
+/* 상품 옵션 선택 (단일 선택형) */
+.ed-shop-option { display: grid; gap: 6px; margin: 10px 0 12px; padding: 12px; border: 1px solid #ece5df; border-radius: 12px; background: #fbf9f7; }
+.ed-shop-option label { font-size: 12px; font-weight: 800; color: #1c1a22; }
+.ed-shop-option label em { margin-left: 4px; font-style: normal; font-size: 11px; font-weight: 700; color: #7B2840; }
+.ed-shop-option select { width: 100%; padding: 10px 11px; border: 1px solid #ddd5ce; border-radius: 10px; background: #fff; font-size: 13px; font-weight: 600; color: #1c1a22; }
+.ed-shop-option small { font-size: 11px; color: #8a8490; font-weight: 700; }
 .ed-shop-remove {
   grid-area: remove;
   height: 32px;
@@ -6365,4 +6383,28 @@ html.is-ed-mobile .ed-data-restore {
 @media (max-width: 900px) {
   .ed { min-width: 0; }
   html:not(.is-ed-mobile) .ed-preview { display: none; }
+}
+
+.labi-history{position:fixed;inset:0;z-index:13000;display:grid;place-items:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .18s ease}
+.labi-history.is-open{opacity:1;pointer-events:auto}
+.labi-history__backdrop{position:absolute;inset:0;background:rgba(22,20,32,.52)}
+.labi-history__card{position:relative;z-index:1;width:min(520px,100%);max-height:min(82vh,720px);display:flex;flex-direction:column;background:#fff;border-radius:20px;box-shadow:0 24px 60px rgba(20,16,40,.28);overflow:hidden}
+.labi-history__head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 18px 12px;border-bottom:1px solid #f0eef2}
+.labi-history__head h3{margin:0;font-size:17px;font-weight:900;letter-spacing:-.3px;color:#17182a}
+.labi-history__head p{margin:6px 0 0;font-size:12px;line-height:1.45;color:#6b6570}
+.labi-history__close{width:34px;height:34px;border:0;border-radius:50%;background:#f3f4f8;color:#4e5163;font-size:20px;line-height:1;cursor:pointer;flex:0 0 auto}
+.labi-history__body{min-height:0;overflow:auto;padding:12px 14px 16px}
+.labi-history__list{display:flex;flex-direction:column;gap:8px}
+.labi-history__item{padding:12px 12px 10px;border:1px solid #efe7ea;border-radius:14px;background:#fffafb}
+.labi-history__item p{margin:0;font-size:13px;line-height:1.55;color:#1c1e2b;white-space:pre-wrap;word-break:break-word}
+.labi-history__item footer{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}
+.labi-history__item time{font-size:11px;color:#8b8490}
+.labi-history__actions{display:flex;gap:6px}
+.labi-history__use,.labi-history__del{height:30px;padding:0 10px;border-radius:9px;font-size:12px;font-weight:800;cursor:pointer}
+.labi-history__use{border:0;background:linear-gradient(90deg,#7B2840,#9a3d56);color:#fff}
+.labi-history__del{border:1px solid #e6e5ee;background:#fff;color:#5b6070}
+.labi-history__empty{margin:18px 8px;text-align:center;font-size:13px;line-height:1.55;color:#6b6570}
+@media(max-width:560px){
+ .labi-history{padding:12px;align-items:flex-end}
+ .labi-history__card{width:100%;max-height:min(78vh,720px);border-radius:18px 18px 12px 12px}
 }

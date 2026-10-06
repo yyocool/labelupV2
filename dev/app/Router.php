@@ -63,6 +63,9 @@ use App\Controllers\Api\SiteRuntimeApiController;
 use App\Services\SiteModeService;
 use App\Controllers\MemberGradeAdminController;
 use App\Controllers\Api\MemberGradeAdminApiController;
+use App\Controllers\PartnerPortalController;
+use App\Controllers\PartnerAdminController;
+use App\Controllers\Api\PartnerAdminApiController;
 use App\Controllers\QrCouponAdminController;
 use App\Controllers\Api\QrCouponAdminApiController;
 use App\Controllers\QrCouponPublicController;
@@ -228,6 +231,9 @@ final class Router
         $siteRuntimeApi = new SiteRuntimeApiController();
         $memberGradeAdmin = new MemberGradeAdminController();
         $memberGradeAdminApi = new MemberGradeAdminApiController();
+        $partnerPortal = new PartnerPortalController();
+        $partnerAdmin = new PartnerAdminController();
+        $partnerAdminApi = new PartnerAdminApiController();
         $qrCouponAdmin = new QrCouponAdminController();
         $qrCouponAdminApi = new QrCouponAdminApiController();
         $qrCouponPublic = new QrCouponPublicController();
@@ -289,6 +295,17 @@ final class Router
         $router->get('/admin/settings/tracking', [$seoAdmin, 'marketing']);
         $router->get('/admin/settings/intro', [$introAdmin, 'index']);
         $router->get('/admin/settings/environment', [$siteModeAdmin, 'index']);
+        $router->get('/partner/login', [$partnerPortal, 'loginForm']);
+        $router->post('/partner/login', [$partnerPortal, 'login']);
+        $router->get('/partner/logout', [$partnerPortal, 'logout']);
+        $router->get('/partner', [$partnerPortal, 'home']);
+        $router->get('/partner/images', [$partnerPortal, 'images']);
+        $router->post('/partner/images/download', [$partnerPortal, 'download']);
+        $router->get('/partner/images/download/{id}', [$partnerPortal, 'downloadOne']);
+        $router->get('/admin/partners', [$partnerAdmin, 'index']);
+        $router->post('/api/admin/partners/save', [$partnerAdminApi, 'save']);
+        $router->post('/api/admin/partners/reset-password', [$partnerAdminApi, 'resetPassword']);
+        $router->post('/api/admin/partners/delete', [$partnerAdminApi, 'delete']);
 
         $router->get('/robots.txt', [$seoPublic, 'robots']);
         $router->get('/sitemap.xml', [$seoPublic, 'sitemap']);
@@ -324,6 +341,7 @@ final class Router
         $router->get('/admin/content/templates', [$contentAdmin, 'templates']);
         $router->get('/admin/content/product-detail-pages', [$contentAdmin, 'productDetailPages']);
         $router->get('/admin/content/product-detail-pages/preview/{id}', [$contentAdmin, 'productDetailPreview']);
+        $router->get('/admin/content/product-detail-pages/images/{id}', [$contentAdmin, 'productDetailImages']);
 
         $router->get('/admin/shop/categories', [$shop, 'categories']);
         $router->get('/admin/shop/specs', [$shop, 'specs']);
@@ -406,6 +424,7 @@ final class Router
 
         $router->post('/api/admin/login', [$adminApi, 'login']);
         $router->post('/api/admin/password', [$adminApi, 'changePassword']);
+        $router->post('/api/admin/users/create', [$adminApi, 'createUser']);
         $router->post('/api/admin/users/update', [$adminApi, 'updateUser']);
         $router->post('/api/admin/legal/update', [$adminApi, 'updateLegal']);
 
@@ -481,6 +500,9 @@ final class Router
         $router->post('/api/shop/cart/add', [$shopPublicApi, 'addCart']);
         $router->post('/api/shop/cart/update', [$shopPublicApi, 'updateCart']);
         $router->post('/api/shop/cart/remove', [$shopPublicApi, 'removeCart']);
+        $router->get('/api/shop/wishlist', [$shopPublicApi, 'wishlist']);
+        $router->post('/api/shop/wishlist/toggle', [$shopPublicApi, 'toggleWishlist']);
+        $router->post('/api/shop/wishlist/remove', [$shopPublicApi, 'removeWishlist']);
         $router->post('/api/shop/checkout', [$shopPublicApi, 'checkout']);
         $router->get('/api/shop/pay/methods', [$shopPublicApi, 'paymentMethods']);
         $router->post('/api/shop/pay/prepare', [$shopPublicApi, 'preparePayment']);

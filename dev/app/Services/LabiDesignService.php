@@ -57,6 +57,7 @@ final class LabiDesignService
             $officeSheet !== null
             && $forced !== 'generate_clipart'
             && $forced !== 'ask_image_mode'
+            && $forced !== 'chat'
         ) {
             $translateChoice = $this->resolveTranslateChoice($forced, $this->lastUserText($messages));
             if ($translateChoice === null && self::sheetHasForeignLanguage($officeSheet)) {
@@ -96,13 +97,24 @@ final class LabiDesignService
         ];
 
         if (!$skipAssist) {
-            $structured = $this->openai->chatLabelAssist($messages, $catalog);
+            $assistMessages = $messages;
+            if ($forced === 'chat') {
+                array_unshift($assistMessages, [
+                    'role' => 'system',
+                    'content' => '사용자는 대화 모드입니다. intent는 chat 또는 recommend_product만 쓰세요. 클립아트·템플릿·이미지 생성은 하지 말고, 용지 추천과 질문에는 텍스트로 답하세요.',
+                ]);
+            }
+            $structured = $this->openai->chatLabelAssist($assistMessages, $catalog);
         }
 
         $intent = (string) ($structured['intent'] ?? 'chat');
         $translateChoice = $this->resolveTranslateChoice($forced, $this->lastUserText($messages));
         if ($forced === 'translate_yes' || $forced === 'translate_no') {
             $intent = 'generate_template';
+        } elseif ($forced === 'chat') {
+            if (!in_array($intent, ['chat', 'recommend_product'], true)) {
+                $intent = 'chat';
+            }
         } elseif ($forced !== '') {
             $intent = $forced;
         } elseif ($explicit !== null) {
@@ -448,6 +460,7 @@ final class LabiDesignService
     {
         $intent = trim($intent);
         return in_array($intent, [
+            'chat',
             'generate_clipart',
             'generate_template',
             'generate_data_template',
