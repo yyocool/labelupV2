@@ -1400,6 +1400,41 @@ window.LabelUpLabiChat = {
     }
   }
 
+  const LABI_UNAVAILABLE_MSG = '지금은 라비를 잠시 사용할 수 없어요. 잠시 후 다시 시도해 주세요. 계속되면 고객센터(02-6956-5511)로 문의해 주세요.';
+
+  function isTechnicalLabiError(text) {
+    const t = String(text || '').trim();
+    if (t === '') return true;
+    if (/failed to fetch|networkerror|load failed|network request failed|abort(ed)?|timeout|timed out/i.test(t)) {
+      return true;
+    }
+    if (/openai|insufficient_quota|rate_limit|invalid_api_key|econn|ssl|curl/i.test(t)) {
+      return true;
+    }
+    if (/AI 응답을 받지 못했습니다|응답이 비어 있습니다/.test(t)) {
+      return true;
+    }
+    if (/^[A-Za-z0-9 ._:[\]'"\\/-]+$/.test(t)) {
+      return true;
+    }
+    return false;
+  }
+
+  function friendlyLabiError(err) {
+    const status = err && err.status;
+    const raw = err && err.message ? String(err.message) : '';
+    if (status === 402 || /잉크/.test(raw)) {
+      return raw.trim() || 'AI 잉크가 부족합니다. 충전한 뒤 다시 이용해 주세요.';
+    }
+    if (status === 401 || /로그인/.test(raw)) {
+      return raw.trim() || '로그인이 필요합니다.';
+    }
+    if (raw && !isTechnicalLabiError(raw)) {
+      return raw.trim();
+    }
+    return LABI_UNAVAILABLE_MSG;
+  }
+
   async function requestLabi(forceIntent) {
     if (sending) return;
     sending = true;
@@ -1424,7 +1459,7 @@ window.LabelUpLabiChat = {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data.success === false) {
-        const err = new Error(data.message || 'AI 응답을 받지 못했습니다.');
+        const err = new Error(data.message || '');
         err.code = (data.data && data.data.code) || '';
         err.status = res.status;
         throw err;
@@ -1435,7 +1470,7 @@ window.LabelUpLabiChat = {
       if (typeof payload.show_ai_usage === 'boolean') showAiUsage = payload.show_ai_usage;
       if (typeof payload.show_ai_debug === 'boolean') showAiDebug = payload.show_ai_debug;
       removeTyping(typing);
-      appendMessage('assistant', reply || '응답이 비어 있습니다.', {
+      appendMessage('assistant', reply || LABI_UNAVAILABLE_MSG, {
         product: payload.product || null,
         clipart: payload.clipart || null,
         template: payload.template || null,
@@ -1451,10 +1486,7 @@ window.LabelUpLabiChat = {
       }
     } catch (err) {
       removeTyping(typing);
-      const msg = err && err.status === 402
-        ? (err.message || 'AI 잉크가 부족합니다.')
-        : (err.message || '오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
-      appendMessage('assistant', msg);
+      appendMessage('assistant', friendlyLabiError(err));
     } finally {
       sending = false;
       syncComposer();

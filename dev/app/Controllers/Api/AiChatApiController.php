@@ -97,8 +97,18 @@ final class AiChatApiController extends BaseController
                 'error_message' => mb_substr($e->getMessage(), 0, 255),
                 'has_image' => $this->rawHasImage($rawMessages),
             ]);
-            $this->jsonError($e->getMessage(), null, 502);
+            $this->jsonError($this->publicErrorMessage($e), null, 502);
         }
+    }
+
+    private function publicErrorMessage(RuntimeException $e): string
+    {
+        $msg = trim($e->getMessage());
+        if ($msg !== '' && (str_contains($msg, '잉크') || str_contains($msg, '로그인') || str_contains($msg, '메시지를 입력'))) {
+            return $msg;
+        }
+
+        return '지금은 라비를 잠시 사용할 수 없어요. 잠시 후 다시 시도해 주세요. 계속되면 고객센터(02-6956-5511)로 문의해 주세요.';
     }
 
     private function normalizeSurface(string $surface): string
