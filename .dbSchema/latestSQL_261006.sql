@@ -1,4 +1,8 @@
 -- latestSQL_261006.sql (MySQL 5.5 compatible) - label_specs.shape 에 '맞춤 도넛'(custom_donut) 추가
+--
+-- 이 파일은 CREATE TABLE 전용 스냅샷이다. 샘플 데이터는 담지 않는다.
+-- 이미 운용 중인 DB를 고칠 때는 이 파일이 아니라 updateSQL_YYMMDD_(seq).sql 을 쓴다.
+-- CREATE TABLE IF NOT EXISTS 만 들어 있어 기존 테이블에는 아무 일도 하지 않기 때문이다.
 
 CREATE TABLE IF NOT EXISTS migrations (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -53,13 +57,6 @@ CREATE TABLE IF NOT EXISTS member_grades (
     UNIQUE KEY uk_member_grades_slug (slug),
     KEY idx_member_grades_sort (sort_order, id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
-
-INSERT INTO member_grades (name, slug, description, color, sort_order, is_default, is_active, created_at, updated_at) VALUES
-('??', 'general', '?? ???????.', '#6B7280', 10, 1, 1, NOW(), NOW()),
-('??', 'silver', '??? ???? ???? ???? ?????.', '#8A94A6', 20, 0, 1, NOW(), NOW()),
-('??', 'gold', '?? ???? ???? ?????.', '#C9A227', 30, 0, 1, NOW(), NOW()),
-('VIP', 'vip', '??? ???????.', '#7B2D3E', 40, 0, 1, NOW(), NOW())
-ON DUPLICATE KEY UPDATE name = VALUES(name);
 
 CREATE TABLE IF NOT EXISTS user_profiles (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -175,8 +172,12 @@ CREATE TABLE IF NOT EXISTS shop_products (
     spec_id BIGINT UNSIGNED NULL,
     name VARCHAR(200) NOT NULL,
     sku VARCHAR(80) NOT NULL,
+    spec_sheet_image VARCHAR(255) NULL COMMENT '상품규격 안내 이미지',
+    header_image VARCHAR(255) NULL COMMENT '상세 헤더 이미지',
+    shoot_image VARCHAR(255) NULL COMMENT '상세 촬영 이미지',
     price INT UNSIGNED NOT NULL DEFAULT 0,
     sale_price INT UNSIGNED NULL,
+    ink_amount INT UNSIGNED NULL COMMENT '지급 잉크. 값이 있으면 잉크 충전 상품',
     stock_qty INT NOT NULL DEFAULT 0,
     status ENUM('draft','active','soldout','hidden') NOT NULL DEFAULT 'draft',
     thumbnail VARCHAR(255) NULL,
@@ -238,7 +239,7 @@ CREATE TABLE IF NOT EXISTS shop_orders (
     status ENUM('pending','paid','preparing','shipping','delivered','cancelled','refunded') NOT NULL DEFAULT 'pending',
     payment_status ENUM('pending','paid','failed','refunded') NOT NULL DEFAULT 'pending',
     payment_provider VARCHAR(30) NULL COMMENT 'toss',
-    payment_method VARCHAR(80) NULL COMMENT '??/???? ?',
+    payment_method VARCHAR(80) NULL COMMENT 'card/easy-pay',
     payment_key VARCHAR(191) NULL COMMENT 'toss paymentKey',
     payment_payload TEXT NULL COMMENT 'confirm response summary',
     paid_at DATETIME NULL,
@@ -265,12 +266,39 @@ CREATE TABLE IF NOT EXISTS shop_order_items (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     order_id BIGINT UNSIGNED NOT NULL,
     product_id BIGINT UNSIGNED NULL,
+    option_id BIGINT UNSIGNED NULL,
     product_name VARCHAR(200) NOT NULL,
     sku VARCHAR(80) NOT NULL,
+    option_name VARCHAR(120) NULL,
+    option_price_delta INT NOT NULL DEFAULT 0,
     qty INT UNSIGNED NOT NULL DEFAULT 1,
     unit_price INT UNSIGNED NOT NULL DEFAULT 0,
     line_total INT UNSIGNED NOT NULL DEFAULT 0,
     KEY idx_shop_order_items_order (order_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS shop_product_options (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    product_id BIGINT UNSIGNED NOT NULL,
+    name VARCHAR(120) NOT NULL,
+    price_delta INT NOT NULL DEFAULT 0 COMMENT '기준가 대비 증감액(원). 음수 허용',
+    stock_qty INT NOT NULL DEFAULT 0,
+    sku_suffix VARCHAR(40) NULL COMMENT '주문 항목 SKU에 덧붙일 접미사',
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    KEY idx_shop_product_options_product (product_id, sort_order),
+    KEY idx_shop_product_options_active (product_id, is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE IF NOT EXISTS shop_product_wishlists (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    product_id BIGINT UNSIGNED NOT NULL,
+    created_at DATETIME NULL,
+    UNIQUE KEY uniq_shop_wishlist_user_product (user_id, product_id),
+    KEY idx_shop_wishlist_user (user_id, id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 CREATE TABLE IF NOT EXISTS shop_coupons (
@@ -301,63 +329,6 @@ CREATE TABLE IF NOT EXISTS shop_banners (
     created_at DATETIME NULL,
     updated_at DATETIME NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
-
-INSERT INTO shop_categories (name, slug, image_path, sort_order, is_active, created_at, updated_at) VALUES
-('?????/???/????/????', 'logistics-label', '/assets/categories/cat_logistics-label.webp', 1, 1, NOW(), NOW()),
-('?????? ??', 'government-doc', '/assets/categories/cat_government-doc.webp', 2, 1, NOW(), NOW()),
-('?? ??', 'gloss-label', '/assets/categories/cat_gloss-label.webp', 3, 1, NOW(), NOW()),
-('?? ??', 'waterproof-label', '/assets/categories/cat_waterproof-label.webp', 4, 1, NOW(), NOW()),
-('??? ??', 'translucent-label', '/assets/categories/cat_translucent-label.webp', 5, 1, NOW(), NOW()),
-('??? ?? ??', 'inkjet-clear-label', '/assets/categories/cat_inkjet-clear-label.webp', 6, 1, NOW(), NOW()),
-('??? ?? ??', 'laser-clear-label', '/assets/categories/cat_laser-clear-label.webp', 7, 1, NOW(), NOW()),
-('??? ??', 'protective-film', '/assets/categories/cat_protective-film.webp', 8, 1, NOW(), NOW()),
-('?? ??(??)', 'color-label', '/assets/categories/cat_color-label.webp', 9, 1, NOW(), NOW()),
-('??? ?? ??', 'pastel-color-label', '/assets/categories/cat_pastel-color-label.webp', 10, 1, NOW(), NOW()),
-('???? ??', 'kraft-label', '/assets/categories/cat_kraft-label.webp', 11, 1, NOW(), NOW())
-ON DUPLICATE KEY UPDATE name = VALUES(name), image_path = VALUES(image_path), sort_order = VALUES(sort_order), is_active = VALUES(is_active), updated_at = VALUES(updated_at);
-
-INSERT INTO label_specs (name, width_mm, height_mm, material, shape, labels_per_sheet, description, is_active, created_at, updated_at) VALUES
-('50x30mm ????', 50.00, 30.00, '????', 'rect', 40, '???????????? ???', 1, NOW(), NOW()),
-('100x50mm ????', 100.00, 50.00, '????', 'rect', 21, '?????? ???', 1, NOW(), NOW()),
-('40mm ???', 40.00, 40.00, 'PP', 'round', 35, '???????????, 1, NOW(), NOW()),
-('80x80mm ???', 80.00, 80.00, '???', 'rect', 12, '?????? ???', 1, NOW(), NOW()),
-('A4 ???? 210x297', 210.00, 297.00, '????', 'rect', 1, '?? ?????, 1, NOW(), NOW())
-ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at);
-
-INSERT INTO shop_products (category_id, spec_id, name, sku, price, sale_price, stock_qty, status, description, sort_order, created_at, updated_at) VALUES
-(1, 1, '50x30 ???? 500??, 'LBL-5030-500', 18500, 16900, 120, 'active', 'A4 40??? ??? ????', 1, NOW(), NOW()),
-(1, 2, '100x50 ???? 250??, 'LBL-10050-250', 22000, NULL, 85, 'active', '?????????? ????', 2, NOW(), NOW()),
-(1, 3, '40mm ??? PP 700??, 'LBL-R40-700', 15800, 14200, 200, 'active', '??????? PP ???', 3, NOW(), NOW()),
-(2, 4, '80x80 ????? 500??, 'THM-8080-500', 32000, 29500, 45, 'active', '?????? ?? ???', 4, NOW(), NOW()),
-(3, NULL, '?????????????????', 'PKG-START-01', 12000, NULL, 30, 'active', '??? ???? + ????????', 5, NOW(), NOW()),
-(4, 5, 'A4 ?? ??? 100??, 'CUS-A4-100', 45000, NULL, 0, 'soldout', '?? ?? ??? ???', 6, NOW(), NOW())
-ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at);
-
-INSERT INTO shop_coupons (code, name, discount_type, discount_value, min_order_amount, max_uses, used_count, starts_at, ends_at, is_active, created_at, updated_at) VALUES
-('WELCOME10', '??? ???10%', 'percent', 10, 10000, 500, 12, '2026-01-01 00:00:00', '2026-12-31 23:59:59', 1, NOW(), NOW()),
-('LABEL3000', '3,000?????', 'fixed', 3000, 30000, 200, 8, '2026-06-01 00:00:00', '2026-09-30 23:59:59', 1, NOW(), NOW()),
-('VIP15', 'VIP 15% ???', 'percent', 15, 50000, 50, 3, '2026-01-01 00:00:00', '2026-12-31 23:59:59', 1, NOW(), NOW())
-ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at);
-
-INSERT INTO shop_banners (title, subtitle, image_url, link_url, sort_order, is_active, created_at, updated_at) VALUES
-('??? ??? ????, '??? ?????+ ???? 15% ???', '/assets/hero-tall-1.webp', '/', 1, 1, NOW(), NOW()),
-('??? ??? ??? ??', 'WELCOME10 ????10% ???', '/assets/hero-tall-2.webp', '/register', 2, 1, NOW(), NOW()),
-('?? ??? ???', '?????????? ?? ??', '/assets/hero-tall-3.webp', '/', 3, 1, NOW(), NOW())
-ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at);
-
-INSERT INTO shop_orders (order_no, user_id, customer_name, customer_email, customer_phone, status, payment_status, subtotal, shipping_fee, discount_amount, total_amount, shipping_name, shipping_phone, shipping_address, shipping_memo, carrier, tracking_no, created_at, updated_at) VALUES
-('LU202608270001', 1, '????', 'label.sample1@example.com', '010-1234-5678', 'delivered', 'paid', 33700, 3000, 3000, 33700, '????', '010-1234-5678', '???????????????????123 4??, '???? ??', 'CJ???????, '123456789012', DATE_SUB(NOW(), INTERVAL 5 DAY), NOW()),
-('LU202608270002', NULL, '??????', 'sticker@example.com', '010-9876-5432', 'shipping', 'paid', 22000, 3000, 0, 25000, '??????', '010-9876-5432', '??????????????????45', NULL, '?????????, '987654321098', DATE_SUB(NOW(), INTERVAL 2 DAY), NOW()),
-('LU202608270003', NULL, '????, 'parcel@example.com', '010-5555-7777', 'preparing', 'paid', 47400, 0, 4740, 42660, '????, '010-5555-7777', '???????? ?????????????99', '?? ?? ???, NULL, NULL, DATE_SUB(NOW(), INTERVAL 1 DAY), NOW()),
-('LU202608270004', NULL, '????, 'cafe@example.com', '010-2222-3333', 'pending', 'pending', 15800, 3000, 0, 18800, '????, '010-2222-3333', '???????? ??????????? 200', NULL, NULL, NULL, NOW(), NOW())
-ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at);
-
-INSERT INTO shop_order_items (order_id, product_id, product_name, sku, qty, unit_price, line_total) VALUES
-(1, 1, '50x30 ???? 500??, 'LBL-5030-500', 2, 16900, 33800),
-(2, 2, '100x50 ???? 250??, 'LBL-10050-250', 1, 22000, 22000),
-(3, 4, '80x80 ????? 500??, 'THM-8080-500', 1, 29500, 29500),
-(3, 3, '40mm ??? PP 700??, 'LBL-R40-700', 1, 14200, 14200),
-(4, 3, '40mm ??? PP 700??, 'LBL-R40-700', 1, 14200, 14200);
 
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -448,42 +419,6 @@ CREATE TABLE IF NOT EXISTS user_cs_logs (
     KEY idx_user_cs_logs_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
-INSERT INTO credit_reward_rules (code, name, description, credit_amount, trigger_type, daily_limit, max_total_per_user, is_active, sort_order, created_at, updated_at) VALUES
-('SIGNUP_WELCOME', '????????? ?????, '??? ?????1?????, 500, 'signup', NULL, 1, 1, 1, NOW(), NOW()),
-('DAILY_LOGIN', '??? ??? ??', '??? 1???????????, 10, 'daily_login', 1, NULL, 1, 2, NOW(), NOW()),
-('DESIGN_COMPLETE', '???????? ??', '??? ???????????? ??, 50, 'design_complete', 5, NULL, 1, 3, NOW(), NOW()),
-('REFERRAL', '?? ?? ??', '?????????? ??, 300, 'referral', NULL, 10, 1, 4, NOW(), NOW()),
-('EVENT_BONUS', '?????????, '??? ???????? ???', 100, 'event', NULL, NULL, 1, 5, NOW(), NOW())
-ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at);
-
-INSERT INTO purchase_credit_products (name, sku, credit_amount, description, is_active, created_at, updated_at) VALUES
-('??????????????', 'PKG-CREDIT-START', 1000, '???????? ??? ?? ?????', 1, NOW(), NOW()),
-('????? ???? ???', 'PKG-CREDIT-PREM', 2500, '????? ???? ????', 1, NOW(), NOW()),
-('A4 ?? ??? 100??, 'PKG-CREDIT-A4', 5000, '?? ??? ??? ?? ?????, 1, NOW(), NOW())
-ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at);
-
-INSERT INTO purchase_credit_codes (product_id, code, batch_no, is_redeemed, created_at) VALUES
-(1, 'LU-START-2026-A001', 'BATCH-202608', 0, NOW()),
-(1, 'LU-START-2026-A002', 'BATCH-202608', 0, NOW()),
-(2, 'LU-PREM-2026-B001', 'BATCH-202608', 0, NOW()),
-(3, 'LU-A4-2026-C001', 'BATCH-202608', 1, NOW())
-ON DUPLICATE KEY UPDATE batch_no = VALUES(batch_no);
-
-UPDATE purchase_credit_codes SET redeemed_by_user_id = 1, redeemed_at = DATE_SUB(NOW(), INTERVAL 3 DAY) WHERE code = 'LU-A4-2026-C001';
-
-INSERT INTO credit_transactions (user_id, amount, balance_after, tx_type, source, source_ref, description, created_at) VALUES
-(1, 500, 500, 'earn', 'reward', 'SIGNUP_WELCOME', '????????? ?????, DATE_SUB(NOW(), INTERVAL 30 DAY)),
-(1, 5000, 5500, 'earn', 'purchase_code', 'LU-A4-2026-C001', 'A4 ?? ??? 100???? ?? ???', DATE_SUB(NOW(), INTERVAL 3 DAY)),
-(1, -200, 5300, 'spend', 'order', 'design-export', 'AI ??? ??????', DATE_SUB(NOW(), INTERVAL 1 DAY))
-ON DUPLICATE KEY UPDATE description = VALUES(description);
-
-INSERT INTO user_credits (user_id, balance, updated_at) VALUES (1, 5300, NOW())
-ON DUPLICATE KEY UPDATE balance = VALUES(balance), updated_at = VALUES(updated_at);
-
-INSERT INTO user_cs_logs (user_id, admin_id, category, subject, content, status, created_at, updated_at) VALUES
-(1, 1, 'inquiry', '?? ??? ??', '???????? ?? ???????? ???', 'resolved', DATE_SUB(NOW(), INTERVAL 7 DAY), NOW()),
-(1, 1, 'technical', '????????????', '?????????????????? ??', 'in_progress', DATE_SUB(NOW(), INTERVAL 2 DAY), NOW())
-ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at);
 CREATE TABLE IF NOT EXISTS home_hero_slides (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(150) NOT NULL DEFAULT '',
@@ -496,12 +431,6 @@ CREATE TABLE IF NOT EXISTS home_hero_slides (
     updated_at DATETIME NULL,
     KEY idx_home_hero_slides_active_sort (is_active, sort_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
-
-INSERT INTO home_hero_slides (title, alt_text, image_url, link_url, sort_order, is_active, created_at, updated_at) VALUES
-('??? ?????? ?????? ????, '??? ????? ????? ????QR ?? ???', '/assets/hero-tall-1.webp', '/', 1, 1, NOW(), NOW()),
-('??? ???????', '?????????????', '/assets/hero-tall-2.webp', '/', 2, 1, NOW(), NOW()),
-('????? QR ???', '????QR ??? ???', '/assets/hero-tall-3.webp', '/', 3, 1, NOW(), NOW())
-ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at);
 
 CREATE TABLE IF NOT EXISTS clipart_categories (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -769,7 +698,7 @@ CREATE TABLE IF NOT EXISTS marketing_files (
 CREATE TABLE IF NOT EXISTS user_shipping_addresses (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT UNSIGNED NOT NULL,
-    label VARCHAR(40) NOT NULL DEFAULT '???',
+    label VARCHAR(40) NOT NULL DEFAULT '배송지',
     recipient_name VARCHAR(100) NOT NULL,
     recipient_phone VARCHAR(30) NOT NULL,
     zip VARCHAR(10) NOT NULL DEFAULT '',
@@ -789,7 +718,7 @@ CREATE TABLE IF NOT EXISTS site_intro (
     source_type VARCHAR(20) NOT NULL DEFAULT 'youtube',
     youtube_url VARCHAR(500) NOT NULL DEFAULT '',
     video_path VARCHAR(500) NOT NULL DEFAULT '',
-    skip_label VARCHAR(80) NOT NULL DEFAULT '????',
+    skip_label VARCHAR(80) NOT NULL DEFAULT '건너뛰기',
     updated_at DATETIME NULL,
     PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
@@ -841,27 +770,26 @@ CREATE TABLE IF NOT EXISTS ai_credit_costs (
     updated_at DATETIME NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
--- project DB: ???? (??? ?? + ??)
+-- project DB: 개발범위(dev_scope_items)
 CREATE TABLE IF NOT EXISTS `dev_scope_items` (
     `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `project_id` INT UNSIGNED NOT NULL,
     `parent_id` INT UNSIGNED DEFAULT NULL,
-    `depth` TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '1=?? 2=?? 3=??',
+    `depth` TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '1=영역 2=블록 3=항목',
     `phase_key` VARCHAR(40) NOT NULL DEFAULT 'phase-1',
     `title` VARCHAR(500) NOT NULL,
     `description` TEXT NULL,
     `priority` VARCHAR(10) NOT NULL DEFAULT 'P1',
     `status` VARCHAR(20) NOT NULL DEFAULT 'planned',
-    `client_confirmed` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '??? ??',
+    `client_confirmed` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '고객사 확인',
     `client_confirmed_at` DATETIME NULL,
     `client_confirmed_by` INT UNSIGNED DEFAULT NULL,
-    `review_confirmed` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '?? ??',
+    `review_confirmed` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '검수 확인',
     `review_confirmed_at` DATETIME NULL,
     `review_confirmed_by` INT UNSIGNED DEFAULT NULL,
-    `review_comment` TEXT NULL COMMENT '?? ???',
+    `review_comment` TEXT NULL COMMENT '검수 코멘트',
     `sort_order` INT NOT NULL DEFAULT 0,
-    `style_json` TEXT NULL COMMENT '? ??? JSON',
+    `style_json` TEXT NULL COMMENT '셀 스타일 JSON',
     `created_by` INT UNSIGNED DEFAULT NULL,
     `updated_by` INT UNSIGNED DEFAULT NULL,
     `created_at` DATETIME NOT NULL,
@@ -870,17 +798,17 @@ CREATE TABLE IF NOT EXISTS `dev_scope_items` (
     INDEX `idx_dev_scope_parent` (`parent_id`),
     INDEX `idx_dev_scope_depth` (`depth`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
--- QR coupon groups (??????? QR ??? ???)
+-- QR coupon groups (무료배포 QR 그룹 체계 · 제품분류 11 · QR그룹 19)
 CREATE TABLE IF NOT EXISTS qr_coupon_groups (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    group_no SMALLINT UNSIGNED NOT NULL COMMENT 'QR ???No. 1-19',
-    category_no SMALLINT UNSIGNED NOT NULL COMMENT '??? ???No. 1-11',
+    group_no SMALLINT UNSIGNED NOT NULL COMMENT 'QR 그룹No. 1-19',
+    category_no SMALLINT UNSIGNED NOT NULL COMMENT '제품 분류No. 1-11',
     category_slug VARCHAR(100) NOT NULL,
     category_name VARCHAR(150) NOT NULL,
-    sheets_per_pack INT UNSIGNED NOT NULL COMMENT '???/??',
-    list_price INT UNSIGNED NOT NULL COMMENT '???? ??????(??)',
-    credit_amount INT UNSIGNED NULL COMMENT '???? ?????(???? ???)',
-    color_hex CHAR(7) NOT NULL DEFAULT '#9b1c1c' COMMENT '???No. ?? ????',
+    sheets_per_pack INT UNSIGNED NOT NULL COMMENT '매수/팩',
+    list_price INT UNSIGNED NOT NULL COMMENT '정상 소비자가(원)',
+    credit_amount INT UNSIGNED NULL COMMENT '지급 크레딧(추후 확정)',
+    color_hex CHAR(7) NOT NULL DEFAULT '#9b1c1c' COMMENT '분류No. 셀 배경색',
     is_active TINYINT(1) NOT NULL DEFAULT 1,
     created_at DATETIME NULL,
     updated_at DATETIME NULL,
@@ -928,7 +856,7 @@ CREATE TABLE IF NOT EXISTS qr_coupon_codes (
 CREATE TABLE IF NOT EXISTS qr_print_templates (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     template_key VARCHAR(64) NOT NULL DEFAULT 'default',
-    name VARCHAR(150) NOT NULL DEFAULT 'QR ?????',
+    name VARCHAR(150) NOT NULL DEFAULT 'QR 출력템플릿',
     paper_json LONGTEXT NOT NULL,
     objects_json LONGTEXT NOT NULL,
     settings_json LONGTEXT NULL,
@@ -956,6 +884,7 @@ CREATE TABLE IF NOT EXISTS shop_product_page_category_settings (
     footer_html LONGTEXT NULL,
     header_image VARCHAR(500) NULL,
     footer_image VARCHAR(500) NULL,
+    hashtags VARCHAR(1000) NULL COMMENT '카테고리 해시태그 JSON 배열',
     created_at DATETIME NULL,
     updated_at DATETIME NULL,
     PRIMARY KEY (category_id)
@@ -963,10 +892,30 @@ CREATE TABLE IF NOT EXISTS shop_product_page_category_settings (
 
 -- 2026-09-17: seo.company_* keys + privacy title update (see updateSQL_260917_1.sql / migration 048)
 
-
 CREATE TABLE IF NOT EXISTS site_settings (
     setting_key VARCHAR(80) NOT NULL,
     setting_value MEDIUMTEXT NULL,
     updated_at DATETIME NULL,
     PRIMARY KEY (setting_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+-- 2026-10-04: partners (회원 users 와 분리된 협력사 계정)
+
+CREATE TABLE IF NOT EXISTS partners (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    company_name VARCHAR(120) NOT NULL,
+    login_id VARCHAR(60) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    contact_name VARCHAR(80) NULL,
+    phone VARCHAR(30) NULL,
+    email VARCHAR(190) NULL,
+    memo VARCHAR(500) NULL,
+    status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+    last_login_at DATETIME NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    deleted_at DATETIME NULL,
+    UNIQUE KEY uk_partners_login_id (login_id),
+    KEY idx_partners_status (status),
+    KEY idx_partners_deleted_at (deleted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

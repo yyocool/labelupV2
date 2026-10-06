@@ -46,11 +46,19 @@
   <script src="/js/daum-address.js?v=20260906c"></script>
   <script src="/js/address-book.js?v=20260913a"></script>
   <script src="/js/toss-pay.js?v=20261001a"></script>
-  <script src="_framework/blazor.webassembly.js?v=20260915ae" autostart="false"></script>
+  <!--
+    아래 ?v= 자리 글자는 퍼블리시할 때 scripts/publish_editor.py 가 blazor.boot.json
+    해시로 바꿔 준다. _framework 의 LabelUp.Editor.wasm·dotnet.native.wasm·blazor.boot.json
+    은 파일 이름이 고정이라 이 토큰이 유일한 캐시 무효화 수단이다. 토큰이 빌드마다 바뀌지
+    않으면 브라우저가 낡은 네이티브 wasm 과 새 어셈블리를 섞어 쓰다가 네이티브 호출을 찾지
+    못해 통째로 죽는다. loadBootResource 가 주소를 돌려주면 Blazor 는 integrity 검사를
+    건너뛰므로 섞여도 걸러 주지 못한다. 그래서 토큰이 내용에 따라 바뀌는 것이 더욱 중요하다.
+  -->
+  <script src="_framework/blazor.webassembly.js?v=9d667bcf333a" autostart="false"></script>
   <script>
     Blazor.start({
       loadBootResource: function (type, name, defaultUri) {
-        return defaultUri + (defaultUri.indexOf('?') >= 0 ? '&' : '?') + 'v=20260915ae';
+        return defaultUri + (defaultUri.indexOf('?') >= 0 ? '&' : '?') + 'v=9d667bcf333a';
       }
     });
   </script>

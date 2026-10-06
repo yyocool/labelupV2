@@ -199,7 +199,13 @@
                 ? Papers.ShopPapers
                 : Papers.Papers.Select(ToFallbackItem).ToList();
             if (Papers.ShopPapers.Count == 0)
-                _error = "등록된 쇼핑몰 용지가 없어 기본 용지를 표시합니다.";
+            {
+                // 왜 기본 용지만 보이는지 화면에서 바로 알 수 있어야 한다. 서버가 오류를
+                // 냈을 때와 등록된 용지가 없을 때는 손볼 곳이 전혀 다르다.
+                _error = Papers.ShopLoadError is { Length: > 0 } why
+                    ? $"{why} 기본 용지 {Papers.Papers.Count}종만 표시합니다."
+                    : $"등록된 쇼핑몰 용지가 없어 기본 용지 {Papers.Papers.Count}종만 표시합니다.";
+            }
         }
         catch (Exception ex)
         {

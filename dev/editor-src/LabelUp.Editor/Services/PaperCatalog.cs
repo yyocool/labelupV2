@@ -38,6 +38,12 @@ public sealed class PaperCatalog
     public IReadOnlyList<ShopPaperCategory> ShopCategories => _shopCategories;
     public VendorPaperMap Map => _map;
 
+    /// <summary>
+    /// 상점 용지 목록을 못 받아 온 까닭. 받아 왔으면 null이다. 목록이 비는 것과 서버가
+    /// 오류를 낸 것은 고쳐야 할 곳이 전혀 달라서, 화면에 그대로 구분해 보여 준다.
+    /// </summary>
+    public string? ShopLoadError { get; private set; }
+
     public async Task EnsureLoadedAsync()
     {
         if (_loaded) return;
@@ -93,7 +99,13 @@ public sealed class PaperCatalog
         if (_shopLoaded) return;
 
         if (!await TryLoadShopPapersAsync(_api.Url(PapersEndpoint)))
-            await TryLoadShopPapersAsync(_api.Url(LegacyPapersEndpoint));
+        {
+            // 예전 주소로도 한 번 더 해 본다. 둘 다 실패하면 먼저 쓴 주소의 까닭이 더
+            // 쓸모 있으므로 그것을 남긴다.
+            var first = ShopLoadError;
+            if (!await TryLoadShopPapersAsync(_api.Url(LegacyPapersEndpoint)))
+                ShopLoadError = first ?? ShopLoadError;
+        }
 
         _shopLoaded = true;
         EditorLog.Info($"상점 라벨 {_shopPapers.Count}종 로드");
@@ -108,6 +120,7 @@ public sealed class PaperCatalog
             if (env?.Success != true || env.Data is null)
             {
                 EditorLog.Warn($"상점 라벨 응답 오류: {url} ({env?.Message})");
+                ShopLoadError = $"용지 목록 서버 오류: {env?.Message ?? "알 수 없는 오류"}";
                 return false;
             }
 
@@ -119,11 +132,18 @@ public sealed class PaperCatalog
             }
             _shopCategories.Clear();
             _shopCategories.AddRange(env.Data.Categories ?? []);
-            return _shopPapers.Count > 0;
+            if (_shopPapers.Count == 0)
+            {
+                ShopLoadError = "서버가 보낸 용지 목록이 비어 있습니다.";
+                return false;
+            }
+            ShopLoadError = null;
+            return true;
         }
         catch (Exception ex)
         {
             EditorLog.Warn($"상점 라벨 목록 로드 실패: {url} ({ex.Message})");
+            ShopLoadError = $"용지 목록 서버 응답 실패: {ex.Message}";
             return false;
         }
     }

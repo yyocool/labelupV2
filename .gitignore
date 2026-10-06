@@ -29,6 +29,10 @@ desktop.ini
 *.swp
 *~
 
+# ── Python 캐시 (배포 스크립트 실행 흔적) ──
+__pycache__/
+*.pyc
+
 # ── Docker ──
 .env
 dev/.env
