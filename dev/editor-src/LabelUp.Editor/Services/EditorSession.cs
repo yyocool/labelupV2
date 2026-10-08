@@ -641,11 +641,19 @@ public sealed class EditorSession
 
     /// <summary>
     /// 라벨 칸을 넘나들며 같은 자료연결 항목을 찾는 열쇠. 자료 행 수에 맞춰 칸을 채울 때
-    /// 사본마다 새 Id를 주므로 Id로는 맞출 수 없다. 종류·열·자리로 맞춘다.
+    /// 사본마다 새 Id를 주므로 Id로는 맞출 수 없다. 종류·열·표시방식으로 맞춘다.
+    ///
+    /// 자리(X·Y·너비·높이)는 넣지 않는다. 칸을 채우는 순간에는 모든 칸이 같은 자리지만,
+    /// 그 뒤에 보고 있는 칸에서 항목을 옮기거나 크기를 바꾸면 그 칸만 달라진다. 자리를
+    /// 열쇠에 넣으면 그때부터 다른 칸과 맞지 않아, 지워도 보고 있는 칸에서만 사라지고
+    /// 나머지 칸에는 그대로 남는다. 남으면 자료 행에 맞춰 칸을 다시 채울 때 되살아나고,
+    /// 자료 판넬도 그 열이 아직 라벨에 있다고 보아 '라벨에 추가'를 돌려주지 않는다.
+    ///
+    /// 한 라벨에 같은 열을 같은 모양으로 두 번 올려 두었다면 둘 다 지워진다. 확인 창이
+    /// "모든 라벨에서 연결이 해제됩니다"라고 미리 알리는 것이 이 뜻이고, 되돌리기도 걸려 있다.
     /// </summary>
     private static string BoundKey(DesignObject o)
-        => $"{(int)o.Type}|{(o.DataColumn ?? "").Trim().ToLowerInvariant()}|{o.DataDisplayKind}|"
-           + $"{o.X:0.##}|{o.Y:0.##}|{o.Width:0.##}|{o.Height:0.##}";
+        => $"{(int)o.Type}|{(o.DataColumn ?? "").Trim().ToLowerInvariant()}|{o.DataDisplayKind}";
 
     /// <summary>
     /// 고른 항목을 지운다. 자료연결 항목은 모든 라벨 칸에서 함께 지운다.
@@ -655,8 +663,10 @@ public sealed class EditorSession
     public int DeleteSelectionWithBound()
     {
         if (SelectedIds.Count == 0) return 0;
+        // 열 이름이 없는 자료연결 항목은 맞출 근거가 없다. 빈 이름으로 열쇠를 만들면
+        // 이름 없는 다른 연결 항목까지 쓸어 가므로, 그런 것은 보고 있는 칸에서만 지운다.
         var keys = SelectedObjects
-            .Where(o => o.DataBound)
+            .Where(o => o.DataBound && !string.IsNullOrWhiteSpace(o.DataColumn))
             .Select(BoundKey)
             .ToHashSet(StringComparer.Ordinal);
 
@@ -670,7 +680,9 @@ public sealed class EditorSession
 
         ClearSelection();
         Dirty = true;
-        Status = unbound > 0 ? "자료연결을 해제하고 모든 라벨에서 지웠습니다" : "삭제됨";
+        // 보고 있는 칸에만 있던 연결이면 unbound 가 0이지만 연결이 풀린 것은 마찬가지다.
+        // 고른 것에 연결 항목이 있었는지로 알린다.
+        Status = keys.Count > 0 ? "자료연결을 해제하고 모든 라벨에서 지웠습니다" : "삭제됨";
         Notify();
         return unbound;
     }
