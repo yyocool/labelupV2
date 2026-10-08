@@ -4653,6 +4653,11 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   font: inherit;
   text-align: center;
 }
+/* 배율 보정 줄은 위치 보정 줄과 사정이 다르다. 이름이 '가로 설계'처럼 길고 값도
+   199.95 같은 세 자리 소수라, 같은 폭을 쓰면 숫자가 잘린다. 이름을 왼쪽에 붙이고
+   칸을 넓게 준다. */
+.ed-print__dirs--calib .ed-print__nudge { justify-content: space-between; gap: 10px; }
+.ed-print__dirs--calib .ed-print__nudge input { width: 96px; }
 .ed-shape-pop {
   position: absolute;
   top: calc(100% + 8px);

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 import shutil
 import subprocess
 import sys
@@ -10,6 +11,19 @@ import time
 from pathlib import Path
 
 BOOT_SENTINEL = "BOOTSTAMP"
+
+# index.html 이 ?v= 를 달고 부르는, public/editor 안에 함께 실리는 파일들.
+# 이 목록에 있는 것은 퍼블리시할 때마다 내용 해시로 토큰을 새로 찍는다.
+# /js/home-ai-chat.js 처럼 사이트 뿌리에서 오는 것은 여기서 해시를 뜰 수 없어 뺀다.
+LOCAL_ASSETS = (
+    "css/app.css",
+    "css/editor.css",
+    "css/tutorial.css",
+    "js/editor.js",
+    "js/panel-dock.js",
+    "js/tutorial.js",
+    "img/labi-wink.png",
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 PROJECT = ROOT / "editor-src" / "LabelUp.Editor"
@@ -79,6 +93,52 @@ def stamp_boot_version(out: Path) -> int:
 
     index.write_text(text.replace(BOOT_SENTINEL, stamp), encoding="utf-8")
     print(f"Stamped boot cache token v={stamp} ({hits} spots)")
+    return 0
+
+
+def stamp_local_assets(out: Path) -> int:
+    """index.html 이 부르는 css·js·이미지의 ?v= 를 내용 해시로 바꾼다.
+
+    이 토큰들은 여태 손으로 적었고, 그래서 멈춰 있었다. 2026-10-08 에 editor.js 에
+    단축키를 넣어 올렸는데 토큰은 20261006svg 그대로여서, 그 파일을 캐시에 들고 있던
+    브라우저는 새 코드를 받지 못했다. 서버가 /editor 응답에 Cache-Control 을 주지 않아
+    브라우저가 제 나름대로 오래 들고 있기 때문에 더 그렇다.
+
+    해시로 찍으면 내용이 바뀔 때만 토큰이 움직이고 안 바뀌면 그대로라, 받을 것만 받는다.
+    """
+    index = out / "index.html"
+    if not index.exists():
+        print("index.html missing; cannot stamp asset versions", file=sys.stderr)
+        return 1
+
+    text = index.read_text(encoding="utf-8")
+    stamped = []
+    for rel in LOCAL_ASSETS:
+        if f'"{rel}' not in text and f'"/{rel}' not in text:
+            continue  # 더 이상 부르지 않는 파일. 캐시 걱정도 없다.
+        target = out / rel
+        if not target.exists():
+            print(f"index.html references {rel} but it was not published", file=sys.stderr)
+            return 1
+
+        stamp = hashlib.sha256(target.read_bytes()).hexdigest()[:12]
+        text, hits = re.subn(
+            r'("/?' + re.escape(rel) + r'\?v=)[^"]*"',
+            lambda m: m.group(1) + stamp + '"',
+            text,
+        )
+        if hits == 0:
+            print(
+                f"{rel} is referenced without a ?v= token, so browsers can keep serving an "
+                "old copy after deploy. Add ?v= to it in "
+                "editor-src/LabelUp.Editor/wwwroot/index.html.",
+                file=sys.stderr,
+            )
+            return 1
+        stamped.append(f"{rel}={stamp}")
+
+    index.write_text(text, encoding="utf-8")
+    print("Stamped asset versions: " + ", ".join(stamped))
     return 0
 
 
@@ -187,6 +247,9 @@ def main() -> int:
 
     # ICU 손질이 blazor.boot.json 을 고치므로 그 뒤에 해시를 떠야 한다.
     if stamp_boot_version(OUT) != 0:
+        return 1
+
+    if stamp_local_assets(OUT) != 0:
         return 1
 
     # PHPS(www.labelup.co.kr) 500s if any .htaccess exists under /editor/.
