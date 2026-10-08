@@ -613,6 +613,13 @@ window.labelUpEditor = {
       console.error('[LabelUp] downloadBase64', e);
     }
   },
+  // 인쇄 배율 보정은 프린터의 성질이라 문서가 아니라 이 브라우저에 남는다.
+  getPrintCalibration: function () {
+    try { return localStorage.getItem('labelup.print.calibration.v1'); } catch (e) { return null; }
+  },
+  setPrintCalibration: function (json) {
+    try { localStorage.setItem('labelup.print.calibration.v1', json); } catch (e) { /* ignore */ }
+  },
   saveDraft: function (key, json) {
     try { localStorage.setItem(key, json); } catch (e) { console.warn(e); }
   },

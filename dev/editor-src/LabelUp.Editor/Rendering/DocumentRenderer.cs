@@ -2779,7 +2779,9 @@ public static class DocumentRenderer
         float offsetYMm,
         Func<int, DesignObject, string>? resolve = null,
         bool drawCutLines = false,
-        bool paintPaperColor = true)
+        bool paintPaperColor = true,
+        float printScaleXPct = 100f,
+        float printScaleYPct = 100f)
     {
         doc.EnsureStructure();
         pageIndex = Math.Clamp(pageIndex, 0, doc.Pages.Count - 1);
@@ -2802,6 +2804,15 @@ public static class DocumentRenderer
         var paperBg = ColorUtil.Parse(paper.LabelColor);
         canvas.Clear(paintPaperColor && paperBg.Alpha != 0 ? paperBg : SKColors.White);
         canvas.Scale(scaleX, scaleY);
+        // 프린터 이송 오차 보정. 용지 왼쪽 위를 기준으로 줄인다. 오차는 종이가 들어가기
+        // 시작하는 그 지점부터 쌓이므로, 기준을 다른 데 두면 윗부분이 도리어 어긋난다.
+        // 위치 보정보다 먼저 거는 것도 같은 까닭이다. '아래로 2mm'는 종이 위에서 2mm 라야
+        // 하므로 그 값도 함께 눌려서 나가야 한다.
+        var compX = printScaleXPct / 100f;
+        var compY = printScaleYPct / 100f;
+        if (float.IsFinite(compX) && float.IsFinite(compY)
+            && (Math.Abs(compX - 1f) > 0.000005f || Math.Abs(compY - 1f) > 0.000005f))
+            canvas.Scale(compX, compY);
         canvas.Translate(offsetXMm, offsetYMm);
 
         var page = doc.Pages[pageIndex];

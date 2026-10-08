@@ -3,6 +3,7 @@
 @using LabelUp.Editor.Services
 @inject EditorSession Session
 @inject ExportService Export
+@inject PrintCalibration Calib
 @implements IDisposable
 
 @if (Session.Dialog == EditorDialog.PrintPreview)
@@ -82,6 +83,42 @@
           <p class="ed-print__hint">
             용지 규격 그대로 실제 크기(1:1)로 출력합니다. 인쇄 설정에서 배율 100%, 여백 '없음'을 선택하세요.
           </p>
+
+          @* 프린터는 종이를 끌어 보내면서 세로로 0.3~0.5% 쯤 어긋나는 일이 흔하다.
+             고장이 아니라 정상 범위의 기계 특성이라, 칼선과 맞추려면 그만큼 미리
+             줄여 보내는 수밖에 없다. 자를 댄 값을 그대로 받아 나눗셈은 우리가 한다. *@
+          <p>인쇄 배율 보정 (이 브라우저에만 저장)</p>
+          <div class="ed-print__dirs">
+            <label class="ed-print__nudge">
+              가로 설계
+              <input type="number" step="0.1" value="@Fmt3(DesignSpanXMm)" disabled />
+              mm
+            </label>
+            <label class="ed-print__nudge">
+              가로 실측
+              <input type="number" step="0.1" value="@Fmt3(_measuredX)" @onchange="e => SetMeasured(false, e)" />
+              mm
+            </label>
+            <label class="ed-print__nudge">
+              세로 설계
+              <input type="number" step="0.1" value="@Fmt3(DesignSpanYMm)" disabled />
+              mm
+            </label>
+            <label class="ed-print__nudge">
+              세로 실측
+              <input type="number" step="0.1" value="@Fmt3(_measuredY)" @onchange="e => SetMeasured(true, e)" />
+              mm
+            </label>
+          </div>
+          <p class="ed-print__hint">
+            칼선 인쇄로 한 장 뽑아 첫 칼선부터 마지막 칼선까지 재어 '실측'에 넣으세요.
+            지금 보정: 가로 @Fmt3(Calib.ScaleXPct)% · 세로 @Fmt3(Calib.ScaleYPct)%.
+            보정은 프린터로 보낼 때만 걸립니다. 'PDF용 PNG 저장'은 남에게 줄 수 있는 파일이라 1:1 그대로 둡니다.
+            @if (Calib.HasAdjustment)
+            {
+              <button type="button" class="ed-btn" @onclick="ResetCalibration">보정 지우기</button>
+            }
+          </p>
         </div>
       </div>
       <footer class="ed-modal__foot">
@@ -107,9 +144,39 @@
     /// 라벨 테두리를 따라 빨간 줄이 남으므로 기본은 꺼 둔다.
     /// </summary>
     private bool _printCutLines;
+    /// <summary>자로 잰 값. 빈 칸이면 설계값과 같다고 보고 보정하지 않는다.</summary>
+    private float _measuredX;
+    private float _measuredY;
     private static readonly System.Globalization.CultureInfo Inv = System.Globalization.CultureInfo.InvariantCulture;
 
     private static string Fmt(float v) => v.ToString("0.#", Inv);
+
+    private static string Fmt3(float v) => v.ToString("0.###", Inv);
+
+    /// <summary>
+    /// 첫 칼선부터 마지막 칼선까지의 길이. 사용자가 자를 대는 구간과 같아야 하므로
+    /// 칸을 둘러싼 테두리에서 낸다. 규격마다 격자일 수도 자유 배치일 수도 있어
+    /// 행·열로 셈하지 않고 실제 칸 위치에서 뽑는다.
+    /// </summary>
+    private (float X, float Y) DesignSpan
+    {
+        get
+        {
+            float minX = float.MaxValue, maxX = float.MinValue;
+            float minY = float.MaxValue, maxY = float.MinValue;
+            foreach (var slot in Session.Document.Paper.EnumerateSlots())
+            {
+                minX = Math.Min(minX, slot.X);
+                maxX = Math.Max(maxX, slot.X + slot.W);
+                minY = Math.Min(minY, slot.Y);
+                maxY = Math.Max(maxY, slot.Y + slot.H);
+            }
+            return minX > maxX || minY > maxY ? (0f, 0f) : (maxX - minX, maxY - minY);
+        }
+    }
+
+    private float DesignSpanXMm => DesignSpan.X;
+    private float DesignSpanYMm => DesignSpan.Y;
 
     protected override void OnInitialized() => Session.Changed += OnChanged;
     public void Dispose() => Session.Changed -= OnChanged;
@@ -124,9 +191,48 @@
             Session.ExpandCustomSerial();
             _page = Math.Clamp(Session.PageIndex, 0, Math.Max(0, Session.Document.Pages.Count - 1));
             Rebuild();
+            _ = InvokeAsync(LoadCalibrationAsync);
         }
         if (Session.Dialog != EditorDialog.PrintPreview) _opened = false;
         _ = InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// 저장된 보정을 실측 칸에 되돌려 보여 준다. 배율만 적어 두면 다음에 열었을 때
+    /// 그 값이 어디서 나온 것인지 알 수 없어 고치기가 겁난다.
+    /// </summary>
+    private async Task LoadCalibrationAsync()
+    {
+        await Calib.LoadAsync();
+        var (dx, dy) = DesignSpan;
+        _measuredX = Calib.ScaleXPct > 0.01f ? dx * 100f / Calib.ScaleXPct : dx;
+        _measuredY = Calib.ScaleYPct > 0.01f ? dy * 100f / Calib.ScaleYPct : dy;
+        StateHasChanged();
+    }
+
+    private async Task SetMeasured(bool vertical, ChangeEventArgs e)
+    {
+        if (!float.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Float, Inv, out var v)
+            && !float.TryParse(e.Value?.ToString(), out v))
+            return;
+        if (vertical) _measuredY = v; else _measuredX = v;
+
+        var (dx, dy) = DesignSpan;
+        await Calib.SetAsync(
+            PrintCalibration.PctFromMeasurement(dx, _measuredX),
+            PrintCalibration.PctFromMeasurement(dy, _measuredY));
+        Session.Status = $"인쇄 배율 보정: 가로 {Calib.ScaleXPct:0.###}% · 세로 {Calib.ScaleYPct:0.###}%";
+        StateHasChanged();
+    }
+
+    private async Task ResetCalibration()
+    {
+        await Calib.ResetAsync();
+        var (dx, dy) = DesignSpan;
+        _measuredX = dx;
+        _measuredY = dy;
+        Session.Status = "인쇄 배율 보정을 지웠습니다";
+        StateHasChanged();
     }
 
     private void Nudge(float dx, float dy) => ApplyOffset(_ox + dx, _oy + dy);
@@ -220,7 +326,9 @@
                     Session.Document, i, 180f, _ox, _oy,
                     (global, obj) => Session.ResolveObjectText(obj, global, clock),
                     drawCutLines: _printCutLines,
-                    paintPaperColor: false));
+                    paintPaperColor: false,
+                    printScaleXPct: Calib.ScaleXPct,
+                    printScaleYPct: Calib.ScaleYPct));
             }
             if (pages.Count == 0 || pages.All(p => p.Length == 0))
             {
@@ -232,9 +340,9 @@
                 Session.Document.Name,
                 Session.Document.Paper.PaperWidthMm,
                 Session.Document.Paper.PaperHeightMm);
-            Session.Status = _printCutLines
-                ? $"{pages.Count}장을 프린터로 보냈습니다 · 칼선 포함(테스트용)"
-                : $"{pages.Count}장을 프린터로 보냈습니다";
+            var note = (_printCutLines ? " · 칼선 포함(테스트용)" : "")
+                + (Calib.HasAdjustment ? $" · 배율 보정 세로 {Calib.ScaleYPct:0.###}%" : "");
+            Session.Status = $"{pages.Count}장을 프린터로 보냈습니다{note}";
             Session.Notify();
         }
         catch (Exception ex)

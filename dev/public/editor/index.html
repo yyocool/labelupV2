@@ -54,11 +54,11 @@
     못해 통째로 죽는다. loadBootResource 가 주소를 돌려주면 Blazor 는 integrity 검사를
     건너뛰므로 섞여도 걸러 주지 못한다. 그래서 토큰이 내용에 따라 바뀌는 것이 더욱 중요하다.
   -->
-  <script src="_framework/blazor.webassembly.js?v=cd5312d3f4f0" autostart="false"></script>
+  <script src="_framework/blazor.webassembly.js?v=8f637bb4f23d" autostart="false"></script>
   <script>
     Blazor.start({
       loadBootResource: function (type, name, defaultUri) {
-        return defaultUri + (defaultUri.indexOf('?') >= 0 ? '&' : '?') + 'v=cd5312d3f4f0';
+        return defaultUri + (defaultUri.indexOf('?') >= 0 ? '&' : '?') + 'v=8f637bb4f23d';
       }
     });
   </script>

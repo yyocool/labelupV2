@@ -16,6 +16,7 @@ builder.Services.AddSingleton<EditorSession>();
 builder.Services.AddSingleton<HistoryService>();
 builder.Services.AddScoped<DraftStorage>();
 builder.Services.AddScoped<ExportService>();
+builder.Services.AddScoped<PrintCalibration>();
 builder.Services.AddScoped<FontCatalog>();
 builder.Services.AddScoped<FontAwesomeCatalog>();
 builder.Services.AddScoped<PaperCatalog>();
