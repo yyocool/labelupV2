@@ -42,7 +42,7 @@
   <script src="js/editor.js?v=bac5b2c881fb"></script>
   <script src="js/panel-dock.js?v=0f8c80a9b662"></script>
   <script src="js/tutorial.js?v=abf74494aa64"></script>
-  <script src="/js/home-ai-chat.js?v=20261006mode"></script>
+  <script src="/js/home-ai-chat.js?v=20261006err"></script>
   <script src="/js/daum-address.js?v=20260906c"></script>
   <script src="/js/address-book.js?v=20260913a"></script>
   <script src="/js/toss-pay.js?v=20261001a"></script>
@@ -58,11 +58,11 @@
     주소를 돌려주면 Blazor 는 integrity 검사를 건너뛰므로 섞여도 걸러 주지 못한다.
     그래서 토큰이 내용에 따라 바뀌는 것이 더욱 중요하다.
   -->
-  <script src="_framework/blazor.webassembly.js?v=d55fbec277c3" autostart="false"></script>
+  <script src="_framework/blazor.webassembly.js?v=2a57dc377eb1" autostart="false"></script>
   <script>
     Blazor.start({
       loadBootResource: function (type, name, defaultUri) {
-        return defaultUri + (defaultUri.indexOf('?') >= 0 ? '&' : '?') + 'v=d55fbec277c3';
+        return defaultUri + (defaultUri.indexOf('?') >= 0 ? '&' : '?') + 'v=2a57dc377eb1';
       }
     });
   </script>
