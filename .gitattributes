@@ -1,0 +1,24 @@
+# ── 퍼블리시된 편집기(dev/public/editor)는 바이트 그대로 다룬다 ──
+#
+# 이 폴더는 사람이 고치는 곳이 아니라 publish_editor.py 가 통째로 다시 만드는
+# 빌드 결과물이다. 한 번의 빌드에서 나온 파일끼리만 짝이 맞는다.
+#
+# -text -merge 로 못박는 까닭이 둘이다. binary 로 하면 diff 까지 꺼져서
+# index.html 이 어떻게 바뀌었는지 눈으로 볼 수 없다. .wasm 같은 진짜 바이너리는
+# 깃이 알아서 가려내므로 diff 는 건드리지 않는다.
+#
+# 하나. 줄끝 변환을 막는다. core.autocrlf=true 인 사람이 체크아웃하면 .js 와
+# .json 이 CRLF 로 바뀌어 내가 올린 것과 바이트가 달라진다. _framework 안의
+# dotnet.runtime.*.js 는 blazor.boot.json 에 무결성 해시가 등록된 파일이라,
+# index.html 의 loadBootResource 덮어쓰기를 걷어내는 날 그 사람이 배포할 때만
+# 터지는 버그가 된다.
+#
+# 둘. 자동 병합을 막는다. 이게 더 중요하다. 그냥 두면 index.html 과
+# blazor.boot.json 은 텍스트라 알아서 합쳐지는데 .wasm 은 바이너리라 충돌로
+# 남는다. 바이너리만 반대쪽 것으로 고르면 새 부팅 토큰에 낡은 어셈블리가 붙어
+# 편집기가 통째로 죽는다(aot-runtime-wasm.c "<disabled>", exit(1)). 전부
+# 충돌로 세워 두면 한쪽을 통째로 고르는 수밖에 없다.
+#
+# 충돌이 났을 때는 파일별로 고르지 말고 폴더째 한쪽을 가져온다.
+#   git checkout --theirs -- dev/public/editor && git add dev/public/editor
+dev/public/editor/** -text -merge
