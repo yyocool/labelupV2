@@ -873,6 +873,20 @@
     }
 
     [JSInvokable]
+    public void OnEditorUndo()
+    {
+        if (Session.Dialog != EditorDialog.None) return;
+        HistoryActions.Undo(Session, History);
+    }
+
+    [JSInvokable]
+    public void OnEditorRedo()
+    {
+        if (Session.Dialog != EditorDialog.None) return;
+        HistoryActions.Redo(Session, History);
+    }
+
+    [JSInvokable]
     public async Task ApplyLabiProduct(string json)
     {
         try

@@ -328,21 +328,9 @@
         Session.OpenDialog(EditorDialog.ProjectPicker);
     }
 
-    private void Undo()
-    {
-        var doc = History.Undo(Session.Document);
-        if (doc is null) return;
-        Session.ReplaceDocument(doc, keepSelection: true);
-        Session.Status = "실행 취소";
-    }
+    private void Undo() => HistoryActions.Undo(Session, History);
 
-    private void Redo()
-    {
-        var doc = History.Redo(Session.Document);
-        if (doc is null) return;
-        Session.ReplaceDocument(doc, keepSelection: true);
-        Session.Status = "다시 실행";
-    }
+    private void Redo() => HistoryActions.Redo(Session, History);
 
     private void ResetView()
     {

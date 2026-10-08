@@ -847,6 +847,16 @@ window.labelUpEditor = {
       } else if ((e.ctrlKey || e.metaKey) && key === 'v') {
         e.preventDefault();
         dotnet.invokeMethodAsync('OnEditorPaste');
+      } else if ((e.ctrlKey || e.metaKey) && key === 'z' && e.shiftKey) {
+        // Ctrl+Shift+Z 도 다시 실행이다. 브라우저·운영체제마다 Ctrl+Y 와 둘 중 하나만 쓴다.
+        e.preventDefault();
+        dotnet.invokeMethodAsync('OnEditorRedo');
+      } else if ((e.ctrlKey || e.metaKey) && key === 'z') {
+        e.preventDefault();
+        dotnet.invokeMethodAsync('OnEditorUndo');
+      } else if ((e.ctrlKey || e.metaKey) && key === 'y') {
+        e.preventDefault();
+        dotnet.invokeMethodAsync('OnEditorRedo');
       } else if (key === 'delete' || key === 'backspace') {
         e.preventDefault();
         dotnet.invokeMethodAsync('OnEditorDelete');
