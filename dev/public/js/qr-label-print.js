@@ -115,12 +115,14 @@
     var pages = Math.max(1, Math.ceil(coupons.length / per));
     var html = '';
     for (var p = 0; p < pages; p++) {
-      html += '<section class="sheet">';
+      // 칸을 .shift 로 한 번 감싼다. 위치·배율 보정은 이 껍데기 하나만 움직이면 되고,
+      // 쪽을 이루는 .sheet 는 종이 그대로 남아 있어야 쪽 넘김과 인쇄 영역이 흔들리지 않는다.
+      html += '<section class="sheet"><div class="shift">';
       for (var i = 0; i < per; i++) {
         var coupon = coupons[p * per + i] || null;
         html += labelHtml(cells[i], coupon, objects, paper.shape || 'roundrect');
       }
-      html += '</section>';
+      html += '</div></section>';
     }
     return html;
   }
@@ -145,6 +147,9 @@
       '.sheet{width:' + page.w + 'mm;height:' + page.h + 'mm;position:relative;overflow:hidden;background:' + bg +
       ';page-break-after:always;box-sizing:border-box}' +
       '.sheet:last-child{page-break-after:auto}' +
+      // 보정은 왼쪽 위를 기준으로 건다. 프린터 이송 오차는 종이가 물리기 시작하는
+      // 그 지점부터 쌓이므로, 기준을 가운데에 두면 윗부분이 도리어 어긋난다.
+      '.shift{position:absolute;inset:0;transform-origin:0 0}' +
       '.label{position:absolute;overflow:hidden;box-sizing:border-box}' +
       '.label.is-empty{outline:0.15mm dashed #ddd}' +
       '.obj{position:absolute;overflow:hidden;box-sizing:border-box}' +
@@ -157,8 +162,202 @@
       '@media screen{body{background:#5c5854;padding:12px 0}' +
       '.sheet{margin:0 auto 12px;box-shadow:0 8px 24px rgba(0,0,0,.28)}}' +
       '@media print{body{background:#fff;padding:0}.sheet{margin:0;box-shadow:none}.label.is-empty{outline:none}}' +
-      '</style></head><body>' + sheetsHtml(coupons, paper, objects) + '</body></html>';
+      '</style>' +
+      // 보정은 이 빈 덩이에만 쓴다. 화살표를 누를 때마다 문서를 통째로 다시 쓰면
+      // QR 그림을 바깥 서비스에서 전부 새로 받아야 해서 한 번에 수십 번 요청이 나간다.
+      '<style id="qrPrintCalibStyle"></style>' +
+      '</head><body>' + sheetsHtml(coupons, paper, objects) + '</body></html>';
   }
+
+  // ── 인쇄 위치·배율 보정 ──────────────────────────────────────────────
+  //
+  // 배율 보정은 라벨 편집기와 같은 자리에 담는다. 보정값은 디자인의 성질이 아니라 그
+  // 프린터의 성질이라, 같은 프린터로 뽑는 한 편집기에서 맞춘 값이 여기에도 그대로 맞다.
+  // 편집기(PrintCalibration.cs)가 System.Text.Json 으로 읽고 쓰므로 글쇠 이름은 X·Y 여야 한다.
+  var CALIB_KEY = 'labelup.print.calibration.v1';
+  // 위치는 용지마다 다르므로 템플릿별로 담는다. 프린터가 종이를 무는 자리에서 생기는
+  // 값이라 서버에 올리지 않고 이 브라우저에만 둔다.
+  var OFFSET_KEY = 'labelup.qrprint.offset.v1';
+  // 오타 한 번에 인쇄물을 버리지 않게 막는 울타리. 편집기와 같은 범위다.
+  var CALIB_MIN = 95;
+  var CALIB_MAX = 105;
+
+  var view = { paper: null, templateKey: 'default', ox: 0, oy: 0, sx: 100, sy: 100 };
+
+  var ctl = {
+    xy: document.getElementById('qrPrintXY'),
+    left: document.getElementById('qrPrintLeft'),
+    right: document.getElementById('qrPrintRight'),
+    up: document.getElementById('qrPrintUp'),
+    down: document.getElementById('qrPrintDown'),
+    designX: document.getElementById('qrCalibDesignX'),
+    designY: document.getElementById('qrCalibDesignY'),
+    measuredX: document.getElementById('qrCalibMeasuredX'),
+    measuredY: document.getElementById('qrCalibMeasuredY'),
+    now: document.getElementById('qrCalibNow'),
+    reset: document.getElementById('qrCalibReset'),
+  };
+
+  function readJson(key) {
+    try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { return null; }
+  }
+
+  function writeJson(key, value) {
+    // 시크릿 창이나 저장용량이 찬 브라우저에서는 쓰기가 막힌다. 보정은 없어도 인쇄는
+    // 되어야 하므로 삼킨다.
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* ignore */ }
+  }
+
+  function clampPct(v) {
+    var n = Number(v);
+    if (!Number.isFinite(n)) return 100;
+    return Math.min(CALIB_MAX, Math.max(CALIB_MIN, n));
+  }
+
+  function loadCalibration() {
+    var saved = readJson(CALIB_KEY);
+    view.sx = saved ? clampPct(saved.X) : 100;
+    view.sy = saved ? clampPct(saved.Y) : 100;
+  }
+
+  function saveCalibration() {
+    writeJson(CALIB_KEY, { X: view.sx, Y: view.sy });
+  }
+
+  function loadOffset(key) {
+    var hit = (readJson(OFFSET_KEY) || {})[key];
+    view.ox = hit && Number.isFinite(Number(hit.x)) ? Number(hit.x) : 0;
+    view.oy = hit && Number.isFinite(Number(hit.y)) ? Number(hit.y) : 0;
+  }
+
+  function saveOffset() {
+    var all = readJson(OFFSET_KEY) || {};
+    all[view.templateKey] = { x: view.ox, y: view.oy };
+    writeJson(OFFSET_KEY, all);
+  }
+
+  // 첫 칼선부터 마지막 칼선까지의 길이. 사용자가 자를 대는 구간과 같아야 하므로
+  // 열·행으로 셈하지 않고 실제 칸 자리에서 뽑는다.
+  function designSpan(paper) {
+    var cells = slots(paper || {});
+    if (!cells.length) return { x: 0, y: 0 };
+    var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    cells.forEach(function (s) {
+      minX = Math.min(minX, s.x);
+      maxX = Math.max(maxX, s.x + s.w);
+      minY = Math.min(minY, s.y);
+      maxY = Math.max(maxY, s.y + s.h);
+    });
+    return { x: maxX - minX, y: maxY - minY };
+  }
+
+  function applyTransform() {
+    var doc = frame.contentDocument;
+    var el = doc && doc.getElementById('qrPrintCalibStyle');
+    if (!el) return;
+    var move = 'translate(' + view.ox + 'mm,' + view.oy + 'mm)';
+    var zoom = 'scale(' + (view.sx / 100) + ',' + (view.sy / 100) + ')';
+    // 화면에는 위치만 건다. 0.4% 쯤의 배율은 눈에 보이지도 않으면서 쪽 크기만 어긋나게
+    // 만든다. 편집기 미리보기도 같은 까닭으로 배율을 빼고 그린다.
+    //
+    // 인쇄에서는 배율을 먼저 건다. '아래로 2mm' 는 종이 위에서 2mm 라야 하므로 그 값도
+    // 배율과 함께 눌려 나가야 한다. 순서를 바꾸면 보정을 걸수록 위치가 조금씩 틀어진다.
+    el.textContent = '.shift{transform:' + move + '}' +
+      '@media print{.shift{transform:' + zoom + ' ' + move + '}}';
+  }
+
+  function fmt(n) {
+    var v = Number(n);
+    return Number.isFinite(v) ? String(Math.round(v * 1000) / 1000) : '0';
+  }
+
+  function setVal(input, v) {
+    if (input) input.value = fmt(v);
+  }
+
+  function syncControls() {
+    if (ctl.xy) ctl.xy.textContent = fmt(view.ox) + ', ' + fmt(view.oy);
+    setVal(ctl.left, -view.ox);
+    setVal(ctl.right, view.ox);
+    setVal(ctl.up, -view.oy);
+    setVal(ctl.down, view.oy);
+
+    // 저장된 배율을 실측 칸으로 되돌려 보여 준다. 배율만 적어 두면 다음에 열었을 때
+    // 그 값이 어디서 나온 것인지 알 수 없어 고치기가 겁난다.
+    var span = designSpan(view.paper);
+    setVal(ctl.designX, span.x);
+    setVal(ctl.designY, span.y);
+    setVal(ctl.measuredX, view.sx > 0.01 ? span.x * 100 / view.sx : span.x);
+    setVal(ctl.measuredY, view.sy > 0.01 ? span.y * 100 / view.sy : span.y);
+
+    if (ctl.now) ctl.now.textContent = '지금 보정: 가로 ' + fmt(view.sx) + '% · 세로 ' + fmt(view.sy) + '%.';
+    if (ctl.reset) {
+      ctl.reset.hidden = Math.abs(view.sx - 100) < 0.0005 && Math.abs(view.sy - 100) < 0.0005;
+    }
+  }
+
+  function setOffset(x, y) {
+    view.ox = Number.isFinite(Number(x)) ? Number(x) : 0;
+    view.oy = Number.isFinite(Number(y)) ? Number(y) : 0;
+    saveOffset();
+    applyTransform();
+    syncControls();
+  }
+
+  // 설계 길이가 실제로 몇 mm 로 찍혔는지로 배율을 낸다. 271mm 로 나온 270mm 는
+  // 270/271 = 99.631% 로 줄여 보내야 270mm 가 된다. 나눗셈 방향을 거꾸로 잡는 일이
+  // 없도록 자를 댄 값을 그대로 받는다.
+  function pctFromMeasurement(designMm, measuredMm) {
+    return designMm > 0.01 && measuredMm > 0.01
+      ? clampPct(designMm / measuredMm * 100)
+      : 100;
+  }
+
+  function bindControls() {
+    document.querySelectorAll('.qr-print-pad [data-nudge]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var d = btn.getAttribute('data-nudge').split(',');
+        setOffset(view.ox + Number(d[0]), view.oy + Number(d[1]));
+      });
+    });
+
+    [ctl.left, ctl.right, ctl.up, ctl.down].forEach(function (input) {
+      if (!input) return;
+      input.addEventListener('change', function () {
+        var v = Number(input.value);
+        if (!Number.isFinite(v)) return;
+        v *= Number(input.getAttribute('data-sign'));
+        if (input.getAttribute('data-axis') === 'y') setOffset(view.ox, v);
+        else setOffset(v, view.oy);
+      });
+    });
+
+    [ctl.measuredX, ctl.measuredY].forEach(function (input) {
+      if (!input) return;
+      input.addEventListener('change', function () {
+        var v = Number(input.value);
+        if (!Number.isFinite(v)) return;
+        var span = designSpan(view.paper);
+        if (input.getAttribute('data-axis') === 'y') view.sy = pctFromMeasurement(span.y, v);
+        else view.sx = pctFromMeasurement(span.x, v);
+        saveCalibration();
+        applyTransform();
+        syncControls();
+      });
+    });
+
+    if (ctl.reset) {
+      ctl.reset.addEventListener('click', function () {
+        view.sx = 100;
+        view.sy = 100;
+        saveCalibration();
+        applyTransform();
+        syncControls();
+      });
+    }
+  }
+
+  bindControls();
 
   function waitImages(doc) {
     var imgs = Array.prototype.slice.call(doc.images || []);
@@ -208,6 +407,12 @@
         (Number(paper.columns) || 0) + '×' + (Number(paper.rows) || 0) +
         (groupNo ? (' · 그룹 ' + groupNo) : '');
     }
+    // 위치는 이 템플릿의 값을, 배율은 이 프린터의 값을 되살린다.
+    view.paper = paper;
+    view.templateKey = tpl.key || (groupNo > 0 ? 'group-' + groupNo : 'default');
+    loadOffset(view.templateKey);
+    loadCalibration();
+
     var html = printDocument(coupons, paper, objects);
     var doc = frame.contentDocument;
     doc.open();
@@ -215,6 +420,8 @@
     doc.close();
     // 미리보기 틀 높이. 쪽 높이에 화면용 바깥 여백(위아래 12px + 쪽 사이 12px)을 더한 값.
     frame.style.height = (pages * (page.h + 23)) + 'mm';
+    applyTransform();
+    syncControls();
     openModal();
     await waitImages(doc);
   }
@@ -230,7 +437,14 @@
         win.print();
         try {
           await markPrinted(pendingIds);
-          showAdminAlert('인쇄 대화상자를 열었습니다. 해당 쿠폰을 인쇄완료로 표시했습니다.', 'success');
+          // 보정이 걸린 채로 뽑으면 그 사실을 알려 준다. 모르고 뽑았다가 왜 어긋나는지
+          // 찾는 일이 없도록 한다.
+          var note = '';
+          if (view.ox || view.oy) note += ' · 위치 ' + fmt(view.ox) + ', ' + fmt(view.oy) + 'mm';
+          if (Math.abs(view.sx - 100) > 0.0005 || Math.abs(view.sy - 100) > 0.0005) {
+            note += ' · 배율 가로 ' + fmt(view.sx) + '% 세로 ' + fmt(view.sy) + '%';
+          }
+          showAdminAlert('인쇄 대화상자를 열었습니다. 해당 쿠폰을 인쇄완료로 표시했습니다.' + note, 'success');
         } catch (err) {
           showAdminAlert(err.message || '인쇄완료 표시에 실패했습니다.', 'error');
         }

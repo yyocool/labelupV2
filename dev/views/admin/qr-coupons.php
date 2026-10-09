@@ -374,8 +374,56 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
         <button type="button" class="admin-modal-close" data-close="qrLabelPrintModal" aria-label="닫기">×</button>
       </div>
     </div>
-    <div class="qr-label-print-stage">
-      <iframe id="qrLabelPrintFrame" title="라벨 인쇄 미리보기" src="about:blank"></iframe>
+    <div class="qr-label-print-body">
+      <div class="qr-label-print-stage">
+        <iframe id="qrLabelPrintFrame" title="라벨 인쇄 미리보기" src="about:blank"></iframe>
+      </div>
+      <div class="qr-print-controls">
+        <p class="qr-print-title">인쇄 위치 조정 (mm)</p>
+        <div class="qr-print-pad">
+          <span></span>
+          <button type="button" data-nudge="0,-1" title="위쪽 1mm">↑</button>
+          <span></span>
+          <button type="button" data-nudge="-1,0" title="왼쪽 1mm">←</button>
+          <span class="qr-print-pad__xy" id="qrPrintXY">0, 0</span>
+          <button type="button" data-nudge="1,0" title="오른쪽 1mm">→</button>
+          <span></span>
+          <button type="button" data-nudge="0,1" title="아래쪽 1mm">↓</button>
+          <span></span>
+        </div>
+        <div class="qr-print-dirs">
+          <label class="qr-print-nudge">왼쪽으로
+            <input type="number" step="0.1" id="qrPrintLeft" data-axis="x" data-sign="-1"> mm</label>
+          <label class="qr-print-nudge">오른쪽으로
+            <input type="number" step="0.1" id="qrPrintRight" data-axis="x" data-sign="1"> mm</label>
+          <label class="qr-print-nudge">위쪽으로
+            <input type="number" step="0.1" id="qrPrintUp" data-axis="y" data-sign="-1"> mm</label>
+          <label class="qr-print-nudge">아래쪽으로
+            <input type="number" step="0.1" id="qrPrintDown" data-axis="y" data-sign="1"> mm</label>
+        </div>
+        <p class="qr-print-hint">
+          위치는 이 용지 템플릿에만, 이 브라우저에 저장됩니다.
+          용지 규격 그대로 실제 크기(1:1)로 출력하니 인쇄 설정에서 배율 100%, 여백 '없음'을 고르세요.
+        </p>
+
+        <p class="qr-print-title">인쇄 배율 보정 (이 브라우저에만 저장)</p>
+        <div class="qr-print-dirs qr-print-dirs--calib">
+          <label class="qr-print-nudge">가로 설계
+            <input type="number" id="qrCalibDesignX" disabled> mm</label>
+          <label class="qr-print-nudge">가로 실측
+            <input type="number" step="0.1" id="qrCalibMeasuredX" data-axis="x"> mm</label>
+          <label class="qr-print-nudge">세로 설계
+            <input type="number" id="qrCalibDesignY" disabled> mm</label>
+          <label class="qr-print-nudge">세로 실측
+            <input type="number" step="0.1" id="qrCalibMeasuredY" data-axis="y"> mm</label>
+        </div>
+        <p class="qr-print-hint">
+          한 장 뽑아 첫 칼선부터 마지막 칼선까지 재어 '실측'에 넣으세요.
+          <span id="qrCalibNow"></span>
+          보정은 프린터로 보낼 때만 걸리고, 라벨 편집기의 보정값과 같은 값을 씁니다.
+          <button type="button" class="admin-btn admin-btn--sm" id="qrCalibReset" hidden>보정 지우기</button>
+        </p>
+      </div>
     </div>
   </div>
 </div>
