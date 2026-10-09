@@ -125,13 +125,24 @@
     return html;
   }
 
+  // 용지 크기를 A4 로 박아 두면 규격이 A3·B5 인 라벨지에서 칸 자리가 통째로 어긋난다.
+  // 저장된 템플릿에 크기가 없던 옛 항목만 A4 로 본다.
+  function pageMm(paper) {
+    var w = Number(paper.paperWidthMm);
+    var h = Number(paper.paperHeightMm);
+    return { w: w > 0 ? w : 210, h: h > 0 ? h : 297 };
+  }
+
   function printDocument(coupons, paper, objects) {
     var bg = '#ffffff';
+    var page = pageMm(paper);
+    // @page 에도 같은 크기를 준다. 여기가 A4 로 남아 있으면 브라우저가 용지에 맞춰
+    // 통째로 축소해 버려서, 아래에서 mm 로 잡은 자리가 전부 조금씩 줄어든다.
     return '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>라벨 인쇄</title>' +
       '<style>' +
-      '@page{size:A4 portrait;margin:0}' +
+      '@page{size:' + page.w + 'mm ' + page.h + 'mm;margin:0}' +
       'html,body{margin:0;padding:0;background:#fff;font-family:Pretendard,"Malgun Gothic",sans-serif}' +
-      '.sheet{width:210mm;height:297mm;position:relative;overflow:hidden;background:' + bg +
+      '.sheet{width:' + page.w + 'mm;height:' + page.h + 'mm;position:relative;overflow:hidden;background:' + bg +
       ';page-break-after:always;box-sizing:border-box}' +
       '.sheet:last-child{page-break-after:auto}' +
       '.label{position:absolute;overflow:hidden;box-sizing:border-box}' +
@@ -179,14 +190,20 @@
     }
     var tpl = await loadTemplate(groupNo);
     var paper = tpl.paper || {
+      paperWidthMm: 210, paperHeightMm: 297,
       labelWidthMm: 70, labelHeightMm: 36, columns: 2, rows: 7,
       leftMarginMm: 32.5, topMarginMm: 13.5, hGapMm: 5, vGapMm: 3,
       labelsPerSheet: 14, shape: 'roundrect',
     };
     var objects = Array.isArray(tpl.objects) ? tpl.objects : [];
-    var pages = Math.max(1, Math.ceil(coupons.length / Math.max(1, Number(paper.labelsPerSheet) || 14)));
+    // 쪽 수는 실제로 찍는 칸 수(열×행)로 센다. 규격의 labels_per_sheet 가 이와 어긋난
+    // 항목이 있어서 그 값을 믿으면 쪽 수가 모자라 뒤쪽 쿠폰이 조용히 빠진다.
+    var perSheet = Math.max(1, slots(paper).length);
+    var pages = Math.max(1, Math.ceil(coupons.length / perSheet));
+    var page = pageMm(paper);
     if (meta) {
-      meta.textContent = coupons.length.toLocaleString() + '개 · A4 ' + pages + '장 · ' +
+      meta.textContent = coupons.length.toLocaleString() + '개 · ' +
+        (paper.paperSize || (page.w + '×' + page.h + ' mm')) + ' ' + pages + '장 · ' +
         (paper.name || paper.sku || '라벨지') + ' · ' +
         (Number(paper.columns) || 0) + '×' + (Number(paper.rows) || 0) +
         (groupNo ? (' · 그룹 ' + groupNo) : '');
@@ -196,7 +213,8 @@
     doc.open();
     doc.write(html);
     doc.close();
-    frame.style.height = (pages * 320) + 'mm';
+    // 미리보기 틀 높이. 쪽 높이에 화면용 바깥 여백(위아래 12px + 쪽 사이 12px)을 더한 값.
+    frame.style.height = (pages * (page.h + 23)) + 'mm';
     openModal();
     await waitImages(doc);
   }

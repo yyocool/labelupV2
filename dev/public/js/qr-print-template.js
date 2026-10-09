@@ -145,15 +145,66 @@
       encodeURIComponent(payloadText(o));
   }
 
+  // 규격에 적힌 용지 크기 이름을 mm 로 바꾸는 표.
+  // 라벨 편집기(PaperCatalog.ResolvePaperSizeMm)와 같은 표를 써야 두 화면의 결과가 같다.
+  var PAGE_SIZES = {
+    A3: [297, 420], A4: [210, 297], A5: [148, 210], A6: [105, 148],
+    B4: [257, 364], B5: [182, 257], B6: [128, 182],
+    LETTER: [215.9, 279.4], LEGAL: [215.9, 355.6],
+  };
+
+  // "A4", "A4 가로", "210x297" 을 받는다. 이름을 모르면 A4 로 두되,
+  // 배치가 A4 보다 크면 잘리지 않게 배치에 맞춰 늘린다.
+  function pageSizeMm(name, needW, needH) {
+    var key = String(name || '').trim();
+    if (key) {
+      var landscape = /가로|landscape/i.test(key);
+      key = key.replace(/가로|세로|landscape|portrait/gi, '').trim();
+      var hit = PAGE_SIZES[key.toUpperCase()];
+      if (hit) return landscape ? { w: hit[1], h: hit[0] } : { w: hit[0], h: hit[1] };
+      var parts = key.split(/[xX×*]/);
+      if (parts.length === 2) {
+        var w = parseFloat(parts[0].replace(/[^\d.]/g, ''));
+        var h = parseFloat(parts[1].replace(/[^\d.]/g, ''));
+        if (w > 0 && h > 0) return { w: w, h: h };
+      }
+    }
+    return { w: Math.max(210, Number(needW) || 0), h: Math.max(297, Number(needH) || 0) };
+  }
+
+  // 규격의 여백 칸은 비어 있을 수 있다. 비었으면 null 로 돌려줘야 "값이 없다"와
+  // "0mm 로 적혀 있다"를 구분할 수 있다. Number(null) 은 0 이라 그냥 쓰면 안 된다.
+  function mmOrNull(v) {
+    if (v === null || v === undefined || v === '') return null;
+    var n = Number(v);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  }
+
+  /**
+   * 상점 규격(label_specs)에 적힌 배치값으로 용지를 만든다.
+   *
+   * 예전에는 라벨 크기와 한 장당 칸 수만 보고 A4 복판에 다시 앉혔다. 그래서 규격에
+   * 적어 둔 위쪽·왼쪽 여백이 통째로 버려졌고, 인쇄물이 라벨지 칼선과 어긋났다.
+   * 라벨 편집기는 같은 규격을 PaperCatalog 에서 그대로 읽어 쓰므로, 편집기 인쇄는
+   * 맞는데 이 창의 인쇄만 밀리던 까닭도 여기였다.
+   *
+   * 열·행이 적혀 있으면 규격을 그대로 따르고, 없는 옛 항목만 예전처럼 복판에 앉힌다.
+   */
   function paperFromProduct(item) {
     var lw = Number(item.widthMm) > 0 ? Number(item.widthMm) : 70;
     var lh = Number(item.heightMm) > 0 ? Number(item.heightMm) : 36;
-    var labels = Number(item.labelsPerSheet) > 0 ? Number(item.labelsPerSheet) : 0;
-    var layout = layoutOnA4(lw, lh, labels);
+    var cols = Number(item.columnsCount) > 0 ? Math.round(Number(item.columnsCount)) : 0;
+    var rows = Number(item.rowsCount) > 0 ? Math.round(Number(item.rowsCount)) : 0;
+
+    var layout = cols > 0 && rows > 0
+      ? layoutFromSpec(item, lw, lh, cols, rows)
+      : layoutCentered(lw, lh, Number(item.labelsPerSheet) || 0, pageSizeMm(item.paperSize, 0, 0));
+
     var shape = String(item.shape || '').toLowerCase();
     if (shape === 'circle' || shape === '원형' || shape === 'ellipse') layout.shape = 'ellipse';
     else if (shape === 'round' || shape === 'roundrect' || shape === '라운드') layout.shape = 'roundrect';
     else if (shape) layout.shape = 'rect';
+    layout.paperSize = item.paperSize || '';
     layout.paperNo = item.sku || ('P' + item.id);
     layout.sku = item.sku || '';
     layout.name = item.name || layout.paperNo;
@@ -163,14 +214,81 @@
     return layout;
   }
 
+  // 규격에 적힌 열·행·여백·간격을 그대로 쓴다. 여백 칸이 비어 있을 때만 복판에 앉힌다.
+  function layoutFromSpec(item, lw, lh, cols, rows) {
+    var hGap = Math.max(0, Number(item.hGapMm) || 0);
+    var vGap = Math.max(0, Number(item.vGapMm) || 0);
+    var usedW = lw * cols + hGap * (cols - 1);
+    var usedH = lh * rows + vGap * (rows - 1);
+    var left = mmOrNull(item.leftMarginMm);
+    var top = mmOrNull(item.topMarginMm);
+    var page = pageSizeMm(item.paperSize, usedW + (left || 0), usedH + (top || 0));
+    return {
+      paperWidthMm: page.w,
+      paperHeightMm: page.h,
+      labelWidthMm: lw,
+      labelHeightMm: lh,
+      columns: cols,
+      rows: rows,
+      leftMarginMm: left === null ? Math.max(0, (page.w - usedW) / 2) : left,
+      topMarginMm: top === null ? Math.max(0, (page.h - usedH) / 2) : top,
+      hGapMm: hGap,
+      vGapMm: vGap,
+      labelsPerSheet: cols * rows,
+      shape: 'roundrect',
+    };
+  }
+
+  /**
+   * 저장해 둔 용지값에서 빠진 칸만 메운다.
+   *
+   * 예전에는 여기서 배치를 처음부터 다시 셈해 저장값 위에 덮어썼다. 그래서 템플릿에
+   * 어떤 용지를 골라 저장해도, 다시 불러오는 순간 열·행과 여백이 복판 정렬값으로
+   * 되돌아갔다. 규격의 위쪽 여백이 인쇄에 반영되지 않던 두 번째 원인이다. 덮어쓰지 않는다.
+   */
   function normalizePaper(paper) {
     if (!paper || typeof paper !== 'object') return defaultPaper();
-    var labels = Number(paper.labelsPerSheet) > 0
-      ? Number(paper.labelsPerSheet)
-      : (Number(paper.columns) * Number(paper.rows) || 0);
-    var layout = layoutOnA4(paper.labelWidthMm, paper.labelHeightMm, labels);
-    return Object.assign({}, paper, layout, {
-      shape: paper.shape || layout.shape,
+    var lw = Number(paper.labelWidthMm) > 0 ? Number(paper.labelWidthMm) : 70;
+    var lh = Number(paper.labelHeightMm) > 0 ? Number(paper.labelHeightMm) : 36;
+    var cols = Number(paper.columns) > 0 ? Math.round(Number(paper.columns)) : 0;
+    var rows = Number(paper.rows) > 0 ? Math.round(Number(paper.rows)) : 0;
+
+    // 열·행이 없는 옛 저장본만 추정한다. 들어 있으면 그대로 믿는다.
+    if (cols < 1 || rows < 1) {
+      var guess = layoutCentered(lw, lh, Number(paper.labelsPerSheet) || 0,
+        pageSizeMm(paper.paperSize, 0, 0));
+      paper = Object.assign({}, guess, paper, { columns: guess.columns, rows: guess.rows });
+      cols = guess.columns;
+      rows = guess.rows;
+    }
+
+    var hGap = Math.max(0, Number(paper.hGapMm) || 0);
+    var vGap = Math.max(0, Number(paper.vGapMm) || 0);
+    var usedW = lw * cols + hGap * (cols - 1);
+    var usedH = lh * rows + vGap * (rows - 1);
+    var left = mmOrNull(paper.leftMarginMm);
+    var top = mmOrNull(paper.topMarginMm);
+    var pw = Number(paper.paperWidthMm);
+    var ph = Number(paper.paperHeightMm);
+    var page = pw > 0 && ph > 0
+      ? { w: pw, h: ph }
+      : pageSizeMm(paper.paperSize, usedW + (left || 0), usedH + (top || 0));
+
+    return Object.assign({}, paper, {
+      paperWidthMm: page.w,
+      paperHeightMm: page.h,
+      labelWidthMm: lw,
+      labelHeightMm: lh,
+      columns: cols,
+      rows: rows,
+      hGapMm: hGap,
+      vGapMm: vGap,
+      leftMarginMm: left === null ? Math.max(0, (page.w - usedW) / 2) : left,
+      topMarginMm: top === null ? Math.max(0, (page.h - usedH) / 2) : top,
+      // 칸 수는 열×행이 진실이다. 규격의 labels_per_sheet 가 이와 어긋난 항목이 있고,
+      // 그 값을 믿으면 쪽 수 계산과 실제로 찍히는 칸 수가 달라져 쿠폰이 샌다.
+      labelsPerSheet: cols * rows,
+      shape: paper.shape || 'roundrect',
       paperNo: paper.paperNo || paper.sku,
       sku: paper.sku || paper.paperNo,
       name: paper.name || paper.sku,
@@ -178,24 +296,23 @@
     });
   }
 
-  function a4Fit(lw, lh, gap) {
-    var pageW = 210;
-    var pageH = 297;
-    var cols = Math.max(1, Math.floor((pageW + gap) / (lw + gap)));
-    var rows = Math.max(1, Math.floor((pageH + gap) / (lh + gap)));
-    if (cols * lw - 0.05 > pageW) cols = Math.max(1, Math.floor(pageW / lw));
-    if (rows * lh - 0.05 > pageH) rows = Math.max(1, Math.floor(pageH / lh));
+  function pageFit(page, lw, lh, gap) {
+    var cols = Math.max(1, Math.floor((page.w + gap) / (lw + gap)));
+    var rows = Math.max(1, Math.floor((page.h + gap) / (lh + gap)));
+    if (cols * lw - 0.05 > page.w) cols = Math.max(1, Math.floor(page.w / lw));
+    if (rows * lh - 0.05 > page.h) rows = Math.max(1, Math.floor(page.h / lh));
     return { cols: cols, rows: rows };
   }
 
-  function layoutOnA4(lw, lh, labels) {
-    var pageW = 210;
-    var pageH = 297;
+  // 규격에 배치값이 없는 용지를 위한 대비책. 들어가는 만큼 칸을 잡고 복판에 앉힌다.
+  function layoutCentered(lw, lh, labels, page) {
+    var pageW = page.w;
+    var pageH = page.h;
     lw = Math.max(1, Number(lw) || 70);
     lh = Math.max(1, Number(lh) || 36);
-    var fit = a4Fit(lw, lh, 2);
+    var fit = pageFit(page, lw, lh, 2);
     if (labels > 0 && labels > fit.cols * fit.rows) {
-      fit = a4Fit(lw, lh, 0);
+      fit = pageFit(page, lw, lh, 0);
     }
     if (!(labels > 0)) {
       labels = fit.cols * fit.rows;
@@ -305,7 +422,9 @@
         fmt(p.labelWidthMm) + '×' + fmt(p.labelHeightMm) + ' mm';
     }
     if (els.sheetMeta) {
-      els.sheetMeta.textContent = 'A4 · ' + p.columns + '열 × ' + p.rows + '행';
+      // 용지가 A4 라고 단정하면 안 된다. 규격에 A3·B5 같은 다른 크기가 적힌 것이 있다.
+      els.sheetMeta.textContent = (p.paperSize || (fmt(p.paperWidthMm) + '×' + fmt(p.paperHeightMm) + ' mm')) +
+        ' · ' + p.columns + '열 × ' + p.rows + '행 · 위 여백 ' + fmt(p.topMarginMm) + ' mm';
     }
   }
 
@@ -369,20 +488,33 @@
     return cell + inner;
   }
 
+  // 미리보기 좌표계는 mm 그대로다. 용지 크기를 210×297 로 박아 두면 A4 가 아닌 규격에서
+  // 칸 자리가 통째로 어긋나 보이므로 용지에서 받아 쓴다.
+  function sheetViewBox(paper) {
+    var w = Number(paper.paperWidthMm) > 0 ? Number(paper.paperWidthMm) : 210;
+    var h = Number(paper.paperHeightMm) > 0 ? Number(paper.paperHeightMm) : 297;
+    return { w: w, h: h };
+  }
+
   function miniSheetSvg(paper) {
+    var box = sheetViewBox(paper);
     var cells = slots(paper).map(function (s) { return sheetCellSvg(paper, s, false); }).join('');
-    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 297" class="qr-tpl-thumb-svg" aria-hidden="true">' +
-      '<rect width="210" height="297" fill="#fff" stroke="#d9cfc0" stroke-width="1.2"/>' + cells + '</svg>';
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + box.w + ' ' + box.h +
+      '" class="qr-tpl-thumb-svg" aria-hidden="true">' +
+      '<rect width="' + box.w + '" height="' + box.h + '" fill="#fff" stroke="#d9cfc0" stroke-width="1.2"/>' +
+      cells + '</svg>';
   }
 
   function renderSheet() {
     if (!els.sheetWrap) return;
     var paper = state.paper;
+    var box = sheetViewBox(paper);
     var cells = slots(paper).map(function (s) { return sheetCellSvg(paper, s, true); }).join('');
     els.sheetWrap.innerHTML =
-      '<svg class="qr-tpl-sheet-svg" viewBox="0 0 210 297" preserveAspectRatio="xMidYMid meet" role="img" aria-label="A4 용지 미리보기" data-cols="' +
+      '<svg class="qr-tpl-sheet-svg" viewBox="0 0 ' + box.w + ' ' + box.h +
+      '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="용지 미리보기" data-cols="' +
       paper.columns + '" data-rows="' + paper.rows + '">' +
-      '<rect width="210" height="297" fill="#fff" stroke="#cfc4b8" stroke-width="1.2"/>' +
+      '<rect width="' + box.w + '" height="' + box.h + '" fill="#fff" stroke="#cfc4b8" stroke-width="1.2"/>' +
       cells + '</svg>';
   }
 

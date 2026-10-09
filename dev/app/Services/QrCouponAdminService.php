@@ -5,16 +5,25 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Repositories\QrCouponRepository;
+use App\Repositories\ShopRepository;
 use RuntimeException;
 use Throwable;
 
 final class QrCouponAdminService
 {
     private QrCouponRepository $repo;
+    private ?ShopRepository $shopRepo = null;
 
     public function __construct(?QrCouponRepository $repo = null)
     {
         $this->repo = $repo ?? new QrCouponRepository();
+    }
+
+    // 출력템플릿의 용지 배치를 규격에서 다시 읽을 때만 쓴다. 쓸 일이 없는 요청에서는
+    // 연결을 만들지 않도록 처음 쓰는 순간에 만든다.
+    private function shopRepo(): ShopRepository
+    {
+        return $this->shopRepo ??= new ShopRepository();
     }
 
     public function couponPagePath(): string
@@ -542,13 +551,151 @@ final class QrCouponAdminService
             'name' => $fallbackFrom !== null
                 ? $displayName
                 : (string) ($row['name'] ?? $displayName),
-            'paper' => $this->decodeJsonMap($row['paper_json'] ?? null),
+            'paper' => $this->refreshPaperFromSpec($this->decodeJsonMap($row['paper_json'] ?? null)),
             'objects' => $this->decodeJsonList($row['objects_json'] ?? null),
             'settings' => $this->decodeJsonMap($row['settings_json'] ?? null),
             'persisted' => $fallbackFrom === null,
             'fallback_from' => $fallbackFrom,
             'updated_at' => $fallbackFrom === null ? ($row['updated_at'] ?? null) : null,
         ];
+    }
+
+    /**
+     * 저장해 둔 용지의 배치값을 상품 규격(label_specs)에서 다시 읽어 맞춘다.
+     *
+     * 출력템플릿에는 용지 배치가 통째로 저장되는데, 이 값은 규격을 베껴 둔 사본일 뿐
+     * 원본이 아니다. 규격이 관리자에서 바뀌면 사본은 그대로 묵고, 인쇄물이 라벨지
+     * 칼선과 어긋난다. 템플릿을 내보낼 때마다 규격을 다시 읽어 덮는다.
+     *
+     * 예전 템플릿을 고치는 길이기도 하다. 편집 화면이 용지를 고를 때 규격의 여백을
+     * 버리고 A4 복판에 다시 앉히던 시절에 저장된 것들은 위쪽 여백이 틀린 채로 남아
+     * 있는데, 여기서 읽어 오면 다시 저장하지 않아도 바로잡힌다.
+     *
+     * 상품이 지워졌거나 규격에 열·행이 비어 있으면 저장된 값을 그대로 둔다.
+     *
+     * @param array<string, mixed> $paper
+     * @return array<string, mixed>
+     */
+    private function refreshPaperFromSpec(array $paper): array
+    {
+        try {
+            $row = $this->findPaperProduct($paper);
+        } catch (Throwable) {
+            return $paper;
+        }
+        if ($row === null) {
+            return $paper;
+        }
+
+        $cols = (int) ($row['columns_count'] ?? 0);
+        $rows = (int) ($row['rows_count'] ?? 0);
+        $lw = (float) ($row['width_mm'] ?? 0);
+        $lh = (float) ($row['height_mm'] ?? 0);
+        if ($cols < 1 || $rows < 1 || $lw <= 0 || $lh <= 0) {
+            return $paper;
+        }
+
+        $hGap = max(0.0, (float) ($row['h_gap_mm'] ?? 0));
+        $vGap = max(0.0, (float) ($row['v_gap_mm'] ?? 0));
+        $usedW = $lw * $cols + $hGap * ($cols - 1);
+        $usedH = $lh * $rows + $vGap * ($rows - 1);
+
+        // 여백 칸은 비어 있을 수 있다. 비었으면 용지 복판에 앉히고, 적혀 있으면 그 값을 쓴다.
+        // 0.0 과 "값 없음"은 다르므로 isset 으로 가른다.
+        $left = isset($row['left_margin_mm']) ? (float) $row['left_margin_mm'] : null;
+        $top = isset($row['top_margin_mm']) ? (float) $row['top_margin_mm'] : null;
+
+        [$pageW, $pageH] = self::resolvePageSizeMm(
+            $row['paper_size'] ?? null,
+            $usedW + ($left ?? 0.0),
+            $usedH + ($top ?? 0.0)
+        );
+
+        return array_merge($paper, [
+            'paperSize' => (string) ($row['paper_size'] ?? ''),
+            'paperWidthMm' => round($pageW, 3),
+            'paperHeightMm' => round($pageH, 3),
+            'labelWidthMm' => round($lw, 3),
+            'labelHeightMm' => round($lh, 3),
+            'columns' => $cols,
+            'rows' => $rows,
+            'leftMarginMm' => round($left ?? max(0.0, ($pageW - $usedW) / 2), 3),
+            'topMarginMm' => round($top ?? max(0.0, ($pageH - $usedH) / 2), 3),
+            'hGapMm' => round($hGap, 3),
+            'vGapMm' => round($vGap, 3),
+            // 칸 수는 열×행이 진실이다. 규격의 labels_per_sheet 가 이와 어긋난 항목이 있고,
+            // 그 값을 믿으면 쪽 수와 실제로 찍히는 칸 수가 달라져 쿠폰이 샌다.
+            'labelsPerSheet' => $cols * $rows,
+        ]);
+    }
+
+    /**
+     * 템플릿에 적힌 용지가 가리키는 상품을 찾는다.
+     *
+     * 상품번호로 먼저 찾고, 없으면 용지번호(sku)로 한 번 더 찾는다. 상품번호를 함께
+     * 저장하기 전에 만들어진 템플릿이 용지번호만 들고 있기 때문이다.
+     *
+     * @param array<string, mixed> $paper
+     * @return array<string, mixed>|null
+     */
+    private function findPaperProduct(array $paper): ?array
+    {
+        $productId = (int) ($paper['productId'] ?? 0);
+        if ($productId > 0) {
+            return $this->shopRepo()->findActiveProduct($productId);
+        }
+
+        $sku = trim((string) ($paper['sku'] ?? $paper['paperNo'] ?? ''));
+        if ($sku === '') {
+            return null;
+        }
+        $found = $this->shopRepo()->findProductBySku($sku);
+        $foundId = (int) ($found['id'] ?? 0);
+
+        // findProductBySku 는 규격을 붙여 오지 않는다. 배치값을 받으려면 한 번 더 읽어야 한다.
+        return $foundId > 0 ? $this->shopRepo()->findActiveProduct($foundId) : null;
+    }
+
+    /** 규격에 적히는 표준 용지 크기. 편집기 PaperCatalog.StandardPaperSizes 와 같은 표다. */
+    private const PAGE_SIZES_MM = [
+        'A3' => [297.0, 420.0],
+        'A4' => [210.0, 297.0],
+        'A5' => [148.0, 210.0],
+        'A6' => [105.0, 148.0],
+        'B4' => [257.0, 364.0],
+        'B5' => [182.0, 257.0],
+        'B6' => [128.0, 182.0],
+        'LETTER' => [215.9, 279.4],
+        'LEGAL' => [215.9, 355.6],
+    ];
+
+    /**
+     * "A4", "A4 가로", "210x297" 을 mm 로 바꾼다.
+     * 이름을 모르면 A4 로 두되, 배치가 A4 보다 크면 잘리지 않게 배치에 맞춰 늘린다.
+     *
+     * @return array{0: float, 1: float}
+     */
+    private static function resolvePageSizeMm(mixed $name, float $needW, float $needH): array
+    {
+        $key = trim((string) ($name ?? ''));
+        if ($key !== '') {
+            $landscape = preg_match('/가로|landscape/iu', $key) === 1;
+            $key = trim((string) preg_replace('/가로|세로|landscape|portrait/iu', '', $key));
+            $hit = self::PAGE_SIZES_MM[strtoupper($key)] ?? null;
+            if ($hit !== null) {
+                return $landscape ? [$hit[1], $hit[0]] : [$hit[0], $hit[1]];
+            }
+            $parts = preg_split('/[xX×*]/u', $key, 2) ?: [];
+            if (count($parts) === 2) {
+                $w = (float) preg_replace('/[^\d.]/', '', $parts[0]);
+                $h = (float) preg_replace('/[^\d.]/', '', $parts[1]);
+                if ($w > 0 && $h > 0) {
+                    return [$w, $h];
+                }
+            }
+        }
+
+        return [max(210.0, $needW), max(297.0, $needH)];
     }
 
     /**
