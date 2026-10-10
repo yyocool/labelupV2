@@ -209,8 +209,10 @@
               <option value="middle">가운데</option>
               <option value="bottom">아래</option>
             </select>
-            <label class="ed-field">행간 <input type="number" step="0.05" value="@o.LineHeight.ToString("0.##")" @onchange="e => SetFloat(v => o.LineHeight = v, e)" /></label>
-            <label class="ed-field">자간 <input type="number" step="0.1" value="@o.LetterSpacing.ToString("0.##")" @onchange="e => SetFloat(v => o.LetterSpacing = v, e)" /></label>
+            @* 행간은 0.1 씩, 자간은 1 씩 움직인다. 0.05·0.1 은 화살표를 여러 번 눌러도
+               눈에 띄는 차이가 없어 쓰는 사람이 바뀌지 않는다고 여긴다. *@
+            <label class="ed-field">행간 <input type="number" step="0.1" value="@o.LineHeight.ToString("0.#")" @onchange="e => SetFloat(v => o.LineHeight = v, e)" /></label>
+            <label class="ed-field">자간 <input type="number" step="1" value="@o.LetterSpacing.ToString("0.##")" @onchange="e => SetFloat(v => o.LetterSpacing = v, e)" /></label>
           }
         </span>
         @if (o.TextMode == TextMode.WordArt)

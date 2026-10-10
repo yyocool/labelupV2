@@ -898,7 +898,7 @@ public static class DocumentRenderer
     private static List<string> LayoutTextLines(
         DesignObject obj, SKFont font, string text, GdiTextMetrics? metrics = null)
         => WrapText(text, font, obj.FontFamily, obj.Bold, TextWrapWidth(obj), obj.TextWrap,
-            metrics ?? MakeGdiMetrics(obj, font));
+            metrics ?? MakeGdiMetrics(obj, font), obj.LetterSpacing);
 
     private static void DrawText(SKCanvas canvas, DesignObject obj, string text, byte alpha)
     {
@@ -979,7 +979,9 @@ public static class DocumentRenderer
         for (var i = 0; i < lines.Count; i++)
         {
             var line = lines[i];
-            var tw = metrics?.Width(line) ?? MeasureLine(font, obj.FontFamily, obj.Bold, line);
+            var tw = SpacedWidth(
+                metrics?.Width(line) ?? MeasureLine(font, obj.FontFamily, obj.Bold, line),
+                line, obj.LetterSpacing);
             float x = obj.TextAlign switch
             {
                 "left" => inset,
@@ -987,7 +989,9 @@ public static class DocumentRenderer
                 _ => inset + (maxW - tw) / 2f
             };
             var y = startY + i * lineH;
-            if (metrics is null)
+            if (obj.LetterSpacing != 0f)
+                DrawSpacedLine(canvas, obj, line, x, y, font, paint, alpha, metrics, obj.LetterSpacing);
+            else if (metrics is null)
                 DrawGlyph(canvas, obj, line, x, y, SKTextAlign.Left, font, paint, alpha);
             else
                 metrics.DrawLine(canvas, obj, line, x, y, paint, alpha);
@@ -1020,7 +1024,8 @@ public static class DocumentRenderer
 
         var inset = TextPadX(obj);
         var maxW = Math.Max(0.3f, obj.Width - inset * 2f);
-        var lines = WrapRich(paragraphs, maxW, obj.TextWrap, obj.LineHeight);
+        var spacing = obj.LetterSpacing;
+        var lines = WrapRich(paragraphs, maxW, obj.TextWrap, obj.LineHeight, spacing);
         if (lines.Count == 0)
         {
             canvas.Restore();
@@ -1041,15 +1046,20 @@ public static class DocumentRenderer
         canvas.ClipRect(new SKRect(0, 0, obj.Width, obj.Height));
         foreach (var line in lines)
         {
-            var extra = Math.Max(0, maxW - line.Width);
+            var lineW = RichLineWidth(line, spacing);
+            var extra = Math.Max(0, maxW - lineW);
             float x = line.Align switch
             {
-                "right" => obj.Width - line.Width - inset,
-                "center" => inset + (maxW - line.Width) / 2f,
+                "right" => obj.Width - lineW - inset,
+                "center" => inset + (maxW - lineW) / 2f,
                 _ => inset
             };
             var justify = line.Align == "justify" && !line.LastInParagraph && line.Glyphs > 1;
             var gap = justify ? extra / Math.Max(1, line.Glyphs - 1) : 0f;
+            // 자간과 양쪽맞춤은 둘 다 글자 사이를 벌리는 일이라 한 걸음으로 합쳐 둔다.
+            // 걸음이 0이면 예전처럼 토막째 그린다. 글자씩 떼어 그리면 커닝과 합자가 사라지므로
+            // 벌릴 일이 없는 글상자는 그 길로 보내지 않는다.
+            var step = spacing + gap;
             var baseline = obj.VerticalAlign == "top"
                 ? y + RichLineAscent(line)
                 : y + line.Height * 0.78f;
@@ -1057,32 +1067,37 @@ public static class DocumentRenderer
             {
                 using var paint = new SKPaint { Color = ColorUtil.Parse(frag.Span.Fill, alpha), IsAntialias = true };
                 using var font = MakeStyledFont(frag.Span.FontFamily, frag.Span.Bold, frag.Span.Italic, frag.Span.FontSize);
-                if (justify && frag.Text.Length > 1)
+                var start = x;
+                if (step != 0f && frag.Text.Length > 0)
                 {
                     foreach (var rune in frag.Text.EnumerateRunes())
                     {
+                        if (IsInvisibleFormat(rune.Value)) continue;
                         var ch = rune.ToString();
                         DrawGlyph(canvas, WithSpan(obj, frag.Span), ch, x, baseline, SKTextAlign.Left, font, paint, alpha);
-                        x += MeasureLine(font, frag.Span.FontFamily, frag.Span.Bold, ch) + gap;
+                        x += MeasureLine(font, frag.Span.FontFamily, frag.Span.Bold, ch) + step;
                     }
                 }
                 else
                 {
                     DrawGlyph(canvas, WithSpan(obj, frag.Span), frag.Text, x, baseline, SKTextAlign.Left, font, paint, alpha);
-                    if (frag.Span.Underline || frag.Span.Strikeout)
+                    x += frag.Width;
+                }
+
+                if (frag.Span.Underline || frag.Span.Strikeout)
+                {
+                    using var lp = new SKPaint
                     {
-                        using var lp = new SKPaint
-                        {
-                            Color = ColorUtil.Parse(frag.Span.Fill, alpha),
-                            StrokeWidth = Math.Max(0.15f, frag.Span.FontSize * 0.06f),
-                            IsAntialias = true
-                        };
-                        if (frag.Span.Underline)
-                            canvas.DrawLine(x, baseline + 0.4f, x + frag.Width, baseline + 0.4f, lp);
-                        if (frag.Span.Strikeout)
-                            canvas.DrawLine(x, baseline - frag.Span.FontSize * 0.35f, x + frag.Width, baseline - frag.Span.FontSize * 0.35f, lp);
-                    }
-                    x += frag.Width + (justify ? gap * Math.Max(0, frag.Text.Length) : 0);
+                        Color = ColorUtil.Parse(frag.Span.Fill, alpha),
+                        StrokeWidth = Math.Max(0.15f, frag.Span.FontSize * 0.06f),
+                        IsAntialias = true
+                    };
+                    // 마지막 글자 뒤에 붙은 걸음은 글자가 아니므로 밑줄에서 뺀다.
+                    var end = step != 0f ? Math.Max(start, x - step) : x;
+                    if (frag.Span.Underline)
+                        canvas.DrawLine(start, baseline + 0.4f, end, baseline + 0.4f, lp);
+                    if (frag.Span.Strikeout)
+                        canvas.DrawLine(start, baseline - frag.Span.FontSize * 0.35f, end, baseline - frag.Span.FontSize * 0.35f, lp);
                 }
             }
             y += line.Height;
@@ -1114,7 +1129,15 @@ public static class DocumentRenderer
         public int Glyphs;
     }
 
-    private static List<RichLine> WrapRich(List<TextParagraph> paragraphs, float maxWidth, string? mode, float lineHeight)
+    /// <summary>
+    /// 자간까지 넣은 글줄 폭(mm). 자간은 글자 사이에만 들어가므로 틈은 글자 수보다 하나 적다.
+    /// 맞춤과 양쪽맞춤 셈이 모두 이 값을 기준으로 삼아야 글줄이 한 칸씩 밀리지 않는다.
+    /// </summary>
+    private static float RichLineWidth(RichLine line, float spacing)
+        => spacing == 0f || line.Glyphs <= 1 ? line.Width : line.Width + spacing * (line.Glyphs - 1);
+
+    private static List<RichLine> WrapRich(
+        List<TextParagraph> paragraphs, float maxWidth, string? mode, float lineHeight, float spacing = 0f)
     {
         var lh = Math.Max(0.62f, lineHeight > 0.2f ? lineHeight : 1.2f);
         if (string.Equals(mode, "none", StringComparison.OrdinalIgnoreCase))
@@ -1147,7 +1170,11 @@ public static class DocumentRenderer
                     {
                         var next = text.Substring(i, take + 1);
                         var nw = MeasureLine(font, span.FontFamily, span.Bold, next);
-                        if (line.Width + nw > maxWidth + 0.35f && (line.Frags.Count > 0 || take > 0))
+                        // 자간을 빼고 재면 들어간다고 보고 넘긴 글줄이 그릴 때 삐져나간다.
+                        // 이 글줄에 이미 올린 글자 수와 지금 보려는 글자 수를 더해 틈을 센다.
+                        var glyphs = line.Glyphs + GlyphCount(next);
+                        var laid = line.Width + nw + spacing * Math.Max(0, glyphs - 1);
+                        if (laid > maxWidth + 0.35f && (line.Frags.Count > 0 || take > 0))
                             break;
                         take++;
                         w = nw;
@@ -1180,7 +1207,9 @@ public static class DocumentRenderer
                     line.Frags.Add(new RichFrag(span, piece, w));
                     line.Width += w;
                     line.Height = Math.Max(line.Height, span.FontSize * lh);
-                    line.Glyphs += piece.Length;
+                    // 폭이 0인 서식 문자는 틈을 만들지 않으므로 글자 수에서 뺀다.
+                    // 자간과 양쪽맞춤이 모두 이 수로 틈을 센다.
+                    line.Glyphs += GlyphCount(piece);
                     i += take;
                     if (i < text.Length)
                     {
@@ -1211,7 +1240,7 @@ public static class DocumentRenderer
                 line.Frags.Add(new RichFrag(span, text, w));
                 line.Width += w;
                 line.Height = Math.Max(line.Height, span.FontSize * lh);
-                line.Glyphs += text.Length;
+                line.Glyphs += GlyphCount(text);
             }
 
             line.LastInParagraph = true;
@@ -1272,7 +1301,7 @@ public static class DocumentRenderer
 
     private static List<string> WrapText(
         string text, SKFont font, string? family, bool bold, float maxWidth, string? mode,
-        GdiTextMetrics? metrics = null)
+        GdiTextMetrics? metrics = null, float spacing = 0f)
     {
         var hard = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         if (string.Equals(mode, "none", StringComparison.OrdinalIgnoreCase))
@@ -1294,7 +1323,10 @@ public static class DocumentRenderer
             foreach (var ch in para)
             {
                 var test = current + ch;
-                var width = metrics?.Width(test) ?? MeasureLine(font, family, bold, test);
+                // 줄을 나눌 때도 자간을 넣고 재야 한다. 빼고 재면 상자에 들어간다고 보고
+                // 넘긴 글줄이 그릴 때는 자간만큼 삐져나간다.
+                var width = SpacedWidth(
+                    metrics?.Width(test) ?? MeasureLine(font, family, bold, test), test, spacing);
                 if (width <= limit || current.Length == 0)
                 {
                     current = test;
@@ -1581,6 +1613,53 @@ public static class DocumentRenderer
         return NeedsMixedGlyphs(font, text)
             ? MeasureMixed(font, family, bold, text)
             : font.MeasureText(text);
+    }
+
+    /// <summary>
+    /// 눈에 보이는 글자 수. 폭이 0인 서식 문자는 글자 사이에 틈을 만들지 않으므로 세지 않는다.
+    /// </summary>
+    private static int GlyphCount(string text)
+    {
+        var n = 0;
+        foreach (var rune in text.EnumerateRunes())
+            if (!IsInvisibleFormat(rune.Value)) n++;
+        return n;
+    }
+
+    /// <summary>
+    /// 자간을 넣었을 때 글줄이 차지하는 폭(mm).
+    ///
+    /// 자간은 글자 사이에만 들어간다. 글자가 n 개면 틈은 n-1 개다. 마지막 글자 뒤에도
+    /// 한 칸을 붙이면 가운데·오른쪽 맞춤이 그만큼 왼쪽으로 밀리고 밑줄도 길어진다.
+    /// </summary>
+    private static float SpacedWidth(float measured, string text, float spacing)
+    {
+        if (spacing == 0f) return measured;
+        var n = GlyphCount(text);
+        return n <= 1 ? measured : measured + spacing * (n - 1);
+    }
+
+    /// <summary>
+    /// 자간을 넣어 한 글줄을 글자씩 그린다.
+    ///
+    /// 자간이 0일 때는 쓰지 않는다. 글자를 하나씩 떼어 그리면 글꼴의 커닝과 합자가
+    /// 사라지므로, 자간을 쓰지 않는 글상자까지 이 길로 보내면 멀쩡하던 글자가 미세하게
+    /// 달라진다. 자간을 넣은 글상자는 어차피 글자 사이를 사용자가 벌린 것이라 괜찮다.
+    /// </summary>
+    private static void DrawSpacedLine(
+        SKCanvas canvas, DesignObject obj, string line, float x, float y,
+        SKFont font, SKPaint paint, byte alpha, GdiTextMetrics? metrics, float spacing)
+    {
+        foreach (var rune in line.EnumerateRunes())
+        {
+            if (IsInvisibleFormat(rune.Value)) continue;
+            var ch = rune.ToString();
+            if (metrics is null)
+                DrawGlyph(canvas, obj, ch, x, y, SKTextAlign.Left, font, paint, alpha);
+            else
+                metrics.DrawLine(canvas, obj, ch, x, y, paint, alpha);
+            x += (metrics?.Width(ch) ?? MeasureLine(font, obj.FontFamily, obj.Bold, ch)) + spacing;
+        }
     }
 
     private static float MeasureMixed(SKFont font, string? family, bool bold, string text)
