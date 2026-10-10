@@ -4255,9 +4255,21 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 .ed-crash p { margin: 0 0 10px; line-height: 1.5; }
 .ed-crash__hint { color: #6B6560; font-size: 12px; }
 .ed-modal__card--form { width: min(860px, 100%); }
+/* 인쇄 미리보기는 화면 높이의 95% 로 세운다. 남는 5% 가 곧 테두리 여백이라
+   바깥 위아래 여백을 빼야 95% 가 실제로 95% 가 된다. */
+.ed-modal--print { padding: 0 24px; }
 .ed-modal__card--print {
-  width: min(1080px, calc(100vw - 48px));
-  max-height: min(92vh, 960px);
+  --ed-print-h: 95vh;
+  height: var(--ed-print-h);
+  max-height: var(--ed-print-h);
+  /* 가로는 세로를 따라간다. 화면이 낮으면 팝업만 옆으로 길어져 미리보기 종이가
+     가운데에 조그맣게 뜨므로, 원래 비율(1080:960)을 지키며 같이 좁힌다. */
+  width: min(1080px, calc(var(--ed-print-h) * 1.125), calc(100vw - 48px));
+}
+/* zoom 은 팝업 안의 모든 길이를 UI 배율만큼 곱한다. vh 는 화면에서 바로 나온 값이라
+   그대로 두면 95%×배율 이 되어 화면 밖으로 삐져나간다. 미리 나눠 상쇄한다. */
+@supports (zoom: 1) {
+  .ed-modal__card--print { --ed-print-h: calc(95vh / var(--ed-ui-scale, 1)); }
 }
 .ed-modal__card--print .ed-modal__body {
   overflow: hidden;
@@ -4471,6 +4483,9 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 .ed-print {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 240px;
+  /* 줄 높이를 통 높이에 묶는다. 묶지 않으면 긴 쪽(오른쪽 조절 칸)이 줄을 늘리고,
+     왼쪽 미리보기 칸도 같이 늘어난 뒤 그 높이로 종이를 그려 아래가 잘려 보였다. */
+  grid-template-rows: minmax(0, 1fr);
   gap: 16px;
   flex: 1;
   min-height: 0;
@@ -4505,7 +4520,16 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   display: block;
   background: #fff;
 }
-.ed-print__controls { display: grid; gap: 10px; align-content: start; }
+/* 화면이 낮으면 조절 줄이 다 들어가지 않는다. 미리보기는 늘 보이게 두고 이 칸만 굴린다. */
+.ed-print__controls {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding-right: 4px;
+}
 .ed-print__hint { margin: 0; font-size: 11px; line-height: 1.5; color: var(--ed-muted); }
 .ed-print__pad { display: grid; grid-template-columns: 36px 1fr 36px; gap: 6px; justify-items: center; }
 .ed-print__pad button { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--ed-border); background: #fff; cursor: pointer; }
@@ -6382,6 +6406,10 @@ html.is-ed-mobile .ed-data-restore {
   max-width: none;
   max-height: min(92dvh, 100%);
   border-radius: 18px 18px 0 0;
+}
+/* 손전화는 아래에서 올라오는 시트라 높이를 고정하지 않는다. 데스크톱용 95vh 를 되돌린다. */
+.ed.is-mobile .ed-modal__card--print {
+  height: auto;
 }
 /* 좁은 화면에서는 제목글이 가운데까지 닿아 겹치므로, 띄우지 않고 제목 아래 한 줄로 내린다. */
 .ed.is-mobile .ed-modal__card--print .ed-modal__head {
