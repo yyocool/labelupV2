@@ -2296,7 +2296,10 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 
 /* Canva-style left rail — desktop only */
 .ed:not(.is-mobile) .ed__workspace {
-  padding-left: 68px;
+  /* 왼쪽 도구 판넬 폭. 작업 공간 안쪽 여백과 자료 판넬 왼쪽 끝이 같은 값을 보게 묶어 둔다.
+     판넬이 두 줄로 넓어질 때 한 군데만 고치면 나머지가 판넬 밑에 깔린다. */
+  --ed-rail-w: 68px;
+  padding-left: var(--ed-rail-w);
 }
 .ed:not(.is-mobile) .ed-float-tools {
   left: 0 !important;
@@ -2586,9 +2589,9 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   bottom: auto;
   left: calc(100% + 8px);
 }
-/* 판넬이 넓어진 만큼 작업 공간도 비켜 준다. */
+/* 판넬이 넓어진 만큼 작업 공간과 자료 판넬도 같이 비켜 준다. */
 .ed:not(.is-mobile) .ed__workspace:has(.ed-float-tools.is-two-col) {
-  padding-left: 132px;
+  --ed-rail-w: 132px;
 }
 
 .ed-corner-fabs:empty,
@@ -3987,7 +3990,9 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 
 .ed-data-panel {
   position: absolute;
-  left: 80px;
+  /* 왼쪽 도구 판넬이 끝나는 자리에서 시작한다. 판넬과 같은 부모에 같은 zoom 이 걸려 있어
+     여기 적는 px 과 판넬 폭이 같은 자를 쓰므로, 화면 배율이 달라져도 끝이 맞는다. */
+  left: calc(var(--ed-rail-w, 68px) + 12px);
   right: 12px;
   bottom: 12px;
   z-index: 88;
