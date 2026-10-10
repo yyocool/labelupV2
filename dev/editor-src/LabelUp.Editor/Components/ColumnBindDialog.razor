@@ -66,6 +66,26 @@
           </label>
           <p class="ed-props__hint">@BarcodeCatalog.HintFor(_barcode)</p>
         }
+
+        @if (Session.Document.Data is { CanUseFirstRowAsData: true } sheet)
+        {
+          <div class="ed-bind__rows">
+            <strong class="ed-bind__rows-title">자료를 몇 행부터 넣을까요?</strong>
+            <label class="ed-bind__opt">
+              <input type="radio" name="bind-firstrow" checked="@(!_firstRowIsData)" @onchange="() => SetFirstRow(false)" />
+              <span>2행부터 추가 — 파일 첫 줄은 열 이름으로만 씁니다</span>
+            </label>
+            <label class="ed-bind__opt">
+              <input type="radio" name="bind-firstrow" checked="@_firstRowIsData" @onchange="() => SetFirstRow(true)" />
+              <span>1행부터 추가 — 파일 첫 줄도 자료로 넣어 라벨을 한 칸 더 만듭니다</span>
+            </label>
+            <p class="ed-props__hint">
+              파일 첫 줄: @HeaderPreview(sheet)
+              <br />머리글 없이 첫 줄부터 바로 기록이 적힌 파일이면 「1행부터 추가」를 고르세요.
+              열 이름은 그대로 두므로 이미 라벨에 올린 연결은 끊기지 않습니다.
+            </p>
+          </div>
+        }
       </div>
       <footer class="ed-modal__foot">
         <button type="button" class="ed-btn" @onclick="Cancel">취소</button>
@@ -79,15 +99,40 @@
     private string _kind = DataDisplayFormats.Text;
     private string _dateFormat = "yyyy-MM-dd";
     private string _barcode = "QR_CODE";
+    private bool _firstRowIsData;
+    private EditorDialog _last = EditorDialog.None;
 
     protected override void OnInitialized() => Session.Changed += OnChanged;
     public void Dispose() => Session.Changed -= OnChanged;
-    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private void OnChanged()
+    {
+        // 창이 열릴 때마다 지금 자료의 상태를 그대로 보여 준다. 시트 전체에 걸리는 설정이라
+        // 다른 열에서 이미 바꿔 두었으면 그 값이 찍혀 있어야 한다.
+        if (Session.Dialog == EditorDialog.ColumnBind && _last != EditorDialog.ColumnBind)
+            _firstRowIsData = Session.Document.Data?.FirstRowIsData ?? false;
+        _last = Session.Dialog;
+        InvokeAsync(StateHasChanged);
+    }
 
     private void SetKind(string kind)
     {
         _kind = kind;
         StateHasChanged();
+    }
+
+    private void SetFirstRow(bool on)
+    {
+        _firstRowIsData = on;
+        StateHasChanged();
+    }
+
+    /// <summary>파일 첫 줄에 무엇이 적혀 있었는지 보여 준다. 머리글인지 기록인지는 사람이 봐야 안다.</summary>
+    private static string HeaderPreview(DataSheet sheet)
+    {
+        var shown = sheet.HeaderTexts.Take(5).Select(s => string.IsNullOrWhiteSpace(s) ? "(빈칸)" : s.Trim());
+        var text = string.Join(" · ", shown);
+        return sheet.HeaderTexts.Count > 5 ? text + " …" : text;
     }
 
     private void Cancel()
@@ -101,6 +146,8 @@
         var col = Session.PendingBindColumn;
         if (string.IsNullOrWhiteSpace(col)) return;
         History.Push(Session.Document);
+        // 행을 먼저 맞춰 둬야 PlaceBoundColumn 이 늘어난 행 수대로 라벨 칸을 채운다.
+        Session.Document.Data?.SetFirstRowIsData(_firstRowIsData);
         Session.PlaceBoundColumn(col, _kind, _dateFormat, _barcode);
         Session.PendingBindColumn = null;
         Session.CloseDialog();

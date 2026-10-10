@@ -40,7 +40,10 @@ public sealed class DataImportService
         if (lines.Length == 0) throw new InvalidDataException("빈 CSV 파일입니다.");
 
         var sheet = new DataSheet { SourceName = fileName, SourceKind = "csv" };
-        sheet.Columns = SplitCsvLine(lines[0]).Select(NormalizeHeader).ToList();
+        var firstLine = SplitCsvLine(lines[0]);
+        sheet.Columns = firstLine.Select(NormalizeHeader).ToList();
+        // 머리글 없이 바로 기록이 적힌 파일도 있다. 첫 줄을 자료로 되돌릴 수 있게 원본을 남긴다.
+        sheet.HeaderTexts = [.. firstLine];
         for (var i = 1; i < lines.Length; i++)
         {
             var cells = SplitCsvLine(lines[i]);
@@ -80,6 +83,8 @@ public sealed class DataImportService
 
         var sheet = new DataSheet { SourceName = fileName, SourceKind = "xlsx" };
         sheet.Columns.AddRange(headers);
+        // 머리글 없이 바로 기록이 적힌 파일도 있다. 첫 줄을 자료로 되돌릴 수 있게 원본을 남긴다.
+        sheet.HeaderTexts = [.. rawHeaders];
         for (var r = 1; r < table.Rows.Count; r++)
         {
             var cells = new List<string>(headers.Count);

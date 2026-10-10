@@ -4068,6 +4068,26 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 .ed-data-table__idx { width: 36px; text-align: center; color: var(--muted); }
 .ed-bind { display: grid; gap: 10px; }
 .ed-bind__opt { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
+/* 표시 형식과 다른 갈래의 물음이라 선을 하나 긋고 묶는다. */
+.ed-bind__rows {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ed-border);
+}
+.ed-bind__rows-title { font-size: 12px; font-weight: 800; color: var(--ed-muted); }
+.ed-data-panel__firstrow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ed-muted);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ed-data-panel__firstrow input { margin: 0; cursor: pointer; }
 .ed-data-create__tools { display: flex; gap: 8px; margin-bottom: 10px; }
 .ed-data-create__delcol { margin-top: 4px; }
 .ed-data-panel__pager {

@@ -16,6 +16,15 @@
       <span>@data.ColumnCount 열 · @data.RowCount 행@(data.SourceName.Length > 0 ? $" · {data.SourceName}" : "")</span>
       @if (Session.DataPanelExpanded)
       {
+        @* 모든 열을 라벨에 올리고 나면 「라벨에 추가」 창이 더 열리지 않는다.
+           그 뒤에도 첫 줄을 넣고 뺄 수 있게 여기에도 둔다. *@
+        @if (data.CanUseFirstRowAsData)
+        {
+          <label class="ed-data-panel__firstrow" title="머리글 없이 첫 줄부터 기록이 적힌 파일이면 켜세요">
+            <input type="checkbox" checked="@data.FirstRowIsData" @onchange="e => SetFirstRow(data, e)" />
+            파일 첫 줄도 자료로
+          </label>
+        }
         <button type="button" class="ed-btn" @onclick="AddRow">행 추가</button>
         <button type="button" class="ed-btn ed-btn--primary" @onclick="Minimize">최소화</button>
       }
@@ -169,6 +178,21 @@
         Session.SyncDataLabels();
         Session.Dirty = true;
         Session.Status = "데이터 행을 삭제했습니다";
+        Session.Notify();
+    }
+
+    /// <summary>파일 첫 줄을 자료로 쓸지 바꾼다. 라벨 칸 수가 한 칸 늘거나 준다.</summary>
+    private void SetFirstRow(DataSheet data, ChangeEventArgs e)
+    {
+        var on = e.Value is bool b && b;
+        if (!data.CanUseFirstRowAsData || on == data.FirstRowIsData) return;
+        History.Push(Session.Document);
+        data.SetFirstRowIsData(on);
+        Session.SyncDataLabels();
+        Session.Dirty = true;
+        Session.Status = on
+            ? "파일 첫 줄을 1행 자료로 넣었습니다"
+            : "파일 첫 줄을 열 이름으로만 씁니다";
         Session.Notify();
     }
 
