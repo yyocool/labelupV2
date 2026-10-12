@@ -91,7 +91,7 @@ function resolveGrid(product) {
   const n = Math.max(1, Number(product.labelsPerSheet) || 1);
   let cols = Number(product.columnsCount) || 0;
   let rows = Number(product.rowsCount) || 0;
-  if (cols > 0 && rows > 0 && cols * rows === n) return { cols, rows, n };
+  if (cols > 0 && rows > 0) return { cols, rows, n: cols * rows === n ? n : cols * rows };
   if (cols > 0 && n % cols === 0) return { cols, rows: n / cols, n };
   if (rows > 0 && n % rows === 0) return { cols: n / rows, rows, n };
 
@@ -153,9 +153,24 @@ function sheetCountSvg(cols, rows, count, lw, lh) {
   </svg>`;
 }
 
-function cellSpecSvg(lw, lh) {
-  const widthLabel = `${formatMm(lw)}mm`;
-  const heightLabel = `${formatMm(lh)}mm`;
+function parseDisplaySize(description) {
+  const matched = String(description || '').match(/^(?:표기치수|표준치수)\s*:\s*(.+)$/m);
+  if (!matched) return null;
+  const raw = matched[1].trim();
+  const parts = raw.split(/\s*[x×X*]\s*/);
+  if (parts.length >= 2) {
+    const w = Number(String(parts[0]).replace(/mm/ig, '').trim());
+    const h = Number(String(parts[1]).replace(/mm/ig, '').trim());
+    if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) {
+      return { w, h, text: '' };
+    }
+  }
+  return raw !== '' ? { w: null, h: null, text: raw } : null;
+}
+
+function cellSpecSvg(lw, lh, labelW, labelH) {
+  const widthLabel = `${formatMm(labelW)}mm`;
+  const heightLabel = `${formatMm(labelH)}mm`;
   const maxW = 188;
   const maxH = 118;
   const scale = Math.min(maxW / lw, maxH / lh);
@@ -198,7 +213,9 @@ function diagramSvg(product) {
   const { cols, rows, n } = resolveGrid(product);
   const lw = Number(product.widthMm) || 1;
   const lh = Number(product.heightMm) || 1;
-  return `<div class="diagram">${sheetCountSvg(cols, rows, n, lw, lh)}${cellSpecSvg(lw, lh)}</div>`;
+  const labelW = Number(product.displayWidthMm) || lw;
+  const labelH = Number(product.displayHeightMm) || lh;
+  return `<div class="diagram">${sheetCountSvg(cols, rows, n, lw, lh)}${cellSpecSvg(lw, lh, labelW, labelH)}</div>`;
 }
 
 function optionCards(options) {
@@ -218,8 +235,10 @@ function sheetHtml(product) {
   const badges = (Array.isArray(product.hashtags) ? product.hashtags : [])
     .map((tag) => String(tag).trim())
     .filter(Boolean);
-  const size = `${formatMm(product.widthMm)} × ${formatMm(product.heightMm)} mm`;
-  const count = Math.max(0, Number(product.labelsPerSheet) || 0);
+  const size = product.displaySizeText
+    ? product.displaySizeText
+    : `${formatMm(product.displayWidthMm || product.widthMm)} × ${formatMm(product.displayHeightMm || product.heightMm)} mm`;
+  const count = resolveGrid(product).n;
   const material = String(product.material || '').trim() || '-';
   const rows = [
     ['제품명', product.name || '-'],
@@ -394,10 +413,18 @@ async function main() {
       material: detail.material || item.material,
       widthMm: detail.width_mm || item.widthMm,
       heightMm: detail.height_mm || item.heightMm,
+      displayWidthMm: parseDisplaySize(detail.description)?.w || null,
+      displayHeightMm: parseDisplaySize(detail.description)?.h || null,
+      displaySizeText: parseDisplaySize(detail.description)?.text || '',
       labelsPerSheet: detail.labels_per_sheet || item.labelsPerSheet,
       options: Array.isArray(detail.options) ? detail.options : [],
     };
   });
+
+  const withoutSize = detailed.filter((p) => (!p.displayWidthMm || !p.displayHeightMm) && !p.displaySizeText);
+  if (withoutSize.length) {
+    throw new Error(`표기치수가 없는 상품: ${withoutSize.map((p) => p.sku).join(', ')}`);
+  }
 
   const withoutTags = detailed.filter((p) => !Array.isArray(p.hashtags));
   if (withoutTags.length) {
@@ -416,7 +443,7 @@ async function main() {
   try {
     for (let i = 0; i < detailed.length; i += 1) {
       const product = detailed[i];
-      const file = `${product.sku}.jpg`;
+      const file = `${product.sku}-261009.jpg`;
       const dest = path.join(OUT_DIR, file);
       await page.setContent(sheetHtml(product), { waitUntil: 'networkidle', timeout: 30000 });
       const fontReady = await page.evaluate(async () => {
