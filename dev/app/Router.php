@@ -27,6 +27,8 @@ use App\Controllers\Api\AdminApiController;
 use App\Controllers\Api\AdminWorkspaceApiController;
 use App\Controllers\Api\InquiryApiController;
 use App\Controllers\InquiryAdminController;
+use App\Controllers\ErrorReportAdminController;
+use App\Controllers\Api\ErrorReportApiController;
 use App\Controllers\AdminAccountController;
 use App\Controllers\Api\AdminAccountApiController;
 use App\Controllers\AiAdminController;
@@ -193,6 +195,8 @@ final class Router
         $adminWorkspaceApi = new AdminWorkspaceApiController();
         $inquiryAdmin = new InquiryAdminController();
         $inquiryApi = new InquiryApiController();
+        $errorReportAdmin = new ErrorReportAdminController();
+        $errorReportApi = new ErrorReportApiController();
         $adminAccount = new AdminAccountController();
         $adminAccountApi = new AdminAccountApiController();
         $legalApi = new LegalApiController();
@@ -319,6 +323,7 @@ final class Router
         $router->get('/admin/ops/event-popups', [$eventPopupAdmin, 'index']);
         $router->get('/admin/ops/faq', [$faqAdmin, 'index']);
         $router->get('/admin/ops/inquiries', [$inquiryAdmin, 'index']);
+        $router->get('/admin/ops/error-reports', [$errorReportAdmin, 'index']);
         $router->get('/admin/qr-coupons', [$qrCouponAdmin, 'index']);
         $router->post('/api/admin/qr-coupons/credit/save', [$qrCouponAdminApi, 'saveCredit']);
         $router->post('/api/admin/qr-coupons/generate', [$qrCouponAdminApi, 'generate']);
@@ -405,6 +410,9 @@ final class Router
         $router->get('/api/admin/alerts', [$adminWorkspaceApi, 'alerts']);
         $router->post('/api/admin/alerts/ack', [$adminWorkspaceApi, 'ackAlerts']);
         $router->post('/api/inquiry', [$inquiryApi, 'submit']);
+        $router->post('/api/error-reports', [$errorReportApi, 'submit']);
+        $router->get('/api/admin/error-reports', [$errorReportApi, 'detail']);
+        $router->post('/api/admin/error-reports/process', [$errorReportApi, 'process']);
         $router->post('/api/admin/inquiry/update', [$inquiryApi, 'update']);
 
         $router->get('/api/admin/admins/lookup', [$adminAccountApi, 'lookup']);
