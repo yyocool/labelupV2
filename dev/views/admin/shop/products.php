@@ -72,7 +72,7 @@ $statuses = ['active', 'soldout', 'hidden', 'draft'];
         $catName = trim((string) ($row['category_name'] ?? ''));
         echo e($parentCat !== '' && $catName !== '' ? $parentCat . ' / ' . $catName : ($catName !== '' ? $catName : '-'));
       ?></td>
-      <td><?php if ((int) ($row['ink_amount'] ?? 0) > 0): ?><?= number_format((int) $row['ink_amount']) ?> 잉크<?php else: ?><?= e($row['spec_name'] ?? '-') ?><?php endif; ?></td>
+      <td><?php if ((int) ($row['ink_amount'] ?? 0) > 0): ?><?= number_format((int) $row['ink_amount']) ?> 잉크<?php else: ?><?php $displaySize = ShopAdminService::displaySizeLabel($row); ?><?= e($row['spec_name'] ?? '-') ?><?php if ($displaySize !== ''): ?><div class="admin-muted">(<?= e($displaySize) ?>)</div><?php endif; ?><?php endif; ?></td>
       <td><?= number_format((int) $row['price']) ?>원<?php if (!empty($row['sale_price'])): ?> <small class="admin-muted">→ <?= number_format((int) $row['sale_price']) ?>원</small><?php endif; ?></td>
       <td>
         <?php
