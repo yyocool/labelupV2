@@ -178,10 +178,6 @@ def download_one(cat: str, slug: str, item_id: str, sort_order: int) -> dict | N
         return None
     if not (head.startswith(b"<?xml") or head.startswith(b"<svg") or b"<svg" in body[:800].lower()):
         return None
-    # 비정상 대용량 SVG(임베드 비트맵 등)는 원격 할당량을 잠식하므로 제외
-    if len(body) > 5 * 1024 * 1024:
-        return None
-
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     out_path.write_bytes(body)
 

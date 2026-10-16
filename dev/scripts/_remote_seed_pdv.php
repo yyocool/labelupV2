@@ -2,6 +2,7 @@
 /* PHP 5.2 compatible PDV clipart seeder for PHPS CLI */
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
+@ini_set('memory_limit', '512M');
 
 $lines = file('/home/uptube1/.env');
 $c = array();
@@ -60,7 +61,9 @@ $names = array(
 
 $raw = file_get_contents('/home/uptube1/storage/imports/clipart_pdv_manifest.json');
 $data = json_decode($raw, true);
+unset($raw);
 $items = (isset($data['items']) && is_array($data['items'])) ? $data['items'] : array();
+unset($data);
 
 $inserted = 0;
 $updated = 0;

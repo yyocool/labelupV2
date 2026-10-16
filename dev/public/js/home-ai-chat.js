@@ -61,6 +61,8 @@ window.LabelUpLabiChat = {
   /** @type {Array<Record<string, any>>} */
   const transcript = [];
   let restoringChat = false;
+  /** 오류 후 재전송 시 마지막 force_intent 유지 */
+  let lastForceIntent = '';
 
   function chatStoreKey() {
     if (!isLoggedIn || userId <= 0) return null;
@@ -1030,6 +1032,15 @@ window.LabelUpLabiChat = {
     bubble.innerHTML = formatMessage(content);
     body.appendChild(bubble);
 
+    if (extras.error) {
+      if (record) record.error = true;
+      item.classList.add('ai-chat-msg--error');
+      body.appendChild(buildRetryBar({ lastOnly: true }));
+    }
+    if (role === 'user') {
+      body.appendChild(buildRetryBar({ userItem: item }));
+    }
+
     if (extras.product) {
       body.appendChild(buildProductCard(extras.product));
     }
@@ -1554,10 +1565,133 @@ window.LabelUpLabiChat = {
     );
   }
 
+  function buildRetryBar(opts) {
+    const options = opts || {};
+    const wrap = document.createElement('div');
+    wrap.className = 'ai-chat-retry';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ai-chat-retry__btn';
+    btn.textContent = '다시 보내기';
+    btn.addEventListener('click', () => {
+      if (options.lastOnly) {
+        void retryLastLabi();
+        return;
+      }
+      if (options.userItem) {
+        void resendUserMessage(options.userItem);
+        return;
+      }
+      void retryLastLabi();
+    });
+    wrap.appendChild(btn);
+    return wrap;
+  }
+
+  function clearLabiErrorUi() {
+    if (!chatLog) return;
+    chatLog.querySelectorAll('.ai-chat-msg--error').forEach((el) => el.remove());
+    let changed = false;
+    for (let i = transcript.length - 1; i >= 0; i -= 1) {
+      const entry = transcript[i];
+      if (!entry) continue;
+      if (entry.error) {
+        transcript.splice(i, 1);
+        changed = true;
+      }
+    }
+    if (changed) saveChat();
+  }
+
+  function userUiIndex(itemEl) {
+    if (!chatLog || !itemEl) return -1;
+    const users = chatLog.querySelectorAll('.ai-chat-msg--user');
+    return Array.prototype.indexOf.call(users, itemEl);
+  }
+
+  function historyUserIndex(uiIndex) {
+    let n = -1;
+    for (let i = 0; i < history.length; i += 1) {
+      if (history[i] && history[i].role === 'user') {
+        n += 1;
+        if (n === uiIndex) return i;
+      }
+    }
+    return -1;
+  }
+
+  function displayTextFromHistoryUser(msg, fallback) {
+    if (!msg) return fallback || '';
+    if (typeof msg.content === 'string') return msg.content;
+    if (Array.isArray(msg.content)) {
+      const text = msg.content.find((p) => p && p.type === 'text');
+      if (text && text.text) return String(text.text);
+    }
+    return fallback || '';
+  }
+
+  async function resendUserMessage(itemEl) {
+    if (sending) return;
+    if (!(await requireLogin())) return;
+    const uiIndex = userUiIndex(itemEl);
+    if (uiIndex < 0) return;
+    const histIdx = historyUserIndex(uiIndex);
+    if (histIdx < 0) return;
+
+    const userMsg = history[histIdx];
+    const userEntries = transcript.filter((e) => e && e.role === 'user');
+    const entry = userEntries[uiIndex] || null;
+    const displayText = (entry && entry.content)
+      ? String(entry.content)
+      : displayTextFromHistoryUser(userMsg, '다시 보내기');
+    const attachments = (entry && Array.isArray(entry.attachments)) ? entry.attachments : [];
+
+    // 해당 프롬프트 이후 대화는 버리고, 그 메시지부터 다시 요청한다.
+    history.splice(histIdx + 1);
+    let seen = -1;
+    let cutAt = -1;
+    for (let i = 0; i < transcript.length; i += 1) {
+      if (transcript[i] && transcript[i].role === 'user') {
+        seen += 1;
+        if (seen === uiIndex) {
+          cutAt = i;
+          break;
+        }
+      }
+    }
+    if (cutAt >= 0) transcript.splice(cutAt + 1);
+    clearLabiErrorUi();
+
+    if (chatLog) {
+      chatLog.querySelectorAll('.ai-chat-msg').forEach((el) => el.remove());
+    }
+    paintTranscript();
+    saveChat();
+
+    const intent = intentForLabiMode(displayText, attachments) || lastForceIntent || '';
+    await requestLabi(intent);
+  }
+
+  async function retryLastLabi() {
+    if (sending) return;
+    if (!(await requireLogin())) return;
+    const users = chatLog ? chatLog.querySelectorAll('.ai-chat-msg--user') : [];
+    if (users.length) {
+      await resendUserMessage(users[users.length - 1]);
+      return;
+    }
+    const hasUser = history.some((m) => m && m.role === 'user');
+    if (!hasUser) return;
+    clearLabiErrorUi();
+    await requestLabi(lastForceIntent || '');
+  }
+
   async function requestLabi(forceIntent) {
     if (sending) return;
     sending = true;
     send.disabled = true;
+    lastForceIntent = forceIntent || '';
+    clearLabiErrorUi();
     const lastUser = history.filter((m) => m.role === 'user').slice(-1)[0];
     const lastText = typeof lastUser?.content === 'string'
       ? lastUser.content
@@ -1590,15 +1724,19 @@ window.LabelUpLabiChat = {
       if (typeof payload.show_ai_usage === 'boolean') showAiUsage = payload.show_ai_usage;
       if (typeof payload.show_ai_debug === 'boolean') showAiDebug = payload.show_ai_debug;
       removeTyping(typing);
-      appendMessage('assistant', reply || LABI_UNAVAILABLE_MSG, {
-        product: payload.product || null,
-        clipart: payload.clipart || null,
-        template: payload.template || null,
-        choices: payload.choices || null,
-        usage: payload.usage || null,
-      });
-      history.push({ role: 'assistant', content: reply });
-      saveChat();
+      if (!reply) {
+        appendMessage('assistant', LABI_UNAVAILABLE_MSG, { error: true });
+      } else {
+        appendMessage('assistant', reply, {
+          product: payload.product || null,
+          clipart: payload.clipart || null,
+          template: payload.template || null,
+          choices: payload.choices || null,
+          usage: payload.usage || null,
+        });
+        history.push({ role: 'assistant', content: reply });
+        saveChat();
+      }
       updateCreditDisplays(payload.credit || null);
       if (payload.template && payload.template.document) {
         if (payload.template.dataset) compactOfficeHistory();
@@ -1606,7 +1744,7 @@ window.LabelUpLabiChat = {
       }
     } catch (err) {
       removeTyping(typing);
-      appendMessage('assistant', friendlyLabiError(err));
+      appendMessage('assistant', friendlyLabiError(err), { error: true });
     } finally {
       sending = false;
       syncComposer();
@@ -1959,6 +2097,7 @@ window.LabelUpLabiChat = {
         picked: entry.picked || null,
         vendor: entry.vendor || null,
         usage: entry.usage || null,
+        error: !!entry.error,
       });
     });
     chatLog.hidden = false;
