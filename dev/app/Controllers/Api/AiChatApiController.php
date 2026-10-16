@@ -97,18 +97,150 @@ final class AiChatApiController extends BaseController
                 'error_message' => mb_substr($e->getMessage(), 0, 255),
                 'has_image' => $this->rawHasImage($rawMessages),
             ]);
-            $this->jsonError($this->publicErrorMessage($e), null, 502);
+            $public = $this->classifyPublicError($e);
+            $this->jsonError($public['message'], [
+                'code' => $public['code'],
+                'reason' => $public['reason'],
+            ], 502);
         }
     }
 
-    private function publicErrorMessage(RuntimeException $e): string
+    /**
+     * @return array{message:string, code:string, reason:string}
+     */
+    private function classifyPublicError(RuntimeException $e): array
     {
         $msg = trim($e->getMessage());
         if ($msg !== '' && (str_contains($msg, '잉크') || str_contains($msg, '로그인') || str_contains($msg, '메시지를 입력'))) {
-            return $msg;
+            return [
+                'message' => $msg,
+                'code' => str_contains($msg, '잉크') ? 'credit' : 'client',
+                'reason' => $msg,
+            ];
         }
 
-        return '지금은 라비를 잠시 사용할 수 없어요. 잠시 후 다시 시도해 주세요. 계속되면 고객센터(02-6956-5511)로 문의해 주세요.';
+        $classified = $this->classifyLabiFailure($msg);
+        $message = "지금은 라비를 잠시 사용할 수 없어요.\n"
+            . '사유: ' . $classified['reason'] . "\n"
+            . "잠시 후 다시 시도해 주세요. 계속되면 고객센터(02-6956-5511)로 문의해 주세요.\n"
+            . '(CODE:' . $classified['code'] . ')';
+
+        return [
+            'message' => $message,
+            'code' => $classified['code'],
+            'reason' => $classified['reason'],
+        ];
+    }
+
+    /**
+     * @return array{code:string, reason:string}
+     */
+    private function classifyLabiFailure(string $msg): array
+    {
+        $t = strtolower($msg);
+
+        if (
+            str_contains($t, 'insufficient_quota')
+            || str_contains($t, 'exceeded your current quota')
+            || str_contains($t, 'billing_hard_limit')
+            || str_contains($t, 'insufficient_funds')
+            || str_contains($t, 'you exceeded your')
+            || (str_contains($t, 'quota') && (str_contains($t, 'exceed') || str_contains($t, 'exhaust') || str_contains($t, 'deplet')))
+        ) {
+            return ['code' => '098', 'reason' => 'OpenAI API 잔액(사용 한도)이 부족합니다.'];
+        }
+        if (
+            str_contains($t, 'invalid_api_key')
+            || str_contains($t, 'incorrect api key')
+            || str_contains($t, 'api 키가 설정되지')
+            || str_contains($t, 'authentication')
+            || str_contains($t, 'unauthorized')
+            || str_contains($msg, 'OPENAI_API_KEY')
+        ) {
+            return ['code' => '091', 'reason' => 'AI API 키 설정에 문제가 있습니다.'];
+        }
+        if (
+            str_contains($t, 'rate_limit')
+            || str_contains($t, 'rate limit')
+            || str_contains($t, 'too many requests')
+            || str_contains($t, '429')
+        ) {
+            return ['code' => '092', 'reason' => 'AI 요청이 잠시 너무 많아 제한되었습니다.'];
+        }
+        if (
+            str_contains($t, '연결 실패')
+            || str_contains($t, '연결에 실패')
+            || str_contains($t, 'econn')
+            || str_contains($t, 'timed out')
+            || str_contains($t, 'timeout')
+            || str_contains($t, 'ssl')
+            || str_contains($t, 'curl')
+            || str_contains($t, 'could not resolve')
+        ) {
+            return ['code' => '093', 'reason' => 'AI 서버와 연결하지 못했습니다.'];
+        }
+        if (
+            str_contains($msg, 'AI 응답을 받지 못했습니다')
+            || str_contains($msg, '응답을 해석할 수 없습니다')
+            || str_contains($msg, '응답이 비어')
+            || str_contains($t, 'empty response')
+        ) {
+            return ['code' => '094', 'reason' => 'AI 응답을 받지 못했거나 응답 형식이 올바르지 않습니다.'];
+        }
+        if (
+            str_contains($msg, '이미지 생성')
+            || str_contains($msg, '생성된 이미지')
+            || str_contains($msg, '이미지 디코딩')
+            || str_contains($t, 'image')
+        ) {
+            return ['code' => '095', 'reason' => '이미지 생성에 실패했습니다.'];
+        }
+        if (
+            str_contains($t, 'disk')
+            || str_contains($t, 'quota')
+            || str_contains($msg, '디스크 용량')
+            || str_contains($msg, '할당량')
+            || str_contains($t, 'no space')
+            || str_contains($t, 'out of free')
+        ) {
+            return ['code' => '096', 'reason' => '서버 디스크 용량(할당량)이 부족합니다.'];
+        }
+        if (
+            str_contains($msg, '저장')
+            || str_contains($msg, '권한')
+            || str_contains($t, 'permission')
+        ) {
+            return ['code' => '096', 'reason' => '서버 저장(파일 권한)에 문제가 있습니다.'];
+        }
+        if (
+            str_contains($t, 'model')
+            && (str_contains($t, 'does not exist') || str_contains($t, 'not found') || str_contains($t, 'invalid'))
+        ) {
+            return ['code' => '097', 'reason' => '설정된 AI 모델을 사용할 수 없습니다.'];
+        }
+        if (
+            str_contains($t, 'content_policy')
+            || str_contains($t, 'safety')
+            || str_contains($t, 'rejected')
+            || str_contains($t, 'moderation')
+        ) {
+            return ['code' => '090', 'reason' => '요청 내용이 AI 이용 정책에 걸려 처리되지 않았습니다.'];
+        }
+
+        $detail = trim(preg_replace('/\s+/u', ' ', $msg) ?? '');
+        if ($detail !== '') {
+            // 키·토큰 노출 방지: 영문/숫자 위주 기술 문구만 짧게 붙인다.
+            $detail = preg_replace('/sk-[A-Za-z0-9_-]+/', '[api-key]', $detail) ?? $detail;
+            if (mb_strlen($detail) > 100) {
+                $detail = mb_substr($detail, 0, 100) . '…';
+            }
+            return [
+                'code' => '099',
+                'reason' => '일시적인 AI 서비스 오류가 발생했습니다. 상세: ' . $detail,
+            ];
+        }
+
+        return ['code' => '099', 'reason' => '일시적인 AI 서비스 오류가 발생했습니다.'];
     }
 
     private function normalizeSurface(string $surface): string

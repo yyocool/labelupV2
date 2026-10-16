@@ -15,6 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "storage" / "imports" / "clipart_pdv_manifest.json"
 LOCAL_CLIP = ROOT / "public" / "assets" / "cliparts"
 SEED_PHP = ROOT / "scripts" / "_remote_seed_pdv.php"
+# 비정상적으로 큰 SVG는 원격 할당량을 잠식하므로 업로드하지 않음
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 
 
 def ensure_dir(sftp, remote_dir: str) -> None:
@@ -53,12 +55,15 @@ def main() -> int:
         if not name.startswith("pdv_"):
             continue
         local = LOCAL_CLIP / name
-        if not local.is_file() or local.stat().st_size < 50:
+        if not local.is_file():
+            continue
+        size = local.stat().st_size
+        if size < 50 or size > MAX_UPLOAD_BYTES:
             continue
         remote = f"{remote_clip}/{name}"
         try:
             st = sftp.stat(remote)
-            if st.st_size == local.stat().st_size:
+            if st.st_size == size:
                 continue
         except FileNotFoundError:
             pass
@@ -67,10 +72,17 @@ def main() -> int:
             try:
                 sftp.put(str(local), remote)
                 st2 = sftp.stat(remote)
-                if st2.st_size == local.stat().st_size:
+                if st2.st_size == size:
                     ok = True
                     break
-            except OSError:
+            except OSError as ex:
+                # 할당량 초과 시 즉시 중단 (재시도해도 동일)
+                if "quota" in str(ex).lower() or "Disk quota" in str(ex):
+                    print(f"quota exceeded after uploaded={uploaded}", file=sys.stderr)
+                    upload_fail += 1
+                    sftp.close()
+                    t.close()
+                    return 2
                 continue
         if not ok:
             upload_fail += 1

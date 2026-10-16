@@ -1448,7 +1448,60 @@ window.LabelUpLabiChat = {
     }
   }
 
-  const LABI_UNAVAILABLE_MSG = '지금은 라비를 잠시 사용할 수 없어요. 잠시 후 다시 시도해 주세요. 계속되면 고객센터(02-6956-5511)로 문의해 주세요.';
+  function formatLabiUnavailable(reason, code) {
+    return '지금은 라비를 잠시 사용할 수 없어요.\n'
+      + '사유: ' + reason + '\n'
+      + '잠시 후 다시 시도해 주세요. 계속되면 고객센터(02-6956-5511)로 문의해 주세요.\n'
+      + '(CODE:' + code + ')';
+  }
+
+  const LABI_UNAVAILABLE_MSG = formatLabiUnavailable('응답이 비어 있습니다.', '094');
+
+  function classifyClientLabiFailure(text) {
+    const t = String(text || '').toLowerCase();
+    const raw = String(text || '');
+    if (/CODE:0\d{2}/.test(raw) && /사유:/.test(raw)) {
+      return null; // 서버가 이미 정리한 문구
+    }
+    if (/insufficient_quota|exceeded your current quota|billing_hard_limit|insufficient_funds/.test(t)
+      || (/quota/.test(t) && /exceed|exhaust|deplet/.test(t))) {
+      return { code: '098', reason: 'OpenAI API 잔액(사용 한도)이 부족합니다.' };
+    }
+    if (/invalid_api_key|incorrect api key|unauthorized|authentication|openai_api_key/.test(t)) {
+      return { code: '091', reason: 'AI API 키 설정에 문제가 있습니다.' };
+    }
+    if (/rate_limit|rate limit|too many requests|\b429\b/.test(t)) {
+      return { code: '092', reason: 'AI 요청이 잠시 너무 많아 제한되었습니다.' };
+    }
+    if (/failed to fetch|networkerror|load failed|network request failed|econn|ssl|curl|could not resolve/i.test(t)) {
+      return { code: '093', reason: 'AI 서버와 연결하지 못했습니다.' };
+    }
+    if (/abort(ed)?|timeout|timed out/i.test(t)) {
+      return { code: '093', reason: 'AI 서버 응답 시간이 초과되었습니다.' };
+    }
+    if (/AI 응답을 받지 못했습니다|응답이 비어|응답을 해석할 수 없습니다|empty response/.test(raw)) {
+      return { code: '094', reason: 'AI 응답을 받지 못했거나 응답 형식이 올바르지 않습니다.' };
+    }
+    if (/이미지 생성|생성된 이미지|이미지 디코딩|\bimage\b/.test(raw) && /실패|없|error|fail/i.test(raw)) {
+      return { code: '095', reason: '이미지 생성에 실패했습니다.' };
+    }
+    if (/disk|quota|디스크 용량|할당량|no space|out of free/.test(t)) {
+      return { code: '096', reason: '서버 디스크 용량(할당량)이 부족합니다.' };
+    }
+    if (/저장|권한|permission/.test(t)) {
+      return { code: '096', reason: '서버 저장(파일 권한)에 문제가 있습니다.' };
+    }
+    if (/model/.test(t) && /does not exist|not found|invalid/.test(t)) {
+      return { code: '097', reason: '설정된 AI 모델을 사용할 수 없습니다.' };
+    }
+    if (/content_policy|safety|moderation|rejected/.test(t)) {
+      return { code: '090', reason: '요청 내용이 AI 이용 정책에 걸려 처리되지 않았습니다.' };
+    }
+    if (/openai|ssl|curl|econn|^[A-Za-z0-9 ._:[\]'"\\/-]+$/.test(raw)) {
+      return { code: '099', reason: '일시적인 AI 서비스 오류가 발생했습니다.' };
+    }
+    return null;
+  }
 
   function isTechnicalLabiError(text) {
     const t = String(text || '').trim();
@@ -1471,16 +1524,34 @@ window.LabelUpLabiChat = {
   function friendlyLabiError(err) {
     const status = err && err.status;
     const raw = err && err.message ? String(err.message) : '';
+    const apiReason = err && err.reason ? String(err.reason).trim() : '';
+    const apiCode = err && err.code ? String(err.code).trim() : '';
     if (status === 402 || /잉크/.test(raw)) {
       return raw.trim() || 'AI 잉크가 부족합니다. 충전한 뒤 다시 이용해 주세요.';
     }
     if (status === 401 || /로그인/.test(raw)) {
       return raw.trim() || '로그인이 필요합니다.';
     }
+    if (apiReason && /^0\d{2}$/.test(apiCode)) {
+      return formatLabiUnavailable(apiReason, apiCode);
+    }
+    if (raw && /사유:/.test(raw) && /CODE:0\d{2}/.test(raw)) {
+      return raw.trim();
+    }
+    const classified = classifyClientLabiFailure(raw);
+    if (classified) {
+      return formatLabiUnavailable(classified.reason, classified.code);
+    }
     if (raw && !isTechnicalLabiError(raw)) {
       return raw.trim();
     }
-    return LABI_UNAVAILABLE_MSG;
+    const detail = raw.replace(/\s+/g, ' ').trim().slice(0, 100);
+    return formatLabiUnavailable(
+      detail
+        ? ('일시적인 AI 서비스 오류가 발생했습니다. 상세: ' + detail)
+        : '일시적인 AI 서비스 오류가 발생했습니다.',
+      '099'
+    );
   }
 
   async function requestLabi(forceIntent) {
@@ -1508,7 +1579,8 @@ window.LabelUpLabiChat = {
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data.success === false) {
         const err = new Error(data.message || '');
-        err.code = (data.data && data.data.code) || '';
+        err.code = (data.data && data.data.code) || data.code || '';
+        err.reason = (data.data && data.data.reason) || data.reason || '';
         err.status = res.status;
         throw err;
       }

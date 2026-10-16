@@ -1019,9 +1019,12 @@ PROMPT;
         }
 
         if ($status >= 400 || isset($decoded['error'])) {
-            $message = is_array($decoded['error'] ?? null)
-                ? (string) ($decoded['error']['message'] ?? 'OpenAI API 오류')
-                : 'OpenAI API 오류';
+            $err = is_array($decoded['error'] ?? null) ? $decoded['error'] : [];
+            $message = (string) ($err['message'] ?? 'OpenAI API 오류');
+            $errCode = trim((string) ($err['code'] ?? $err['type'] ?? ''));
+            if ($errCode !== '') {
+                $message .= ' [' . $errCode . ']';
+            }
             throw new RuntimeException($message);
         }
 
@@ -1159,7 +1162,24 @@ PROMPT;
         $name = 'clip_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.png';
         $full = $dir . DIRECTORY_SEPARATOR . $name;
         if (@file_put_contents($full, $bin) === false) {
-            throw new RuntimeException('클립아트 파일 저장에 실패했습니다. 저장 폴더 권한을 확인해 주세요.');
+            $last = error_get_last();
+            $hint = is_array($last) ? (string) ($last['message'] ?? '') : '';
+            if (
+                str_contains(strtolower($hint), 'disk')
+                || str_contains(strtolower($hint), 'quota')
+                || str_contains($hint, 'No space')
+                || str_contains($hint, 'out of free')
+            ) {
+                throw new RuntimeException(
+                    '클립아트 파일 저장에 실패했습니다. 서버 디스크 용량(할당량)이 부족합니다.'
+                );
+            }
+            if (!is_writable($dir)) {
+                throw new RuntimeException('클립아트 파일 저장에 실패했습니다. 저장 폴더 권한을 확인해 주세요.');
+            }
+            throw new RuntimeException(
+                '클립아트 파일 저장에 실패했습니다. 서버 디스크 용량 또는 저장 폴더 상태를 확인해 주세요.'
+            );
         }
         @chmod($full, 0666);
 
