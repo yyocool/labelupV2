@@ -16,6 +16,7 @@
         <div>
           <h3>용지선택</h3>
           <p>라벨용지와 태그용지를 검색하고 선택합니다. 닫으려면 오른쪽 위 ×를 누르세요.</p>
+          <p class="compat-tm" role="note">폼텍,애니라벨,아이라벨은 각 해당 회사의 등록 상표입니다.</p>
         </div>
         <button type="button" class="ed-modal__close" title="용지선택 닫기" @onclick="Session.CloseDialog">×</button>
       </header>
@@ -82,11 +83,7 @@
                 <strong>@item.Name</strong>
                 <span>@item.Sku @(string.IsNullOrWhiteSpace(item.CategoryName) ? "" : " · " + item.CategoryName)</span>
                 <ul>
-                  <li>@(_tab == "tag" ? "태그" : "라벨") @item.SizeText</li>
-                  @if (item.LabelsPerSheet > 0)
-                  {
-                    <li>시트당 @item.LabelsPerSheet 칸</li>
-                  }
+                  <li>@item.LayoutText</li>
                   @if (!string.IsNullOrWhiteSpace(item.Material))
                   {
                     <li>재질 @item.Material</li>

@@ -42,6 +42,7 @@ $payload = [
       <h1 class="fade fade-3">폼텍·애니라벨·아이라벨<em>호환 코드 한눈에</em></h1>
       <p class="sub fade fade-4">라벨업 라벨용지는 국내 주요 3사 규격과 <b>칸 수·라벨 크기·배치가 동일</b>합니다.
         포장의 품번만 검색하면 바로 찾을 수 있습니다.</p>
+      <p class="tm-notice" role="note">폼텍,애니라벨,아이라벨은 각 해당 회사의 등록 상표입니다.</p>
     </div>
   </section>
 
@@ -133,8 +134,8 @@ $payload = [
 
   <div class="wrap">
     <footer>
-      <b>호환 표기 안내</b> — 위 코드는 타사 제품과 라벨업 제품의 규격이 서로 같음을 안내하기 위한 대조 정보입니다.
-      폼텍, 애니라벨, 아이라벨은 각 사의 상표이며 라벨업과 제휴 관계가 없습니다.<br>
+      <b>폼텍,애니라벨,아이라벨은 각 해당 회사의 등록 상표입니다.</b><br>
+      위 코드는 타사 제품과 라벨업 제품의 규격이 서로 같음을 안내하기 위한 대조 정보이며, 라벨업과 제휴 관계가 없습니다.<br>
       © <?= (int) ($year ?? date('Y')) ?> LABEL UP · <a href="<?= url('/') ?>" style="color:inherit">홈</a>
       · <a href="<?= url('shop') ?>" style="color:inherit">라벨쇼핑</a>
     </footer>

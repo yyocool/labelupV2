@@ -91,4 +91,22 @@ public sealed class ShopPaperItem
             return string.IsNullOrWhiteSpace(SpecName) ? "-" : SpecName!;
         }
     }
+
+    /// <summary>용지선택 카드용. mm 없이 열×행·칸수만.</summary>
+    public string LayoutText
+    {
+        get
+        {
+            var cols = ColumnsCount is > 0 ? ColumnsCount.Value : 0;
+            var rows = RowsCount is > 0 ? RowsCount.Value : 0;
+            if (cols > 0 && rows > 0)
+            {
+                var cells = LabelsPerSheet > 0 ? LabelsPerSheet : cols * rows;
+                return $"{cols}×{rows} · 시트당 {cells} 칸";
+            }
+            if (LabelsPerSheet > 0)
+                return $"시트당 {LabelsPerSheet} 칸";
+            return string.IsNullOrWhiteSpace(SpecName) ? "-" : SpecName!;
+        }
+    }
 }

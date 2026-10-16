@@ -1,6 +1,7 @@
 window.LabelUpLabiChat = {
   async mount(options) {
     const cfg = options || window.LABELUP_HOME || {};
+    let userId = Math.max(0, Number(cfg.userId || cfg.user_id || 0) || 0);
     let isLoggedIn = !!cfg.isLoggedIn;
     const loginUrl = cfg.loginUrl || '/login';
     const chatApiUrl = cfg.chatApiUrl || '/api/ai/chat';
@@ -54,11 +55,42 @@ window.LabelUpLabiChat = {
     { id: 'template', label: '템플릿' },
   ];
   let labiMode = 'auto';
-  const CHAT_STORE_KEY = 'labelup.labi.chat.v1';
+  /** 구버전 공용 키 — 계정별 키로 이전할 때만 읽는다 */
+  const CHAT_STORE_SHARED = 'labelup.labi.chat.v1';
   const CHAT_STORE_LEGACY = ['labelup.labi.chat.v1.home', 'labelup.labi.chat.v1.editor'];
   /** @type {Array<Record<string, any>>} */
   const transcript = [];
   let restoringChat = false;
+
+  function chatStoreKey() {
+    if (!isLoggedIn || userId <= 0) return null;
+    return 'labelup.labi.chat.v1.u' + userId;
+  }
+
+  function applyAuthUser(user) {
+    const id = Math.max(0, Number(user && (user.id || user.user_id) || 0) || 0);
+    userId = id;
+    isLoggedIn = id > 0;
+    if (isLoggedIn && input) input.removeAttribute('readonly');
+    return isLoggedIn;
+  }
+
+  async function refreshAuth() {
+    if (typeof cfg.fetchAuthUser === 'function') {
+      try {
+        const user = await cfg.fetchAuthUser();
+        if (user) return applyAuthUser(user);
+      } catch (e) { /* ignore */ }
+      userId = 0;
+      isLoggedIn = false;
+      return false;
+    }
+    if (userId > 0 && cfg.isLoggedIn) {
+      isLoggedIn = true;
+      return true;
+    }
+    return isLoggedIn && userId > 0;
+  }
   /** @type {{id:string, kind:'image'|'text'|'file', name:string, dataUrl?:string, text?:string}[]} */
   let pendingAttachments = [];
   let sending = false;
@@ -127,16 +159,15 @@ window.LabelUpLabiChat = {
   }
 
   async function requireLogin() {
-    if (isLoggedIn) return true;
+    if (isLoggedIn && userId > 0) return true;
     if (typeof cfg.ensureLogin === 'function') {
       const ok = await cfg.ensureLogin();
-      if (ok) {
-        isLoggedIn = true;
-        if (input) input.removeAttribute('readonly');
-        if (!transcript.length) restoreChat();
-        return true;
-      }
-      return false;
+      if (!ok) return false;
+      await refreshAuth();
+      if (!(isLoggedIn && userId > 0)) return false;
+      if (input) input.removeAttribute('readonly');
+      if (!transcript.length) restoreChat();
+      return true;
     }
     const goLogin = await showLoginPrompt();
     if (goLogin) redirectLogin();
@@ -1098,7 +1129,23 @@ window.LabelUpLabiChat = {
   }
 
   function isTemplateRequest(text) {
-    return /템플릿|라벨\s*디자인|전체\s*라벨|라벨지\s*만들|디자인으로\s*만들/.test(text || '');
+    const t = text || '';
+    // 「라벨 추천」은 용지 추천이지 템플릿 생성이 아님
+    if (isProductRecommendRequest(t)) return false;
+    return /템플릿|라벨\s*디자인|전체\s*라벨|라벨지\s*만들|디자인으로\s*만들/.test(t);
+  }
+
+  /** 등록 상품(라벨지) 추천 — 템플릿/클립아트 생성이 아님 */
+  function isProductRecommendRequest(text) {
+    const t = String(text || '').trim();
+    if (!t) return false;
+    if (/템플릿\s*만들|디자인\s*만들|그려\s*줘|클립아트|일러스트/.test(t)) return false;
+    if (/호환|폼텍|애니라벨|아이라벨|formtec|anylabel|ilabel/i.test(t)) return true;
+    if (/\b(?:LU-?)?V?\d{3,5}[A-Z]?\b/i.test(t) || /[A-Z]{1,3}\d{2,4}[A-Z]?/i.test(t)) {
+      if (/호환|대응|같은|대신|라벨|용지/.test(t)) return true;
+    }
+    return /라벨\s*추천|용지\s*추천|라벨지\s*추천|상품\s*추천|스티커\s*추천|추천해\s*줘|추천\s*해줘|추천해줘|골라\s*줘|어떤\s*라벨|무슨\s*라벨|맞는\s*라벨|적합한\s*라벨|라벨\s*골라|용지\s*골라/.test(t)
+      || (/(라벨|라벨지|용지|스티커)/.test(t) && /추천|골라/.test(t));
   }
 
   function attachmentsHaveImage(items) {
@@ -1366,6 +1413,7 @@ window.LabelUpLabiChat = {
   }
 
   function typingModeFor(text, forceIntent) {
+    if (forceIntent === 'recommend_product' || isProductRecommendRequest(text)) return 'chat';
     if (forceIntent === 'generate_data_template' || forceIntent === 'translate_yes' || forceIntent === 'translate_no') return 'template';
     if (forceIntent === 'generate_template' || isTemplateRequest(text)) return 'template';
     if (forceIntent === 'generate_clipart' || isClipartRequest(text)) return 'draw';
@@ -1558,6 +1606,8 @@ window.LabelUpLabiChat = {
   }
 
   function intentForLabiMode(displayText, attachments) {
+    // 「라벨 추천해줘」→ 등록 상품(용지) 추천. 모드가 템플릿이어도 우선.
+    if (isProductRecommendRequest(displayText)) return 'recommend_product';
     if (labiMode === 'chat') return 'chat';
     if (labiMode === 'clipart') return 'generate_clipart';
     if (labiMode === 'template') {
@@ -1741,23 +1791,27 @@ window.LabelUpLabiChat = {
   }
 
   function saveChat() {
-    if (!isLoggedIn || restoringChat) return;
+    if (!isLoggedIn || userId <= 0 || restoringChat) return;
+    const key = chatStoreKey();
+    if (!key) return;
     const payload = {
+      userId,
       transcript: transcript.slice(-40).map((entry) => slimStoredValue(entry, 0)).filter(Boolean),
       history: history.slice(-40).map(slimApiMessage).filter(Boolean),
     };
     try {
-      localStorage.setItem(CHAT_STORE_KEY, JSON.stringify(payload));
+      localStorage.setItem(key, JSON.stringify(payload));
     } catch (e) {
       try {
         payload.transcript = payload.transcript.slice(-12);
         payload.history = payload.history.slice(-12);
-        localStorage.setItem(CHAT_STORE_KEY, JSON.stringify(payload));
+        localStorage.setItem(key, JSON.stringify(payload));
       } catch (err) { /* 용량이 넘치면 이번 저장만 건너뛴다 */ }
     }
   }
 
   function readChatPayload(key) {
+    if (!key) return null;
     try {
       const parsed = JSON.parse(localStorage.getItem(key) || 'null');
       if (!parsed || !Array.isArray(parsed.transcript) || !parsed.transcript.length) return null;
@@ -1768,15 +1822,52 @@ window.LabelUpLabiChat = {
   }
 
   function loadSavedChat() {
-    const shared = readChatPayload(CHAT_STORE_KEY);
-    if (shared) return shared;
+    if (!isLoggedIn || userId <= 0) return null;
+    const key = chatStoreKey();
+    const mine = readChatPayload(key);
+    if (mine) return mine;
+
+    // 같은 브라우저에 남아 있던 공용 키는 현재 로그인 계정으로 1회만 이전
+    const shared = readChatPayload(CHAT_STORE_SHARED);
     const legacy = CHAT_STORE_LEGACY.map(readChatPayload).filter(Boolean);
-    if (!legacy.length) return null;
-    if (legacy.length === 1) return legacy[0];
-    return {
-      transcript: legacy.flatMap((item) => item.transcript).slice(-40),
-      history: legacy.flatMap((item) => (Array.isArray(item.history) ? item.history : [])).slice(-40),
-    };
+    let migrated = shared;
+    if (!migrated && legacy.length === 1) migrated = legacy[0];
+    else if (!migrated && legacy.length > 1) {
+      migrated = {
+        transcript: legacy.flatMap((item) => item.transcript).slice(-40),
+        history: legacy.flatMap((item) => (Array.isArray(item.history) ? item.history : [])).slice(-40),
+      };
+    }
+    if (!migrated) return null;
+    try {
+      localStorage.setItem(key, JSON.stringify({
+        userId,
+        transcript: migrated.transcript,
+        history: Array.isArray(migrated.history) ? migrated.history : [],
+      }));
+      localStorage.removeItem(CHAT_STORE_SHARED);
+      CHAT_STORE_LEGACY.forEach((k) => localStorage.removeItem(k));
+    } catch (e) { /* ignore */ }
+    return migrated;
+  }
+
+  function clearChatUiForGuest() {
+    if (isLoggedIn && userId > 0) return;
+    transcript.length = 0;
+    history.length = 0;
+    if (!chatLog) return;
+    chatLog.querySelectorAll('.ai-chat-msg').forEach((el) => el.remove());
+    const hasDemo = !!chatLog.querySelector('.ai-demo-thread');
+    if (embedMode) {
+      chatLog.hidden = true;
+      panel.classList.remove('is-chat-active');
+    } else if (hasDemo) {
+      chatLog.hidden = false;
+      panel.classList.remove('is-chat-active');
+    } else {
+      chatLog.hidden = true;
+      panel.classList.remove('is-chat-active');
+    }
   }
 
   function paintTranscript() {
@@ -1886,7 +1977,7 @@ window.LabelUpLabiChat = {
   }
 
   function restoreChat() {
-    if (!isLoggedIn || !chatLog || transcript.length) return;
+    if (!isLoggedIn || userId <= 0 || !chatLog || transcript.length) return;
     const saved = loadSavedChat();
     const items = saved && Array.isArray(saved.transcript) ? saved.transcript : [];
     if (!items.length) return;
@@ -1906,7 +1997,11 @@ window.LabelUpLabiChat = {
   }
 
   ensureModeBar();
-  restoreChat();
+  if (isLoggedIn && userId <= 0 && typeof cfg.fetchAuthUser === 'function') {
+    await refreshAuth();
+  }
+  if (isLoggedIn && userId > 0) restoreChat();
+  else clearChatUiForGuest();
   watchChatLog();
   watchModeBar();
 

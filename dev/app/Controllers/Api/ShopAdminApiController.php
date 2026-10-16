@@ -281,6 +281,15 @@ final class ShopAdminApiController extends BaseController
     public function uploadProductPageImages(): never
     {
         $this->guard();
+        $fileCount = is_array($_FILES['images']['name'] ?? null)
+            ? count($_FILES['images']['name'])
+            : (isset($_FILES['images']['name']) ? 1 : 0);
+        \App\Helpers\Logger::info('admin.page_image_upload.start', [
+            'admin_id' => $this->auth->adminId(),
+            'file_count' => $fileCount,
+            'content_length' => $_SERVER['CONTENT_LENGTH'] ?? null,
+            'content_type' => $_SERVER['CONTENT_TYPE'] ?? null,
+        ]);
         try {
             if (empty($_FILES['images'])) {
                 throw new RuntimeException('업로드할 이미지를 선택해주세요. (요청 용량이 서버 한도를 넘으면 내용이 비워져 도착합니다)');
@@ -302,6 +311,11 @@ final class ShopAdminApiController extends BaseController
             if ($results === []) {
                 throw new RuntimeException('업로드할 이미지가 없습니다.');
             }
+            \App\Helpers\Logger::info('admin.page_image_upload.done', [
+                'admin_id' => $this->auth->adminId(),
+                'ok' => count($urls),
+                'failed' => $failed,
+            ]);
             // 전부 실패해도 예외로 던지지 않는다. 호출 측이 results 로 어느 파일이
             // 왜 실패했는지 짚어야 하는데, 예외로 바꾸면 그 정보가 한 줄로 뭉개진다.
             $this->jsonSuccess(
@@ -311,6 +325,12 @@ final class ShopAdminApiController extends BaseController
                     : count($urls) . '장 업로드, ' . $failed . '장 실패했습니다.'
             );
         } catch (RuntimeException $e) {
+            \App\Helpers\Logger::warning('admin.page_image_upload.fail', [
+                'admin_id' => $this->auth->adminId(),
+                'message' => $e->getMessage(),
+                'file_count' => $fileCount,
+                'content_length' => $_SERVER['CONTENT_LENGTH'] ?? null,
+            ]);
             $this->jsonError($e->getMessage());
         }
     }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Middleware;
 
 use App\Helpers\ApiResponse;
+use App\Helpers\Logger;
 use App\Repositories\UserRepository;
 use App\Services\AdminAccessService;
 use App\Services\AuthService;
@@ -67,6 +68,13 @@ final class AuthMiddleware
         if ((new AdminAccessService())->can($adminId, $menuKey)) {
             return;
         }
+        Logger::warning('admin.menu_denied', [
+            'admin_id' => $adminId,
+            'menu_key' => $menuKey,
+            'path' => $path,
+            'method' => $_SERVER['REQUEST_METHOD'] ?? '',
+            'uri' => $_SERVER['REQUEST_URI'] ?? '',
+        ]);
         if ($this->isApi()) {
             ApiResponse::error('이 메뉴에 대한 권한이 없습니다.', null, 403);
         }

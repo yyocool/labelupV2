@@ -10,5 +10,23 @@
     "file": "AD102-261009.jpg",
     "options": 2,
     "category": "정부문서화일 라벨"
+  },
+  {
+    "sku": "A304R",
+    "file": "A304R.jpg",
+    "options": 2,
+    "category": "인덱스용"
+  },
+  {
+    "sku": "A406R",
+    "file": "A406R.jpg",
+    "options": 2,
+    "category": "인덱스용"
+  },
+  {
+    "sku": "LN101R",
+    "file": "LN101R.jpg",
+    "options": 1,
+    "category": "컬러 라벨(형광)"
   }
 ]

@@ -38,6 +38,7 @@ $statuses = ['active', 'soldout', 'hidden', 'draft'];
   <button class="admin-btn admin-btn--primary" type="submit"><?= "\u{AC80}\u{C0C9}" ?></button>
   <?php if ($hasFilter): ?><a class="admin-btn" href="<?= url('admin/shop/products') ?>"><?= "\u{CD08}\u{AE30}\u{D654}" ?></a><?php endif; ?>
 </form>
+<p class="admin-compat-tm" role="note">폼텍,애니라벨,아이라벨은 각 해당 회사의 등록 상표입니다.</p>
 <p class="admin-meta-line"><?= "\u{CD1D}" ?> <b><?= number_format((int) ($list['total'] ?? count($items))) ?></b><?= "\u{AC1C}" ?><?php if (($list['pages'] ?? 1) > 1): ?> · <?= (int) ($list['page'] ?? 1) ?> / <?= (int) $list['pages'] ?> <?= "\u{D398}\u{C774}\u{C9C0}" ?><?php endif; ?></p>
 <div id="adminAlert" class="admin-alert"></div>
 <div class="admin-table-wrap">

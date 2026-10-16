@@ -1,4 +1,4 @@
-﻿
+
 
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Pretendard,"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",Arial,sans-serif}
@@ -87,8 +87,11 @@ img{display:block;max-width:100%}
 /* main */
 .main{margin-left:var(--sidebar-width);min-height:100vh;transition:margin-left .25s ease}
 .topbar{height:72px;display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:0 31px}
-.search{width:294px;height:40px;border:1px solid #e6e6ed;background:#fff;border-radius:22px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;color:#9a9ca8;font-size:12px}
-.search .mag{font-size:20px;color:#171923}
+.search{width:294px;height:40px;border:1px solid #e6e6ed;background:#fff;border-radius:22px;display:flex;align-items:center;gap:8px;padding:0 10px 0 16px;color:#9a9ca8;font-size:12px;margin:0;box-sizing:border-box}
+.search input{flex:1;min-width:0;border:0;outline:none;background:transparent;color:#171923;font:inherit;font-size:12px;line-height:1.2;padding:0}
+.search input::placeholder{color:#9a9ca8}
+.search .mag{flex:0 0 auto;width:28px;height:28px;border:0;padding:0;margin:0;background:transparent;font-size:20px;line-height:1;color:#171923;cursor:pointer;display:grid;place-items:center;border-radius:50%}
+.search .mag:hover{background:#f4f2f6}
 .bell{width:40px;height:40px;border:1px solid #e6e6ed;border-radius:50%;background:#fff;position:relative;display:grid;place-items:center;color:#333642}.bell .icon-bell{display:block}.badge{position:absolute;right:-1px;top:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:var(--accent);color:#fff;font-size:9px;font-weight:800;display:grid;place-items:center;border:2px solid #fff;box-sizing:border-box}
 .notif-bell-wrap{position:relative;flex:0 0 auto}
 .notif-panel{
@@ -744,7 +747,7 @@ body.ai-lb-open{overflow:hidden}
  .cards-slide{padding:0}
 }
 @media(max-width:420px){
- .search span:first-child{max-width:135px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .search input{font-size:11px}
  .login{padding:0 9px}.hero{height:420px}
  .features{grid-template-columns:1fr}.card{flex-basis:84%}
 }

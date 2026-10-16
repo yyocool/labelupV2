@@ -32,23 +32,22 @@ const PageSettingsAPI = {
   },
   async uploadImages(files, extra = {}) {
     const list = Array.from(files);
-    // 호스팅이 요청 빈도로 막으면(403) 몇 초 뒤 풀린다. 파일 탓이 아니므로 다시 보낸다.
     for (let attempt = 0; ; attempt++) {
       const fd = new FormData();
       list.forEach((file) => fd.append('images[]', file));
       if (extra.fitWidth) fd.append('fit_width', String(extra.fitWidth));
       const res = await fetch(this.endpoints.uploadImages, { method: 'POST', credentials: 'same-origin', body: fd });
-      const data = await res.json().catch(() => ({}));
+      const raw = await res.text();
+      let data = {};
+      try { data = JSON.parse(raw || '{}'); } catch (_) { data = {}; }
       if (res.ok && data.success !== false) return data;
 
-      const throttled = QUEUE_THROTTLE_STATUS.includes(res.status);
-      if (throttled && attempt < QUEUE_RETRY_WAITS.length) {
+      const retryable = shouldAutoRetryUpload(res.status, data, raw);
+      if (retryable && attempt < QUEUE_RETRY_WAITS.length) {
         await queueSleep(QUEUE_RETRY_WAITS[attempt]);
         continue;
       }
-      throw new Error(data.message || (throttled
-        ? '서버가 잠시 요청을 막고 있습니다. 10초쯤 뒤에 다시 시도해주세요.'
-        : `이미지 업로드에 실패했습니다. (HTTP ${res.status})`));
+      throw new Error(formatUploadFailure(res.status, data, raw));
     }
   },
 };
@@ -696,14 +695,52 @@ const QUEUE_UPLOAD_MAX_FILES = 10;
 const QUEUE_UPLOAD_MAX_BYTES = 18 * 1024 * 1024;
 const QUEUE_IMAGE_EXT = /\.(jpe?g|png|gif|webp)$/i;
 
-// 호스팅이 요청 빈도로 막을 때 쓰는 상태 코드. 파일 문제가 아니라 잠깐 기다리면 풀린다.
-const QUEUE_THROTTLE_STATUS = [403, 429, 503];
-// 측정상 2초면 풀려서 한 번만 쉬어도 대부분 통과한다. 여유를 둬 세 번까지 기다린다.
-const QUEUE_RETRY_WAITS = [2500, 4000, 7000];
-// 요청을 연달아 쏘면 막히므로 묶음 사이를 띄운다.
-const QUEUE_CHUNK_GAP = 1200;
+// 일시적 거부(429/503, 또는 본문 없는 403)일 때만 자동 재시도한다.
+const QUEUE_RETRY_STATUS = [429, 503];
+const QUEUE_RETRY_WAITS = [10000, 15000];
+const QUEUE_CHUNK_GAP = 2000;
 
 const queueSleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** 서버/앱이 준 실제 실패 사유를 사용자에게 그대로 보여준다. */
+function formatUploadFailure(status, data, rawText) {
+  const msg = String((data && data.message) || '').trim();
+  if (msg) {
+    return status ? `HTTP ${status}: ${msg}` : msg;
+  }
+  const raw = String(rawText || '').trim();
+  if (status === 413) {
+    return 'HTTP 413: 서버가 용량 제한으로 거부했습니다. 장당 용량을 줄여주세요.';
+  }
+  if (status === 401) {
+    return 'HTTP 401: 관리자 로그인이 필요합니다. 다시 로그인해 주세요.';
+  }
+  if (status === 403) {
+    return 'HTTP 403: 요청이 거부되었습니다. (권한 없음 또는 서버 정책) 관리자 권한을 확인해 주세요.';
+  }
+  if (status === 429 || status === 503) {
+    return `HTTP ${status}: 서버가 일시적으로 요청을 받을 수 없습니다. 15초 뒤 「다시 시도」를 눌러주세요.`;
+  }
+  if (!status) {
+    return '업로드 중 연결이 끊겼습니다.';
+  }
+  if (raw.startsWith('<')) {
+    return `HTTP ${status}: 서버가 HTML 오류 페이지를 반환했습니다.`;
+  }
+  return `이미지 업로드에 실패했습니다. (HTTP ${status})`;
+}
+
+function shouldAutoRetryUpload(status, data, rawText) {
+  if (QUEUE_RETRY_STATUS.includes(status)) return true;
+  // 앱 JSON 403(권한 등)은 재시도해도 소용없다.
+  if (status === 403) {
+    const msg = String((data && data.message) || '').trim();
+    if (msg && data && data.success === false) return false;
+    const raw = String(rawText || '').trim();
+    return !raw || raw.startsWith('<');
+  }
+  return false;
+}
 
 function queueFormatBytes(bytes) {
   const n = Number(bytes) || 0;
@@ -723,21 +760,17 @@ function uploadQueueChunk(files, onProgress) {
       if (e.lengthComputable) onProgress(e.loaded, e.total);
     });
     xhr.addEventListener('load', () => {
+      const raw = xhr.responseText || '';
       let data = {};
       try {
-        data = JSON.parse(xhr.responseText || '{}');
+        data = JSON.parse(raw || '{}');
       } catch (err) {
         data = {};
       }
       if (xhr.status < 200 || xhr.status >= 300 || data.success === false) {
-        // 413 은 웹서버가 본문 크기로 끊은 것, 빈 응답은 PHP 가 요청을 버린 것이다.
-        const fallback = xhr.status === 413
-          ? '서버가 용량 제한으로 거부했습니다. 장당 용량을 줄여주세요.'
-          : `이미지 업로드에 실패했습니다. (HTTP ${xhr.status})`;
-        const err = new Error(data.message || fallback);
-        // PHPS 호스팅은 짧은 시간에 요청이 몰리면 403 HTML 을 돌려준다.
-        // 몇 초 뒤면 풀리므로 파일 잘못이 아니다. 호출 측이 기다렸다 다시 보낸다.
-        err.throttled = QUEUE_THROTTLE_STATUS.includes(xhr.status);
+        const err = new Error(formatUploadFailure(xhr.status, data, raw));
+        err.retryable = shouldAutoRetryUpload(xhr.status, data, raw);
+        err.status = xhr.status;
         reject(err);
         return;
       }
@@ -749,20 +782,14 @@ function uploadQueueChunk(files, onProgress) {
   });
 }
 
-/**
- * 호스팅 빈도 제한(403)에 걸리면 잠깐 쉬었다 다시 보낸다.
- * 파일이 잘못된 게 아니라 요청이 몰렸을 뿐이라 사용자에게 실패로 보일 이유가 없다.
- */
+/** 일시적 거부(429/503 등)만 기다렸다 다시 보낸다. 권한 403 은 재시도하지 않는다. */
 async function uploadChunkWithRetry(chunk, onProgress) {
   const files = chunk.map((item) => item.file);
   for (let attempt = 0; ; attempt++) {
     try {
       return await uploadQueueChunk(files, onProgress);
     } catch (err) {
-      if (!err.throttled || attempt >= QUEUE_RETRY_WAITS.length) {
-        if (err.throttled) {
-          err.message = '서버가 잠시 요청을 막고 있습니다. 10초쯤 뒤에 「다시 시도」를 눌러주세요.';
-        }
+      if (!err.retryable || attempt >= QUEUE_RETRY_WAITS.length) {
         throw err;
       }
       const wait = QUEUE_RETRY_WAITS[attempt];

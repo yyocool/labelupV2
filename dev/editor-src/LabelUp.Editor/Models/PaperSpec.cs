@@ -56,6 +56,12 @@ public sealed class PaperSpec
         ? CustomSlots.Count
         : Math.Max(1, Columns) * Math.Max(1, Rows);
 
+    /// <summary>화면 표시용. mm 수치 없이 행×열·칸수만.</summary>
+    [JsonIgnore]
+    public string LayoutSummary => CustomSlots is { Count: > 0 }
+        ? $"불규칙 · {LabelsPerPage}칸"
+        : $"{Columns}×{Rows} · {LabelsPerPage}칸";
+
     public PaperSpec Clone()
     {
         return new PaperSpec

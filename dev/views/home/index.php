@@ -18,7 +18,10 @@
 <?php require view_path('home/partials/sidebar-toggle.php'); ?>
 <main class="main">
   <header class="topbar">
-    <div class="search"><span>라벨, 규격, 템플릿 검색</span><span class="mag">⌕</span></div>
+    <form class="search" action="<?= url('shop/products') ?>" method="get" role="search">
+      <input type="search" name="q" value="<?= e(trim((string) ($_GET['q'] ?? ''))) ?>" placeholder="라벨, 규격, 템플릿 검색" aria-label="상품 검색" autocomplete="off">
+      <button type="submit" class="mag" aria-label="검색">⌕</button>
+    </form>
     <?php require view_path('home/partials/notification-bell.php'); ?>
     <?php require view_path('home/partials/credit-display.php'); ?>
     <?php require view_path('home/partials/profile-menu.php'); ?>
@@ -294,6 +297,7 @@
 <script>
 window.LABELUP_HOME = {
   isLoggedIn: <?= !empty($authUser) ? 'true' : 'false' ?>,
+  userId: <?= (int) ($authUser['id'] ?? 0) ?>,
   loginUrl: <?= json_encode(url('login') . '?redirect=' . rawurlencode(url('')), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
   chatApiUrl: <?= json_encode(url('api/ai/chat'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
   examplePromptsUrl: <?= json_encode(url('api/ai/example-prompts') . '?surface=home', JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,

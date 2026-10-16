@@ -189,6 +189,21 @@ function format_ai_krw(float|int|string|null $amount): string
     return number_format($n, 2);
 }
 
+/** 라벨 규격(mm). 소수 둘째 자리에서 반올림해 한 자리까지 표시(불필요한 0은 생략). */
+function format_label_mm(float|int|string|null $mm): string
+{
+    if ($mm === null || $mm === '') {
+        return '';
+    }
+    $n = round((float) $mm, 1);
+    if (!is_finite($n)) {
+        return '';
+    }
+    $text = number_format($n, 1, '.', '');
+    $text = rtrim(rtrim($text, '0'), '.');
+    return $text === '' ? '0' : $text;
+}
+
 /**
  * Build admin pagination href for a page number.
  * @param array<string, scalar|null> $params query params excluding page

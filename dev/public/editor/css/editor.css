@@ -4385,6 +4385,7 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 .ed-shop-cat .ed-paper-select{border:0;min-width:132px;background:transparent;height:34px;padding:0 6px 0 0}
 .ed-paper-count{margin-left:auto;font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap}
 .ed-paper-empty{grid-column:1/-1;margin:24px 0;text-align:center;color:var(--muted);font-size:13px}
+.compat-tm{margin:10px 0 0;padding:8px 12px;border-radius:10px;background:#fdf4f6;border:1px solid #a61b37;color:#7c1027;font-size:13px;font-weight:800;line-height:1.45}
 .ed-paper-compat{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
 .ed-paper-compat__chip{display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;background:#f3e8ec;color:#7b2840;font-size:10px;font-weight:800}
 .ed-paper-compat__chip.is-empty{background:#f3f4f8;color:#9ca3af;font-weight:700}
