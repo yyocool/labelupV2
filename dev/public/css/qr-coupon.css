@@ -33,11 +33,11 @@
   height:34px;width:auto;max-width:148px;object-fit:contain;display:block;
 }
 .qr-top-actions{display:flex;align-items:center;gap:8px}
-.qr-link{font-size:13px;color:var(--qr-muted);text-decoration:none;font-weight:650}
+.qr-link{font-size:15px;color:var(--qr-muted);text-decoration:none;font-weight:650}
 .qr-chip{
   display:inline-flex;align-items:center;height:34px;padding:0 12px;border-radius:999px;
   border:1px solid var(--qr-line);background:#fff;color:var(--qr-ink);
-  text-decoration:none;font-size:12px;font-weight:700;
+  text-decoration:none;font-size:14px;font-weight:700;
 }
 
 main{max-width:980px;margin:0 auto;padding:0 20px 48px;display:grid;gap:18px}
@@ -71,7 +71,7 @@ main{max-width:980px;margin:0 auto;padding:0 20px 48px;display:grid;gap:18px}
   max-width:560px;
 }
 .qr-brand{
-  margin:0 0 12px;font-size:12px;font-weight:800;letter-spacing:.22em;opacity:.92;
+  margin:0 0 12px;font-size:14px;font-weight:800;letter-spacing:.22em;opacity:.92;
 }
 .qr-hero-copy h1{
   margin:0 0 14px;
@@ -121,14 +121,14 @@ main{max-width:980px;margin:0 auto;padding:0 20px 48px;display:grid;gap:18px}
   border:1px solid rgba(226,61,46,.22);
 }
 .qr-coupon-number > span{
-  font-size:12px;font-weight:750;color:var(--qr-muted);letter-spacing:.04em;
+  font-size:14px;font-weight:750;color:var(--qr-muted);letter-spacing:.04em;
 }
 .qr-coupon-number > strong{
   font-size:clamp(22px,4vw,30px);letter-spacing:.06em;font-weight:800;color:var(--qr-ink);
   word-break:break-all;
 }
 .qr-coupon-number em{
-  font-style:normal;font-size:12px;font-weight:800;
+  font-style:normal;font-size:14px;font-weight:800;
   padding:4px 10px;border-radius:999px;background:#fff;
 }
 .qr-coupon-number .is-ready{color:#176b3a}
@@ -138,7 +138,7 @@ main{max-width:980px;margin:0 auto;padding:0 20px 48px;display:grid;gap:18px}
 }
 .qr-coupon-number--empty strong{font-size:16px;letter-spacing:0}
 .qr-coupon-number--empty p{
-  margin:0;font-size:13px;line-height:1.55;color:var(--qr-muted);
+  margin:0;font-size:15px;line-height:1.55;color:var(--qr-muted);
 }
 .qr-howto-note{margin:0 0 4px;width:100%;font-size:14px;color:var(--qr-muted);line-height:1.55}
 .qr-howto-grid{
@@ -160,7 +160,7 @@ main{max-width:980px;margin:0 auto;padding:0 20px 48px;display:grid;gap:18px}
   margin:18px 0 0;display:inline-flex;align-items:center;gap:8px;
   padding:10px 14px;border-radius:14px;width:fit-content;
   background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);
-  font-size:13px;
+  font-size:15px;
 }
 .qr-hero-credit strong{font-size:16px;font-weight:800}
 
@@ -174,7 +174,7 @@ main{max-width:980px;margin:0 auto;padding:0 20px 48px;display:grid;gap:18px}
 .qr-panel--warn{border-color:#f0c2c2;background:#fff8f7}
 .qr-close-warn{margin-top:24px;text-align:center}
 .qr-close-warn h2{color:var(--qr-accent)}
-.qr-close-hint{margin:12px 0 0;font-size:13px;color:var(--qr-muted)}
+.qr-close-hint{margin:12px 0 0;font-size:15px;color:var(--qr-muted)}
 .qr-event.is-closing main{max-width:560px}
 .qr-panel h2{margin:0 0 8px;font-size:20px;letter-spacing:-.01em}
 .qr-section-head p,.qr-offer-head p,.qr-panel--warn p,.qr-cta p{
@@ -184,7 +184,7 @@ main{max-width:980px;margin:0 auto;padding:0 20px 48px;display:grid;gap:18px}
 
 .qr-badge{
   display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:999px;
-  background:var(--qr-accent);color:#fff;font-size:12px;font-weight:800;margin-bottom:12px;
+  background:var(--qr-accent);color:#fff;font-size:14px;font-weight:800;margin-bottom:12px;
 }
 .qr-stats{
   list-style:none;margin:18px 0 0;padding:0;
@@ -194,11 +194,11 @@ main{max-width:980px;margin:0 auto;padding:0 20px 48px;display:grid;gap:18px}
   padding:14px 12px;border-radius:16px;background:#f6eee4;border:1px solid var(--qr-line);
   display:grid;gap:6px;
 }
-.qr-stats span{font-size:12px;color:var(--qr-muted)}
+.qr-stats span{font-size:14px;color:var(--qr-muted)}
 .qr-stats strong{font-size:16px;font-weight:800}
-.qr-code-line{margin:16px 0 0;font-size:13px;color:var(--qr-muted)}
+.qr-code-line{margin:16px 0 0;font-size:15px;color:var(--qr-muted)}
 .qr-code-line code{color:var(--qr-ink);font-weight:700;letter-spacing:.03em}
-.qr-code-line em{margin-left:8px;font-style:normal;font-size:11px;font-weight:800}
+.qr-code-line em{margin-left:8px;font-style:normal;font-size:13px;font-weight:800}
 .qr-code-line .is-ready{color:#176b3a}
 .qr-code-line .is-used{color:var(--qr-accent)}
 
@@ -228,7 +228,7 @@ main{max-width:980px;margin:0 auto;padding:0 20px 48px;display:grid;gap:18px}
 }
 .qr-step-body{min-width:0;display:grid;gap:4px}
 .qr-step-body strong{display:block;font-size:15px;line-height:1.35;color:var(--qr-ink)}
-.qr-step-body span{display:block;font-size:13.5px;color:var(--qr-muted);line-height:1.55;word-break:keep-all;overflow-wrap:anywhere}
+.qr-step-body span{display:block;font-size:15px;color:var(--qr-muted);line-height:1.55;word-break:keep-all;overflow-wrap:anywhere}
 
 .qr-products{display:grid;gap:10px}
 .qr-product{
@@ -242,13 +242,13 @@ main{max-width:980px;margin:0 auto;padding:0 20px 48px;display:grid;gap:18px}
   display:grid;place-items:center;overflow:hidden;
 }
 .qr-product-thumb img{width:100%;height:100%;object-fit:cover}
-.qr-product-thumb span{font-size:10px;font-weight:800;color:#a0a6b0}
+.qr-product-thumb span{font-size:12px;font-weight:800;color:#a0a6b0}
 .qr-product-body{min-width:0;display:grid;gap:3px}
 .qr-product-body strong{font-size:14px;line-height:1.35}
-.qr-product-body small{color:var(--qr-muted);font-size:12px}
+.qr-product-body small{color:var(--qr-muted);font-size:14px}
 .qr-product-body em{font-style:normal;font-size:14px;font-weight:800;color:var(--qr-accent)}
 .qr-product-link{
-  font-size:12px;font-weight:750;color:var(--qr-accent);text-decoration:none;
+  font-size:14px;font-weight:750;color:var(--qr-accent);text-decoration:none;
   padding:8px 10px;border-radius:10px;border:1px solid rgba(226,61,46,.2);background:#fff5f0;
 }
 .qr-empty{margin:0;color:var(--qr-muted);font-size:14px}
@@ -269,7 +269,7 @@ main{max-width:980px;margin:0 auto;padding:0 20px 48px;display:grid;gap:18px}
 .qr-foot{
   max-width:980px;margin:0 auto;padding:8px 20px 36px;
   display:flex;flex-wrap:wrap;gap:12px;align-items:center;
-  color:var(--qr-muted);font-size:12px;
+  color:var(--qr-muted);font-size:14px;
 }
 .qr-foot nav{display:flex;gap:14px}
 .qr-foot a{color:var(--qr-muted);text-decoration:none;font-weight:650}

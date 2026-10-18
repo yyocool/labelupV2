@@ -74,6 +74,9 @@ window.LabelUpLabiChat = {
     userId = id;
     isLoggedIn = id > 0;
     if (isLoggedIn && input) input.removeAttribute('readonly');
+    else if (input) input.setAttribute('readonly', 'readonly');
+    if (!isLoggedIn) clearChatUiForGuest();
+    else if (typeof renderRecentPrompts === 'function') renderRecentPrompts();
     return isLoggedIn;
   }
 
@@ -169,6 +172,8 @@ window.LabelUpLabiChat = {
       if (!(isLoggedIn && userId > 0)) return false;
       if (input) input.removeAttribute('readonly');
       if (!transcript.length) restoreChat();
+      seedPromptsFromTranscript();
+      renderRecentPrompts();
       return true;
     }
     const goLogin = await showLoginPrompt();
@@ -185,19 +190,19 @@ window.LabelUpLabiChat = {
     window.location.href = buildEditorUrl(product);
   }
 
-  function applyClipart(clipart) {
+  function applyClipart(clipart, mode) {
     closeLightbox();
     if (embedMode && typeof cfg.onApplyClipart === 'function') {
-      cfg.onApplyClipart(clipart);
+      cfg.onApplyClipart(clipart, mode || 'append');
       return;
     }
     window.location.href = buildClipartEditorUrl(clipart);
   }
 
-  async function applyTemplate(template) {
+  async function applyTemplate(template, mode) {
     closeLightbox();
     if (embedMode && typeof cfg.onApplyTemplate === 'function') {
-      cfg.onApplyTemplate(template);
+      cfg.onApplyTemplate(template, mode || 'append');
       return;
     }
     if (template && template.document) {
@@ -311,6 +316,97 @@ window.LabelUpLabiChat = {
       e.preventDefault();
       handler();
     });
+  }
+
+  function confirmReplaceEdit() {
+    return new Promise((resolve) => {
+      const existing = document.getElementById('lu-labi-confirm');
+      if (existing) existing.remove();
+
+      const icon = labiIconUrl || '/assets/labi-icon.png';
+      const root = document.createElement('div');
+      root.id = 'lu-labi-confirm';
+      root.className = 'lu-labi-confirm';
+      root.innerHTML =
+        '<div class="lu-labi-confirm__backdrop" data-lu-confirm-close></div>' +
+        '<div class="lu-labi-confirm__card" role="alertdialog" aria-modal="true" aria-labelledby="lu-labi-confirm-title">' +
+        '  <button type="button" class="lu-labi-confirm__close" data-lu-confirm-close aria-label="닫기">×</button>' +
+        '  <div class="lu-labi-confirm__hero" aria-hidden="true">' +
+        '    <img src="' + icon + '" alt="" width="64" height="64">' +
+        '  </div>' +
+        '  <h3 id="lu-labi-confirm-title">기존 편집 내용이 사라집니다</h3>' +
+        '  <p class="lu-labi-confirm__lead">새로 편집을 선택하면 <strong>지금 편집 중인 내용이 사라지고</strong> 라비가 만든 결과물로 바뀝니다. 계속할까요?</p>' +
+        '  <div class="lu-labi-confirm__actions">' +
+        '    <button type="button" class="lu-labi-confirm__btn" data-lu-confirm-close>취소</button>' +
+        '    <button type="button" class="lu-labi-confirm__btn lu-labi-confirm__btn--danger" data-lu-confirm-ok>새로 편집</button>' +
+        '  </div>' +
+        '</div>';
+      document.body.appendChild(root);
+      requestAnimationFrame(() => root.classList.add('is-open'));
+
+      const finish = (ok) => {
+        document.removeEventListener('keydown', onKey);
+        root.classList.remove('is-open');
+        setTimeout(() => root.remove(), 200);
+        resolve(!!ok);
+      };
+
+      const onKey = (e) => {
+        if (e.key === 'Escape') finish(false);
+      };
+      document.addEventListener('keydown', onKey);
+
+      root.addEventListener('click', (e) => {
+        const t = e.target;
+        if (!t || !t.closest) return;
+        if (t.closest('[data-lu-confirm-ok]')) {
+          finish(true);
+          return;
+        }
+        if (t.closest('[data-lu-confirm-close]')) finish(false);
+      });
+    });
+  }
+
+  function appendEditorApplyButtons(actions, applyFn) {
+    if (!actions) return;
+    actions.classList.add('ai-rec-actions--apply');
+    const keep = document.createElement('button');
+    keep.type = 'button';
+    keep.className = 'ai-rec-btn ai-rec-btn--edit';
+    keep.textContent = '현재 편집기에 적용';
+    bindApply(keep, () => applyFn('append'));
+    const fresh = document.createElement('button');
+    fresh.type = 'button';
+    fresh.className = 'ai-rec-btn ai-rec-btn--solid';
+    fresh.textContent = '새로 편집';
+    bindApply(fresh, async () => {
+      if (await confirmReplaceEdit()) applyFn('replace');
+    });
+    actions.appendChild(keep);
+    actions.appendChild(fresh);
+  }
+
+  function appendLightboxApplyButtons(actions, applyFn) {
+    if (!actions) return;
+    const keep = document.createElement('button');
+    keep.type = 'button';
+    keep.className = 'ai-lightbox-btn';
+    keep.textContent = '현재 편집기에 적용';
+    keep.addEventListener('click', (e) => {
+      e.preventDefault();
+      applyFn('append');
+    });
+    const fresh = document.createElement('button');
+    fresh.type = 'button';
+    fresh.className = 'ai-lightbox-btn ai-lightbox-btn--danger';
+    fresh.textContent = '새로 편집';
+    fresh.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (await confirmReplaceEdit()) applyFn('replace');
+    });
+    actions.appendChild(keep);
+    actions.appendChild(fresh);
   }
 
   function syncComposer() {
@@ -633,7 +729,9 @@ window.LabelUpLabiChat = {
     }
     actions.innerHTML = '';
 
-    if (opts.editHref || opts.onEdit) {
+    if (embedMode && typeof opts.onApplyMode === 'function') {
+      appendLightboxApplyButtons(actions, opts.onApplyMode);
+    } else if (opts.editHref || opts.onEdit) {
       const edit = document.createElement(opts.onEdit ? 'button' : 'a');
       edit.type = opts.onEdit ? 'button' : undefined;
       edit.className = 'ai-lightbox-btn ai-lightbox-btn--primary';
@@ -785,9 +883,9 @@ window.LabelUpLabiChat = {
         kicker: 'AI 클립아트',
         title: clipart.title || '라비가 그린 클립아트',
         desc: '라벨에 바로 활용할 수 있는 일러스트예요. 클릭한 이미지를 확대해 확인하세요.',
-        editHref: embedMode ? '#' : editHref,
-        editLabel: embedMode ? '편집기에 적용' : '바로편집',
-        onEdit: embedMode ? () => applyClipart(clipart) : null,
+        editHref: embedMode ? '' : editHref,
+        editLabel: embedMode ? '현재 편집기에 적용' : '바로편집',
+        onApplyMode: embedMode ? (mode) => applyClipart(clipart, mode) : null,
       });
     };
     media.addEventListener('click', openClip);
@@ -805,19 +903,37 @@ window.LabelUpLabiChat = {
     enlarge.className = 'ai-rec-btn ai-rec-btn--ghost';
     enlarge.textContent = '확대보기';
     enlarge.addEventListener('click', openClip);
-    const editLink = document.createElement(embedMode ? 'button' : 'a');
-    editLink.type = embedMode ? 'button' : undefined;
-    editLink.className = 'ai-rec-btn ai-rec-btn--edit';
-    if (!embedMode) editLink.href = editHref;
-    editLink.textContent = embedMode ? '편집기에 적용' : '바로편집';
-    bindApply(editLink, () => applyClipart(clipart));
     actions.appendChild(enlarge);
-    actions.appendChild(editLink);
+    if (embedMode) {
+      appendEditorApplyButtons(actions, (mode) => applyClipart(clipart, mode));
+    } else {
+      const editLink = document.createElement('a');
+      editLink.className = 'ai-rec-btn ai-rec-btn--edit';
+      editLink.href = editHref;
+      editLink.textContent = '바로편집';
+      bindApply(editLink, () => applyClipart(clipart));
+      actions.appendChild(editLink);
+    }
     body.appendChild(actions);
 
     card.appendChild(media);
     card.appendChild(body);
     return card;
+  }
+
+  function buildCatalogList(templates, onPicked) {
+    const wrap = document.createElement('div');
+    wrap.className = 'ai-catalog-list';
+    (templates || []).slice(0, 5).forEach((template) => {
+      const card = buildTemplateCard(template);
+      card.querySelectorAll('.ai-rec-btn--edit, .ai-rec-btn--apply, .lu-labi-apply').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (typeof onPicked === 'function') onPicked(template);
+        }, { once: true });
+      });
+      wrap.appendChild(card);
+    });
+    return wrap;
   }
 
   function buildTemplateCard(template) {
@@ -841,21 +957,20 @@ window.LabelUpLabiChat = {
     ].filter(Boolean).join(' · ') || (spec || '');
     const previewSvg = String(template.preview_svg || '').trim();
     const previewRows = dataset && Array.isArray(dataset.preview_rows) ? dataset.preview_rows : [];
+    const useSvgPreview = previewSvg !== '';
 
     const media = document.createElement('button');
     media.type = 'button';
-    media.className = dataset && !template.url
-      ? (previewSvg ? 'ai-data-media ai-data-media--preview' : 'ai-data-media')
+    media.className = useSvgPreview || (dataset && !template.url)
+      ? (useSvgPreview ? 'ai-data-media ai-data-media--preview' : 'ai-data-media')
       : 'ai-clip-media ai-tpl-media';
     media.setAttribute('aria-label', '라벨 미리보기');
-    if (dataset && !template.url) {
-      if (previewSvg) {
-        media.innerHTML = `<div class="ai-data-preview">${previewSvg}</div><span class="ai-clip-zoom">미리보기</span>`;
-      } else {
-        media.innerHTML = `
-          <strong>${rowCount.toLocaleString('ko-KR')}행</strong>
-          <span>${cols.length}개 열</span>`;
-      }
+    if (useSvgPreview) {
+      media.innerHTML = `<div class="ai-data-preview">${previewSvg}</div><span class="ai-clip-zoom">미리보기</span>`;
+    } else if (dataset && !template.url) {
+      media.innerHTML = `
+        <strong>${rowCount.toLocaleString('ko-KR')}행</strong>
+        <span>${cols.length}개 열</span>`;
     } else {
       const img = document.createElement('img');
       img.src = template.url || '';
@@ -884,15 +999,35 @@ window.LabelUpLabiChat = {
           ? `${paperLine}. 샘플 1건으로 배치한 미리보기예요. 확인 후 바로편집으로 이어가세요.`
           : '샘플 데이터로 배치한 미리보기예요. 확인 후 바로편집으로 이어가세요.',
         extraHtml: previewSvg ? tableHtml : '',
-        editHref: embedMode ? '#' : editHref,
-        editLabel: embedMode ? '편집기에 적용' : '바로편집',
-        onEdit: () => applyTemplate(template),
+        editHref: embedMode ? '' : editHref,
+        editLabel: embedMode ? '현재 편집기에 적용' : '바로편집',
+        onApplyMode: embedMode ? (mode) => applyTemplate(template, mode) : null,
+        onEdit: embedMode ? null : () => applyTemplate(template),
       });
     };
 
     const openTpl = () => {
       if (dataset && !template.url) {
         openDataPreview();
+        return;
+      }
+      if (useSvgPreview) {
+        openLightbox({
+          svg: `<div class="ai-data-preview ai-data-preview--lg">${previewSvg}</div>`,
+          kicker: 'AI 라벨 템플릿',
+          title: template.title || '라비가 만든 라벨 템플릿',
+          desc: template.document
+            ? (spec
+              ? `${spec} · 편집기에 넣을 모습과 같은 미리보기예요. 글자는 바로 수정할 수 있어요.`
+              : '편집기에 넣을 모습과 같은 미리보기예요. 글자는 바로 수정할 수 있어요.')
+            : (spec
+              ? `${spec} 규격으로 편집기를 열어 바로 다듬을 수 있어요.`
+              : '완성된 라벨 디자인이에요. 바로편집으로 이어가 보세요.'),
+          editHref: embedMode ? '' : editHref,
+          editLabel: embedMode ? '현재 편집기에 적용' : '바로편집',
+          onApplyMode: embedMode ? (mode) => applyTemplate(template, mode) : null,
+          onEdit: embedMode ? null : () => applyTemplate(template),
+        });
         return;
       }
       openLightbox({
@@ -906,9 +1041,10 @@ window.LabelUpLabiChat = {
           : (spec
             ? `${spec} 규격으로 편집기를 열어 바로 다듬을 수 있어요.`
             : '완성된 라벨 디자인이에요. 바로편집으로 이어가 보세요.'),
-        editHref: embedMode ? '#' : editHref,
-        editLabel: embedMode ? '편집기에 적용' : '바로편집',
-        onEdit: () => applyTemplate(template),
+        editHref: embedMode ? '' : editHref,
+        editLabel: embedMode ? '현재 편집기에 적용' : '바로편집',
+        onApplyMode: embedMode ? (mode) => applyTemplate(template, mode) : null,
+        onEdit: embedMode ? null : () => applyTemplate(template),
       });
     };
     media.addEventListener('click', openTpl);
@@ -918,7 +1054,7 @@ window.LabelUpLabiChat = {
     const chips = cols.slice(0, 6).map((c) => `<em>${escapeHtml(c)}</em>`).join('');
     const extra = cols.length > 6 ? `<em>+${cols.length - 6}</em>` : '';
     body.innerHTML = `
-      <span class="ai-clip-badge">${dataset ? '데이터 템플릿' : '템플릿 생성'}</span>
+      <span class="ai-clip-badge">${dataset ? '데이터 템플릿' : (template.source === 'catalog' ? '등록 템플릿' : '템플릿 생성')}</span>
       <strong>${escapeHtml(template.title || '라비가 만든 라벨 템플릿')}</strong>
       <span>${escapeHtml(dataset
         ? `${paperLine ? `${paperLine} · ` : ''}${rowCount}행 · 미리보기 후 편집`
@@ -932,13 +1068,16 @@ window.LabelUpLabiChat = {
     enlarge.textContent = dataset && !template.url ? '미리보기' : '확대보기';
     enlarge.addEventListener('click', openTpl);
     actions.appendChild(enlarge);
-    const editLink = document.createElement(embedMode ? 'button' : 'a');
-    editLink.type = embedMode ? 'button' : undefined;
-    editLink.className = 'ai-rec-btn ai-rec-btn--edit';
-    if (!embedMode) editLink.href = editHref;
-    editLink.textContent = embedMode ? '편집기에 적용' : '바로편집';
-    bindApply(editLink, () => applyTemplate(template));
-    actions.appendChild(editLink);
+    if (embedMode) {
+      appendEditorApplyButtons(actions, (mode) => applyTemplate(template, mode));
+    } else {
+      const editLink = document.createElement('a');
+      editLink.className = 'ai-rec-btn ai-rec-btn--edit';
+      editLink.href = editHref;
+      editLink.textContent = '바로편집';
+      bindApply(editLink, () => applyTemplate(template));
+      actions.appendChild(editLink);
+    }
     body.appendChild(actions);
 
     card.appendChild(media);
@@ -962,7 +1101,7 @@ window.LabelUpLabiChat = {
     list.forEach((choice) => {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = `ai-choice-btn${choice.id === 'generate_template' || choice.id === 'translate_yes' ? ' ai-choice-btn--tpl' : ''}`;
+      btn.className = `ai-choice-btn${choice.id === 'generate_template' || choice.id === 'generate_new_template' || choice.id === 'translate_yes' || choice.id === 'background_yes' ? ' ai-choice-btn--tpl' : ''}`;
       if (pickedId && choice.id === pickedId) btn.classList.add('is-picked');
       if (pickedId) btn.disabled = true;
       btn.innerHTML = `
@@ -993,6 +1132,7 @@ window.LabelUpLabiChat = {
       product: extras.product || null,
       clipart: extras.clipart || null,
       template: extras.template || null,
+      templates: extras.templates || null,
       choices: extras.choices || null,
       vendor: extras.vendor || null,
       usage: extras.usage || null,
@@ -1038,7 +1178,12 @@ window.LabelUpLabiChat = {
       body.appendChild(buildRetryBar({ lastOnly: true }));
     }
     if (role === 'user') {
-      body.appendChild(buildRetryBar({ userItem: item }));
+      const reuseText = promptTextFromContent(content);
+      if (reuseText) item.dataset.promptText = reuseText;
+      if (reuseText && isReusablePrompt(reuseText)) {
+        bubble.classList.add('ai-chat-bubble--reuse');
+        bubble.appendChild(buildReuseButton(item));
+      }
     }
 
     if (extras.product) {
@@ -1049,6 +1194,14 @@ window.LabelUpLabiChat = {
     }
     if (extras.template) {
       body.appendChild(buildTemplateCard(extras.template));
+    }
+    if (extras.templates && extras.templates.length) {
+      body.appendChild(buildCatalogList(extras.templates, () => {
+        const wrap = body.querySelector('.ai-choice-row');
+        if (!wrap) return;
+        wrap.dataset.locked = '1';
+        wrap.querySelectorAll('button').forEach((el) => { el.disabled = true; });
+      }));
     }
     if (extras.choices) {
       body.appendChild(buildChoiceCard(extras.choices, (id) => {
@@ -1143,7 +1296,7 @@ window.LabelUpLabiChat = {
     const t = text || '';
     // 「라벨 추천」은 용지 추천이지 템플릿 생성이 아님
     if (isProductRecommendRequest(t)) return false;
-    return /템플릿|라벨\s*디자인|전체\s*라벨|라벨지\s*만들|디자인으로\s*만들/.test(t);
+    return /템플릿|라벨\s*디자인|전체\s*라벨|라벨지\s*만들|라벨\s*만들|디자인으로\s*만들/.test(t);
   }
 
   /** 등록 상품(라벨지) 추천 — 템플릿/클립아트 생성이 아님 */
@@ -1231,14 +1384,21 @@ window.LabelUpLabiChat = {
           </div>
         </div>`;
       const statusEl = body.querySelector('.ai-draw-status');
+      const skipBgDraw = /텍스트만|배경 없이|배경 이미지 없이/.test(hint || '');
       const lines = mode === 'template'
-        ? [
-            '첨부 이미지의 글자를 읽는 중…',
-            '문구를 편집할 수 있게 나누는 중…',
-            '배경 그림만 따로 그리는 중…',
-            '라벨 위에 자리를 맞추는 중…',
-            '거의 다 됐어요, 조금만 기다려 주세요…',
-          ]
+        ? (skipBgDraw
+          ? [
+              '문구를 편집할 수 있게 나누는 중…',
+              '라벨 위에 자리를 맞추는 중…',
+              '거의 다 됐어요, 조금만 기다려 주세요…',
+            ]
+          : [
+              '첨부 이미지의 글자를 읽는 중…',
+              '문구를 편집할 수 있게 나누는 중…',
+              '배경 그림만 따로 그리는 중…',
+              '라벨 위에 자리를 맞추는 중…',
+              '거의 다 됐어요, 조금만 기다려 주세요…',
+            ])
         : [
             '스케치 선을 잡는 중…',
             '색감과 분위기를 고르는 중…',
@@ -1408,6 +1568,12 @@ window.LabelUpLabiChat = {
     if (/번역해|번역해서|원문 그대로/.test(text || '')) {
       return '선택하신 대로 라벨을 구성하는 중…';
     }
+    if (/텍스트만 만들|배경 없이/.test(text || '')) {
+      return '배경 없이 문구만 배치하는 중…';
+    }
+    if (/배경 이미지 넣/.test(text || '')) {
+      return '배경 그림을 그려 라벨을 구성하는 중…';
+    }
     if (/첨부 파일|분석|엑셀|워드|xlsx|docx|csv/.test(text || '')) {
       return '첨부 표를 읽고 데이터 라벨을 구성하는 중…';
     }
@@ -1426,6 +1592,8 @@ window.LabelUpLabiChat = {
   function typingModeFor(text, forceIntent) {
     if (forceIntent === 'recommend_product' || isProductRecommendRequest(text)) return 'chat';
     if (forceIntent === 'generate_data_template' || forceIntent === 'translate_yes' || forceIntent === 'translate_no') return 'template';
+    if (forceIntent === 'background_yes' || forceIntent === 'background_no') return 'template';
+    if (forceIntent === 'generate_new_template' || String(forceIntent || '').indexOf('use_catalog_') === 0) return 'template';
     if (forceIntent === 'generate_template' || isTemplateRequest(text)) return 'template';
     if (forceIntent === 'generate_clipart' || isClipartRequest(text)) return 'draw';
     return 'chat';
@@ -1563,6 +1731,36 @@ window.LabelUpLabiChat = {
         : '일시적인 AI 서비스 오류가 발생했습니다.',
       '099'
     );
+  }
+
+  function reusePromptFromItem(itemEl) {
+    if (!itemEl) return;
+    const uiIndex = userUiIndex(itemEl);
+    const userEntries = transcript.filter((e) => e && e.role === 'user');
+    const entry = uiIndex >= 0 ? userEntries[uiIndex] : null;
+    const histIdx = historyUserIndex(uiIndex);
+    const histMsg = histIdx >= 0 ? history[histIdx] : null;
+    const text = promptTextFromContent(entry && entry.content)
+      || promptTextFromContent(histMsg && histMsg.content)
+      || normalizePromptText(itemEl.dataset.promptText || '');
+    if (!text) return;
+    applyReusablePrompt(text);
+    rememberPrompt(text);
+  }
+
+  function buildReuseButton(userItem) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ai-chat-reuse';
+    btn.title = '이 프롬프트 다시 쓰기';
+    btn.setAttribute('aria-label', '이 프롬프트 다시 쓰기');
+    btn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M7.06 8.94 5 6.88V11h4.12L7.06 8.94zM12 6c1.86 0 3.54.8 4.7 2.06l-1.76 1.76A4.48 4.48 0 0 0 12 8.5 4.5 4.5 0 0 0 7.5 13H5a7 7 0 0 1 7-7zm7 5h-4.12l2.06 2.06L19 15.12V11zM12 18a4.5 4.5 0 0 1-3.18-1.32l-1.76 1.76A6.97 6.97 0 0 0 12 20a7 7 0 0 0 7-7h-2.5A4.5 4.5 0 0 1 12 18z"/></svg>';
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      reusePromptFromItem(userItem);
+    });
+    return btn;
   }
 
   function buildRetryBar(opts) {
@@ -1731,6 +1929,7 @@ window.LabelUpLabiChat = {
           product: payload.product || null,
           clipart: payload.clipart || null,
           template: payload.template || null,
+          templates: payload.templates || null,
           choices: payload.choices || null,
           usage: payload.usage || null,
         });
@@ -1759,9 +1958,12 @@ window.LabelUpLabiChat = {
     if (!(await requireLogin()) || sending) return;
     const labels = {
       generate_template: '템플릿 만들어 주세요',
+      generate_new_template: '새로 만들어 주세요',
       generate_clipart: '클립아트로 그려 주세요',
       translate_yes: '네, 한국어로 번역해 주세요',
       translate_no: '아니요, 원문 그대로 만들어 주세요',
+      background_yes: '배경 이미지 넣어 주세요',
+      background_no: '텍스트만 만들어 주세요',
     };
     const label = labels[intent] || '이걸로 진행해 주세요';
     appendMessage('user', label);
@@ -1786,6 +1988,7 @@ window.LabelUpLabiChat = {
     appendMessage('user', displayText, { attachments });
     history.push({ role: 'user', content });
     saveChat();
+    rememberPrompt(text);
 
     input.value = '';
     pendingAttachments = [];
@@ -1920,6 +2123,253 @@ window.LabelUpLabiChat = {
       if (files.length) await addFiles(files);
     });
   }());
+
+  const SKIP_REUSE_PROMPTS = new Set([
+    '템플릿 만들어 주세요',
+    '클립아트로 그려 주세요',
+    '네, 한국어로 번역해 주세요',
+    '아니요, 원문 그대로 만들어 주세요',
+    '배경 이미지 넣어 주세요',
+    '텍스트만 만들어 주세요',
+    '이걸로 진행해 주세요',
+    '이미지를 보냈어요.',
+    '첨부 파일을 분석해 주세요.',
+    '첨부 파일을 확인해 주세요.',
+  ]);
+
+  function promptStoreKey() {
+    if (!isLoggedIn || userId <= 0) return null;
+    return 'labelup.labi.prompts.v1.u' + userId;
+  }
+
+  function normalizePromptText(text) {
+    return String(text || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function promptTextFromContent(content) {
+    if (typeof content === 'string') return normalizePromptText(content);
+    const slim = slimApiMessage({ role: 'user', content });
+    return slim ? normalizePromptText(slim.content) : '';
+  }
+
+  function isReusablePrompt(text) {
+    const t = normalizePromptText(text);
+    if (t.length < 2 || t.length > 2000) return false;
+    if (SKIP_REUSE_PROMPTS.has(t)) return false;
+    if (/^\[(이미지|파일) 첨부\]$/.test(t)) return false;
+    return true;
+  }
+
+  function readSavedPrompts() {
+    const key = promptStoreKey();
+    if (!key) return [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter((row) => row && isReusablePrompt(row.text)).slice(0, 40);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function writeSavedPrompts(list) {
+    const key = promptStoreKey();
+    if (!key) return;
+    try {
+      localStorage.setItem(key, JSON.stringify(list.slice(0, 40)));
+    } catch (e) { /* ignore */ }
+  }
+
+  function rememberPrompt(text) {
+    if (!isLoggedIn || userId <= 0) return;
+    const t = normalizePromptText(text);
+    if (!isReusablePrompt(t)) return;
+    const now = Date.now();
+    const rest = readSavedPrompts().filter((row) => normalizePromptText(row.text) !== t);
+    writeSavedPrompts([{ id: 'p' + now, text: t, at: now }, ...rest]);
+    renderRecentPrompts();
+  }
+
+  function seedPromptsFromTranscript() {
+    if (!isLoggedIn || userId <= 0) return;
+    if (readSavedPrompts().length) return;
+    const seen = new Set();
+    const out = [];
+    for (let i = transcript.length - 1; i >= 0; i -= 1) {
+      const entry = transcript[i];
+      if (!entry || entry.role !== 'user') continue;
+      const t = promptTextFromContent(entry.content);
+      if (!isReusablePrompt(t) || seen.has(t)) continue;
+      seen.add(t);
+      out.push({ id: 'seed' + i, text: t, at: nowSafe() - out.length });
+    }
+    if (out.length) writeSavedPrompts(out);
+  }
+
+  function nowSafe() {
+    return Date.now();
+  }
+
+  function formatPromptTime(at) {
+    const ts = Number(at || 0);
+    if (!ts) return '';
+    try {
+      return new Date(ts).toLocaleString('ko-KR', {
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function truncatePromptLabel(text, max) {
+    const t = normalizePromptText(text);
+    const limit = max || 18;
+    return t.length > limit ? t.slice(0, limit - 1) + '…' : t;
+  }
+
+  function applyReusablePrompt(text) {
+    const t = normalizePromptText(text);
+    if (!t) return;
+    input.value = t;
+    syncComposer();
+    input.focus();
+    try {
+      const end = input.value.length;
+      input.setSelectionRange(end, end);
+    } catch (e) { /* ignore */ }
+  }
+
+  function deleteSavedPrompt(id) {
+    writeSavedPrompts(readSavedPrompts().filter((row) => String(row.id) !== String(id)));
+    renderRecentPrompts();
+    paintPromptHistory();
+  }
+
+  function ensurePromptReuseBar() {
+    if (!isLoggedIn || userId <= 0) return;
+    if (root.querySelector('[data-labi-reuse]')) return;
+    const actions = root.querySelector('.prompt-actions');
+    if (!actions || !actions.parentNode) return;
+    const hasHeadBtn = !!root.querySelector('.prompt-head [data-labi-prompt-history]');
+    const bar = document.createElement('div');
+    bar.className = 'prompt-reuse';
+    bar.dataset.labiReuse = '1';
+    bar.innerHTML =
+      (hasHeadBtn ? '' : '<button type="button" class="chip chip--history" data-labi-prompt-history>내 프롬프트</button>') +
+      '<div class="prompt-reuse__list" data-labi-prompt-recent></div>';
+    actions.parentNode.insertBefore(bar, actions);
+  }
+
+  function renderRecentPrompts() {
+    if (!isLoggedIn || userId <= 0) {
+      hideGuestPromptHistory();
+      return;
+    }
+    ensurePromptReuseBar();
+    const bar = root.querySelector('[data-labi-reuse]');
+    const list = root.querySelector('[data-labi-prompt-recent]');
+    if (!bar || !list) return;
+    const hasHeadBtn = !!root.querySelector('.prompt-head [data-labi-prompt-history]');
+    const items = readSavedPrompts().slice(0, 4);
+    bar.hidden = hasHeadBtn && items.length === 0;
+    list.innerHTML = items.map((row) => (
+      `<button type="button" class="chip chip--mine" data-labi-reuse-text="${escapeHtml(row.text)}" title="${escapeHtml(row.text)}">${escapeHtml(truncatePromptLabel(row.text, 16))}</button>`
+    )).join('');
+    list.querySelectorAll('[data-labi-reuse-text]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!(await requireLogin())) return;
+        applyReusablePrompt(btn.getAttribute('data-labi-reuse-text') || '');
+      });
+    });
+  }
+
+  function paintPromptHistory() {
+    const body = document.querySelector('[data-labi-history-body]');
+    if (!body) return;
+    const items = isLoggedIn && userId > 0 ? readSavedPrompts() : [];
+    if (!items.length) {
+      body.innerHTML = '<p class="labi-history__empty">아직 저장한 프롬프트가 없어요. 대화를 보내면 여기에 모여 다시 쓸 수 있어요.</p>';
+      return;
+    }
+    body.innerHTML = '<div class="labi-history__list">' + items.map((row) => (
+      `<article class="labi-history__item" data-id="${escapeHtml(String(row.id))}">` +
+      `<p>${escapeHtml(row.text)}</p>` +
+      `<footer>` +
+      `<time>${escapeHtml(formatPromptTime(row.at))}</time>` +
+      `<div class="labi-history__actions">` +
+      `<button type="button" class="labi-history__use" data-use>다시 쓰기</button>` +
+      `<button type="button" class="labi-history__del" data-del>삭제</button>` +
+      `</div></footer></article>`
+    )).join('') + '</div>';
+    body.querySelectorAll('.labi-history__item').forEach((item) => {
+      const row = items.find((p) => String(p.id) === String(item.dataset.id));
+      item.querySelector('[data-use]')?.addEventListener('click', () => {
+        applyReusablePrompt(row && row.text);
+        closePromptHistory();
+      });
+      item.querySelector('[data-del]')?.addEventListener('click', () => {
+        deleteSavedPrompt(item.dataset.id);
+      });
+    });
+  }
+
+  function closePromptHistory() {
+    const modal = document.getElementById('luLabiPromptHistory');
+    if (modal) modal.classList.remove('is-open');
+  }
+
+  function openPromptHistory() {
+    let modal = document.getElementById('luLabiPromptHistory');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'luLabiPromptHistory';
+      modal.className = 'labi-history';
+      modal.innerHTML =
+        '<div class="labi-history__backdrop" data-labi-history-close></div>' +
+        '<div class="labi-history__card" role="dialog" aria-modal="true" aria-labelledby="luLabiPromptHistoryTitle">' +
+        '  <header class="labi-history__head">' +
+        '    <div><h3 id="luLabiPromptHistoryTitle">내 프롬프트</h3>' +
+        '    <p>예전에 보낸 문장을 골라 다시 쓰거나 지울 수 있어요.</p></div>' +
+        '    <button type="button" class="labi-history__close" data-labi-history-close aria-label="닫기">×</button>' +
+        '  </header>' +
+        '  <div class="labi-history__body" data-labi-history-body></div>' +
+        '</div>';
+      document.body.appendChild(modal);
+      modal.addEventListener('click', (e) => {
+        if (e.target && e.target.closest && e.target.closest('[data-labi-history-close]')) closePromptHistory();
+      });
+    }
+    paintPromptHistory();
+    modal.classList.add('is-open');
+  }
+
+  function bindPromptReuse() {
+    if (!isLoggedIn || userId <= 0) {
+      hideGuestPromptHistory();
+      return;
+    }
+    ensurePromptReuseBar();
+    root.querySelectorAll('[data-labi-prompt-history]').forEach((btn) => {
+      if (btn.dataset.boundReuse === '1') return;
+      btn.dataset.boundReuse = '1';
+      btn.addEventListener('click', async () => {
+        if (!(await requireLogin())) return;
+        seedPromptsFromTranscript();
+        renderRecentPrompts();
+        openPromptHistory();
+      });
+    });
+    if (!document.body.dataset.labiPromptEsc) {
+      document.body.dataset.labiPromptEsc = '1';
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closePromptHistory();
+      });
+    }
+  }
 
   function bindExampleChips() {
     root.querySelectorAll('.prompt-actions .chip').forEach((chip) => {
@@ -2061,26 +2511,36 @@ window.LabelUpLabiChat = {
     return migrated;
   }
 
+  function hideGuestPromptHistory() {
+    root.querySelectorAll('[data-labi-prompt-history]').forEach((btn) => {
+      btn.hidden = true;
+    });
+    const bar = root.querySelector('[data-labi-reuse]');
+    if (bar) {
+      bar.hidden = true;
+      const list = bar.querySelector('[data-labi-prompt-recent]');
+      if (list) list.innerHTML = '';
+    }
+    closePromptHistory();
+  }
+
   function clearChatUiForGuest() {
     if (isLoggedIn && userId > 0) return;
     transcript.length = 0;
     history.length = 0;
+    hideGuestPromptHistory();
     if (!chatLog) return;
-    chatLog.querySelectorAll('.ai-chat-msg').forEach((el) => el.remove());
-    const hasDemo = !!chatLog.querySelector('.ai-demo-thread');
-    if (embedMode) {
-      chatLog.hidden = true;
-      panel.classList.remove('is-chat-active');
-    } else if (hasDemo) {
-      chatLog.hidden = false;
-      panel.classList.remove('is-chat-active');
-    } else {
-      chatLog.hidden = true;
-      panel.classList.remove('is-chat-active');
-    }
+    chatLog.querySelectorAll('.ai-chat-msg, .ai-demo-thread, .ai-demo-msg').forEach((el) => el.remove());
+    chatLog.innerHTML = '';
+    chatLog.hidden = true;
+    panel.classList.remove('is-chat-active');
   }
 
   function paintTranscript() {
+    if (!isLoggedIn || userId <= 0) {
+      clearChatUiForGuest();
+      return;
+    }
     if (!chatLog || !transcript.length) return;
     restoringChat = true;
     const demo = chatLog.querySelector('.ai-demo-thread');
@@ -2093,6 +2553,7 @@ window.LabelUpLabiChat = {
         product: entry.product || null,
         clipart: entry.clipart || null,
         template: entry.template || null,
+        templates: entry.templates || null,
         choices: entry.choices || null,
         picked: entry.picked || null,
         vendor: entry.vendor || null,
@@ -2110,6 +2571,12 @@ window.LabelUpLabiChat = {
     if (!chatLog || chatLog.dataset.labiWatch === '1' || typeof MutationObserver !== 'function') return;
     chatLog.dataset.labiWatch = '1';
     const observer = new MutationObserver(() => {
+      if (!isLoggedIn || userId <= 0) {
+        if (chatLog.querySelector('.ai-chat-msg, .ai-demo-thread, .ai-demo-msg') || !chatLog.hidden) {
+          clearChatUiForGuest();
+        }
+        return;
+      }
       if (restoringChat || !transcript.length) return;
       const missing = !chatLog.querySelector('.ai-chat-msg');
       if (!missing && !chatLog.hidden) return;
@@ -2204,6 +2671,8 @@ window.LabelUpLabiChat = {
     }
     paintTranscript();
     saveChat();
+    seedPromptsFromTranscript();
+    renderRecentPrompts();
     watchChatLog();
   }
 
@@ -2218,6 +2687,13 @@ window.LabelUpLabiChat = {
 
   await loadExamplePrompts();
   bindExampleChips();
+  bindPromptReuse();
+  if (isLoggedIn && userId > 0) {
+    seedPromptsFromTranscript();
+    renderRecentPrompts();
+  } else {
+    renderRecentPrompts();
+  }
 
   syncComposer();
   return panel;

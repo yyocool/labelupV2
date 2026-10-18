@@ -77,6 +77,7 @@ final class AiChatApiController extends BaseController
                 'product' => $result['product'],
                 'clipart' => $result['clipart'],
                 'template' => $result['template'] ?? null,
+                'templates' => $result['templates'] ?? null,
                 'choices' => $result['choices'] ?? null,
                 'usage' => $usageOut,
                 'credit' => $creditInfo,
@@ -143,6 +144,8 @@ final class AiChatApiController extends BaseController
             str_contains($t, 'insufficient_quota')
             || str_contains($t, 'exceeded your current quota')
             || str_contains($t, 'billing_hard_limit')
+            || str_contains($t, 'credit balance is too low')
+            || str_contains($t, 'purchase credits')
             || str_contains($t, 'insufficient_funds')
             || str_contains($t, 'you exceeded your')
             || (str_contains($t, 'quota') && (str_contains($t, 'exceed') || str_contains($t, 'exhaust') || str_contains($t, 'deplet')))
@@ -156,6 +159,9 @@ final class AiChatApiController extends BaseController
             || str_contains($t, 'authentication')
             || str_contains($t, 'unauthorized')
             || str_contains($msg, 'OPENAI_API_KEY')
+            || str_contains($msg, 'ANTHROPIC_API_KEY')
+            || str_contains($msg, 'CLAUDE_API_KEY')
+            || str_contains($msg, 'claude api')
         ) {
             return ['code' => '091', 'reason' => 'AI API 키 설정에 문제가 있습니다.'];
         }

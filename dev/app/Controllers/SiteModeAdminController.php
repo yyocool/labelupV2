@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Middleware\AuthMiddleware;
+use App\Services\AiProviderSettings;
 use App\Services\AuthService;
 use App\Services\SiteModeService;
 
@@ -30,6 +31,7 @@ final class SiteModeAdminController extends BaseController
             'user' => $this->auth->admin(),
             'contentTemplate' => 'admin/environment',
             'siteMode' => $this->siteMode->adminPayload(),
+            'aiSettings' => AiProviderSettings::adminPayload(),
         ]);
     }
 

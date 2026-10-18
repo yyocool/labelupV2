@@ -29,7 +29,9 @@ final class Database
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                     PDO::ATTR_EMULATE_PREPARES => false,
+                    PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci',
                 ]);
+                self::$instance->exec('SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci');
             } catch (PDOException $e) {
                 Logger::error('Database connection failed', ['message' => $e->getMessage()]);
                 throw new RuntimeException('데이터베이스 연결에 실패했습니다.');

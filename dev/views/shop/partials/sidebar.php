@@ -44,13 +44,13 @@ $isActive = static fn (string ...$keys): string => in_array($shopSubNav, $keys, 
         <?php else: ?>
         <span class="ico">▧</span>
         <?php endif; ?>
-        <?= e($parent['name']) ?>
+        <?= e(shop_category_display_name($parent['name'] ?? '', $parent['slug'] ?? '')) ?>
       </a>
       <?php if ($children !== []): ?>
       <div class="shop-cat-children<?= $isParentActive ? ' is-open' : '' ?>">
         <?php foreach ($children as $child): ?>
         <a class="shop-cat-child<?= $currentSlug === (string) $child['slug'] ? ' is-active' : '' ?>" href="<?= url('shop/products') ?>?category=<?= e($child['slug']) ?>">
-          <?= e($child['name']) ?>
+          <?= e(shop_category_display_name($child['name'] ?? '', $child['slug'] ?? '')) ?>
         </a>
         <?php endforeach; ?>
       </div>
@@ -76,11 +76,4 @@ $isActive = static fn (string ...$keys): string => in_array($shopSubNav, $keys, 
     </nav>
   </div>
 
-  <div class="sidebar-bottom">
-    <div class="premium premium--shop">
-      <b>✎ 라벨업 에디터</b>
-      <p>디자인하고 바로<br>주문까지 한 번에!</p>
-      <a href="<?= url('editor/?new=1') ?>">디자인 시작 →</a>
-    </div>
-  </div>
 </aside>

@@ -52,7 +52,7 @@ body.lu-maint{
   animation:luMaintFloat 3.6s ease-in-out infinite;
 }
 .lu-maint__eyebrow{
-  margin:0 0 10px;font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
+  margin:0 0 10px;font-size:14px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
   color:var(--lu-accent);
 }
 .lu-maint__hero h1{
@@ -63,10 +63,10 @@ body.lu-maint{
 }
 .lu-maint__eta{
   display:inline-block;margin:18px 0 0;padding:8px 14px;border-radius:999px;
-  background:rgba(123,40,64,.1);color:var(--lu-accent);font-size:13px;font-weight:700;
+  background:rgba(123,40,64,.1);color:var(--lu-accent);font-size:15px;font-weight:700;
 }
 .lu-maint__foot{
-  margin:28px 0 0;color:rgba(255,245,240,.72);font-size:13px;
+  margin:28px 0 0;color:rgba(255,245,240,.72);font-size:15px;
 }
 .lu-maint__foot a{color:#ffd7e2;text-decoration:underline;text-underline-offset:3px}
 @keyframes luMaintRise{

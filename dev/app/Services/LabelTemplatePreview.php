@@ -180,32 +180,47 @@ final class LabelTemplatePreview
     /** @param array<string, mixed> $obj */
     private static function iconSvg(array $obj, float $x, float $y, float $w, float $h, string $fill): string
     {
+        $own = trim((string) ($obj['svg'] ?? ''));
+        $glyph = null;
+        if ($own !== '' && preg_match('/^[Mm]/', $own)) {
+            $glyph = ['d' => $own, 'w' => 512, 'h' => 512];
+        } else {
+            $glyph = FontAwesomeIconCatalog::resolve((string) ($obj['iconName'] ?? ''));
+        }
+        if ($glyph !== null) {
+            return '<svg x="' . self::n($x) . '" y="' . self::n($y) . '" width="' . self::n($w) . '" height="' . self::n($h)
+                . '" viewBox="0 0 ' . (int) $glyph['w'] . ' ' . (int) $glyph['h']
+                . '" preserveAspectRatio="xMidYMid meet">'
+                . '<path d="' . htmlspecialchars($glyph['d'], ENT_QUOTES, 'UTF-8') . '" fill="' . $fill . '"/>'
+                . '</svg>';
+        }
+
         $cx = $x + $w / 2;
         $cy = $y + $h / 2;
         $r = min($w, $h) / 2;
-        $name = strtolower((string) ($obj['iconName'] ?? ''));
-        $mark = match (true) {
-            str_contains($name, 'check') => '✓',
-            str_contains($name, 'xmark') || $name === 'ban' || $name === 'xmark' => '✕',
-            str_contains($name, 'arrow-up') => '↑',
-            str_contains($name, 'truck') => '🚚',
-            str_contains($name, 'lock') => '🔒',
-            default => '',
-        };
-        $circle = '<ellipse cx="' . self::n($cx) . '" cy="' . self::n($cy) . '" rx="' . self::n($r) . '" ry="' . self::n($r) . '" fill="' . $fill . '"/>';
-        if ($mark === '') {
-            return $circle;
-        }
-        return '<g>' . $circle . '<text x="' . self::n($cx) . '" y="' . self::n($cy) . '" fill="#FFFFFF" font-size="' . self::n(max(2.4, $r * 0.9)) . '" font-weight="700" text-anchor="middle" dominant-baseline="middle">' . self::xml($mark) . '</text></g>';
+        return '<ellipse cx="' . self::n($cx) . '" cy="' . self::n($cy) . '" rx="' . self::n($r) . '" ry="' . self::n($r) . '" fill="' . $fill . '"/>';
     }
 
     /** @param array<string, mixed> $obj */
     private static function imageSvg(array $obj, float $x, float $y, float $w, float $h): string
     {
         $src = trim((string) ($obj['imageData'] ?? $obj['svg'] ?? ''));
-        if ($src === '' || str_starts_with($src, 'data:')) {
-            // data URL은 미리보기에서 생략하고 플레이스홀더
+        if ($src !== '' && preg_match('/^[Mm][\d\s.,\-]/', $src) && !str_contains($src, '/')) {
+            $fill = self::color((string) ($obj['fill'] ?? '#212121'));
+            return '<svg x="' . self::n($x) . '" y="' . self::n($y) . '" width="' . self::n($w) . '" height="' . self::n($h)
+                . '" viewBox="0 0 512 512" preserveAspectRatio="xMidYMid meet">'
+                . '<path d="' . htmlspecialchars($src, ENT_QUOTES, 'UTF-8') . '" fill="' . $fill . '"/>'
+                . '</svg>';
+        }
+        if ($src === '') {
             return '<rect x="' . self::n($x) . '" y="' . self::n($y) . '" width="' . self::n($w) . '" height="' . self::n($h) . '" fill="#f3f1ef" rx="1"/>';
+        }
+        if (str_starts_with($src, 'data:image')) {
+            $href = htmlspecialchars($src, ENT_QUOTES, 'UTF-8');
+            $fit = strtolower((string) ($obj['imageFit'] ?? 'contain'));
+            $par = $fit === 'cover' ? 'xMidYMid slice' : 'xMidYMid meet';
+            return '<image href="' . $href . '" xlink:href="' . $href . '" x="' . self::n($x) . '" y="' . self::n($y)
+                . '" width="' . self::n($w) . '" height="' . self::n($h) . '" preserveAspectRatio="' . $par . '"/>';
         }
         if (str_starts_with($src, '//')) {
             $src = 'https:' . $src;

@@ -428,6 +428,7 @@ final class Router
         $router->post('/api/admin/intro/save', [$introAdminApi, 'save']);
         $router->post('/api/admin/intro/upload', [$introAdminApi, 'upload']);
         $router->post('/api/admin/site-mode/save', [$siteModeAdminApi, 'save']);
+        $router->post('/api/admin/ai-settings/save', [$siteModeAdminApi, 'saveAi']);
         $router->get('/api/site/runtime', [$siteRuntimeApi, 'runtime']);
 
         $router->post('/api/admin/login', [$adminApi, 'login']);
