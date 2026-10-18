@@ -27,15 +27,25 @@
           <p class="ed-vendor-report__error">변환 실패: @r.Error</p>
         }
 
-        <div class="ed-vendor-report__cards">
+        <div class="ed-vendor-report__cards @(string.IsNullOrWhiteSpace(r.CompatPaperNo) ? null : "is-compat")">
           <div class="ed-vendor-report__card">
             <small>프로그램</small>
             <strong>@(string.IsNullOrWhiteSpace(r.VendorName) ? "확인 필요" : r.VendorName)</strong>
           </div>
           <div class="ed-vendor-report__card">
-            <small>용지</small>
-            <strong>@(string.IsNullOrWhiteSpace(r.PaperNo) ? (string.IsNullOrWhiteSpace(r.PaperName) ? "확인 필요" : r.PaperName) : r.PaperNo)</strong>
+            <small>파일의 용지 규격</small>
+            <strong>@(string.IsNullOrWhiteSpace(r.VendorPaperNo) ? "확인 필요" : r.VendorPaperNo)</strong>
           </div>
+          @* 호환 용지가 있을 때만 우리 용지번호를 따로 세운다. 없으면 파일의 번호만 적는다.
+             PaperNo 는 호환이 없을 때 타사 번호나 본으로 집은 기본 규격 번호가 들어가므로
+             우리 용지라고 내세울 수 없다. *@
+          @if (!string.IsNullOrWhiteSpace(r.CompatPaperNo))
+          {
+            <div class="ed-vendor-report__card">
+              <small>라벨업 용지 규격</small>
+              <strong class="ed-vendor-report__compat">@r.CompatPaperNo</strong>
+            </div>
+          }
           <div class="ed-vendor-report__card">
             <small>데이터</small>
             <strong>@(r.HasData ? $"{r.DataRows}개 행 연결" : (string.IsNullOrWhiteSpace(r.MissingExcelName) ? "연결된 데이터 없음" : "엑셀 연결 필요"))</strong>
@@ -100,13 +110,14 @@
               <h4>파일</h4>
               <p>@r.FileName</p>
             </section>
+            @* 용지 이름은 적지 않는다. 타사 용지번호가 우리 목록에 없으면 기본 규격(LU-3230)을
+               본으로 집어 칸 크기와 열·행만 파일 값으로 덮어쓰는데, 이름은 본에 있던 것이
+               그대로 남는다. 그래서 어떤 파일을 넣어도 "A4 70×36 mm 14칸" 이 찍혔다.
+               바로 윗줄에 열·행·칸수·라벨 크기·용지 크기를 파일에서 읽은 값으로 다 적으므로
+               이름이 없어도 모자라지 않는다. *@
             <section class="ed-vendor-report__block">
               <h4>용지 구성</h4>
               <p>@(string.IsNullOrWhiteSpace(r.PaperLayout) ? "-" : r.PaperLayout)</p>
-              @if (!string.IsNullOrWhiteSpace(r.PaperName))
-              {
-                <p class="ed-vendor-report__muted">@r.PaperName</p>
-              }
             </section>
             <section class="ed-vendor-report__block">
               <h4>데이터</h4>

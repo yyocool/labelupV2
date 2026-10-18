@@ -40,6 +40,21 @@ public sealed class PaperSpec
     /// </summary>
     [JsonIgnore]
     public string? LayoutIssue { get; set; }
+
+    /// <summary>
+    /// 타사 파일에서 읽은 그 쪽 용지번호. 변환 결과에서 「파일의 용지 규격」으로 보여 준다.
+    /// 변환으로 들어온 문서에서만 채워지고, 우리 목록에서 고른 용지는 비어 있다.
+    /// </summary>
+    public string VendorPaperNo { get; set; } = "";
+
+    /// <summary>
+    /// 그 타사 용지번호에 맞는 라벨업 용지번호. 호환 용지를 찾았을 때만 채운다.
+    ///
+    /// PaperNo 와는 다르다. PaperNo 는 호환 용지가 없을 때 타사 번호나 본으로 집은 기본
+    /// 규격의 번호가 그대로 들어가므로, 호환 여부를 PaperNo 로는 가릴 수 없다.
+    /// </summary>
+    public string CompatPaperNo { get; set; } = "";
+
     public PaperShape Shape { get; set; } = new();
     public string? DesignImageUrl { get; set; }
     /// <summary>불규칙 용지. 있으면 격자 대신 이 좌표를 쓴다 (X/Y/H/W 순으로 저장된 배열).</summary>
@@ -80,6 +95,8 @@ public sealed class PaperSpec
             LabelColor = LabelColor,
             ShapeWarning = ShapeWarning,
             LayoutIssue = LayoutIssue,
+            VendorPaperNo = VendorPaperNo,
+            CompatPaperNo = CompatPaperNo,
             Shape = Shape.Clone(),
             DesignImageUrl = DesignImageUrl,
             CustomSlots = CustomSlots is { Count: > 0 }

@@ -139,7 +139,10 @@ public sealed class ExternalImportService(PaperCatalog papers)
     {
         result.Document = doc;
         result.PaperNo = doc.Paper.PaperNo;
-        result.PaperName = doc.Paper.Name;
+        // 파일에 용지번호가 없으면 PaperNo 에는 본으로 집은 기본 규격의 번호가 들어 있다.
+        // 그것을 파일의 용지라고 적으면 거짓이 되므로 빈 값으로 둔다.
+        result.VendorPaperNo = doc.Paper.VendorPaperNo;
+        result.CompatPaperNo = doc.Paper.CompatPaperNo;
         result.PaperLayout =
             $"{doc.Paper.Columns}열 × {doc.Paper.Rows}행 ({doc.Paper.LabelsPerPage}칸) · " +
             $"라벨 {doc.Paper.LabelWidthMm:0.#}×{doc.Paper.LabelHeightMm:0.#} mm · " +
@@ -489,12 +492,21 @@ public sealed class ExternalImportService(PaperCatalog papers)
         float left = -1, float top = -1, float right = -1, float bottom = -1,
         float hGap = -1, float vGap = -1)
     {
-        var mapped = papers.MapVendor(vendor, paperNo ?? "") ?? paperNo;
+        var vendorNo = (paperNo ?? "").Trim();
+        // MapVendor 가 번호를 돌려주면 그 타사 용지에 맞는 우리 용지가 있다는 뜻이다.
+        // 용지 목록에 그 번호가 아직 없어도(상점 규격만 있고 규격 파일이 없을 때) 호환은 호환이다.
+        var compatNo = papers.MapVendor(vendor, vendorNo) ?? "";
+        var mapped = compatNo.Length > 0 ? compatNo : (vendorNo.Length > 0 ? vendorNo : null);
         var paper = papers.Find(mapped ?? "")
                     ?? papers.Papers.FirstOrDefault(p =>
                            Math.Abs(p.LabelWidthMm - labelW) < 0.4f && Math.Abs(p.LabelHeightMm - labelH) < 0.4f)
                     ?? PaperSpec.CreateDefault();
         paper = paper.Clone();
+        paper.VendorPaperNo = vendorNo;
+        // 타사 번호와 우리 번호가 글자까지 같으면 둘로 나눠 보여 줄 것이 없다.
+        paper.CompatPaperNo = string.Equals(compatNo, vendorNo, StringComparison.OrdinalIgnoreCase)
+            ? ""
+            : compatNo;
         if (labelW > 1) paper.LabelWidthMm = labelW;
         if (labelH > 1) paper.LabelHeightMm = labelH;
         if (cols > 0) paper.Columns = cols;
