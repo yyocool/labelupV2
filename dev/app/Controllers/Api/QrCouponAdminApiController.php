@@ -117,9 +117,9 @@ final class QrCouponAdminApiController extends BaseController
             $result = $this->service->deleteCodes($ids);
             $deleted = (int) ($result['deleted'] ?? 0);
             $skipped = (int) ($result['skipped'] ?? 0);
-            $msg = $deleted . '개 미사용 QR을 삭제했습니다.';
+            $msg = $deleted . '개 미사용 QR을 삭제했습니다. 삭제된 코드는 더 이상 사용할 수 없습니다.';
             if ($skipped > 0) {
-                $msg .= ' (사용·중지 ' . $skipped . '개는 제외)';
+                $msg .= ' (이미 사용됨 ' . $skipped . '개는 제외)';
             }
             $this->jsonSuccess($result, $msg);
         } catch (RuntimeException $e) {

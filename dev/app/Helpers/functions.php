@@ -189,6 +189,21 @@ function format_ai_krw(float|int|string|null $amount): string
     return number_format($n, 2);
 }
 
+/** 라벨 규격(mm). 소수 둘째 자리에서 반올림해 한 자리까지 표시(불필요한 0은 생략). */
+function format_label_mm(float|int|string|null $mm): string
+{
+    if ($mm === null || $mm === '') {
+        return '';
+    }
+    $n = round((float) $mm, 1);
+    if (!is_finite($n)) {
+        return '';
+    }
+    $text = number_format($n, 1, '.', '');
+    $text = rtrim(rtrim($text, '0'), '.');
+    return $text === '' ? '0' : $text;
+}
+
 /**
  * Build admin pagination href for a page number.
  * @param array<string, scalar|null> $params query params excluding page
@@ -290,6 +305,7 @@ function admin_menu_catalog(): array
         ['key' => 'ops-event-popups', 'label' => '이벤트 팝업관리', 'href' => 'admin/ops/event-popups', 'group' => '운영관리', 'ic' => '◎'],
         ['key' => 'ops-faq', 'label' => 'FAQ 관리', 'href' => 'admin/ops/faq', 'group' => '운영관리', 'ic' => '?'],
         ['key' => 'ops-inquiries', 'label' => '1:1 문의', 'href' => 'admin/ops/inquiries', 'group' => '운영관리', 'ic' => '✉'],
+        ['key' => 'ops-error-reports', 'label' => '오류&제안관리', 'href' => 'admin/ops/error-reports', 'group' => '운영관리', 'ic' => '!'],
         ['key' => 'ops-credit-rewards', 'label' => '잉크보상 관리', 'href' => 'admin/ops/credit-rewards', 'group' => '운영관리', 'ic' => '◈'],
         ['key' => 'ops-credit-usage', 'label' => '잉크 사용 설정', 'href' => 'admin/ops/credit-usage', 'group' => '운영관리', 'ic' => 'C'],
         ['key' => 'ops-purchase-credits', 'label' => '구매잉크', 'href' => 'admin/ops/purchase-credits', 'group' => '운영관리', 'ic' => '▣'],

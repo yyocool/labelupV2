@@ -507,6 +507,7 @@ function buildProductForm(row = {}) {
 
   html += '<section class="admin-product-section js-label-only"><h4 class="admin-product-section-title">\uD638\uD658\uCF54\uB4DC</h4>';
   html += '<p class="admin-muted" style="margin:0 0 8px;font-size:12px">\uD3FC\uD14D\u00B7\uC544\uC774\uB77C\uBCA8\u00B7\uC560\uB2C8\uB77C\uBCA8 \uCF54\uB4DC\uB294 \uD55C \uC904\uC5D0 \uD558\uB098 \uB610\uB294 \uC27C\uD45C\uB85C \uC5EC\uB7EC \uAC1C\uB97C \uC785\uB825\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.</p>';
+  html += '<p class="admin-compat-tm" role="note">\uD3FC\uD14D,\uC560\uB2C8\uB77C\uBCA8,\uC544\uC774\uB77C\uBCA8\uC740 \uAC01 \uD574\uB2F9 \uD68C\uC0AC\uC758 \uB4F1\uB85D \uC0C1\uD45C\uC785\uB2C8\uB2E4.</p>';
   html += '<div class="admin-product-form-grid">';
   html += shopField('\uD3FC\uD14D', 'compat_formtec', compatToMultiline(row.compat_formtec), 'textarea', { rows: 3, full: true });
   html += shopField('\uC544\uC774\uB77C\uBCA8', 'compat_ilabel', compatToMultiline(row.compat_ilabel), 'textarea', { rows: 3, full: true });

@@ -108,15 +108,21 @@ final class LabiDesignService
         }
 
         $intent = (string) ($structured['intent'] ?? 'chat');
-        $translateChoice = $this->resolveTranslateChoice($forced, $this->lastUserText($messages));
+        $userText = $this->lastUserText($messages);
+        $translateChoice = $this->resolveTranslateChoice($forced, $userText);
         if ($forced === 'translate_yes' || $forced === 'translate_no') {
             $intent = 'generate_template';
         } elseif ($forced === 'chat') {
-            if (!in_array($intent, ['chat', 'recommend_product'], true)) {
+            if ($this->looksLikeCompatAsk($userText) || $this->extractCompatCodes($userText) !== []) {
+                $intent = 'recommend_product';
+            } elseif (!in_array($intent, ['chat', 'recommend_product'], true)) {
                 $intent = 'chat';
             }
         } elseif ($forced !== '') {
             $intent = $forced;
+        } elseif ($this->looksLikeCompatAsk($userText) || $this->looksLikeProductRecommend($userText)) {
+            // 호환코드·용지 추천은 GPT가 chat/template로 오인해도 상품 추천으로 고정
+            $intent = 'recommend_product';
         } elseif ($explicit !== null) {
             $intent = $explicit;
         } elseif ($hasImage && in_array($intent, ['generate_clipart', 'generate_template', 'chat'], true)) {
@@ -138,12 +144,24 @@ final class LabiDesignService
             $reply = '첨부하신 이미지를 봤어요. 라벨에 넣을 클립아트를 그릴까요, 아니면 완성된 라벨 템플릿을 만들까요?';
             $choices = self::imageModeChoices();
         } elseif ($intent === 'recommend_product') {
-            $product = $this->resolveProduct($structured, $catalog, $this->lastUserText($messages));
+            $compatNote = null;
+            $product = $this->resolveCompatProduct($userText, $compatNote);
+            if ($product === null) {
+                $product = $this->resolveProduct($structured, $catalog, $userText);
+            }
             if ($product === null) {
                 $intent = 'chat';
-                $reply .= "\n\n지금은 딱 맞는 등록 상품을 찾지 못했어요. 용도·모양·크기를 조금 더 알려주시면 다시 찾아볼게요.";
+                if ($this->looksLikeCompatAsk($userText) || $this->extractCompatCodes($userText) !== []) {
+                    $reply = '말씀하신 품번과 규격이 같은 라벨업 상품을 찾지 못했어요. '
+                        . '폼텍·애니라벨·아이라벨 포장의 품번을 그대로 알려주시거나, '
+                        . '[호환코드표](/compat-codes)에서 검색해 보실 수 있어요.';
+                } else {
+                    $reply .= "\n\n지금은 딱 맞는 등록 상품을 찾지 못했어요. 용도·모양·크기를 조금 더 알려주시면 다시 찾아볼게요.";
+                }
             } else {
-                if (!str_contains($reply, $product['name'])) {
+                if ($compatNote !== null && $compatNote !== '') {
+                    $reply = $compatNote;
+                } elseif (!str_contains($reply, $product['name'])) {
                     $reply .= "\n\n등록된 라벨 상품 중에서 「{$product['name']}」을(를) 추천드려요. 아래에서 미리보기로 확인해 보세요.";
                 }
             }
@@ -461,6 +479,7 @@ final class LabiDesignService
         $intent = trim($intent);
         return in_array($intent, [
             'chat',
+            'recommend_product',
             'generate_clipart',
             'generate_template',
             'generate_data_template',
@@ -677,6 +696,10 @@ final class LabiDesignService
         if ($text === '') {
             return null;
         }
+        // 용지/상품 추천 요청은 템플릿·클립아트로 보지 않음
+        if ($this->looksLikeProductRecommend($text)) {
+            return null;
+        }
         if (preg_match('/템플릿|라벨\s*디자인|전체\s*라벨|라벨지\s*만들|디자인으로\s*만들/u', $text)) {
             return 'generate_template';
         }
@@ -684,6 +707,64 @@ final class LabiDesignService
             return 'generate_clipart';
         }
         return null;
+    }
+
+    /**
+     * 요청 용도와 상품이 명백히 안 맞는지 (GPT 오선택 차단).
+     *
+     * @param array<string, mixed> $item
+     * @param array{kind:string,prefer_round:bool,prefer_waterproof:bool,min_mm:float,max_mm:float,default_w:float,default_h:float} $need
+     */
+    private function isHardProductMismatch(array $item, array $need): bool
+    {
+        $name = (string) ($item['name'] ?? '');
+        $sku = (string) ($item['sku'] ?? '');
+        $cat = (string) ($item['category'] ?? $item['category_name'] ?? '');
+        $hay = $name . ' ' . $sku . ' ' . $cat;
+        [$w, $h] = $this->rowSizeMm($item);
+        $kind = (string) ($need['kind'] ?? '');
+
+        if ($kind === 'food_container' || $kind === 'round_label') {
+            if (preg_match('/주소|택배|배송|송장|물류/u', $hay)) {
+                return true;
+            }
+            if ($w >= 90 || $h >= 90) {
+                return true;
+            }
+        }
+        if ($kind === 'shipping') {
+            if (preg_match('/R\d|R-|-R/i', $sku) && !preg_match('/주소|택배|배송/u', $hay)) {
+                return true;
+            }
+            if ($w > 0 && $h > 0 && abs($w - $h) < 1.2 && max($w, $h) <= 70) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 「라벨 추천해줘」처럼 등록 상품(라벨지) 고르기 요청인지.
+     * 템플릿·그림 생성 요청은 제외한다.
+     */
+    private function looksLikeProductRecommend(string $text): bool
+    {
+        $text = trim($text);
+        if ($text === '') {
+            return false;
+        }
+        if (preg_match('/템플릿\s*만들|디자인\s*만들|그려\s*줘|클립아트|일러스트/u', $text)) {
+            return false;
+        }
+
+        return (bool) preg_match(
+            '/라벨\s*추천|용지\s*추천|라벨지\s*추천|상품\s*추천|스티커\s*추천|추천해\s*줘|추천\s*해줘|추천해줘|골라\s*줘|어떤\s*라벨|무슨\s*라벨|맞는\s*라벨|적합한\s*라벨|라벨\s*골라|용지\s*골라/u',
+            $text
+        ) || (
+            (bool) preg_match('/라벨|라벨지|용지|스티커/u', $text)
+            && (bool) preg_match('/추천|골라/u', $text)
+        );
     }
 
     /** @param array<int, array{role:string, content:mixed}> $messages */
@@ -728,10 +809,119 @@ final class LabiDesignService
                 'width_mm' => $w !== null ? (float) $w : 0.0,
                 'height_mm' => $h !== null ? (float) $h : 0.0,
                 'labels_per_sheet' => isset($row['labels_per_sheet']) ? (int) $row['labels_per_sheet'] : 0,
+                // 폼텍·애니라벨·아이라벨 호환 품번 (AI가 호환 질문 시 참고)
+                'compat_formtec' => (string) ($row['compat_formtec'] ?? ''),
+                'compat_anylabel' => (string) ($row['compat_anylabel'] ?? ''),
+                'compat_ilabel' => (string) ($row['compat_ilabel'] ?? ''),
             ];
         }
 
         return $items;
+    }
+
+    /** 폼텍·애니라벨·아이라벨 호환 품번 문의인지 */
+    private function looksLikeCompatAsk(string $text): bool
+    {
+        $text = trim($text);
+        if ($text === '') {
+            return false;
+        }
+        if (preg_match('/호환|폼텍|애니라벨|아이라벨|formtec|anylabel|ilabel/iu', $text)) {
+            return true;
+        }
+
+        return $this->extractCompatCodes($text) !== [];
+    }
+
+    /**
+     * 사용자 말에서 타사/자사 품번 후보를 뽑는다. (V3530, 3130, A206, LU-3230 등)
+     *
+     * @return list<string>
+     */
+    private function extractCompatCodes(string $text): array
+    {
+        $text = trim($text);
+        if ($text === '') {
+            return [];
+        }
+        $found = [];
+        $push = static function (string $raw) use (&$found): void {
+            $code = strtoupper(trim($raw));
+            if ($code === '' || preg_match('/^INK/i', $code) || !preg_match('/\d{2,}/', $code)) {
+                return;
+            }
+            if (!in_array($code, $found, true)) {
+                $found[] = $code;
+            }
+        };
+
+        // 문자+숫자 품번: V3530, V3110F, A206, A304R, LU-3230
+        if (preg_match_all('/\b(?:LU-?)?[A-Z]{1,3}\d{2,5}[A-Z]{0,2}\b/iu', $text, $m)) {
+            foreach ($m[0] as $raw) {
+                $push((string) $raw);
+            }
+        }
+        // 붙여 쓴 경우: V3530라벨
+        if (preg_match_all('/((?:LU-?)?[A-Z]{1,3}\d{2,5}[A-Z]{0,2})(?=라벨|용지|와|과|은|는|이|가|,|\.|\s|$)/iu', $text, $m2)) {
+            foreach ($m2[1] as $raw) {
+                $push((string) $raw);
+            }
+        }
+        // 폼텍식 숫자만(3130) — 호환/브랜드 언급이 있을 때만
+        if (preg_match('/호환|폼텍|애니|아이|formtec|anylabel|ilabel/iu', $text)
+            && preg_match_all('/(?<![A-Za-z0-9])(\d{3,5})(?![A-Za-z0-9.])/u', $text, $m3)
+        ) {
+            foreach ($m3[1] as $raw) {
+                $push((string) $raw);
+            }
+        }
+
+        return $found;
+    }
+
+    /**
+     * DB 호환코드(compat_*)·SKU로 상품을 직접 찾는다.
+     *
+     * @return ?array<string, mixed>
+     */
+    private function resolveCompatProduct(string $hint, ?string &$note = null): ?array
+    {
+        $note = null;
+        $codes = $this->extractCompatCodes($hint);
+        if ($codes === []) {
+            return null;
+        }
+
+        foreach ($codes as $code) {
+            $row = $this->shop->findActiveProductByCode($code);
+            if (!$row || ($row['status'] ?? '') !== 'active') {
+                continue;
+            }
+            // 잉크 상품 등은 호환 용지가 아님
+            if (!empty($row['ink_amount']) && (int) $row['ink_amount'] > 0) {
+                continue;
+            }
+            $product = $this->presentProduct($row);
+            $sku = (string) ($product['sku'] ?? $row['sku'] ?? '');
+            $name = (string) ($product['name'] ?? '');
+            $brand = '타사';
+            if (preg_match('/^V/i', $code) || preg_match('/애니/u', $hint)) {
+                $brand = '애니라벨';
+            } elseif (preg_match('/폼텍/u', $hint) || preg_match('/^\d{3,5}$/', $code)) {
+                $brand = '폼텍';
+            } elseif (preg_match('/아이/u', $hint)) {
+                $brand = '아이라벨';
+            }
+            $spec = (string) ($product['spec'] ?? '');
+            $note = "{$brand} 「{$code}」와 같은 규격의 라벨업 상품은 「{$name}」"
+                . ($sku !== '' ? "({$sku})" : '')
+                . ($spec !== '' ? " · {$spec}" : '')
+                . " 입니다. 아래에서 바로 편집하거나 상품을 확인해 보세요.";
+
+            return $product;
+        }
+
+        return null;
     }
 
     /**
@@ -744,9 +934,12 @@ final class LabiDesignService
         $hint = trim($hint . ' ' . (string) ($structured['search_query'] ?? ''));
         $need = $this->inferPaperNeed($hint);
         $tokens = $this->hintTokens($hint);
+        // 사용자가 명시한 크기만 점수에 쓴다.
+        // GPT가 돌려준 width_mm/height_mm를 넣으면 그 규격(+12)이 용도 점수보다 커져
+        // 요청이 달라도 같은 용지로 고정되는 현상이 난다.
         $mentioned = $this->mentionedSizeMm($hint);
-        $wantW = $mentioned[0] ?? ((float) ($structured['width_mm'] ?? 0) ?: null);
-        $wantH = $mentioned[1] ?? ((float) ($structured['height_mm'] ?? 0) ?: null);
+        $wantW = $mentioned[0];
+        $wantH = $mentioned[1];
         if ($wantW !== null && $wantW < 8) {
             $wantW = null;
         }
@@ -768,23 +961,42 @@ final class LabiDesignService
         $best = $ranked[0] ?? null;
 
         $productId = (int) ($structured['product_id'] ?? 0);
-        $gptRank = null;
+        $gptItem = null;
         if ($productId > 0) {
-            foreach ($ranked as $row) {
-                if ((int) ($row['item']['id'] ?? 0) === $productId) {
-                    $gptRank = $row;
+            foreach ($catalog as $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+                if ((int) ($item['id'] ?? 0) === $productId) {
+                    $gptItem = $item;
                     break;
                 }
             }
         }
 
+        // GPT 선택을 우선하되, 용도 규칙과 크게 어긋나면(예: 반찬통→주소용) 점수 1등으로 교체.
         $pick = null;
-        if ($gptRank !== null && ($best === null || (int) $gptRank['score'] >= (int) $best['score'] - 8)) {
-            $pick = $gptRank['item'];
-        } elseif ($best !== null && (int) $best['score'] >= 5) {
+        $gptScore = null;
+        if ($gptItem !== null) {
+            foreach ($ranked as $row) {
+                if ((int) ($row['item']['id'] ?? 0) === (int) ($gptItem['id'] ?? 0)) {
+                    $gptScore = (int) $row['score'];
+                    break;
+                }
+            }
+            if ($gptScore === null) {
+                $gptScore = $this->scorePaper($gptItem, $need, $wantW, $wantH, $tokens);
+            }
+        }
+        $bestScore = $best !== null ? (int) $best['score'] : -999;
+        $gptMismatch = $gptItem !== null && $this->isHardProductMismatch($gptItem, $need);
+
+        if ($gptItem !== null && !$gptMismatch && ($best === null || $gptScore >= $bestScore - 10)) {
+            $pick = $gptItem;
+        } elseif ($best !== null && $bestScore >= 5) {
             $pick = $best['item'];
-        } elseif ($gptRank !== null) {
-            $pick = $gptRank['item'];
+        } elseif ($gptItem !== null && !$gptMismatch) {
+            $pick = $gptItem;
         }
 
         if ($pick === null) {
@@ -832,10 +1044,15 @@ final class LabiDesignService
     private function inferPaperNeed(string $text): array
     {
         $t = trim($text);
-        $foodContainer = (bool) preg_match('/반찬통|밀폐|용기|뚜껑|병뚜껑|잼병|도시락|김치통|원형|동그란|원스티커|인덱싱/u', $t);
+        $round = (bool) preg_match('/원형|동그란|원스티커|네임\s*스티커|이름표|인덱싱/u', $t);
+        $foodContainer = (bool) preg_match('/반찬통|밀폐|용기|뚜껑|병뚜껑|잼병|도시락|김치통/u', $t);
         $food = $foodContainer || (bool) preg_match('/반찬|식품|음식|냉장고|냉동|주방|키친/u', $t);
         $shipping = (bool) preg_match('/주소|택배|배송|수취|송장/u', $t);
         $barcode = (bool) preg_match('/바코드|피킹|SKU|sku|재고/u', $t);
+        $waterproof = (bool) preg_match('/방수|젖|물묻/u', $t);
+        $transparent = (bool) preg_match('/투명|클리어|반투명/u', $t);
+        $glossy = (bool) preg_match('/광택|유광/u', $t);
+        $kraft = (bool) preg_match('/크라프트|크래프트/u', $t);
 
         if ($shipping && !$food) {
             return [
@@ -860,15 +1077,40 @@ final class LabiDesignService
             ];
         }
         if ($foodContainer || $food) {
-            $round = $foodContainer || (bool) preg_match('/원형|동그란|뚜껑|병/u', $t);
+            $wantRound = $foodContainer || $round || (bool) preg_match('/뚜껑|병/u', $t);
             return [
                 'kind' => 'food_container',
-                'prefer_round' => $round,
+                'prefer_round' => $wantRound,
                 'prefer_waterproof' => true,
                 'min_mm' => 28,
                 'max_mm' => 70,
-                'default_w' => $round ? 40.0 : 47.0,
-                'default_h' => $round ? 40.0 : 26.9,
+                'default_w' => $wantRound ? 40.0 : 47.0,
+                'default_h' => $wantRound ? 40.0 : 26.9,
+            ];
+        }
+        if ($round) {
+            return [
+                'kind' => 'round_label',
+                'prefer_round' => true,
+                'prefer_waterproof' => $waterproof,
+                'min_mm' => 20,
+                'max_mm' => 70,
+                'default_w' => 40.0,
+                'default_h' => 40.0,
+            ];
+        }
+        if ($waterproof || $transparent || $glossy || $kraft) {
+            return [
+                'kind' => 'material',
+                'prefer_round' => false,
+                'prefer_waterproof' => $waterproof,
+                'prefer_transparent' => $transparent,
+                'prefer_glossy' => $glossy,
+                'prefer_kraft' => $kraft,
+                'min_mm' => 20,
+                'max_mm' => 120,
+                'default_w' => 50.0,
+                'default_h' => 30.0,
             ];
         }
 
@@ -911,23 +1153,27 @@ final class LabiDesignService
             $score += 5;
         }
 
+        $isRound = (bool) preg_match('/R\d|R-|-R/i', $sku)
+            || in_array($shape, ['ellipse', 'circle', 'round'], true)
+            || ($w > 0 && $h > 0 && abs($w - $h) < 1.2);
+
         if ($need['kind'] === 'food_container') {
-            if (preg_match('/주소|택배|배송|바코드|송장/u', $hay)) {
-                $score -= 12;
+            // 주소·택배용은 반찬통/냉장고 용도와 정면 충돌
+            if (preg_match('/주소|택배|배송|바코드|송장|물류/u', $hay)) {
+                $score -= 40;
             }
-            $isRound = (bool) preg_match('/R\d|R-|-R/i', $sku)
-                || in_array($shape, ['ellipse', 'circle', 'round'], true)
-                || ($w > 0 && $h > 0 && abs($w - $h) < 1.2);
             if ($need['prefer_round'] && $isRound) {
-                $score += 10;
+                $score += 12;
             } elseif ($isRound) {
-                $score += 4;
+                $score += 6;
+            } else {
+                $score -= 4;
             }
             if (preg_match('/방수|waterproof/iu', $hay)) {
-                $score += 6;
+                $score += 10;
             }
-            if (preg_match('/인덱싱/u', $hay)) {
-                $score += 4;
+            if (preg_match('/인덱싱|인덱스|네임/u', $hay)) {
+                $score += 6;
             }
             if ($w >= $need['min_mm'] && $h >= $need['min_mm'] && $w <= $need['max_mm'] && $h <= $need['max_mm']) {
                 $score += 5;
@@ -939,7 +1185,38 @@ final class LabiDesignService
                 $score += 5;
             }
             if ($w > 90 || $h > 90) {
+                $score -= 20;
+            }
+        } elseif ($need['kind'] === 'round_label') {
+            if (preg_match('/주소|택배|배송|바코드|송장/u', $hay)) {
                 $score -= 10;
+            }
+            if ($isRound) {
+                $score += 12;
+            } else {
+                $score -= 8;
+            }
+            if (preg_match('/인덱스|인덱싱|네임/u', $hay)) {
+                $score += 6;
+            }
+            if ($w >= $need['min_mm'] && $h >= $need['min_mm'] && $w <= $need['max_mm'] && $h <= $need['max_mm']) {
+                $score += 4;
+            }
+            if (abs($w - 40) < 1.2 && abs($h - 40) < 1.2) {
+                $score += 6;
+            }
+        } elseif ($need['kind'] === 'material') {
+            if (!empty($need['prefer_waterproof']) && preg_match('/방수|waterproof/iu', $hay)) {
+                $score += 10;
+            }
+            if (!empty($need['prefer_transparent']) && preg_match('/투명|클리어|반투명/u', $hay)) {
+                $score += 10;
+            }
+            if (!empty($need['prefer_glossy']) && preg_match('/광택|유광/u', $hay)) {
+                $score += 10;
+            }
+            if (!empty($need['prefer_kraft']) && preg_match('/크라프트|크래프트/u', $hay)) {
+                $score += 10;
             }
         } elseif ($need['kind'] === 'shipping') {
             if (preg_match('/주소|택배|배송|물류/u', $hay)) {
@@ -948,7 +1225,7 @@ final class LabiDesignService
             if (abs($w - 100) < 3 && abs($h - 50) < 3) {
                 $score += 8;
             }
-            if (preg_match('/R\d/i', $sku)) {
+            if (preg_match('/R\d/i', $sku) || $isRound) {
                 $score -= 6;
             }
         } elseif ($need['kind'] === 'barcode') {
@@ -957,6 +1234,9 @@ final class LabiDesignService
             }
             if (abs($w - 70) < 3 && abs($h - 36) < 3) {
                 $score += 6;
+            }
+            if ($isRound) {
+                $score -= 6;
             }
         } elseif ($w >= 20 && $h >= 15 && $w <= 120 && $h <= 80) {
             $score += 2;
@@ -994,6 +1274,9 @@ final class LabiDesignService
             $tokens[] = $part;
             if (preg_match('/원형|동그란|뚜껑|원스티커/u', $part)) {
                 array_push($tokens, '원형', '인덱싱', 'R');
+            }
+            if (preg_match('/반찬|냉장고|냉동|밀폐|용기|김치통|도시락/u', $part)) {
+                array_push($tokens, '방수', '인덱싱', '원형', 'R');
             }
             if (preg_match('/방수|젖|물묻는/u', $part)) {
                 $tokens[] = '방수';

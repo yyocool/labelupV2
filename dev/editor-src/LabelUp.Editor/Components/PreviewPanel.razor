@@ -19,7 +19,7 @@
     <div class="ed-preview__inner">
       <p class="ed-preview__spec">
         <strong>@Session.Document.Paper.PaperNo</strong>
-        <span class="ed-preview__sheet-meta">@(Session.Document.Paper.CustomSlots is { Count: > 0 } ? $"불규칙 {Session.Document.Paper.LabelsPerPage}칸" : $"{Session.Document.Paper.Columns}×{Session.Document.Paper.Rows}") · @Session.Document.Paper.LabelWidthMm.ToString("0.#")×@Session.Document.Paper.LabelHeightMm.ToString("0.#") mm</span>
+        <span class="ed-preview__sheet-meta">@Session.Document.Paper.LayoutSummary</span>
       </p>
 
       <div class="ed-preview__actions">

@@ -322,7 +322,8 @@ final class QrCouponRepository
     }
 
     /**
-     * 미사용(unused) 쿠폰만 삭제. 사용·중지 코드는 건너뜀.
+     * 미사용(unused) 쿠폰만 삭제(출력 여부 무관). 삭제된 코드는 DB에서 사라져 사용 불가.
+     * 사용·중지 코드는 건너뜀.
      *
      * @param list<int> $ids
      * @return array{deleted:int, skipped:int, deleted_ids:list<int>, group_nos:list<int>}
@@ -350,6 +351,7 @@ final class QrCouponRepository
         foreach ($rows as $row) {
             $id = (int) ($row['id'] ?? 0);
             $status = (string) ($row['status'] ?? '');
+            // 사용·중지만 제외. 이미 출력된 미사용 QR도 삭제해 실물 사용을 막는다.
             if ($status !== 'unused') {
                 $skipped++;
                 continue;
@@ -371,7 +373,9 @@ final class QrCouponRepository
 
         $delPlaceholders = implode(',', array_fill(0, count($deletable), '?'));
         $del = $this->db->prepare(
-            "DELETE FROM qr_coupon_codes WHERE id IN ({$delPlaceholders}) AND status = 'unused'"
+            "DELETE FROM qr_coupon_codes
+             WHERE id IN ({$delPlaceholders})
+               AND status = 'unused'"
         );
         $del->execute($deletable);
         // MySQL PDO rowCount()가 0을 반환하는 환경이 있어 삭제 대상 수로 확정

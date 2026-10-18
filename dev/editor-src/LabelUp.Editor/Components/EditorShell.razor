@@ -121,59 +121,72 @@
                 Papers.ReplaceMap(savedMap);
 
             var pageQuery = await ReadPageQueryAsync();
+            var wantNew = IsNewDesignQuery(pageQuery);
             var wantLabiDoc = pageQuery.ContainsKey("labiDoc") || pageQuery.ContainsKey("labidoc");
             var hasProject = TryReadProjectId(pageQuery, out _);
-
-            // Logged-in Excel/CSV flow: prefer cloud project (authoritative), then pending stash.
-            var projectLoaded = hasProject && await TryLoadProjectFromQueryAsync(pageQuery);
-            var pendingDocApplied = false;
-            if (projectLoaded)
-            {
-                var hasData = Session.Document.Data is { RowCount: > 0 };
-                if (!hasData)
-                {
-                    pendingDocApplied = await TryApplyPendingDocumentAsync(pageQuery);
-                }
-                else
-                {
-                    try { await Js.InvokeVoidAsync("labelUpEditor.takePendingDocument"); } catch { }
-                }
-            }
-            else
-            {
-                pendingDocApplied = (wantLabiDoc || !hasProject) && await TryApplyPendingDocumentAsync(pageQuery);
-                if (pendingDocApplied && TryReadProjectId(pageQuery, out var labiProjectId) && labiProjectId > 0)
-                    Session.WorkspaceId = labiProjectId;
-            }
-
-            var themeApplied = !projectLoaded && !pendingDocApplied && await TryApplyTemplateFromQueryAsync(pageQuery);
             var wantVendor = pageQuery.ContainsKey("vendor") || pageQuery.ContainsKey("vendorImport");
-            var wantNew = IsNewDesignQuery(pageQuery);
-            var bootFromQuery = !projectLoaded && !themeApplied && !pendingDocApplied && !wantVendor && !wantNew && TryApplyPaperFromQuery(pageQuery);
-            var clipartApplied = !projectLoaded && !pendingDocApplied && !wantVendor && !wantNew && await TryApplyClipartFromQueryAsync(pageQuery);
+
+            var projectLoaded = false;
+            var pendingDocApplied = false;
+            var themeApplied = false;
+            var bootFromQuery = false;
+            var clipartApplied = false;
             var restored = false;
             LabelDocument? draft = null;
             var startedNew = false;
-            if (wantNew && !projectLoaded && !pendingDocApplied && !themeApplied && !wantVendor && !bootFromQuery && !clipartApplied)
+
+            if (wantNew)
             {
-                // 홈/사이드바 「새 디자인 만들기」: 이전 클라우드·로컬 초안을 이어서 열지 않는다.
+                // 홈/사이드바 「새 디자인 만들기」(?new=1):
+                // Labi 대기 문서·클립아트·클라우드·로컬 초안을 모두 버리고 빈 캔버스로 시작한다.
+                try { await Js.InvokeVoidAsync("labelUpEditor.takePendingDocument"); } catch { /* ignore */ }
+                try { await Js.InvokeVoidAsync("labelUpEditor.takePendingVendorFile"); } catch { /* ignore */ }
+                try { await Js.InvokeAsync<object>("labelUpEditor.takePendingClipart"); } catch { /* ignore */ }
                 Session.StartNewDesign();
                 await Drafts.ClearAsync();
                 startedNew = true;
                 try { await Js.InvokeVoidAsync("labelUpEditor.replaceUrlQuery", "new"); } catch { /* ignore */ }
             }
-            else if (!projectLoaded && !themeApplied && !pendingDocApplied && !wantVendor && !bootFromQuery && !clipartApplied)
+            else
             {
-                restored = await TryRestoreCloudWorkspaceAsync();
-                if (!restored)
+                // Logged-in Excel/CSV flow: prefer cloud project (authoritative), then pending stash.
+                projectLoaded = hasProject && await TryLoadProjectFromQueryAsync(pageQuery);
+                if (projectLoaded)
                 {
-                    draft = await Drafts.LoadAsync();
-                    if (draft is not null)
+                    var hasData = Session.Document.Data is { RowCount: > 0 };
+                    if (!hasData)
                     {
-                        Session.ReplaceDocument(draft);
-                        Session.Dirty = false;
-                        Session.Status = "저장된 초안을 불러왔습니다";
-                        Session.DataPanelVisible = draft.Data is { RowCount: > 0 };
+                        pendingDocApplied = await TryApplyPendingDocumentAsync(pageQuery);
+                    }
+                    else
+                    {
+                        try { await Js.InvokeVoidAsync("labelUpEditor.takePendingDocument"); } catch { }
+                    }
+                }
+                else
+                {
+                    pendingDocApplied = (wantLabiDoc || !hasProject) && await TryApplyPendingDocumentAsync(pageQuery);
+                    if (pendingDocApplied && TryReadProjectId(pageQuery, out var labiProjectId) && labiProjectId > 0)
+                        Session.WorkspaceId = labiProjectId;
+                }
+
+                themeApplied = !projectLoaded && !pendingDocApplied && await TryApplyTemplateFromQueryAsync(pageQuery);
+                bootFromQuery = !projectLoaded && !themeApplied && !pendingDocApplied && !wantVendor && TryApplyPaperFromQuery(pageQuery);
+                clipartApplied = !projectLoaded && !pendingDocApplied && !wantVendor && await TryApplyClipartFromQueryAsync(pageQuery);
+
+                if (!projectLoaded && !themeApplied && !pendingDocApplied && !wantVendor && !bootFromQuery && !clipartApplied)
+                {
+                    restored = await TryRestoreCloudWorkspaceAsync();
+                    if (!restored)
+                    {
+                        draft = await Drafts.LoadAsync();
+                        if (draft is not null)
+                        {
+                            Session.ReplaceDocument(draft);
+                            Session.Dirty = false;
+                            Session.Status = "저장된 초안을 불러왔습니다";
+                            Session.DataPanelVisible = draft.Data is { RowCount: > 0 };
+                        }
                     }
                 }
             }

@@ -58,7 +58,7 @@
       <button type="button" class="ed-float-tools__paper" data-tut="presets" @onclick="() => Session.OpenDialog(EditorDialog.PaperPicker)">
         <span class="ed-float-tools__paper-kicker">용지선택</span>
         <strong>@Session.Document.Paper.PaperNo</strong>
-        <em>@Session.Document.Paper.LabelWidthMm.ToString("0.#")×@Session.Document.Paper.LabelHeightMm.ToString("0.#") mm · @Session.Document.Paper.LabelsPerPage 칸</em>
+        <em>@Session.Document.Paper.LayoutSummary</em>
       </button>
       <button type="button" class="ed-float-tools__paper" data-tut="themes" title="@ThemeTitleFull" @onclick="() => Session.OpenDialog(EditorDialog.ThemePicker)">
         <span class="ed-float-tools__paper-kicker">템플릿선택</span>
@@ -197,7 +197,7 @@
                 "roundrect" => "라운드",
                 _ => "사각형"
             };
-            return $"{shape} · {paper.LabelWidthMm:0.#}×{paper.LabelHeightMm:0.#} mm";
+            return $"{shape} · {paper.LayoutSummary}";
         }
     }
 

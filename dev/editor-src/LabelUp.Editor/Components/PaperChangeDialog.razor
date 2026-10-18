@@ -68,7 +68,7 @@
     private void OnChanged() => InvokeAsync(StateHasChanged);
 
     private static string PaperSummary(PaperSpec paper)
-        => $"{paper.PaperNo} · {paper.LabelsPerPage}칸 · {paper.LabelWidthMm:0.#}×{paper.LabelHeightMm:0.#}mm";
+        => $"{paper.PaperNo} · {paper.LayoutSummary}";
 
     /// <summary>B를 고르면 항목이 몇 배로 바뀌는지 미리 알려 준다.</summary>
     private string ScaleHint(PaperSpec next)

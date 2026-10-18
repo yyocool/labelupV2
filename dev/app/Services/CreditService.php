@@ -54,8 +54,14 @@ final class CreditService
         return $this->repo->getBalance($userId);
     }
 
-    public function adjust(int $userId, int $amount, string $description, ?int $adminId = null, string $txType = 'adjust'): int
-    {
+    public function adjust(
+        int $userId,
+        int $amount,
+        string $description,
+        ?int $adminId = null,
+        string $txType = 'adjust',
+        ?string $sourceRef = null
+    ): int {
         if ($userId <= 0) {
             throw new RuntimeException('유효하지 않은 회원입니다.');
         }
@@ -72,7 +78,7 @@ final class CreditService
             'balance_after' => $next,
             'tx_type' => $txType,
             'source' => $adminId ? 'admin' : 'system',
-            'source_ref' => null,
+            'source_ref' => $sourceRef,
             'description' => $description,
             'admin_id' => $adminId,
         ]);
@@ -117,7 +123,7 @@ final class CreditService
         return $next;
     }
 
-    public function grant(int $userId, int $amount, string $reason, int $adminId): int
+    public function grant(int $userId, int $amount, string $reason, int $adminId, ?string $sourceRef = null): int
     {
         if ($amount <= 0) {
             throw new RuntimeException('지급 잉크는 1 이상이어야 합니다.');
@@ -132,7 +138,8 @@ final class CreditService
         if (mb_strlen($reason) > 255) {
             throw new RuntimeException('지급 사유는 255자 이내로 입력해주세요.');
         }
-        return $this->adjust($userId, $amount, $reason, $adminId, 'earn');
+        $sourceRef = trim((string) $sourceRef);
+        return $this->adjust($userId, $amount, $reason, $adminId, 'earn', $sourceRef !== '' ? $sourceRef : null);
     }
 
     public function spend(

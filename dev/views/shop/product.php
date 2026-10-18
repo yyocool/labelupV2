@@ -157,7 +157,7 @@ $hashtags = is_array($pageLayout['hashtags'] ?? null) ? $pageLayout['hashtags'] 
       <?php if ($product['width_mm'] !== null && $product['width_mm'] !== '' && $product['height_mm'] !== null && $product['height_mm'] !== ''): ?>
       <li>
         <span>규격</span>
-        <strong><?= e((string) ($product['width_mm'] ?? '')) ?> × <?= e((string) ($product['height_mm'] ?? '')) ?> mm</strong>
+        <strong><?= e(format_label_mm($product['width_mm'] ?? null)) ?> × <?= e(format_label_mm($product['height_mm'] ?? null)) ?> mm</strong>
       </li>
       <?php endif; ?>
       <?php if (!empty($product['material'])): ?>
@@ -189,6 +189,7 @@ $hashtags = is_array($pageLayout['hashtags'] ?? null) ? $pageLayout['hashtags'] 
         <span class="shop-detail-compat-chip">애니라벨 <?= e($code) ?></span>
         <?php endforeach; ?>
       </div>
+      <p class="shop-detail-compat-tm" role="note">폼텍,애니라벨,아이라벨은 각 해당 회사의 등록 상표입니다.</p>
     </div>
     <?php endif; ?>
 

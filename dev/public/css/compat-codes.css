@@ -48,6 +48,9 @@ h1,h2,h3,p{margin:0}
 .hero h1 em{font-style:normal;color:var(--brand);display:block}
 .hero p.sub{margin:26px auto 0;max-width:34em;color:var(--ink2);font-size:17px;font-weight:400}
 .hero p.sub b{color:var(--ink);font-weight:700}
+.tm-notice{margin:28px auto 0;max-width:36em;padding:16px 18px;border-radius:14px;
+  background:var(--tint);border:2px solid var(--brand);color:var(--brand-deep);
+  font-size:18px;font-size:clamp(16px,2.4vw,20px);font-weight:800;letter-spacing:-.03em;line-height:1.45}
 
 .fade{animation:fadeUp .62s cubic-bezier(.22,.7,.3,1) both}
 .fade-1{animation-delay:.05s}.fade-2{animation-delay:.16s}

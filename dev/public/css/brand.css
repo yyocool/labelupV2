@@ -40,3 +40,15 @@
 .site-footer-biz-empty{margin:0 0 8px;font-size:12px;color:#8a837c;line-height:1.5}
 .site-footer .copy{margin-top:10px;font-size:10px;color:#989aac}
 
+/* 사용자 페이지: 가로 1920px 초과 시 화면 폭 고정(관리자·QA 제외)
+   transform 으로 fixed 사이드바·모달도 1920 영역 안에 묶는다. */
+@media (min-width: 1921px) {
+  body:not(.admin-body):not(.admin-login-body):not(.qa-body) {
+    max-width: 1920px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    transform: translateZ(0);
+  }
+}
+

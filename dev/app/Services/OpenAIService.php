@@ -1019,9 +1019,12 @@ PROMPT;
         }
 
         if ($status >= 400 || isset($decoded['error'])) {
-            $message = is_array($decoded['error'] ?? null)
-                ? (string) ($decoded['error']['message'] ?? 'OpenAI API 오류')
-                : 'OpenAI API 오류';
+            $err = is_array($decoded['error'] ?? null) ? $decoded['error'] : [];
+            $message = (string) ($err['message'] ?? 'OpenAI API 오류');
+            $errCode = trim((string) ($err['code'] ?? $err['type'] ?? ''));
+            if ($errCode !== '') {
+                $message .= ' [' . $errCode . ']';
+            }
             throw new RuntimeException($message);
         }
 
@@ -1159,7 +1162,24 @@ PROMPT;
         $name = 'clip_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.png';
         $full = $dir . DIRECTORY_SEPARATOR . $name;
         if (@file_put_contents($full, $bin) === false) {
-            throw new RuntimeException('클립아트 파일 저장에 실패했습니다. 저장 폴더 권한을 확인해 주세요.');
+            $last = error_get_last();
+            $hint = is_array($last) ? (string) ($last['message'] ?? '') : '';
+            if (
+                str_contains(strtolower($hint), 'disk')
+                || str_contains(strtolower($hint), 'quota')
+                || str_contains($hint, 'No space')
+                || str_contains($hint, 'out of free')
+            ) {
+                throw new RuntimeException(
+                    '클립아트 파일 저장에 실패했습니다. 서버 디스크 용량(할당량)이 부족합니다.'
+                );
+            }
+            if (!is_writable($dir)) {
+                throw new RuntimeException('클립아트 파일 저장에 실패했습니다. 저장 폴더 권한을 확인해 주세요.');
+            }
+            throw new RuntimeException(
+                '클립아트 파일 저장에 실패했습니다. 서버 디스크 용량 또는 저장 폴더 상태를 확인해 주세요.'
+            );
         }
         @chmod($full, 0666);
 
@@ -1346,8 +1366,12 @@ PROMPT;
 intent 선택 규칙:
 1) recommend_product — 라벨지/스티커 용지·규격·상품 자체를 고르거나 추천할 때.
    - 카탈로그에서 가장 적합한 상품 1개의 id를 product_id에 넣습니다.
+   - 요청 용도·모양·재질이 바뀌면 반드시 다른 상품 id를 고르세요. 습관적으로 같은 SKU/같은 규격(예: 70×36)만 고르지 마세요.
+   - 예: 주소·택배 → 큰 직사각(주소/물류 분류). 원형·네임 → SKU에 R 또는 원형/정사각. 바코드 → 바코드용. 방수·투명·광택·크라프트 → 해당 재질 상품.
+   - 반찬통·냉장고·밀폐용기·뚜껑 → 소형 원형/정사각·방수·인덱싱. 주소용·택배용 큰 직사각을 고르지 마세요.
    - 확신이 없으면 search_query로 검색 힌트를 넣습니다.
    - message에는 추천 이유(용도·모양·크기)를 2~4문장으로 적습니다.
+   - width_mm/height_mm는 고른 상품 규격과 같게 두되, 막연한 기본값(70×36)을 넣지 마세요.
 2) generate_clipart — 라벨 위에 넣을 일러스트·아이콘·로고성 그림·캐릭터·장식 클립아트를 "그려달라"고 할 때.
    - clipart_prompt에 인쇄용 스티커 클립아트에 맞는 영어 프롬프트를 작성합니다.
    - 반드시 투명 배경(PNG alpha). 흰/검정/회색 스튜디오 배경 금지. 중앙 모티브, 플랫·선명한 벡터 느낌.
@@ -1368,10 +1392,13 @@ intent 선택 규칙:
 5) chat — 일반 질문, 인쇄 팁, 추가 확인이 필요할 때.
 
 원칙:
+- "라벨 추천해줘", "라벨지 추천", "용지 골라줘", "주소 라벨 추천"처럼 상품·용지를 고르라는 말이면 반드시 recommend_product입니다. generate_template으로 보내지 마세요. (디자인을 그리지 말고 카탈로그 상품 1개만 고릅니다.)
+- "V3530 호환", "폼텍 3130이랑 같은 라벨", "애니라벨 V3220 대응"처럼 타사 품번·호환 질문이면 recommend_product입니다. 카탈로그의 compat_formtec / compat_anylabel / compat_ilabel·sku에서 같은 규격 상품 id를 고르세요. 규격을 되묻지 말고 DB에 있는 호환 매핑으로 답하세요.
 - 단순 "라벨 추천/주소라벨/바코드라벨"처럼 상품(용지) 선택이면 recommend_product를 우선합니다.
 - "고양이 그림 그려줘", "로고 아이콘 만들어줘"처럼 그림만 생성이면 generate_clipart입니다.
 - "꽃그림에 '이름' 넣어서 이미지 만들어줘"처럼 그림·이미지 안에 글자를 넣으라는 요청도 generate_clipart입니다(문구를 clipart_prompt에 포함).
 - "템플릿 만들어줘", "이 사진으로 라벨 디자인 만들어줘", "문구 넣어서 라벨 템플릿 만들어줘"면 generate_template입니다. (편집 가능 텍스트+배경+카탈로그 용지 추천)
+- "추천"만 있고 "템플릿/디자인 만들어"가 없으면 generate_template이 아닙니다.
 - 템플릿 요청에는 product_id를 카탈로그에서 반드시 고르려 하고, clipart_prompt에는 글자 없는 배경만 넣습니다.
 - 이미지만 보냈거나 "이거 참고해서"처럼 목적이 모호하면 ask_image_mode입니다. 추측으로 바로 그리지 마세요.
 - product_id는 카탈로그에 있는 id만 사용합니다. 용도를 다 외울 필요는 없고, 문장을 모양·크기·재질 제약으로 바꿔 카탈로그에서 고르면 됩니다.

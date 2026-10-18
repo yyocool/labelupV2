@@ -135,6 +135,8 @@ final class AdminAccessService
             '/api/admin/faq' => 'ops-faq',
             '/admin/ops/inquiries' => 'ops-inquiries',
             '/api/admin/inquiry' => 'ops-inquiries',
+            '/admin/ops/error-reports' => 'ops-error-reports',
+            '/api/admin/error-reports' => 'ops-error-reports',
             '/admin/ai/example-prompts' => 'ai-example-prompts',
             '/api/admin/ai/example-prompt' => 'ai-example-prompts',
             '/admin/ai/credit-settings' => 'ai-credit-settings',

@@ -26,6 +26,8 @@ SKIP_DIRS = {
     'scripts',
     '_editor_publish', '_editor_publish_shop', '_editor_publish_tmp',
     '_editor_publish_zorder', '_publish_vendor_ui', '_tmp_pw',
+    # PDV 클립아트는 seed_pdv_cliparts_remote.py 로 별도 업로드 (대량·할당량)
+    'cliparts',
 }
 SKIP_FILES = {'.env'}
 # PHPS 호스팅용 설정은 서버에 유지 (로컬 파일로 덮으면 open_basedir이 깨진다)

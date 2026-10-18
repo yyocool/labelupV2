@@ -38,6 +38,7 @@ $statuses = ['active', 'soldout', 'hidden', 'draft'];
   <button class="admin-btn admin-btn--primary" type="submit"><?= "\u{AC80}\u{C0C9}" ?></button>
   <?php if ($hasFilter): ?><a class="admin-btn" href="<?= url('admin/shop/products') ?>"><?= "\u{CD08}\u{AE30}\u{D654}" ?></a><?php endif; ?>
 </form>
+<p class="admin-compat-tm" role="note">폼텍,애니라벨,아이라벨은 각 해당 회사의 등록 상표입니다.</p>
 <p class="admin-meta-line"><?= "\u{CD1D}" ?> <b><?= number_format((int) ($list['total'] ?? count($items))) ?></b><?= "\u{AC1C}" ?><?php if (($list['pages'] ?? 1) > 1): ?> · <?= (int) ($list['page'] ?? 1) ?> / <?= (int) $list['pages'] ?> <?= "\u{D398}\u{C774}\u{C9C0}" ?><?php endif; ?></p>
 <div id="adminAlert" class="admin-alert"></div>
 <div class="admin-table-wrap">
@@ -72,7 +73,7 @@ $statuses = ['active', 'soldout', 'hidden', 'draft'];
         $catName = trim((string) ($row['category_name'] ?? ''));
         echo e($parentCat !== '' && $catName !== '' ? $parentCat . ' / ' . $catName : ($catName !== '' ? $catName : '-'));
       ?></td>
-      <td><?php if ((int) ($row['ink_amount'] ?? 0) > 0): ?><?= number_format((int) $row['ink_amount']) ?> 잉크<?php else: ?><?= e($row['spec_name'] ?? '-') ?><?php endif; ?></td>
+      <td><?php if ((int) ($row['ink_amount'] ?? 0) > 0): ?><?= number_format((int) $row['ink_amount']) ?> 잉크<?php else: ?><?php $displaySize = ShopAdminService::displaySizeLabel($row); ?><?= e($row['spec_name'] ?? '-') ?><?php if ($displaySize !== ''): ?><div class="admin-muted">(<?= e($displaySize) ?>)</div><?php endif; ?><?php endif; ?></td>
       <td><?= number_format((int) $row['price']) ?>원<?php if (!empty($row['sale_price'])): ?> <small class="admin-muted">→ <?= number_format((int) $row['sale_price']) ?>원</small><?php endif; ?></td>
       <td>
         <?php

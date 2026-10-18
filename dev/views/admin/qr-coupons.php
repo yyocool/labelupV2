@@ -192,7 +192,7 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
     <li><b>토큰량</b>은 최대지급액으로 쓸 수 있는 ChatGPT 토큰(현재 기본 모델, 입력 75%·출력 25% 혼합 단가·서버 환율 기준)입니다.</li>
     <li><b>잉크환산</b>은 최대지급액을 <b>1원 = 10 C</b>로 환산한 값이며, 실제 지급잉크 설정 참고용입니다.</li>
     <li><b>공통 출력템플릿</b>은 그룹별 템플릿이 없을 때 쓰는 기본 레이아웃입니다. QR 그룹No. 아래 <b>템플릿</b> 버튼으로 그룹마다 따로 편집·저장할 수 있습니다.</li>
-    <li><b>프린트</b>·<b>QR코드 관리</b>에서 발급된 코드를 보고, <b>미사용만 보기</b>·선택 삭제로 재사용을 막을 수 있습니다. 사용·중지된 코드는 삭제할 수 없습니다.</li>
+    <li><b>프린트</b>·<b>QR코드 관리</b>에서 발급된 코드를 보고, <b>미사용만 보기</b>·선택 삭제로 재사용을 막을 수 있습니다. 이미 출력된 미사용 코드도 삭제하면 실물 QR로 사용할 수 없습니다. 이미 사용된 코드는 삭제할 수 없습니다.</li>
     <li>쿠폰 페이지 미리보기는 상단 <b>쿠폰페이지 미리보기</b> 버튼만 사용합니다.</li>
   </ul>
 </div>
@@ -329,7 +329,7 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
     </div>
     <div class="admin-modal-body">
       <div class="qr-codes-toolbar">
-        <label class="qr-print-filter" title="사용·중지된 코드는 숨기고 미사용만 표시">
+        <label class="qr-print-filter" title="사용된 코드는 숨기고 미사용만 표시">
           <input type="checkbox" id="qrCodesUnusedOnly" checked> 미사용만 보기
         </label>
         <label class="qr-print-filter">
@@ -558,6 +558,7 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
     });
   }
   function isSelectable(it) {
+    // 미사용이면 출력 여부와 관계없이 삭제 가능(삭제 시 사용 불가)
     return it && codeStatus(it) === 'unused' && Number(it.id || 0) > 0;
   }
   function selectedCodeIds() {
@@ -596,7 +597,7 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
   function emptyCodesMessage() {
     if (!codesAll.length) return '생성된 코드가 없습니다.';
     if (unusedOnly() && unprintedOnly()) return '조건에 맞는 미사용·미인쇄 쿠폰이 없습니다.';
-    if (unusedOnly()) return '미사용 쿠폰이 없습니다. (필터를 끄면 사용·중지 코드도 표시됩니다)';
+    if (unusedOnly()) return '미사용 쿠폰이 없습니다. (필터를 끄면 사용된 코드도 표시됩니다)';
     if (unprintedOnly()) return '미인쇄 쿠폰이 없습니다.';
     return '표시할 쿠폰이 없습니다.';
   }
@@ -670,8 +671,9 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
       var printBtnClass = printed
         ? 'admin-btn admin-btn--sm js-qr-code-print is-reprint'
         : 'admin-btn admin-btn--sm admin-btn--primary js-qr-code-print';
+      var checkTitle = canSelect ? '' : '이미 사용된 쿠폰은 삭제할 수 없습니다';
       var check = '<input type="checkbox" class="js-qr-code-check" value="' + esc(String(id)) + '"' +
-        (canSelect ? '' : ' disabled title="미사용 쿠폰만 선택·삭제할 수 있습니다"') + '>';
+        (canSelect ? '' : ' disabled title="' + esc(checkTitle) + '"') + '>';
       return '<tr data-code-id="' + esc(String(id)) + '" data-status="' + esc(codeStatus(it)) + '">' +
         '<td class="qr-codes-check">' + check + '</td>' +
         '<td class="qr-codes-qr">' + qr + '</td>' +
@@ -991,7 +993,7 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
         showAdminAlert('삭제할 미사용 QR을 선택해 주세요.', 'error');
         return;
       }
-      if (!window.confirm('선택한 미사용 QR ' + ids.length.toLocaleString() + '개를 삭제할까요?\n삭제된 코드는 목록에서 제거되며 더 이상 인쇄·사용할 수 없습니다.')) {
+      if (!window.confirm('선택한 미사용 QR ' + ids.length.toLocaleString() + '개를 삭제할까요?\n이미 출력된 쿠폰도 삭제되며, 삭제된 코드는 실물 QR로도 더 이상 사용할 수 없습니다.')) {
         return;
       }
       deleteBtn.disabled = true;

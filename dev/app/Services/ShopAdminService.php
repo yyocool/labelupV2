@@ -420,6 +420,7 @@ final class ShopAdminService
             '제품명' => 'material_name',
             '제품규격' => 'paper_size',
             '라벨수(칸)' => 'labels_per_sheet',
+            '표기치수' => 'std_size',
             '표준치수' => 'std_size',
             'Spec(mm)' => 'spec_mm',
             '재질' => 'material',
@@ -449,6 +450,28 @@ final class ShopAdminService
         }
 
         return $meta;
+    }
+
+    /**
+     * 규격(spec)과 별도로 상품 정보에 적힌 표기치수.
+     * 최신 상품은 설명의 「표기치수」 줄에, 예전 데이터는 meta_json.std_size 에 있다.
+     *
+     * @param array<string, mixed> $row
+     */
+    public static function displaySizeLabel(array $row): string
+    {
+        $meta = is_array($row['meta'] ?? null) ? $row['meta'] : [];
+        $fromMeta = trim((string) ($meta['std_size'] ?? ''));
+        if ($fromMeta !== '') {
+            return $fromMeta;
+        }
+
+        $description = (string) ($row['description'] ?? '');
+        if ($description !== '' && preg_match('/^(?:표기치수|표준치수)\s*:\s*(.+)$/mu', $description, $match)) {
+            return trim($match[1]);
+        }
+
+        return '';
     }
 
     public function saveProduct(array $data): int

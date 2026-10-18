@@ -68,8 +68,8 @@ final class ProductDetailPageService
     }
 
     /**
-     * 상세페이지 이미지 버튼과 같은 구성.
-     * 공통헤더, 카테고리헤더, 헤더이미지, 상품규격, 사용예, 카테고리푸터, 공통푸터.
+     * 상품 상세에 지금 보이는 이미지와 같은 구성.
+     * 공통·카테고리 헤더, 상세 본문 이미지, 카테고리·공통 푸터.
      *
      * @return array<int, array{path:string,name:string}>
      */
@@ -122,43 +122,91 @@ final class ProductDetailPageService
     }
 
     /**
+     * 상품 상세 화면과 같은 순서의 이미지 파일.
+     * 헤더 블록 → 저장된 상세 본문(없으면 헤더·규격·촬영) → 푸터 블록.
+     *
      * @param array<string, mixed> $product
      * @return array<int, array{path:string,name:string}>
      */
     private function collectImageFiles(array $product): array
     {
-        $layout = (new ShopService())->productPageLayout((int) ($product['category_id'] ?? 0));
+        $shop = new ShopService();
+        $layout = $shop->productPageLayout((int) ($product['category_id'] ?? 0));
+        $isInk = $shop->isInkProduct($product);
         $files = [];
         $seq = 1;
-        $add = function (string $publicPath, string $label) use (&$files, &$seq): void {
+        $seen = [];
+        $add = function (string $publicPath, string $label) use (&$files, &$seq, &$seen): void {
             $path = $this->safeAsset($publicPath);
-            if ($path === null) {
+            if ($path === null || isset($seen[$path])) {
                 return;
             }
+            $seen[$path] = true;
             $files[] = [
                 'path' => $path,
                 'name' => sprintf('%02d_%s.%s', $seq, $this->safeZipLabel($label), $this->imageExt($path)),
             ];
             $seq++;
         };
+        $addHtml = function (string $html, string $fallback) use ($add): void {
+            foreach ($this->htmlImages($html) as $image) {
+                $label = $image['alt'] !== '' ? $image['alt'] : $fallback;
+                $add($image['src'], $label);
+            }
+        };
 
-        foreach ($layout['header_blocks'] ?? [] as $block) {
-            if (!is_array($block)) {
-                continue;
+        if (!$isInk) {
+            foreach ($layout['header_blocks'] ?? [] as $block) {
+                if (!is_array($block)) {
+                    continue;
+                }
+                $add((string) ($block['image'] ?? ''), $this->layoutImageLabel($block, true));
+                $addHtml((string) ($block['html'] ?? ''), '헤더');
             }
-            $add((string) ($block['image'] ?? ''), $this->layoutImageLabel($block, true));
         }
-        $add((string) ($product['header_image'] ?? ''), '헤더이미지');
-        $add((string) ($product['spec_sheet_image'] ?? ''), '상품규격');
-        $add((string) ($product['shoot_image'] ?? ''), '사용예');
-        foreach ($layout['footer_blocks'] ?? [] as $block) {
-            if (!is_array($block)) {
-                continue;
+
+        $stored = $this->repo->findHtmlByProductId((int) ($product['id'] ?? 0), true);
+        $stored = $stored !== null ? self::sanitizeDetailHtml($stored) : '';
+        $bodyHtml = $stored !== '' ? $stored : self::composeProductImages($product);
+        $addHtml($bodyHtml, '상세이미지');
+
+        if (!$isInk) {
+            foreach ($layout['footer_blocks'] ?? [] as $block) {
+                if (!is_array($block)) {
+                    continue;
+                }
+                $addHtml((string) ($block['html'] ?? ''), '푸터');
+                $add((string) ($block['image'] ?? ''), $this->layoutImageLabel($block, false));
             }
-            $add((string) ($block['image'] ?? ''), $this->layoutImageLabel($block, false));
         }
 
         return $files;
+    }
+
+    /**
+     * @return list<array{src:string,alt:string}>
+     */
+    private function htmlImages(string $html): array
+    {
+        if (trim($html) === '' || preg_match_all('/<img\b[^>]*>/iu', $html, $matches) < 1) {
+            return [];
+        }
+        $images = [];
+        foreach ($matches[0] as $tag) {
+            if (!preg_match('/\bsrc\s*=\s*(["\'])(.*?)\1/iu', $tag, $srcMatch)) {
+                continue;
+            }
+            $src = self::cleanImageSrc(html_entity_decode($srcMatch[2], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+            if ($src === '') {
+                continue;
+            }
+            $alt = '';
+            if (preg_match('/\balt\s*=\s*(["\'])(.*?)\1/iu', $tag, $altMatch)) {
+                $alt = trim(html_entity_decode($altMatch[2], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+            }
+            $images[] = ['src' => $src, 'alt' => $alt];
+        }
+        return $images;
     }
 
     /** @param array<string, mixed> $block */

@@ -91,7 +91,7 @@ function resolveGrid(product) {
   const n = Math.max(1, Number(product.labelsPerSheet) || 1);
   let cols = Number(product.columnsCount) || 0;
   let rows = Number(product.rowsCount) || 0;
-  if (cols > 0 && rows > 0 && cols * rows === n) return { cols, rows, n };
+  if (cols > 0 && rows > 0) return { cols, rows, n: cols * rows === n ? n : cols * rows };
   if (cols > 0 && n % cols === 0) return { cols, rows: n / cols, n };
   if (rows > 0 && n % rows === 0) return { cols: n / rows, rows, n };
 
@@ -112,9 +112,18 @@ function resolveGrid(product) {
   return { cols: bestCols, rows: n / bestCols, n };
 }
 
-function sheetCountSvg(cols, rows, count, lw, lh) {
-  const totalW = cols * lw;
-  const totalH = rows * lh;
+/** 원형 라벨: DB shape=round/circle 또는 SKU가 R로 끝남(A304R 등). */
+function isRoundLabel(product) {
+  const shape = String(product.shape || '').toLowerCase();
+  if (shape === 'round' || shape === 'circle' || shape === 'ellipse') return true;
+  const sku = String(product.sku || '').trim().toUpperCase();
+  return /R$/.test(sku);
+}
+
+function sheetCountSvg(cols, rows, count, lw, lh, round = false) {
+  const gap = round ? Math.min(lw, lh) * 0.08 : 0;
+  const totalW = cols * lw + Math.max(0, cols - 1) * gap;
+  const totalH = rows * lh + Math.max(0, rows - 1) * gap;
   const maxW = 176;
   const maxH = 236;
   const scale = Math.min(maxW / totalW, maxH / totalH);
@@ -122,6 +131,7 @@ function sheetCountSvg(cols, rows, count, lw, lh) {
   const drawH = totalH * scale;
   const cellW = lw * scale;
   const cellH = lh * scale;
+  const gapPx = gap * scale;
   const pad = 2;
   const x0 = pad;
   const y0 = pad;
@@ -133,29 +143,58 @@ function sheetCountSvg(cols, rows, count, lw, lh) {
   const cx = x0 + drawW / 2;
   const cy = y0 + drawH / 2;
 
-  const lines = [];
-  for (let c = 1; c < cols; c += 1) {
-    const x = x0 + c * cellW;
-    lines.push(`<line x1="${x.toFixed(2)}" y1="${y0.toFixed(2)}" x2="${x.toFixed(2)}" y2="${(y0 + drawH).toFixed(2)}" stroke="${ink}" stroke-width="1.05"/>`);
-  }
-  for (let r = 1; r < rows; r += 1) {
-    const y = y0 + r * cellH;
-    lines.push(`<line x1="${x0.toFixed(2)}" y1="${y.toFixed(2)}" x2="${(x0 + drawW).toFixed(2)}" y2="${y.toFixed(2)}" stroke="${ink}" stroke-width="1.05"/>`);
+  const shapes = [];
+  if (round) {
+    for (let r = 0; r < rows; r += 1) {
+      for (let c = 0; c < cols; c += 1) {
+        const ex = x0 + c * (cellW + gapPx) + cellW / 2;
+        const ey = y0 + r * (cellH + gapPx) + cellH / 2;
+        shapes.push(
+          `<ellipse cx="${ex.toFixed(2)}" cy="${ey.toFixed(2)}" rx="${(cellW / 2).toFixed(2)}" ry="${(cellH / 2).toFixed(2)}" fill="#fff" stroke="${ink}" stroke-width="1.35"/>`
+        );
+      }
+    }
+  } else {
+    shapes.push(
+      `<rect x="${x0.toFixed(2)}" y="${y0.toFixed(2)}" width="${drawW.toFixed(2)}" height="${drawH.toFixed(2)}" fill="#fff" stroke="${ink}" stroke-width="1.7"/>`
+    );
+    for (let c = 1; c < cols; c += 1) {
+      const x = x0 + c * cellW;
+      shapes.push(`<line x1="${x.toFixed(2)}" y1="${y0.toFixed(2)}" x2="${x.toFixed(2)}" y2="${(y0 + drawH).toFixed(2)}" stroke="${ink}" stroke-width="1.05"/>`);
+    }
+    for (let r = 1; r < rows; r += 1) {
+      const y = y0 + r * cellH;
+      shapes.push(`<line x1="${x0.toFixed(2)}" y1="${y.toFixed(2)}" x2="${(x0 + drawW).toFixed(2)}" y2="${y.toFixed(2)}" stroke="${ink}" stroke-width="1.05"/>`);
+    }
   }
 
   const vbW = pad * 2 + drawW;
   const vbH = pad * 2 + drawH;
   return `<svg class="sheet-count" viewBox="0 0 ${vbW.toFixed(1)} ${vbH.toFixed(1)}" width="${Math.round(vbW)}" height="${Math.round(vbH)}" role="img" aria-label="${count}칸">
-    <rect x="${x0.toFixed(2)}" y="${y0.toFixed(2)}" width="${drawW.toFixed(2)}" height="${drawH.toFixed(2)}" fill="#fff" stroke="${ink}" stroke-width="1.7"/>
-    ${lines.join('')}
+    ${shapes.join('')}
     <rect x="${(cx - plateW / 2).toFixed(2)}" y="${(cy - plateH / 2).toFixed(2)}" width="${plateW.toFixed(2)}" height="${plateH.toFixed(2)}" fill="#fff"/>
     <text x="${cx.toFixed(2)}" y="${cy.toFixed(2)}" text-anchor="middle" dominant-baseline="central" fill="${ink}" font-family="Pretendard, sans-serif" font-size="${numSize.toFixed(1)}" font-weight="900">${count}</text>
   </svg>`;
 }
 
-function cellSpecSvg(lw, lh) {
-  const widthLabel = `${formatMm(lw)}mm`;
-  const heightLabel = `${formatMm(lh)}mm`;
+function parseDisplaySize(description) {
+  const matched = String(description || '').match(/^(?:표기치수|표준치수)\s*:\s*(.+)$/m);
+  if (!matched) return null;
+  const raw = matched[1].trim();
+  const parts = raw.split(/\s*[x×X*]\s*/);
+  if (parts.length >= 2) {
+    const w = Number(String(parts[0]).replace(/mm/ig, '').trim());
+    const h = Number(String(parts[1]).replace(/mm/ig, '').trim());
+    if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) {
+      return { w, h, text: '' };
+    }
+  }
+  return raw !== '' ? { w: null, h: null, text: raw } : null;
+}
+
+function cellSpecSvg(lw, lh, labelW, labelH, round = false) {
+  const widthLabel = `${formatMm(labelW)}mm`;
+  const heightLabel = `${formatMm(labelH)}mm`;
   const maxW = 188;
   const maxH = 118;
   const scale = Math.min(maxW / lw, maxH / lh);
@@ -171,7 +210,6 @@ function cellSpecSvg(lw, lh) {
   const padL = Math.max(4, (widthTextW - w) / 2 + 2);
   const padR = 28;
   const padT = Math.max(4, (heightTextH - h) / 2 + 2);
-  const padB = gap + 22;
   const x = padL;
   const y = padT;
   const dimY = y + h + gap;
@@ -180,9 +218,12 @@ function cellSpecSvg(lw, lh) {
   const labelX = vx + 14;
   const vbW = vx + padR;
   const vbH = dimY + 18;
+  const shape = round
+    ? `<ellipse cx="${(x + w / 2).toFixed(2)}" cy="${(y + h / 2).toFixed(2)}" rx="${(w / 2).toFixed(2)}" ry="${(h / 2).toFixed(2)}" fill="#fff" stroke="${ink}" stroke-width="1.7"/>`
+    : `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${w.toFixed(2)}" height="${h.toFixed(2)}" fill="#fff" stroke="${ink}" stroke-width="1.7"/>`;
 
   return `<svg class="cell-spec" viewBox="0 0 ${vbW.toFixed(1)} ${vbH.toFixed(1)}" width="${Math.round(vbW)}" height="${Math.round(vbH)}" role="img" aria-label="한 칸 ${esc(widthLabel)} × ${esc(heightLabel)}">
-    <rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${w.toFixed(2)}" height="${h.toFixed(2)}" fill="#fff" stroke="${ink}" stroke-width="1.7"/>
+    ${shape}
     <line x1="${x.toFixed(2)}" y1="${dimY.toFixed(2)}" x2="${(x + w).toFixed(2)}" y2="${dimY.toFixed(2)}" stroke="${ink}" stroke-width="1"/>
     <line x1="${x.toFixed(2)}" y1="${(dimY - tick).toFixed(2)}" x2="${x.toFixed(2)}" y2="${(dimY + tick).toFixed(2)}" stroke="${ink}" stroke-width="1"/>
     <line x1="${(x + w).toFixed(2)}" y1="${(dimY - tick).toFixed(2)}" x2="${(x + w).toFixed(2)}" y2="${(dimY + tick).toFixed(2)}" stroke="${ink}" stroke-width="1"/>
@@ -198,7 +239,10 @@ function diagramSvg(product) {
   const { cols, rows, n } = resolveGrid(product);
   const lw = Number(product.widthMm) || 1;
   const lh = Number(product.heightMm) || 1;
-  return `<div class="diagram">${sheetCountSvg(cols, rows, n, lw, lh)}${cellSpecSvg(lw, lh)}</div>`;
+  const labelW = Number(product.displayWidthMm) || lw;
+  const labelH = Number(product.displayHeightMm) || lh;
+  const round = isRoundLabel(product);
+  return `<div class="diagram">${sheetCountSvg(cols, rows, n, lw, lh, round)}${cellSpecSvg(lw, lh, labelW, labelH, round)}</div>`;
 }
 
 function optionCards(options) {
@@ -218,8 +262,10 @@ function sheetHtml(product) {
   const badges = (Array.isArray(product.hashtags) ? product.hashtags : [])
     .map((tag) => String(tag).trim())
     .filter(Boolean);
-  const size = `${formatMm(product.widthMm)} × ${formatMm(product.heightMm)} mm`;
-  const count = Math.max(0, Number(product.labelsPerSheet) || 0);
+  const size = product.displaySizeText
+    ? product.displaySizeText
+    : `${formatMm(product.displayWidthMm || product.widthMm)} × ${formatMm(product.displayHeightMm || product.heightMm)} mm`;
+  const count = resolveGrid(product).n;
   const material = String(product.material || '').trim() || '-';
   const rows = [
     ['제품명', product.name || '-'],
@@ -392,12 +438,23 @@ async function main() {
       categoryName: detail.category || item.categoryName,
       hashtags: Array.isArray(detail.hashtags) ? detail.hashtags : null,
       material: detail.material || item.material,
+      shape: detail.shape || item.shape,
       widthMm: detail.width_mm || item.widthMm,
       heightMm: detail.height_mm || item.heightMm,
+      displayWidthMm: parseDisplaySize(detail.description)?.w || null,
+      displayHeightMm: parseDisplaySize(detail.description)?.h || null,
+      displaySizeText: parseDisplaySize(detail.description)?.text || '',
       labelsPerSheet: detail.labels_per_sheet || item.labelsPerSheet,
+      columnsCount: detail.columns_count || item.columnsCount,
+      rowsCount: detail.rows_count || item.rowsCount,
       options: Array.isArray(detail.options) ? detail.options : [],
     };
   });
+
+  const withoutSize = detailed.filter((p) => (!p.displayWidthMm || !p.displayHeightMm) && !p.displaySizeText);
+  if (withoutSize.length) {
+    throw new Error(`표기치수가 없는 상품: ${withoutSize.map((p) => p.sku).join(', ')}`);
+  }
 
   const withoutTags = detailed.filter((p) => !Array.isArray(p.hashtags));
   if (withoutTags.length) {
@@ -416,7 +473,7 @@ async function main() {
   try {
     for (let i = 0; i < detailed.length; i += 1) {
       const product = detailed[i];
-      const file = `${product.sku}.jpg`;
+      const file = `${product.sku}-261009.jpg`;
       const dest = path.join(OUT_DIR, file);
       await page.setContent(sheetHtml(product), { waitUntil: 'networkidle', timeout: 30000 });
       const fontReady = await page.evaluate(async () => {

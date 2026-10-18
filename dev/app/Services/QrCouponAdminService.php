@@ -311,7 +311,8 @@ final class QrCouponAdminService
     }
 
     /**
-     * 미사용 QR만 삭제 (사용·중지 코드는 삭제 불가).
+     * 미사용 QR 삭제(출력 여부 무관). 삭제 시 코드가 사라져 스캔·사용 불가.
+     * 사용·중지 코드는 삭제 불가.
      *
      * @param list<int> $ids
      * @return array{
@@ -330,7 +331,7 @@ final class QrCouponAdminService
 
         $result = $this->repo->deleteUnusedByIds($ids);
         if ((int) ($result['deleted'] ?? 0) <= 0) {
-            throw new RuntimeException('삭제할 수 있는 미사용 쿠폰이 없습니다. (사용·중지 코드는 삭제할 수 없습니다)');
+            throw new RuntimeException('삭제할 수 있는 쿠폰이 없습니다. (이미 사용된 코드는 삭제할 수 없습니다)');
         }
 
         $groups = [];

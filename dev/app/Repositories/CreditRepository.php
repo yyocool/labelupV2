@@ -47,6 +47,18 @@ final class CreditRepository extends BaseModel
         return $row !== null;
     }
 
+    public function findIdBySourceRef(string $source, string $sourceRef): int
+    {
+        if ($source === '' || $sourceRef === '') {
+            return 0;
+        }
+        $row = $this->fetchOne(
+            'SELECT id FROM credit_transactions WHERE source = :source AND source_ref = :ref ORDER BY id DESC LIMIT 1',
+            ['source' => $source, 'ref' => $sourceRef]
+        );
+        return (int) ($row['id'] ?? 0);
+    }
+
     public function addTransaction(array $data): int
     {
         $now = date('Y-m-d H:i:s');

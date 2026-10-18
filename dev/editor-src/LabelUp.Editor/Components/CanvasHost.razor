@@ -54,7 +54,7 @@
           <em class="ed-guides__num" style="@($"left:{mark.Pos + 2:0.##}px")">@($"{mark.Mm:0}")</em>
         }
       }
-      <strong class="ed-guides__size">@($"{Session.Document.WidthMm:0.#}×{Session.Document.HeightMm:0.#} mm")</strong>
+      <strong class="ed-guides__size">@Session.Document.Paper.LayoutSummary</strong>
     </div>
     <div class="ed-guides__v" style="@($"left:{rLeft:0.##}px;top:{frame.Oy:0.##}px;height:{frame.LabelH:0.##}px")">
       @foreach (var mark in RulerMarks(Session.Document.HeightMm, frame.Scale))
@@ -873,9 +873,7 @@
             }
         }
 
-        using var dim = new SKPaint { Color = new SKColor(0x7B, 0x28, 0x40, 180), IsAntialias = true };
-        using var dimFont = new SKFont(DocumentRenderer.ResolveChromeTypeface(true), 10);
-        canvas.DrawText($"{mmW:0.#}×{mmH:0.#} mm", ox + 8, rulerTop + 18, SKTextAlign.Left, dimFont, dim);
+        // mm 규격 수치는 노출하지 않는다. 행×열·칸수는 HTML ed-guides__size 배지로 표시.
     }
 
     private void DrawMarquee(SKCanvas canvas, float ox, float oy, float scale)

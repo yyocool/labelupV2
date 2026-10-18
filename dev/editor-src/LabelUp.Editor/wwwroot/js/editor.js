@@ -565,21 +565,141 @@ window.labelUpEditor = {
     } catch (e) { /* ignore */ }
     return fromSession();
   },
+  /**
+   * SkiaSharp(WASM)는 SVG를 디코드하지 못하므로 PNG data URL로 래스터화한다.
+   * PDV 등 복잡한 SVG(viewBox/mm 단위)도 브라우저 엔진으로 그려 캔버스에 보이게 한다.
+   */
+  rasterizeSvgToPngDataUrl: async function (svgTextOrDataUrl, maxSide) {
+    var max = Math.max(256, Math.min(Number(maxSide) || 1536, 2048));
+    var text = String(svgTextOrDataUrl || '');
+    if (!text) return '';
+    if (text.indexOf('data:image/svg') === 0) {
+      var comma = text.indexOf(',');
+      if (comma < 0) return '';
+      var meta = text.slice(0, comma);
+      var payload = text.slice(comma + 1);
+      try {
+        text = /;base64/i.test(meta) ? atob(payload) : decodeURIComponent(payload);
+      } catch (e) {
+        return '';
+      }
+    }
+    text = text.replace(/^\uFEFF/, '').trim();
+    if (text.charAt(0) === '<' && text.indexOf('<svg') < 0 && text.toLowerCase().indexOf('<svg') < 0) {
+      // xml 선언만 있는 경우 포함해 svg 태그 탐색
+    }
+    if (!/<svg[\s>]/i.test(text)) return '';
+
+    // 크기 힌트: viewBox / width / height (mm·px 혼용 대비)
+    var vb = text.match(/viewBox\s*=\s*["']\s*([0-9.+-eE]+)\s+([0-9.+-eE]+)\s+([0-9.+-eE]+)\s+([0-9.+-eE]+)\s*["']/i);
+    var parseLen = function (raw) {
+      if (!raw) return 0;
+      var m = String(raw).trim().match(/^([0-9.+-eE]+)(px|pt|mm|cm|in)?$/i);
+      if (!m) return 0;
+      var n = parseFloat(m[1]);
+      if (!isFinite(n) || n <= 0) return 0;
+      var u = (m[2] || 'px').toLowerCase();
+      if (u === 'mm') return n * 3.7795275591;
+      if (u === 'cm') return n * 37.795275591;
+      if (u === 'in') return n * 96;
+      if (u === 'pt') return n * (96 / 72);
+      return n;
+    };
+    var wAttr = text.match(/\bwidth\s*=\s*["']([^"']+)["']/i);
+    var hAttr = text.match(/\bheight\s*=\s*["']([^"']+)["']/i);
+    var w = parseLen(wAttr && wAttr[1]);
+    var h = parseLen(hAttr && hAttr[1]);
+    if ((!w || !h) && vb) {
+      w = Math.abs(parseFloat(vb[3]) - 0) || parseFloat(vb[3]);
+      h = Math.abs(parseFloat(vb[4]) - 0) || parseFloat(vb[4]);
+    }
+    if (!w || !h) { w = 1024; h = 1024; }
+    var scale = Math.min(1, max / Math.max(w, h));
+    var outW = Math.max(1, Math.round(w * scale));
+    var outH = Math.max(1, Math.round(h * scale));
+    if (Math.max(outW, outH) < 256) {
+      var up = 256 / Math.max(outW, outH);
+      outW = Math.max(1, Math.round(outW * up));
+      outH = Math.max(1, Math.round(outH * up));
+    }
+
+    // 브라우저가 intrinsic size를 잡도록 width/height 보강
+    if (!/\bwidth\s*=/i.test(text)) {
+      text = text.replace(/<svg\b/i, '<svg width="' + outW + '"');
+    }
+    if (!/\bheight\s*=/i.test(text)) {
+      text = text.replace(/<svg\b/i, '<svg height="' + outH + '"');
+    }
+
+    var blob = new Blob([text], { type: 'image/svg+xml;charset=utf-8' });
+    var objUrl = URL.createObjectURL(blob);
+    try {
+      var img = await new Promise(function (resolve, reject) {
+        var el = new Image();
+        el.onload = function () { resolve(el); };
+        el.onerror = function () { reject(new Error('svg image load failed')); };
+        el.src = objUrl;
+      });
+      var iw = img.naturalWidth || outW;
+      var ih = img.naturalHeight || outH;
+      if (!iw || !ih) { iw = outW; ih = outH; }
+      var s2 = Math.min(1, max / Math.max(iw, ih));
+      var cw = Math.max(1, Math.round(iw * s2));
+      var ch = Math.max(1, Math.round(ih * s2));
+      var canvas = document.createElement('canvas');
+      canvas.width = cw;
+      canvas.height = ch;
+      var ctx = canvas.getContext('2d');
+      if (!ctx) return '';
+      ctx.clearRect(0, 0, cw, ch);
+      ctx.drawImage(img, 0, 0, cw, ch);
+      return canvas.toDataURL('image/png');
+    } catch (e) {
+      console.warn('[LabelUp] SVG rasterize failed', e);
+      return '';
+    } finally {
+      URL.revokeObjectURL(objUrl);
+    }
+  },
   fetchImageDataUrl: async function (src) {
     if (!src) return '';
-    if (String(src).indexOf('data:image') === 0) return String(src);
-    var url = String(src);
+    var self = window.labelUpEditor;
+    var asStr = String(src);
+    if (asStr.indexOf('data:image/svg') === 0) {
+      var fromSvg = await self.rasterizeSvgToPngDataUrl(asStr);
+      return fromSvg || '';
+    }
+    if (asStr.indexOf('data:image') === 0) return asStr;
+    var url = asStr;
     if (url.charAt(0) === '/') url = window.location.origin + url;
-    var readBlob = async function (res) {
-      if (!res || !res.ok) return '';
-      var blob = await res.blob();
-      if (!blob || blob.size < 8) return '';
-      return await new Promise(function (resolve, reject) {
+    var looksSvgUrl = /\.svg(\?|#|$)/i.test(url);
+    var blobToDataUrl = function (blob) {
+      return new Promise(function (resolve, reject) {
         var reader = new FileReader();
         reader.onload = function () { resolve(String(reader.result || '')); };
         reader.onerror = function () { reject(reader.error || new Error('read failed')); };
         reader.readAsDataURL(blob);
       });
+    };
+    var readBlob = async function (res) {
+      if (!res || !res.ok) return '';
+      var blob = await res.blob();
+      if (!blob || blob.size < 8) return '';
+      var mime = String(blob.type || '').toLowerCase();
+      var isSvg = looksSvgUrl || mime.indexOf('svg') >= 0;
+      if (!isSvg) {
+        // content-sniff: XML/SVG 텍스트
+        try {
+          var head = await blob.slice(0, 256).text();
+          if (/<svg[\s>]/i.test(head) || /^\s*<\?xml/i.test(head)) isSvg = true;
+        } catch (e0) { /* ignore */ }
+      }
+      if (isSvg) {
+        var svgText = await blob.text();
+        var png = await self.rasterizeSvgToPngDataUrl(svgText);
+        if (png) return png;
+      }
+      return await blobToDataUrl(blob);
     };
     try {
       var direct = await readBlob(await fetch(url, { credentials: 'omit', mode: 'cors' }));
@@ -1135,12 +1255,19 @@ window.labelUpEditor = {
         { label: '♡ 일러스트', prompt_text: '핸드메이드 라벨용 하트와 리본 일러스트를 그려줘.' }
       ],
       labiIconUrl: '/assets/labi-icon.png',
-      isLoggedIn: !!user,
+      isLoggedIn: !!(user && user.id),
+      userId: user && user.id ? Number(user.id) : 0,
+      fetchAuthUser: async function () {
+        try { return await self.getAuthUser(); } catch (e) { return null; }
+      },
       ensureLogin: async function () {
         var current = null;
         try { current = await self.getAuthUser(); } catch (e) { current = null; }
-        if (current) return true;
-        return await self.showSaveAuthPrompt();
+        if (current && current.id) return true;
+        var ok = await self.showSaveAuthPrompt();
+        if (!ok) return false;
+        try { current = await self.getAuthUser(); } catch (e) { current = null; }
+        return !!(current && current.id);
       },
       onApplyProduct: function (product) {
         self.applyLabiProduct(product);
@@ -3871,4 +3998,26 @@ window.labelUpEditor = {
   if (window.labelUpEditor && typeof window.labelUpEditor.bindProjectTrash === 'function') {
     window.labelUpEditor.bindProjectTrash();
   }
+})();
+
+(function () {
+  var text = '폼텍,애니라벨,아이라벨은 각 해당 회사의 등록 상표입니다.';
+  function place(card) {
+    if (!card || card.querySelector('.compat-tm')) return;
+    var codes = card.classList.contains('ed-modal__card--papers') || !!card.querySelector('.ed-map-table');
+    if (!codes) return;
+    var note = document.createElement('p');
+    note.className = 'compat-tm';
+    note.setAttribute('role', 'note');
+    note.textContent = text;
+    var head = card.querySelector('.ed-modal__head');
+    (head || card).appendChild(note);
+  }
+  function scan() {
+    document.querySelectorAll('.ed-modal__card').forEach(place);
+  }
+  if (window.MutationObserver) {
+    new MutationObserver(scan).observe(document.documentElement, { childList: true, subtree: true });
+  }
+  scan();
 })();

@@ -1,6 +1,7 @@
 window.LabelUpLabiChat = {
   async mount(options) {
     const cfg = options || window.LABELUP_HOME || {};
+    let userId = Math.max(0, Number(cfg.userId || cfg.user_id || 0) || 0);
     let isLoggedIn = !!cfg.isLoggedIn;
     const loginUrl = cfg.loginUrl || '/login';
     const chatApiUrl = cfg.chatApiUrl || '/api/ai/chat';
@@ -54,11 +55,44 @@ window.LabelUpLabiChat = {
     { id: 'template', label: '템플릿' },
   ];
   let labiMode = 'auto';
-  const CHAT_STORE_KEY = 'labelup.labi.chat.v1';
+  /** 구버전 공용 키 — 계정별 키로 이전할 때만 읽는다 */
+  const CHAT_STORE_SHARED = 'labelup.labi.chat.v1';
   const CHAT_STORE_LEGACY = ['labelup.labi.chat.v1.home', 'labelup.labi.chat.v1.editor'];
   /** @type {Array<Record<string, any>>} */
   const transcript = [];
   let restoringChat = false;
+  /** 오류 후 재전송 시 마지막 force_intent 유지 */
+  let lastForceIntent = '';
+
+  function chatStoreKey() {
+    if (!isLoggedIn || userId <= 0) return null;
+    return 'labelup.labi.chat.v1.u' + userId;
+  }
+
+  function applyAuthUser(user) {
+    const id = Math.max(0, Number(user && (user.id || user.user_id) || 0) || 0);
+    userId = id;
+    isLoggedIn = id > 0;
+    if (isLoggedIn && input) input.removeAttribute('readonly');
+    return isLoggedIn;
+  }
+
+  async function refreshAuth() {
+    if (typeof cfg.fetchAuthUser === 'function') {
+      try {
+        const user = await cfg.fetchAuthUser();
+        if (user) return applyAuthUser(user);
+      } catch (e) { /* ignore */ }
+      userId = 0;
+      isLoggedIn = false;
+      return false;
+    }
+    if (userId > 0 && cfg.isLoggedIn) {
+      isLoggedIn = true;
+      return true;
+    }
+    return isLoggedIn && userId > 0;
+  }
   /** @type {{id:string, kind:'image'|'text'|'file', name:string, dataUrl?:string, text?:string}[]} */
   let pendingAttachments = [];
   let sending = false;
@@ -127,16 +161,15 @@ window.LabelUpLabiChat = {
   }
 
   async function requireLogin() {
-    if (isLoggedIn) return true;
+    if (isLoggedIn && userId > 0) return true;
     if (typeof cfg.ensureLogin === 'function') {
       const ok = await cfg.ensureLogin();
-      if (ok) {
-        isLoggedIn = true;
-        if (input) input.removeAttribute('readonly');
-        if (!transcript.length) restoreChat();
-        return true;
-      }
-      return false;
+      if (!ok) return false;
+      await refreshAuth();
+      if (!(isLoggedIn && userId > 0)) return false;
+      if (input) input.removeAttribute('readonly');
+      if (!transcript.length) restoreChat();
+      return true;
     }
     const goLogin = await showLoginPrompt();
     if (goLogin) redirectLogin();
@@ -999,6 +1032,15 @@ window.LabelUpLabiChat = {
     bubble.innerHTML = formatMessage(content);
     body.appendChild(bubble);
 
+    if (extras.error) {
+      if (record) record.error = true;
+      item.classList.add('ai-chat-msg--error');
+      body.appendChild(buildRetryBar({ lastOnly: true }));
+    }
+    if (role === 'user') {
+      body.appendChild(buildRetryBar({ userItem: item }));
+    }
+
     if (extras.product) {
       body.appendChild(buildProductCard(extras.product));
     }
@@ -1098,7 +1140,23 @@ window.LabelUpLabiChat = {
   }
 
   function isTemplateRequest(text) {
-    return /템플릿|라벨\s*디자인|전체\s*라벨|라벨지\s*만들|디자인으로\s*만들/.test(text || '');
+    const t = text || '';
+    // 「라벨 추천」은 용지 추천이지 템플릿 생성이 아님
+    if (isProductRecommendRequest(t)) return false;
+    return /템플릿|라벨\s*디자인|전체\s*라벨|라벨지\s*만들|디자인으로\s*만들/.test(t);
+  }
+
+  /** 등록 상품(라벨지) 추천 — 템플릿/클립아트 생성이 아님 */
+  function isProductRecommendRequest(text) {
+    const t = String(text || '').trim();
+    if (!t) return false;
+    if (/템플릿\s*만들|디자인\s*만들|그려\s*줘|클립아트|일러스트/.test(t)) return false;
+    if (/호환|폼텍|애니라벨|아이라벨|formtec|anylabel|ilabel/i.test(t)) return true;
+    if (/\b(?:LU-?)?V?\d{3,5}[A-Z]?\b/i.test(t) || /[A-Z]{1,3}\d{2,4}[A-Z]?/i.test(t)) {
+      if (/호환|대응|같은|대신|라벨|용지/.test(t)) return true;
+    }
+    return /라벨\s*추천|용지\s*추천|라벨지\s*추천|상품\s*추천|스티커\s*추천|추천해\s*줘|추천\s*해줘|추천해줘|골라\s*줘|어떤\s*라벨|무슨\s*라벨|맞는\s*라벨|적합한\s*라벨|라벨\s*골라|용지\s*골라/.test(t)
+      || (/(라벨|라벨지|용지|스티커)/.test(t) && /추천|골라/.test(t));
   }
 
   function attachmentsHaveImage(items) {
@@ -1366,6 +1424,7 @@ window.LabelUpLabiChat = {
   }
 
   function typingModeFor(text, forceIntent) {
+    if (forceIntent === 'recommend_product' || isProductRecommendRequest(text)) return 'chat';
     if (forceIntent === 'generate_data_template' || forceIntent === 'translate_yes' || forceIntent === 'translate_no') return 'template';
     if (forceIntent === 'generate_template' || isTemplateRequest(text)) return 'template';
     if (forceIntent === 'generate_clipart' || isClipartRequest(text)) return 'draw';
@@ -1400,7 +1459,60 @@ window.LabelUpLabiChat = {
     }
   }
 
-  const LABI_UNAVAILABLE_MSG = '지금은 라비를 잠시 사용할 수 없어요. 잠시 후 다시 시도해 주세요. 계속되면 고객센터(02-6956-5511)로 문의해 주세요.';
+  function formatLabiUnavailable(reason, code) {
+    return '지금은 라비를 잠시 사용할 수 없어요.\n'
+      + '사유: ' + reason + '\n'
+      + '잠시 후 다시 시도해 주세요. 계속되면 고객센터(02-6956-5511)로 문의해 주세요.\n'
+      + '(CODE:' + code + ')';
+  }
+
+  const LABI_UNAVAILABLE_MSG = formatLabiUnavailable('응답이 비어 있습니다.', '094');
+
+  function classifyClientLabiFailure(text) {
+    const t = String(text || '').toLowerCase();
+    const raw = String(text || '');
+    if (/CODE:0\d{2}/.test(raw) && /사유:/.test(raw)) {
+      return null; // 서버가 이미 정리한 문구
+    }
+    if (/insufficient_quota|exceeded your current quota|billing_hard_limit|insufficient_funds/.test(t)
+      || (/quota/.test(t) && /exceed|exhaust|deplet/.test(t))) {
+      return { code: '098', reason: 'OpenAI API 잔액(사용 한도)이 부족합니다.' };
+    }
+    if (/invalid_api_key|incorrect api key|unauthorized|authentication|openai_api_key/.test(t)) {
+      return { code: '091', reason: 'AI API 키 설정에 문제가 있습니다.' };
+    }
+    if (/rate_limit|rate limit|too many requests|\b429\b/.test(t)) {
+      return { code: '092', reason: 'AI 요청이 잠시 너무 많아 제한되었습니다.' };
+    }
+    if (/failed to fetch|networkerror|load failed|network request failed|econn|ssl|curl|could not resolve/i.test(t)) {
+      return { code: '093', reason: 'AI 서버와 연결하지 못했습니다.' };
+    }
+    if (/abort(ed)?|timeout|timed out/i.test(t)) {
+      return { code: '093', reason: 'AI 서버 응답 시간이 초과되었습니다.' };
+    }
+    if (/AI 응답을 받지 못했습니다|응답이 비어|응답을 해석할 수 없습니다|empty response/.test(raw)) {
+      return { code: '094', reason: 'AI 응답을 받지 못했거나 응답 형식이 올바르지 않습니다.' };
+    }
+    if (/이미지 생성|생성된 이미지|이미지 디코딩|\bimage\b/.test(raw) && /실패|없|error|fail/i.test(raw)) {
+      return { code: '095', reason: '이미지 생성에 실패했습니다.' };
+    }
+    if (/disk|quota|디스크 용량|할당량|no space|out of free/.test(t)) {
+      return { code: '096', reason: '서버 디스크 용량(할당량)이 부족합니다.' };
+    }
+    if (/저장|권한|permission/.test(t)) {
+      return { code: '096', reason: '서버 저장(파일 권한)에 문제가 있습니다.' };
+    }
+    if (/model/.test(t) && /does not exist|not found|invalid/.test(t)) {
+      return { code: '097', reason: '설정된 AI 모델을 사용할 수 없습니다.' };
+    }
+    if (/content_policy|safety|moderation|rejected/.test(t)) {
+      return { code: '090', reason: '요청 내용이 AI 이용 정책에 걸려 처리되지 않았습니다.' };
+    }
+    if (/openai|ssl|curl|econn|^[A-Za-z0-9 ._:[\]'"\\/-]+$/.test(raw)) {
+      return { code: '099', reason: '일시적인 AI 서비스 오류가 발생했습니다.' };
+    }
+    return null;
+  }
 
   function isTechnicalLabiError(text) {
     const t = String(text || '').trim();
@@ -1423,22 +1535,163 @@ window.LabelUpLabiChat = {
   function friendlyLabiError(err) {
     const status = err && err.status;
     const raw = err && err.message ? String(err.message) : '';
+    const apiReason = err && err.reason ? String(err.reason).trim() : '';
+    const apiCode = err && err.code ? String(err.code).trim() : '';
     if (status === 402 || /잉크/.test(raw)) {
       return raw.trim() || 'AI 잉크가 부족합니다. 충전한 뒤 다시 이용해 주세요.';
     }
     if (status === 401 || /로그인/.test(raw)) {
       return raw.trim() || '로그인이 필요합니다.';
     }
+    if (apiReason && /^0\d{2}$/.test(apiCode)) {
+      return formatLabiUnavailable(apiReason, apiCode);
+    }
+    if (raw && /사유:/.test(raw) && /CODE:0\d{2}/.test(raw)) {
+      return raw.trim();
+    }
+    const classified = classifyClientLabiFailure(raw);
+    if (classified) {
+      return formatLabiUnavailable(classified.reason, classified.code);
+    }
     if (raw && !isTechnicalLabiError(raw)) {
       return raw.trim();
     }
-    return LABI_UNAVAILABLE_MSG;
+    const detail = raw.replace(/\s+/g, ' ').trim().slice(0, 100);
+    return formatLabiUnavailable(
+      detail
+        ? ('일시적인 AI 서비스 오류가 발생했습니다. 상세: ' + detail)
+        : '일시적인 AI 서비스 오류가 발생했습니다.',
+      '099'
+    );
+  }
+
+  function buildRetryBar(opts) {
+    const options = opts || {};
+    const wrap = document.createElement('div');
+    wrap.className = 'ai-chat-retry';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ai-chat-retry__btn';
+    btn.textContent = '다시 보내기';
+    btn.addEventListener('click', () => {
+      if (options.lastOnly) {
+        void retryLastLabi();
+        return;
+      }
+      if (options.userItem) {
+        void resendUserMessage(options.userItem);
+        return;
+      }
+      void retryLastLabi();
+    });
+    wrap.appendChild(btn);
+    return wrap;
+  }
+
+  function clearLabiErrorUi() {
+    if (!chatLog) return;
+    chatLog.querySelectorAll('.ai-chat-msg--error').forEach((el) => el.remove());
+    let changed = false;
+    for (let i = transcript.length - 1; i >= 0; i -= 1) {
+      const entry = transcript[i];
+      if (!entry) continue;
+      if (entry.error) {
+        transcript.splice(i, 1);
+        changed = true;
+      }
+    }
+    if (changed) saveChat();
+  }
+
+  function userUiIndex(itemEl) {
+    if (!chatLog || !itemEl) return -1;
+    const users = chatLog.querySelectorAll('.ai-chat-msg--user');
+    return Array.prototype.indexOf.call(users, itemEl);
+  }
+
+  function historyUserIndex(uiIndex) {
+    let n = -1;
+    for (let i = 0; i < history.length; i += 1) {
+      if (history[i] && history[i].role === 'user') {
+        n += 1;
+        if (n === uiIndex) return i;
+      }
+    }
+    return -1;
+  }
+
+  function displayTextFromHistoryUser(msg, fallback) {
+    if (!msg) return fallback || '';
+    if (typeof msg.content === 'string') return msg.content;
+    if (Array.isArray(msg.content)) {
+      const text = msg.content.find((p) => p && p.type === 'text');
+      if (text && text.text) return String(text.text);
+    }
+    return fallback || '';
+  }
+
+  async function resendUserMessage(itemEl) {
+    if (sending) return;
+    if (!(await requireLogin())) return;
+    const uiIndex = userUiIndex(itemEl);
+    if (uiIndex < 0) return;
+    const histIdx = historyUserIndex(uiIndex);
+    if (histIdx < 0) return;
+
+    const userMsg = history[histIdx];
+    const userEntries = transcript.filter((e) => e && e.role === 'user');
+    const entry = userEntries[uiIndex] || null;
+    const displayText = (entry && entry.content)
+      ? String(entry.content)
+      : displayTextFromHistoryUser(userMsg, '다시 보내기');
+    const attachments = (entry && Array.isArray(entry.attachments)) ? entry.attachments : [];
+
+    // 해당 프롬프트 이후 대화는 버리고, 그 메시지부터 다시 요청한다.
+    history.splice(histIdx + 1);
+    let seen = -1;
+    let cutAt = -1;
+    for (let i = 0; i < transcript.length; i += 1) {
+      if (transcript[i] && transcript[i].role === 'user') {
+        seen += 1;
+        if (seen === uiIndex) {
+          cutAt = i;
+          break;
+        }
+      }
+    }
+    if (cutAt >= 0) transcript.splice(cutAt + 1);
+    clearLabiErrorUi();
+
+    if (chatLog) {
+      chatLog.querySelectorAll('.ai-chat-msg').forEach((el) => el.remove());
+    }
+    paintTranscript();
+    saveChat();
+
+    const intent = intentForLabiMode(displayText, attachments) || lastForceIntent || '';
+    await requestLabi(intent);
+  }
+
+  async function retryLastLabi() {
+    if (sending) return;
+    if (!(await requireLogin())) return;
+    const users = chatLog ? chatLog.querySelectorAll('.ai-chat-msg--user') : [];
+    if (users.length) {
+      await resendUserMessage(users[users.length - 1]);
+      return;
+    }
+    const hasUser = history.some((m) => m && m.role === 'user');
+    if (!hasUser) return;
+    clearLabiErrorUi();
+    await requestLabi(lastForceIntent || '');
   }
 
   async function requestLabi(forceIntent) {
     if (sending) return;
     sending = true;
     send.disabled = true;
+    lastForceIntent = forceIntent || '';
+    clearLabiErrorUi();
     const lastUser = history.filter((m) => m.role === 'user').slice(-1)[0];
     const lastText = typeof lastUser?.content === 'string'
       ? lastUser.content
@@ -1460,7 +1713,8 @@ window.LabelUpLabiChat = {
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data.success === false) {
         const err = new Error(data.message || '');
-        err.code = (data.data && data.data.code) || '';
+        err.code = (data.data && data.data.code) || data.code || '';
+        err.reason = (data.data && data.data.reason) || data.reason || '';
         err.status = res.status;
         throw err;
       }
@@ -1470,15 +1724,19 @@ window.LabelUpLabiChat = {
       if (typeof payload.show_ai_usage === 'boolean') showAiUsage = payload.show_ai_usage;
       if (typeof payload.show_ai_debug === 'boolean') showAiDebug = payload.show_ai_debug;
       removeTyping(typing);
-      appendMessage('assistant', reply || LABI_UNAVAILABLE_MSG, {
-        product: payload.product || null,
-        clipart: payload.clipart || null,
-        template: payload.template || null,
-        choices: payload.choices || null,
-        usage: payload.usage || null,
-      });
-      history.push({ role: 'assistant', content: reply });
-      saveChat();
+      if (!reply) {
+        appendMessage('assistant', LABI_UNAVAILABLE_MSG, { error: true });
+      } else {
+        appendMessage('assistant', reply, {
+          product: payload.product || null,
+          clipart: payload.clipart || null,
+          template: payload.template || null,
+          choices: payload.choices || null,
+          usage: payload.usage || null,
+        });
+        history.push({ role: 'assistant', content: reply });
+        saveChat();
+      }
       updateCreditDisplays(payload.credit || null);
       if (payload.template && payload.template.document) {
         if (payload.template.dataset) compactOfficeHistory();
@@ -1486,7 +1744,7 @@ window.LabelUpLabiChat = {
       }
     } catch (err) {
       removeTyping(typing);
-      appendMessage('assistant', friendlyLabiError(err));
+      appendMessage('assistant', friendlyLabiError(err), { error: true });
     } finally {
       sending = false;
       syncComposer();
@@ -1558,6 +1816,8 @@ window.LabelUpLabiChat = {
   }
 
   function intentForLabiMode(displayText, attachments) {
+    // 「라벨 추천해줘」→ 등록 상품(용지) 추천. 모드가 템플릿이어도 우선.
+    if (isProductRecommendRequest(displayText)) return 'recommend_product';
     if (labiMode === 'chat') return 'chat';
     if (labiMode === 'clipart') return 'generate_clipart';
     if (labiMode === 'template') {
@@ -1741,23 +2001,27 @@ window.LabelUpLabiChat = {
   }
 
   function saveChat() {
-    if (!isLoggedIn || restoringChat) return;
+    if (!isLoggedIn || userId <= 0 || restoringChat) return;
+    const key = chatStoreKey();
+    if (!key) return;
     const payload = {
+      userId,
       transcript: transcript.slice(-40).map((entry) => slimStoredValue(entry, 0)).filter(Boolean),
       history: history.slice(-40).map(slimApiMessage).filter(Boolean),
     };
     try {
-      localStorage.setItem(CHAT_STORE_KEY, JSON.stringify(payload));
+      localStorage.setItem(key, JSON.stringify(payload));
     } catch (e) {
       try {
         payload.transcript = payload.transcript.slice(-12);
         payload.history = payload.history.slice(-12);
-        localStorage.setItem(CHAT_STORE_KEY, JSON.stringify(payload));
+        localStorage.setItem(key, JSON.stringify(payload));
       } catch (err) { /* 용량이 넘치면 이번 저장만 건너뛴다 */ }
     }
   }
 
   function readChatPayload(key) {
+    if (!key) return null;
     try {
       const parsed = JSON.parse(localStorage.getItem(key) || 'null');
       if (!parsed || !Array.isArray(parsed.transcript) || !parsed.transcript.length) return null;
@@ -1768,15 +2032,52 @@ window.LabelUpLabiChat = {
   }
 
   function loadSavedChat() {
-    const shared = readChatPayload(CHAT_STORE_KEY);
-    if (shared) return shared;
+    if (!isLoggedIn || userId <= 0) return null;
+    const key = chatStoreKey();
+    const mine = readChatPayload(key);
+    if (mine) return mine;
+
+    // 같은 브라우저에 남아 있던 공용 키는 현재 로그인 계정으로 1회만 이전
+    const shared = readChatPayload(CHAT_STORE_SHARED);
     const legacy = CHAT_STORE_LEGACY.map(readChatPayload).filter(Boolean);
-    if (!legacy.length) return null;
-    if (legacy.length === 1) return legacy[0];
-    return {
-      transcript: legacy.flatMap((item) => item.transcript).slice(-40),
-      history: legacy.flatMap((item) => (Array.isArray(item.history) ? item.history : [])).slice(-40),
-    };
+    let migrated = shared;
+    if (!migrated && legacy.length === 1) migrated = legacy[0];
+    else if (!migrated && legacy.length > 1) {
+      migrated = {
+        transcript: legacy.flatMap((item) => item.transcript).slice(-40),
+        history: legacy.flatMap((item) => (Array.isArray(item.history) ? item.history : [])).slice(-40),
+      };
+    }
+    if (!migrated) return null;
+    try {
+      localStorage.setItem(key, JSON.stringify({
+        userId,
+        transcript: migrated.transcript,
+        history: Array.isArray(migrated.history) ? migrated.history : [],
+      }));
+      localStorage.removeItem(CHAT_STORE_SHARED);
+      CHAT_STORE_LEGACY.forEach((k) => localStorage.removeItem(k));
+    } catch (e) { /* ignore */ }
+    return migrated;
+  }
+
+  function clearChatUiForGuest() {
+    if (isLoggedIn && userId > 0) return;
+    transcript.length = 0;
+    history.length = 0;
+    if (!chatLog) return;
+    chatLog.querySelectorAll('.ai-chat-msg').forEach((el) => el.remove());
+    const hasDemo = !!chatLog.querySelector('.ai-demo-thread');
+    if (embedMode) {
+      chatLog.hidden = true;
+      panel.classList.remove('is-chat-active');
+    } else if (hasDemo) {
+      chatLog.hidden = false;
+      panel.classList.remove('is-chat-active');
+    } else {
+      chatLog.hidden = true;
+      panel.classList.remove('is-chat-active');
+    }
   }
 
   function paintTranscript() {
@@ -1796,6 +2097,7 @@ window.LabelUpLabiChat = {
         picked: entry.picked || null,
         vendor: entry.vendor || null,
         usage: entry.usage || null,
+        error: !!entry.error,
       });
     });
     chatLog.hidden = false;
@@ -1886,7 +2188,7 @@ window.LabelUpLabiChat = {
   }
 
   function restoreChat() {
-    if (!isLoggedIn || !chatLog || transcript.length) return;
+    if (!isLoggedIn || userId <= 0 || !chatLog || transcript.length) return;
     const saved = loadSavedChat();
     const items = saved && Array.isArray(saved.transcript) ? saved.transcript : [];
     if (!items.length) return;
@@ -1906,7 +2208,11 @@ window.LabelUpLabiChat = {
   }
 
   ensureModeBar();
-  restoreChat();
+  if (isLoggedIn && userId <= 0 && typeof cfg.fetchAuthUser === 'function') {
+    await refreshAuth();
+  }
+  if (isLoggedIn && userId > 0) restoreChat();
+  else clearChatUiForGuest();
   watchChatLog();
   watchModeBar();
 

@@ -30,7 +30,7 @@ $isSoldout = ($product['status'] ?? '') === 'soldout' || (!$isInk && (int) ($pro
       <?php if ($isInk): ?>
       <p class="shop-product-desc">지급 <?= number_format($inkAmount) ?> 잉크</p>
       <?php elseif (!empty($product['material'])): ?>
-      <p class="shop-product-desc"><?= e((string) $product['material']) ?> · <?= e((string) ($product['width_mm'] ?? '')) ?>×<?= e((string) ($product['height_mm'] ?? '')) ?>mm</p>
+      <p class="shop-product-desc"><?= e((string) $product['material']) ?> · <?= e(format_label_mm($product['width_mm'] ?? null)) ?>×<?= e(format_label_mm($product['height_mm'] ?? null)) ?>mm</p>
       <?php elseif (!empty($product['description'])): ?>
       <p class="shop-product-desc"><?= e(mb_strimwidth(strip_tags((string) $product['description']), 0, 48, '…')) ?></p>
       <?php endif; ?>
