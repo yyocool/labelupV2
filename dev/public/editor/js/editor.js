@@ -1050,6 +1050,7 @@ window.labelUpEditor = {
     el.classList.add('is-done');
     el.setAttribute('hidden', '');
     el.setAttribute('aria-busy', 'false');
+    el.style.setProperty('display', 'none', 'important');
     try { document.documentElement.classList.add('editor-ready'); } catch (e) { /* ignore */ }
     this.applyMobileChrome();
   },

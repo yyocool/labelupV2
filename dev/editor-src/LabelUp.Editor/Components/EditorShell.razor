@@ -18,7 +18,7 @@
 @inject IJSRuntime Js
 @implements IDisposable
 
-<div class="ed @(Session.TopBarPinned ? "is-topbar-pinned" : "is-topbar-auto")"
+<div class="ed @(Session.TopBarPinned ? "is-topbar-pinned" : "is-topbar-auto") @(_canvasReady ? null : "is-booting")"
      data-ed-root
      style="--ed-ui-scale: @(Session.UiScale.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))">
   <TopBar />
@@ -86,8 +86,8 @@
     private ErrorBoundary? _errorBoundary;
     private CanvasHost? _canvas;
     private bool _panelsReady;
-    /// <summary>Canvas mounts only after Hangul fonts + initial document load finish (avoids garbled/default flash).</summary>
-    private bool _bootReady;
+    /// <summary>초안·용지 적용이 끝난 뒤에만 캔버스를 보여 샘플 글자 깜빡임을 막는다.</summary>
+    private bool _canvasReady;
     private DotNetObjectReference<EditorShell>? _self;
     private object? _pendingUiLayout;
     /// <summary>부트 중 적용한 규격의 이상. 첫 렌더가 끝난 뒤 팝업으로 알린다.</summary>
@@ -113,6 +113,9 @@
             {
                 EditorLog.Error("폰트어썸 카탈로그 로드 실패", iconEx);
             }
+            // WMF·상점 용지·클라우드·추가 글꼴은 수 초~수십 초가 걸릴 수 있다.
+            // 빈 문서로 캔버스만 먼저 연다. 샘플 「라벨업」 글자는 CreateBlank 에 넣지 않는다.
+            await RevealCanvasAsync();
             await Papers.EnsureLoadedAsync();
             await Papers.EnsureShopPapersAsync();
 
@@ -206,11 +209,21 @@
         }
         finally
         {
-            // Hangul fonts + boot document first, then drop HTML boot overlay in the same frame.
-            _bootReady = Fonts.IsReady;
-            await InvokeAsync(StateHasChanged);
-            try { await Js.InvokeVoidAsync("labelUpEditor.hideBoot"); } catch { /* ignore */ }
+            await RevealCanvasAsync();
         }
+    }
+
+    private async Task HideBootOverlayAsync()
+    {
+        try { await Js.InvokeVoidAsync("labelUpEditor.hideBoot"); } catch { /* ignore */ }
+    }
+
+    private async Task RevealCanvasAsync()
+    {
+        if (_canvasReady) return;
+        _canvasReady = true;
+        await InvokeAsync(StateHasChanged);
+        await HideBootOverlayAsync();
     }
 
     private async Task<bool> TryRestoreCloudWorkspaceAsync()

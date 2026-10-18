@@ -443,15 +443,7 @@ public sealed class LabelDocument
             Paper = paper.Clone(),
             Background = paper.LabelColor
         };
-        var sample = DesignObject.CreateDefault(ObjectType.Text, paper.LabelWidthMm * 0.12f, paper.LabelHeightMm * 0.28f);
-        sample.Width = paper.LabelWidthMm * 0.76f;
-        sample.Height = paper.LabelHeightMm * 0.44f;
-        sample.Fill = "#7B2840";
-        sample.Text = "라벨업";
-        sample.Bold = true;
-        sample.FontSize = Math.Clamp(paper.LabelHeightMm * 0.28f, 3.5f, 9f);
-        sample.ZIndex = 1;
-        doc.Pages.Add(LabelPage.Create(0, paper.LabelsPerPage, [sample]));
+        doc.Pages.Add(LabelPage.Create(0, paper.LabelsPerPage));
         return doc;
     }
 

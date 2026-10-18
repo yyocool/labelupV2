@@ -14,6 +14,7 @@
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="preload" href="fonts/Pretendard-Regular.otf" as="font" type="font/otf" crossorigin />
   <link rel="preload" href="fonts/Pretendard-Bold.otf" as="font" type="font/otf" crossorigin />
+  <link rel="preload" href="_framework/icudt.bin?v=578039abb078" as="fetch" crossorigin />
   <link rel="stylesheet" href="css/app.css?v=c42f92e01676" />
   <link rel="stylesheet" href="css/editor.css?v=d7a5e65465b8" />
   <link rel="stylesheet" href="css/tutorial.css?v=14e8ce592140" />
@@ -39,7 +40,7 @@
     <a href="" class="reload">다시 시도</a>
     <a class="dismiss">닫기</a>
   </div>
-  <script src="js/editor.js?v=81fb5f1bcb5a"></script>
+  <script src="js/editor.js?v=143ecda797d2"></script>
   <script src="js/panel-dock.js?v=0f8c80a9b662"></script>
   <script src="js/tutorial.js?v=abf74494aa64"></script>
   <script src="/js/home-ai-chat.js?v=20261018labi"></script>
@@ -59,13 +60,74 @@
     주소를 돌려주면 Blazor 는 integrity 검사를 건너뛰므로 섞여도 걸러 주지 못한다.
     그래서 토큰이 내용에 따라 바뀌는 것이 더욱 중요하다.
   -->
-  <script src="_framework/blazor.webassembly.js?v=a0e54ff071d7" autostart="false"></script>
+  <script src="_framework/blazor.webassembly.js?v=578039abb078" autostart="false"></script>
   <script>
-    Blazor.start({
-      loadBootResource: function (type, name, defaultUri) {
-        return defaultUri + (defaultUri.indexOf('?') >= 0 ? '&' : '?') + 'v=a0e54ff071d7';
+    (function () {
+      var token = '578039abb078';
+      var hidden = false;
+      function hideBoot() {
+        if (hidden) return;
+        hidden = true;
+        if (window.labelUpEditor && window.labelUpEditor.hideBoot) {
+          window.labelUpEditor.hideBoot();
+          return;
+        }
+        var el = document.getElementById('editor-boot');
+        if (!el) return;
+        el.classList.add('is-done');
+        el.setAttribute('hidden', '');
+        el.style.setProperty('display', 'none', 'important');
       }
-    });
+      function withStamp(uri) {
+        return uri + (uri.indexOf('?') >= 0 ? '&' : '?') + 'v=' + token;
+      }
+      function resourceUrl(name, defaultUri) {
+        if (/icudt\.(dat|bin)$/i.test(name) || /icudt\.(dat|bin)/i.test(defaultUri)) {
+          return 'icu.php?v=' + token;
+        }
+        return withStamp(defaultUri);
+      }
+      var lastText = '';
+      var lastChange = Date.now();
+      var seenPct = false;
+      var stallTimer = setInterval(function () {
+        var el = document.querySelector('.loading-progress-text');
+        var cssPct = getComputedStyle(document.documentElement).getPropertyValue('--blazor-load-percentage-text') || '';
+        var now = String(el ? el.textContent || '' : '').trim() || String(cssPct).replace(/"/g, '').trim();
+        var m = now.match(/(\d+)\s*%/);
+        var pct = m ? parseInt(m[1], 10) : -1;
+        if (now !== lastText) {
+          lastText = now;
+          lastChange = Date.now();
+          if (pct >= 0) seenPct = true;
+        }
+        if (seenPct && Date.now() - lastChange >= 2500 && pct >= 85) {
+          hideBoot();
+          clearInterval(stallTimer);
+        }
+      }, 400);
+      setTimeout(function () {
+        hideBoot();
+        clearInterval(stallTimer);
+      }, 6000);
+      try {
+        Blazor.start({
+          loadBootResource: function (type, name, defaultUri) {
+            var url = resourceUrl(name, defaultUri);
+            if (type === 'dotnetjs') return url;
+            return fetch(url, { cache: 'no-cache' }).then(function (res) {
+              if (res.ok) return res;
+              if (/icudt/i.test(String(name) + String(defaultUri))) {
+                return fetch('_framework/icudt.bin?v=' + token, { cache: 'reload' });
+              }
+              return res;
+            });
+          }
+        }).then(hideBoot).catch(hideBoot);
+      } catch (e) {
+        hideBoot();
+      }
+    })();
   </script>
 </body>
 </html>
