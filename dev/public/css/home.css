@@ -620,7 +620,10 @@ body.ai-lb-open{overflow:hidden}
 .feature b{display:block;font-size:15px;margin-bottom:5px}.feature span{display:block;font-size:14px;line-height:1.45;color:#858895}
 
 .recent-work-link{display:block;color:inherit;text-decoration:none}
-.recent-work-img .tpl-preview svg{box-shadow:0 2px 8px rgba(46,42,39,.08)}
+.recent-works .card-img{height:176px;padding:10px}
+.recent-work-img .tpl-preview{width:100%;height:100%}
+.recent-work-img .tpl-preview svg{width:100%;height:100%;max-width:none;max-height:none;object-fit:contain;box-shadow:none}
+.recent-work-img img{object-fit:contain;object-position:center;background:#fff}
 .recent-work-card:hover{box-shadow:0 10px 24px rgba(123,40,64,.10)}
 .recent-work-card .meta span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:70%}
 

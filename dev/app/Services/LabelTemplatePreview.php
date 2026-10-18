@@ -6,8 +6,11 @@ namespace App\Services;
 
 final class LabelTemplatePreview
 {
-    /** @param array<string, mixed> $row */
-    public static function svgFromRow(array $row, array $document = []): string
+    /**
+     * @param array<string, mixed> $row
+     * @param bool $zoomContent 목록 썸네일용. 큰 용지에 작은 항목만 있으면 내용에 맞춰 확대한다.
+     */
+    public static function svgFromRow(array $row, array $document = [], bool $zoomContent = false): string
     {
         $paper = is_array($document['paper'] ?? null) ? $document['paper'] : [];
         $w = max(8.0, (float) ($paper['labelWidthMm'] ?? $row['paper_w_mm'] ?? $row['widthMm'] ?? 70));
@@ -17,6 +20,7 @@ final class LabelTemplatePreview
         $kind = (string) ($shape['kind'] ?? $row['paper_shape'] ?? $row['shape'] ?? 'rect');
         $radius = (float) ($shape['cornerRadiusMm'] ?? 2);
         $objects = self::firstObjects($document);
+        $view = $zoomContent ? self::contentViewBox($objects, $w, $h) : ['x' => 0.0, 'y' => 0.0, 'w' => $w, 'h' => $h];
 
         $parts = [self::shapeFill($kind, $w, $h, $radius, $bg)];
         $clipId = 'lp' . preg_replace('/[^a-zA-Z0-9]/', '', (string) ($row['id'] ?? ''))
@@ -40,11 +44,75 @@ final class LabelTemplatePreview
             ? ''
             : '<g clip-path="url(#' . $clipId . ')">' . implode('', $inner) . '</g>';
 
-        return '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="' . self::n($w) . '" height="' . self::n($h) . '" viewBox="0 0 ' . self::n($w) . ' ' . self::n($h) . '" preserveAspectRatio="xMidYMid meet" role="img">'
+        return '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="' . self::n($view['w']) . '" height="' . self::n($view['h']) . '" viewBox="' . self::n($view['x']) . ' ' . self::n($view['y']) . ' ' . self::n($view['w']) . ' ' . self::n($view['h']) . '" preserveAspectRatio="xMidYMid meet" role="img">'
             . $clipDef
             . implode('', $parts)
             . $body
             . '</svg>';
+    }
+
+    /**
+     * @param array<int, mixed> $objects
+     * @return array{x: float, y: float, w: float, h: float}
+     */
+    private static function contentViewBox(array $objects, float $labelW, float $labelH): array
+    {
+        $box = self::objectsBounds($objects);
+        if ($box === null) {
+            return ['x' => 0.0, 'y' => 0.0, 'w' => $labelW, 'h' => $labelH];
+        }
+        $cover = ($box['w'] * $box['h']) / max(1.0, $labelW * $labelH);
+        if ($cover >= 0.42 && ($box['w'] / $labelW) >= 0.62 && ($box['h'] / $labelH) >= 0.62) {
+            return ['x' => 0.0, 'y' => 0.0, 'w' => $labelW, 'h' => $labelH];
+        }
+        $pad = max(3.2, max($box['w'], $box['h']) * 0.22);
+        $x = max(0.0, $box['x'] - $pad);
+        $y = max(0.0, $box['y'] - $pad);
+        $w = min($labelW - $x, $box['w'] + $pad * 2);
+        $h = min($labelH - $y, $box['h'] + $pad * 2);
+        return [
+            'x' => $x,
+            'y' => $y,
+            'w' => max(6.0, $w),
+            'h' => max(6.0, $h),
+        ];
+    }
+
+    /**
+     * @param array<int, mixed> $objects
+     * @return array{x: float, y: float, w: float, h: float}|null
+     */
+    private static function objectsBounds(array $objects): ?array
+    {
+        $minX = null;
+        $minY = null;
+        $maxX = null;
+        $maxY = null;
+        foreach ($objects as $obj) {
+            if (!is_array($obj)) {
+                continue;
+            }
+            if (array_key_exists('visible', $obj) && empty($obj['visible'])) {
+                continue;
+            }
+            $x = (float) ($obj['x'] ?? 0);
+            $y = (float) ($obj['y'] ?? 0);
+            $w = max(0.2, (float) ($obj['width'] ?? 1));
+            $h = max(0.2, (float) ($obj['height'] ?? 1));
+            $minX = $minX === null ? $x : min($minX, $x);
+            $minY = $minY === null ? $y : min($minY, $y);
+            $maxX = $maxX === null ? $x + $w : max($maxX, $x + $w);
+            $maxY = $maxY === null ? $y + $h : max($maxY, $y + $h);
+        }
+        if ($minX === null || $minY === null || $maxX === null || $maxY === null) {
+            return null;
+        }
+        return [
+            'x' => $minX,
+            'y' => $minY,
+            'w' => max(0.4, $maxX - $minX),
+            'h' => max(0.4, $maxY - $minY),
+        ];
     }
 
     /** img src로 쓸 수 있게 로컬 이미지를 data URI로 넣는다. */
