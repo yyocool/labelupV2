@@ -26,6 +26,10 @@ define('APP_ROOT', $appConfig['paths']['root']);
 define('APP_DEBUG', (bool) ($appConfig['debug'] ?? false));
 
 date_default_timezone_set($appConfig['timezone'] ?? 'Asia/Seoul');
+ini_set('default_charset', 'UTF-8');
+if (function_exists('mb_internal_encoding')) {
+    mb_internal_encoding('UTF-8');
+}
 
 if (APP_DEBUG) {
     error_reporting(E_ALL);

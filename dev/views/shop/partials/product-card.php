@@ -25,7 +25,7 @@ $isSoldout = ($product['status'] ?? '') === 'soldout' || (!$isInk && (int) ($pro
       <?php endif; ?>
     </div>
     <div class="shop-product-meta">
-      <span class="shop-product-cat"><?= e((string) ($product['category_name'] ?? '')) ?></span>
+      <span class="shop-product-cat"><?= e(shop_category_display_name($product['category_name'] ?? '', $product['category_slug'] ?? '')) ?></span>
       <h3><?= e((string) $product['name']) ?></h3>
       <?php if ($isInk): ?>
       <p class="shop-product-desc">지급 <?= number_format($inkAmount) ?> 잉크</p>

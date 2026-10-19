@@ -15,7 +15,7 @@ final class LabiDesignService
 
     public function __construct()
     {
-        $this->openai = new OpenAIService();
+        $this->openai = AiServiceFactory::make();
         $this->shop = new ShopRepository();
         $this->shopService = new ShopService();
     }
@@ -57,6 +57,7 @@ final class LabiDesignService
             $officeSheet !== null
             && $forced !== 'generate_clipart'
             && $forced !== 'ask_image_mode'
+            && $forced !== 'ask_background'
             && $forced !== 'chat'
         ) {
             $translateChoice = $this->resolveTranslateChoice($forced, $this->lastUserText($messages));
@@ -82,8 +83,11 @@ final class LabiDesignService
         }
 
         $skipAssist = $forced === 'ask_image_mode'
+            || $forced === 'ask_background'
             || $forced === 'translate_yes'
             || $forced === 'translate_no'
+            || $forced === 'generate_new_template'
+            || str_starts_with($forced, 'use_catalog_')
             || ($hasImage && $forced === '' && $explicit === null);
 
         $structured = [
@@ -111,6 +115,10 @@ final class LabiDesignService
         $userText = $this->lastUserText($messages);
         $translateChoice = $this->resolveTranslateChoice($forced, $userText);
         if ($forced === 'translate_yes' || $forced === 'translate_no') {
+            $intent = 'generate_template';
+        } elseif ($forced === 'background_yes' || $forced === 'background_no') {
+            $intent = 'generate_template';
+        } elseif ($forced === 'generate_new_template' || str_starts_with($forced, 'use_catalog_')) {
             $intent = 'generate_template';
         } elseif ($forced === 'chat') {
             if ($this->looksLikeCompatAsk($userText) || $this->extractCompatCodes($userText) !== []) {
@@ -143,6 +151,8 @@ final class LabiDesignService
         if ($intent === 'ask_image_mode') {
             $reply = '첨부하신 이미지를 봤어요. 라벨에 넣을 클립아트를 그릴까요, 아니면 완성된 라벨 템플릿을 만들까요?';
             $choices = self::imageModeChoices();
+        } elseif ($intent === 'ask_background') {
+            return $this->replyAskBackground($userId, $surface, $difficulty);
         } elseif ($intent === 'recommend_product') {
             $compatNote = null;
             $product = $this->resolveCompatProduct($userText, $compatNote);
@@ -186,6 +196,22 @@ final class LabiDesignService
                 $reply .= "\n\n라벨에 넣을 클립아트를 그려 두었어요. 이미지를 눌러 확대해 볼 수 있어요.";
             }
         } elseif ($intent === 'generate_template') {
+            if (str_starts_with($forced, 'use_catalog_')) {
+                return $this->replyUseCatalogTemplate($forced, $userId, $surface, $difficulty);
+            }
+            if ($this->shouldOfferCatalogTemplates($forced, $userText)) {
+                $planHint = $this->lastMeaningfulUserText($messages);
+                $need = $this->inferPaperNeed($planHint);
+                $matches = (new LabelTemplateService())->similarForRequest(
+                    $planHint,
+                    (float) ($need['default_w'] ?? 0),
+                    (float) ($need['default_h'] ?? 0),
+                    5
+                );
+                if ($matches !== []) {
+                    return $this->replyAskCatalog($matches, $userId, $surface, $difficulty);
+                }
+            }
             if ($translateChoice === null && $hasImage) {
                 try {
                     $inspect = $this->openai->inspectImageLanguage($messages);
@@ -203,9 +229,15 @@ final class LabiDesignService
                 }
             }
             $userText = $this->lastUserText($messages);
-            $bakeText = $this->wantsBakedTextInImage($userText);
-            $product = $this->resolveProduct($structured, $catalog, $userText);
-            $size = $this->resolveTemplateSize($structured, $catalog, $userText, $product);
+            $bgChoice = $this->resolveBackgroundChoice($forced, $userText, $messages);
+            if ($bgChoice === null) {
+                return $this->replyAskBackground($userId, $surface, $difficulty);
+            }
+            $wantBackground = $bgChoice === 'background_yes';
+            $planText = $this->lastMeaningfulUserText($messages);
+            $bakeText = $wantBackground && $this->wantsBakedTextInImage($planText);
+            $product = $this->resolveProduct($structured, $catalog, $planText);
+            $size = $this->resolveTemplateSize($structured, $catalog, $planText, $product);
             $layout = null;
             $translateToKo = $translateChoice === 'translate_yes';
 
@@ -226,8 +258,8 @@ final class LabiDesignService
                         $messages,
                         $translateToKo,
                         trim((string) ($structured['clipart_prompt'] ?? '')) !== ''
-                            ? (string) $structured['message'] . ' ' . $userText
-                            : $userText,
+                            ? (string) $structured['message'] . ' ' . $planText
+                            : $planText,
                         $size['width_mm'],
                         $size['height_mm']
                     );
@@ -242,7 +274,7 @@ final class LabiDesignService
                     'height_mm' => $size['height_mm'],
                     'background_prompt' => '',
                     'texts' => [[
-                        'text' => trim(mb_substr($userText !== '' ? $userText : '상품명', 0, 24)),
+                        'text' => trim(mb_substr($planText !== '' ? $planText : '상품명', 0, 24)),
                         'x' => 0.08,
                         'y' => 0.28,
                         'w' => 0.84,
@@ -267,10 +299,10 @@ final class LabiDesignService
                     ];
                     $near = $this->bestCatalogMatch(
                         $catalog,
-                        $this->inferPaperNeed($userText),
+                        $this->inferPaperNeed($planText),
                         $size['width_mm'],
                         $size['height_mm'],
-                        $this->hintTokens($userText)
+                        $this->hintTokens($planText)
                     );
                     if ($near !== null) {
                         $found = $this->shop->findActiveProduct((int) $near['id']);
@@ -290,52 +322,60 @@ final class LabiDesignService
             $texts = is_array($layout['texts'] ?? null) ? $layout['texts'] : [];
             $codes = $this->mergeEditableCodes(
                 is_array($layout['codes'] ?? null) ? $layout['codes'] : [],
-                $this->inferCodesFromUserText($userText)
+                $this->inferCodesFromUserText($planText)
             );
-            $bgHint = trim((string) ($layout['background_prompt'] ?? ''));
-            if ($bgHint === '') {
-                $bgHint = trim((string) ($structured['clipart_prompt'] ?? ''));
-            }
-            if ($bgHint === '') {
-                $bgHint = $this->fallbackTemplatePrompt($messages, false);
-            }
-            $baked = $bakeText ? $this->extractBakedTextPhrases($userText) : [];
-            // 구울 구체 문구가 없으면 bake를 취소하고 일반 편집 템플릿 경로를 유지
-            if ($bakeText && $baked === []) {
-                $bakeText = false;
-            }
-            if ($bakeText) {
-                $texts = $this->filterTextsExcludingBaked($texts, $baked);
-                // 전부 걸러져도 최소 1개 편집 텍스트는 유지(빈 문서 방지) — codes만 있으면 예외
-                if ($texts === [] && $codes === [] && is_array($layout['texts'] ?? null) && ($layout['texts'] ?? []) !== []) {
-                    $texts = [$layout['texts'][0]];
-                }
-                $prompt = $this->ensureBakedTextInImagePrompt(
-                    $bgHint
-                        . ' Full-bleed print-ready label BACKGROUND artwork, filling the entire canvas edge to edge.'
-                        . ' Keep decorations and leave room for separate editable text overlays except for the baked lettering below.'
-                        . ' No mockup, no table, no torn paper, no extra background around the label.'
-                        . ' Transparent PNG: any area that is not printed artwork must be alpha-transparent.',
-                    $userText
-                );
-            } else {
-                $prompt = $bgHint
-                    . ' Full-bleed print-ready label BACKGROUND only, filling the entire canvas edge to edge.'
-                    . ' Absolutely NO letters, NO numbers, NO digits, NO punctuation, NO words, NO watermarks, NO barcodes, NO QR codes.'
-                    . ' Keep colors, shapes, ornaments, patterns, borders, and blank areas where text belonged.'
-                    . ' No mockup, no table, no torn paper, no extra background around the label.'
-                    . ' Transparent PNG: any area that is not printed artwork must be alpha-transparent.';
-            }
-
-            $image = $this->openai->generateClipart($prompt, false);
             $title = trim((string) ($layout['title'] ?? ''));
             if ($title === '') {
                 $title = '라비가 만든 라벨 템플릿';
             }
-            $image['title'] = $title;
-            if ($image && $userId !== null && $userId > 0) {
-                $saved = (new UserAiClipartService())->saveForUser($userId, $image);
-                $clipartId = $saved > 0 ? $saved : null;
+            $image = [
+                'title' => $title,
+                'url' => '',
+                'prompt' => '',
+            ];
+            if ($wantBackground) {
+                $bgHint = trim((string) ($layout['background_prompt'] ?? ''));
+                if ($bgHint === '') {
+                    $bgHint = trim((string) ($structured['clipart_prompt'] ?? ''));
+                }
+                if ($bgHint === '') {
+                    $bgHint = $this->fallbackTemplatePrompt($messages, false);
+                }
+                $baked = $bakeText ? $this->extractBakedTextPhrases($planText) : [];
+                if ($bakeText && $baked === []) {
+                    $bakeText = false;
+                }
+                if ($bakeText) {
+                    $texts = $this->filterTextsExcludingBaked($texts, $baked);
+                    if ($texts === [] && $codes === [] && is_array($layout['texts'] ?? null) && ($layout['texts'] ?? []) !== []) {
+                        $texts = [$layout['texts'][0]];
+                    }
+                    $prompt = $this->ensureBakedTextInImagePrompt(
+                        $bgHint
+                            . ' Full-bleed print-ready label BACKGROUND artwork, filling the entire canvas edge to edge.'
+                            . ' Keep decorations and leave room for separate editable text overlays except for the baked lettering below.'
+                            . ' No mockup, no table, no torn paper, no extra background around the label.'
+                            . ' Transparent PNG: any area that is not printed artwork must be alpha-transparent.',
+                        $planText
+                    );
+                } else {
+                    $prompt = $bgHint
+                        . ' Full-bleed print-ready label BACKGROUND only, filling the entire canvas edge to edge.'
+                        . ' Absolutely NO letters, NO numbers, NO digits, NO punctuation, NO words, NO watermarks, NO barcodes, NO QR codes.'
+                        . ' Keep colors, shapes, ornaments, patterns, borders, and blank areas where text belonged.'
+                        . ' No mockup, no table, no torn paper, no extra background around the label.'
+                        . ' Transparent PNG: any area that is not printed artwork must be alpha-transparent.';
+                }
+
+                $generated = $this->openai->generateClipart($prompt, false);
+                if (is_array($generated)) {
+                    $image = $generated;
+                    $image['title'] = $title;
+                    if ($userId !== null && $userId > 0) {
+                        $saved = (new UserAiClipartService())->saveForUser($userId, $image);
+                        $clipartId = $saved > 0 ? $saved : null;
+                    }
+                }
             }
             $template = $this->presentTemplate(
                 $image,
@@ -345,7 +385,9 @@ final class LabiDesignService
                 $product,
                 $codes
             );
-            if ($bakeText) {
+            if (!$wantBackground) {
+                $reply = '배경 이미지 없이, 글자·숫자·특수문자는 편집 가능한 텍스트로 넣은 라벨 템플릿이에요. 바로편집에서 문구를 바꿔 보세요.';
+            } elseif ($bakeText) {
                 $reply = '요청하신 문구를 이미지 안에 넣고 라벨 템플릿을 만들었어요. 바로편집에서 확인해 보세요.';
             } elseif ($translateChoice === 'translate_yes') {
                 $reply = '이미지의 외국어를 한국어로 번역해, 글자는 편집 가능한 텍스트로 분리한 라벨 템플릿을 만들었어요. 바로편집에서 문구를 바꿔 보세요.';
@@ -359,7 +401,7 @@ final class LabiDesignService
                 $spec = trim((string) ($product['spec'] ?? ''));
                 $why = $paperLabel !== '' ? $paperLabel : $spec;
                 if ($why !== '') {
-                    $need = $this->inferPaperNeed($userText);
+                    $need = $this->inferPaperNeed($planText);
                     $reason = $need['kind'] === 'food_container'
                         ? '반찬통·용기처럼 작은 스티커에 맞춰'
                         : '요청하신 용도에 맞춰';
@@ -393,6 +435,7 @@ final class LabiDesignService
             'product' => $product,
             'clipart' => $clipart,
             'template' => $template,
+            'templates' => null,
             'choices' => $choices,
             'usage' => $usageView,
             'clipart_id' => $clipartId,
@@ -477,18 +520,26 @@ final class LabiDesignService
     private function normalizeForceIntent(string $intent): string
     {
         $intent = trim($intent);
-        return in_array($intent, [
+        if (in_array($intent, [
             'chat',
             'recommend_product',
             'generate_clipart',
             'generate_template',
             'generate_data_template',
+            'generate_new_template',
             'ask_image_mode',
+            'ask_background',
+            'background_yes',
+            'background_no',
             'translate_yes',
             'translate_no',
-        ], true)
-            ? $intent
-            : '';
+        ], true)) {
+            return $intent;
+        }
+        if (preg_match('/^use_catalog_(\d+)$/', $intent, $m) === 1) {
+            return 'use_catalog_' . $m[1];
+        }
+        return '';
     }
 
     private function resolveTranslateChoice(string $forced, string $text): ?string
@@ -684,6 +735,217 @@ final class LabiDesignService
                     'desc' => '보이는 글자를 그대로 두고 만들어요',
                 ],
             ],
+            'usage' => $usageView,
+            'clipart_id' => null,
+        ];
+    }
+
+    /**
+     * @param array<int, array{role:string, content:mixed}> $messages
+     */
+    private function resolveBackgroundChoice(string $forced, string $text, array $messages): ?string
+    {
+        if ($forced === 'background_yes' || $forced === 'background_no') {
+            return $forced;
+        }
+        $text = trim($text);
+        if ($text === '') {
+            return null;
+        }
+        $asked = $this->lastAssistantAskedBackground($messages);
+        if (preg_match('/배경\s*(없이|빼고|말고|필요\s*없)|텍스트만|글자만|문구만\s*있|흰\s*바탕/u', $text)) {
+            return 'background_no';
+        }
+        if (preg_match('/배경\s*(이미지|그림|일러스트)?[를을]?\s*(넣|그려|만들|생성)|배경이미지|배경\s*넣어/u', $text)) {
+            return 'background_yes';
+        }
+        if (!$asked) {
+            return null;
+        }
+        if (preg_match('/^(아니|아니요|아뇨|됐어|괜찮)/u', $text)) {
+            return 'background_no';
+        }
+        if (preg_match('/^(네|예|응|어|좋아|좋아요|그래|ㅇㅇ|웅)|넣어\s*줘|그려\s*줘|만들어\s*주/u', $text)) {
+            return 'background_yes';
+        }
+        return null;
+    }
+
+    /**
+     * @param array<int, array{role:string, content:mixed}> $messages
+     */
+    private function lastAssistantAskedBackground(array $messages): bool
+    {
+        for ($i = count($messages) - 1; $i >= 0; $i--) {
+            $role = (string) ($messages[$i]['role'] ?? '');
+            if ($role !== 'assistant') {
+                continue;
+            }
+            $content = $messages[$i]['content'] ?? '';
+            $text = '';
+            if (is_string($content)) {
+                $text = $content;
+            } elseif (is_array($content)) {
+                foreach ($content as $part) {
+                    if (is_array($part) && ($part['type'] ?? '') === 'text') {
+                        $text .= ' ' . (string) ($part['text'] ?? '');
+                    }
+                }
+            }
+            return (bool) preg_match('/배경\s*이미지/u', $text);
+        }
+        return false;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function replyAskBackground(?int $userId, string $surface, string $difficulty): array
+    {
+        $reply = '라벨을 만들기 전에 확인할게요. 배경 이미지도 넣어 드릴까요? 꽃·패턴 같은 그림을 넣을지, 문구만 있는 라벨로 만들지 골라 주세요.';
+        $usage = $this->openai->lastUsage();
+        $usageView = AiCostService::present($usage, 'ask_background', $difficulty);
+        (new AiUsageService())->log([
+            'user_id' => $userId ?? 0,
+            'surface' => $surface,
+            'intent' => 'ask_background',
+            'model' => $usageView['model'] ?? ($usage['model'] ?? null),
+            'prompt_tokens' => $usageView['prompt_tokens'] ?? ($usage['prompt_tokens'] ?? null),
+            'completion_tokens' => $usageView['completion_tokens'] ?? ($usage['completion_tokens'] ?? null),
+            'total_tokens' => $usageView['total_tokens'] ?? ($usage['total_tokens'] ?? null),
+            'cost_usd' => $usageView['usd'] ?? null,
+            'cost_krw' => $usageView['krw'] ?? null,
+            'agent' => $usageView['agent'] ?? null,
+            'difficulty' => $usageView['difficulty'] ?? $difficulty,
+            'has_image' => false,
+            'clipart_id' => null,
+            'status' => 'ok',
+        ]);
+
+        return [
+            'reply' => $reply,
+            'intent' => 'ask_background',
+            'product' => null,
+            'clipart' => null,
+            'template' => null,
+            'choices' => [
+                [
+                    'id' => 'background_yes',
+                    'title' => '배경 이미지 넣기',
+                    'desc' => '꽃·패턴·장식 그림을 그려 넣어요',
+                ],
+                [
+                    'id' => 'background_no',
+                    'title' => '텍스트만 만들기',
+                    'desc' => '배경 없이 문구와 코드만 배치해요',
+                ],
+            ],
+            'usage' => $usageView,
+            'clipart_id' => null,
+        ];
+    }
+
+    private function shouldOfferCatalogTemplates(string $forced, string $text): bool
+    {
+        if ($forced === 'generate_new_template'
+            || $forced === 'background_yes'
+            || $forced === 'background_no'
+            || $forced === 'translate_yes'
+            || $forced === 'translate_no'
+            || str_starts_with($forced, 'use_catalog_')
+        ) {
+            return false;
+        }
+        if (preg_match('/새로\s*(만들|생성)|직접\s*만들/u', $text)) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $matches
+     * @return array<string, mixed>
+     */
+    private function replyAskCatalog(array $matches, ?int $userId, string $surface, string $difficulty): array
+    {
+        $count = count($matches);
+        $reply = $count === 1
+            ? '요청과 비슷한 등록 템플릿을 찾았어요. 이 템플릿을 쓰거나, 새로 만들어 드릴 수 있어요.'
+            : "요청과 비슷한 등록 템플릿 {$count}개를 찾았어요. 하나를 고르거나, 새로 만들어 달라고 해 주세요.";
+        $usage = $this->openai->lastUsage();
+        $usageView = AiCostService::present($usage, 'ask_catalog', $difficulty);
+        (new AiUsageService())->log([
+            'user_id' => $userId ?? 0,
+            'surface' => $surface,
+            'intent' => 'ask_catalog',
+            'model' => $usageView['model'] ?? ($usage['model'] ?? null),
+            'prompt_tokens' => $usageView['prompt_tokens'] ?? ($usage['prompt_tokens'] ?? null),
+            'completion_tokens' => $usageView['completion_tokens'] ?? ($usage['completion_tokens'] ?? null),
+            'total_tokens' => $usageView['total_tokens'] ?? ($usage['total_tokens'] ?? null),
+            'cost_usd' => $usageView['usd'] ?? null,
+            'cost_krw' => $usageView['krw'] ?? null,
+            'agent' => $usageView['agent'] ?? null,
+            'difficulty' => $usageView['difficulty'] ?? $difficulty,
+            'has_image' => false,
+            'clipart_id' => null,
+            'status' => 'ok',
+        ]);
+
+        return [
+            'reply' => $reply,
+            'intent' => 'ask_catalog',
+            'product' => null,
+            'clipart' => null,
+            'template' => null,
+            'templates' => $matches,
+            'choices' => [
+                [
+                    'id' => 'generate_new_template',
+                    'title' => '새로 만들어 주세요',
+                    'desc' => '등록 템플릿 대신 요청에 맞춰 새로 생성해요',
+                ],
+            ],
+            'usage' => $usageView,
+            'clipart_id' => null,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function replyUseCatalogTemplate(string $forced, ?int $userId, string $surface, string $difficulty): array
+    {
+        $id = (int) substr($forced, strlen('use_catalog_'));
+        $template = $id > 0 ? (new LabelTemplateService())->labiById($id) : null;
+        if ($template === null) {
+            throw new RuntimeException('선택한 템플릿을 찾지 못했습니다. 다른 템플릿을 고르거나 새로 만들어 주세요.');
+        }
+        $name = (string) ($template['title'] ?? '등록 템플릿');
+        $usage = $this->openai->lastUsage();
+        $usageView = AiCostService::present($usage, 'generate_template', $difficulty);
+        (new AiUsageService())->log([
+            'user_id' => $userId ?? 0,
+            'surface' => $surface,
+            'intent' => 'generate_template',
+            'model' => $usageView['model'] ?? ($usage['model'] ?? null),
+            'prompt_tokens' => $usageView['prompt_tokens'] ?? ($usage['prompt_tokens'] ?? null),
+            'completion_tokens' => $usageView['completion_tokens'] ?? ($usage['completion_tokens'] ?? null),
+            'total_tokens' => $usageView['total_tokens'] ?? ($usage['total_tokens'] ?? null),
+            'cost_usd' => $usageView['usd'] ?? null,
+            'cost_krw' => $usageView['krw'] ?? null,
+            'agent' => $usageView['agent'] ?? null,
+            'difficulty' => $usageView['difficulty'] ?? $difficulty,
+            'has_image' => false,
+            'clipart_id' => null,
+            'status' => 'ok',
+        ]);
+
+        return [
+            'reply' => "관리자에 등록된 「{$name}」 템플릿을 골랐어요. 아래에서 바로 편집할 수 있어요.",
+            'intent' => 'generate_template',
+            'product' => null,
+            'clipart' => null,
+            'template' => $template,
+            'templates' => null,
+            'choices' => null,
             'usage' => $usageView,
             'clipart_id' => null,
         ];
@@ -1694,6 +1956,44 @@ final class LabiDesignService
     }
 
     /**
+     * @param array<int, array{role:string, content:mixed}> $messages
+     */
+    private function lastMeaningfulUserText(array $messages): string
+    {
+        $skip = [
+            '템플릿 만들어 주세요',
+            '클립아트로 그려 주세요',
+            '네, 한국어로 번역해 주세요',
+            '아니요, 원문 그대로 만들어 주세요',
+            '배경 이미지 넣어 주세요',
+            '텍스트만 만들어 주세요',
+            '이걸로 진행해 주세요',
+            '새로 만들어 주세요',
+        ];
+        for ($i = count($messages) - 1; $i >= 0; $i--) {
+            if (($messages[$i]['role'] ?? '') !== 'user') {
+                continue;
+            }
+            $content = $messages[$i]['content'] ?? '';
+            $text = '';
+            if (is_string($content)) {
+                $text = trim($content);
+            } elseif (is_array($content)) {
+                foreach ($content as $part) {
+                    if (is_array($part) && ($part['type'] ?? '') === 'text') {
+                        $text = trim((string) ($part['text'] ?? ''));
+                        break;
+                    }
+                }
+            }
+            if ($text !== '' && !in_array($text, $skip, true)) {
+                return $text;
+            }
+        }
+        return $this->lastUserText($messages);
+    }
+
+    /**
      * @param array<string, mixed> $structured
      * @param array<int, array{id:int, name:string, sku:string, category:string, shape:string, size:string, material:string}> $catalog
      * @param array<string, mixed>|null $product
@@ -1775,7 +2075,7 @@ final class LabiDesignService
         $h = max(10.0, $heightMm);
         $paperMeta = $this->templatePaperMeta($paper, $w, $h);
 
-        if (($texts !== [] || $codes !== []) && $url !== '') {
+        if ($texts !== [] || $codes !== []) {
             $document = $this->buildEditableTemplateDocument(
                 $url,
                 $title,
@@ -1794,6 +2094,15 @@ final class LabiDesignService
                 $editorQuery['h'] = rtrim(rtrim(sprintf('%.2f', $h), '0'), '.');
             }
             $editorUrl = url('editor/') . '?' . http_build_query($editorQuery);
+            $previewSvg = LabelTemplatePreview::withInlinedImages(
+                LabelTemplatePreview::svgFromRow([
+                    'id' => 'labi',
+                    'title' => $title,
+                    'paper_w_mm' => $w,
+                    'paper_h_mm' => $h,
+                    'paper_shape' => (string) ($document['paper']['shape']['kind'] ?? 'rect'),
+                ], $document)
+            );
 
             return array_merge([
                 'url' => $url,
@@ -1804,6 +2113,7 @@ final class LabiDesignService
                 'fit' => 'cover',
                 'editor_url' => $editorUrl,
                 'document' => $document,
+                'preview_svg' => $previewSvg,
                 'editable_texts' => count($texts),
                 'editable_codes' => count($codes),
             ], $paperMeta);
@@ -1892,9 +2202,10 @@ final class LabiDesignService
         $lw = max(1.0, (float) ($paper['labelWidthMm'] ?? $w));
         $lh = max(1.0, (float) ($paper['labelHeightMm'] ?? $h));
 
-        $objects = [
-            $this->labiImageObject('labiBg01', 0, 0, $lw, $lh, $imageUrl, 0, 'cover'),
-        ];
+        $objects = [];
+        if (trim($imageUrl) !== '') {
+            $objects[] = $this->labiImageObject('labiBg01', 0, 0, $lw, $lh, $imageUrl, 0, 'cover');
+        }
 
         $z = 1;
         foreach ($texts as $i => $row) {

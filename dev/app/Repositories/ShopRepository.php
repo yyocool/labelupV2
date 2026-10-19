@@ -87,7 +87,11 @@ final class ShopRepository extends BaseModel
         if ($id <= 0) {
             return null;
         }
-        return $this->fetchOne('SELECT * FROM shop_categories WHERE id = :id LIMIT 1', ['id' => $id]);
+        $row = $this->fetchOne('SELECT * FROM shop_categories WHERE id = :id LIMIT 1', ['id' => $id]);
+        if ($row) {
+            $row['name'] = shop_category_display_name((string) ($row['name'] ?? ''), (string) ($row['slug'] ?? ''));
+        }
+        return $row;
     }
 
     public function countCategoryChildren(int $id): int
@@ -148,7 +152,11 @@ final class ShopRepository extends BaseModel
 
     public function findCategoryBySlug(string $slug): ?array
     {
-        return $this->fetchOne('SELECT * FROM shop_categories WHERE slug = :slug LIMIT 1', ['slug' => $slug]);
+        $row = $this->fetchOne('SELECT * FROM shop_categories WHERE slug = :slug LIMIT 1', ['slug' => $slug]);
+        if ($row) {
+            $row['name'] = shop_category_display_name((string) ($row['name'] ?? ''), (string) ($row['slug'] ?? ''));
+        }
+        return $row;
     }
 
     /**
@@ -172,7 +180,8 @@ final class ShopRepository extends BaseModel
         $out = [];
         $append = function (array $row, int $depth, ?string $parentName) use (&$out, &$byParent, &$append): void {
             $id = (int) ($row['id'] ?? 0);
-            $name = (string) ($row['name'] ?? '');
+            $name = shop_category_display_name((string) ($row['name'] ?? ''), (string) ($row['slug'] ?? ''));
+            $row['name'] = $name;
             $row['depth'] = $depth;
             $row['parent_name'] = $parentName;
             $row['label'] = $depth > 0 && $parentName !== null && $parentName !== ''
@@ -1354,6 +1363,27 @@ final class ShopRepository extends BaseModel
     }
 
     /**
+     * 홈 인기 용지 — 메인 라인업(정렬순) 라벨지. 잉크 상품은 제외.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function popularPapersForHome(int $limit = 12): array
+    {
+        $limit = max(1, min(24, $limit));
+        return $this->fetchAll(
+            "SELECT p.*, c.name AS category_name, c.slug AS category_slug,
+                    s.name AS spec_name, s.width_mm, s.height_mm, s.material, s.shape, s.labels_per_sheet
+             FROM shop_products p
+             INNER JOIN shop_categories c ON c.id = p.category_id AND c.is_active = 1
+             LEFT JOIN label_specs s ON s.id = p.spec_id
+             WHERE p.status IN ('active','soldout')
+               AND (p.ink_amount IS NULL OR p.ink_amount = 0)
+             ORDER BY p.sort_order ASC, p.id DESC
+             LIMIT {$limit}"
+        );
+    }
+
+    /**
      * 편집기 용지 선택용 — 판매중/품절 상품 + 규격 + 호환코드.
      *
      * @return array{items: array<int, array<string, mixed>>, categories: array<int, array{id:int,name:string}>}
@@ -1363,7 +1393,7 @@ final class ShopRepository extends BaseModel
         $rows = $this->fetchAll(
             "SELECT p.id, p.name, p.sku, p.thumbnail, p.category_id, p.spec_id, p.status,
                     p.compat_formtec, p.compat_ilabel, p.compat_anylabel,
-                    c.name AS category_name,
+                    c.name AS category_name, c.slug AS category_slug,
                     s.name AS spec_name, s.kind AS spec_kind, s.width_mm, s.height_mm, s.material, s.shape, s.labels_per_sheet,
                     s.paper_size, s.top_margin_mm, s.left_margin_mm, s.columns_count, s.rows_count,
                     s.h_gap_mm, s.v_gap_mm, s.corner_radius_x_mm, s.corner_radius_y_mm,
@@ -1381,7 +1411,10 @@ final class ShopRepository extends BaseModel
         $categories = [];
         foreach ($rows as $row) {
             $categoryId = (int) ($row['category_id'] ?? 0);
-            $categoryName = trim((string) ($row['category_name'] ?? ''));
+            $categoryName = shop_category_display_name(
+                (string) ($row['category_name'] ?? ''),
+                (string) ($row['category_slug'] ?? '')
+            );
             if ($categoryId > 0 && $categoryName !== '' && !isset($categories[$categoryId])) {
                 $categories[$categoryId] = ['id' => $categoryId, 'name' => $categoryName];
             }

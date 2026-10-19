@@ -107,6 +107,7 @@ final class AdminAccessService
             '/api/admin/intro' => 'settings-intro',
             '/admin/settings/environment' => 'settings-environment',
             '/api/admin/site-mode' => 'settings-environment',
+            '/api/admin/ai-settings' => 'settings-environment',
             '/admin/settings/tracking' => 'settings-tracking',
             '/api/admin/marketing' => 'settings-tracking',
             '/admin/partners' => 'partners',

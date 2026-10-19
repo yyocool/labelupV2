@@ -154,6 +154,41 @@ function e(?string $value): string
 }
 
 /**
+ * shop_categories.name 이 인코딩 손실로 ???? 가 된 경우 slug로 복구한다.
+ */
+function shop_category_display_name(?string $name, ?string $slug = null): string
+{
+    static $bySlug = [
+        'logistics-label' => '다용도라벨',
+        'logistics-use' => '물류관리용',
+        'address-label' => '주소용',
+        'barcode-label' => '바코드용',
+        'index-label' => '인덱스용',
+        'government-doc' => '정부문서화일 라벨',
+        'gloss-label' => '광택 라벨',
+        'waterproof-label' => '방수 라벨',
+        'translucent-label' => '반투명 라벨',
+        'inkjet-clear-label' => '잉크젯 투명 라벨',
+        'laser-clear-label' => '레이저 투명 라벨',
+        'protective-film' => '보호용 필름',
+        'color-label' => '컬러 라벨(형광)',
+        'pastel-color-label' => '파스텔 컬러 라벨',
+        'kraft-label' => '크라프트 라벨',
+        'ink-charge' => '잉크충전',
+    ];
+
+    $name = trim((string) $name);
+    $slug = trim((string) $slug);
+    if ($name !== '' && preg_match('/[\x{AC00}-\x{D7A3}]/u', $name)) {
+        return $name;
+    }
+    if ($slug !== '' && isset($bySlug[$slug])) {
+        return $bySlug[$slug];
+    }
+    return $name;
+}
+
+/**
  * Admin pagination page window (centered around current when possible).
  * @return list<int>
  */

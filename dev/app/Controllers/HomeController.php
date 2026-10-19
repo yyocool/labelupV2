@@ -6,11 +6,10 @@ namespace App\Controllers;
 
 use App\Services\AiExamplePromptService;
 use App\Services\AuthService;
-use App\Services\ClipartService;
 use App\Services\EditorWorkspaceService;
 use App\Services\EventPopupService;
 use App\Services\HomeHeroService;
-use App\Services\LabelTemplateService;
+use App\Services\ShopService;
 use App\Services\SiteModeService;
 
 final class HomeController extends BaseController
@@ -29,17 +28,11 @@ final class HomeController extends BaseController
         } catch (\Throwable) {
             $examplePrompts = [];
         }
-        $popularTemplates = [];
+        $popularPapers = [];
         try {
-            $popularTemplates = (new LabelTemplateService())->popularForHome(12);
+            $popularPapers = (new ShopService())->popularPapersForHome(12);
         } catch (\Throwable) {
-            $popularTemplates = [];
-        }
-        $popularCliparts = [];
-        try {
-            $popularCliparts = (new ClipartService())->popularForHome(12);
-        } catch (\Throwable) {
-            $popularCliparts = [];
+            $popularPapers = [];
         }
         $siteRuntime = (new SiteModeService())->publicConfig();
         $this->render('home/index', [
@@ -51,8 +44,7 @@ final class HomeController extends BaseController
             'eventPopups' => (new EventPopupService())->activeForSite(),
             'recentWorks' => $recentWorks,
             'examplePrompts' => $examplePrompts,
-            'popularTemplates' => $popularTemplates,
-            'popularCliparts' => $popularCliparts,
+            'popularPapers' => $popularPapers,
             'siteRuntime' => $siteRuntime,
         ]);
     }

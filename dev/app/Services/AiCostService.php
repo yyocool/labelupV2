@@ -13,6 +13,18 @@ final class AiCostService
     /** @return array{easy:string,normal:string,hard:string} */
     public static function chatModels(): array
     {
+        if (AiProviderSettings::isClaude()) {
+            $default = trim((string) env('CLAUDE_MODEL', 'claude-sonnet-4-5')) ?: 'claude-sonnet-4-5';
+            $easy = trim((string) env('CLAUDE_MODEL_EASY', $default)) ?: $default;
+            $hard = trim((string) env('CLAUDE_MODEL_HARD', $default)) ?: $default;
+
+            return [
+                'easy' => $easy,
+                'normal' => $default,
+                'hard' => $hard,
+            ];
+        }
+
         $default = trim((string) env('OPENAI_MODEL', 'gpt-4o-mini')) ?: 'gpt-4o-mini';
         $easy = trim((string) env('OPENAI_MODEL_EASY', $default)) ?: $default;
         $hard = trim((string) env('OPENAI_MODEL_HARD', $default)) ?: $default;
@@ -56,7 +68,7 @@ final class AiCostService
         $len = mb_strlen($text);
         $msgCount = count($messages);
 
-        if (in_array($forceIntent, ['ask_image_mode', 'ask_translate'], true) || ($len > 0 && $len <= 40 && $msgCount <= 2 && !$hasImage)) {
+        if (in_array($forceIntent, ['ask_image_mode', 'ask_translate', 'ask_background', 'ask_catalog', 'generate_new_template'], true) || ($len > 0 && $len <= 40 && $msgCount <= 2 && !$hasImage)) {
             return 'easy';
         }
         if ($len >= 220 || $msgCount >= 8) {
@@ -169,6 +181,8 @@ final class AiCostService
             'generate_data_template' => 'labi-data',
             'ask_image_mode' => 'labi-guide',
             'ask_translate' => 'labi-guide',
+            'ask_background' => 'labi-guide',
+            'ask_catalog' => 'labi-guide',
             default => $usedImage ? 'labi-draw' : 'labi-chat',
         };
     }
@@ -298,6 +312,25 @@ final class AiCostService
     private static function chatRatesPerMillion(string $model): array
     {
         $m = strtolower(trim($model));
+
+        if (str_contains($m, 'claude') && str_contains($m, 'haiku')) {
+            return [
+                (float) env('CLAUDE_PRICE_HAIKU_INPUT', 0.80),
+                (float) env('CLAUDE_PRICE_HAIKU_OUTPUT', 4.00),
+            ];
+        }
+        if (str_contains($m, 'claude') && str_contains($m, 'opus')) {
+            return [
+                (float) env('CLAUDE_PRICE_OPUS_INPUT', 15.00),
+                (float) env('CLAUDE_PRICE_OPUS_OUTPUT', 75.00),
+            ];
+        }
+        if (str_contains($m, 'claude')) {
+            return [
+                (float) env('CLAUDE_PRICE_SONNET_INPUT', 3.00),
+                (float) env('CLAUDE_PRICE_SONNET_OUTPUT', 15.00),
+            ];
+        }
 
         if (str_contains($m, 'gpt-4.1-nano') || str_contains($m, '4o-mini') || str_contains($m, 'gpt-3.5')) {
             return [

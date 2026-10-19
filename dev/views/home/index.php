@@ -58,25 +58,15 @@
             <b>라비와 라벨 만들기</b>
             <span>원하는 라벨을 말로 설명하면 디자인을 바로 제안해요</span>
           </div>
-          <span class="prompt-badge">AI DESIGN</span>
+          <div class="prompt-head-actions">
+            <?php if (!empty($authUser)): ?>
+            <button type="button" class="prompt-reuse-btn" data-labi-prompt-history>내 프롬프트</button>
+            <?php endif; ?>
+            <span class="prompt-badge">AI DESIGN</span>
+          </div>
         </div>
 
-        <div class="ai-chat-log" id="aiChatLog"<?= empty($authUser) ? '' : ' hidden' ?> aria-live="polite">
-          <?php if (empty($authUser)): ?>
-          <div class="ai-demo-thread" aria-label="서비스 이용 예시">
-            <div class="ai-demo-msg ai-demo-msg--user">카페 원두 스티커용 라벨지 추천해줘</div>
-            <div class="ai-demo-msg ai-demo-msg--labi">
-              <b>라비</b>
-              <p>원두 스티커에는 방수·광택 라벨이 잘 맞아요. 쇼핑몰에서 원형·사각형 규격을 고르거나, 로그인 후 템플릿으로 바로 디자인을 시작할 수 있어요.</p>
-              <div class="ai-demo-actions">
-                <a href="<?= url('shop') ?>">라벨지 쇼핑 보기</a>
-                <a href="<?= url('about') ?>">서비스 소개</a>
-                <a href="<?= url('login') ?>?redirect=<?= rawurlencode(url('')) ?>">로그인하고 만들기</a>
-              </div>
-            </div>
-          </div>
-          <?php endif; ?>
-        </div>
+        <div class="ai-chat-log" id="aiChatLog" hidden aria-live="polite"></div>
 
         <div class="prompt-composer">
           <div class="ai-attach-preview" id="aiAttachPreview" hidden></div>
@@ -159,131 +149,57 @@
     </section>
     <?php endif; ?>
 
-    <section class="section" data-filter-cards="templates">
+    <section class="section" data-filter-cards="papers">
       <div class="section-head">
-        <h2>인기 템플릿</h2>
+        <h2>인기 용지</h2>
         <?php
-          $tplCats = [];
-          foreach ($popularTemplates ?? [] as $tpl) {
-              $ck = (string) ($tpl['category'] ?? '');
-              $cn = (string) ($tpl['categoryName'] ?? $ck);
-              if ($ck !== '' && !isset($tplCats[$ck])) {
-                  $tplCats[$ck] = $cn;
+          $paperCats = [];
+          foreach ($popularPapers ?? [] as $paper) {
+              $ck = (string) ($paper['category'] ?? '');
+              $cn = (string) ($paper['categoryName'] ?? $ck);
+              if ($ck !== '' && !isset($paperCats[$ck])) {
+                  $paperCats[$ck] = $cn;
               }
           }
         ?>
-        <?php if ($tplCats !== []): ?>
-        <div class="tabs" role="tablist" aria-label="템플릿 분류">
+        <?php if ($paperCats !== []): ?>
+        <div class="tabs" role="tablist" aria-label="용지 분류">
           <button type="button" class="active" data-cat="">전체</button>
-          <?php foreach ($tplCats as $ck => $cn): ?>
+          <?php foreach ($paperCats as $ck => $cn): ?>
           <button type="button" data-cat="<?= e($ck) ?>"><?= e($cn) ?></button>
           <?php endforeach; ?>
         </div>
         <?php endif; ?>
-        <a class="more" href="<?= url('editor/') ?>">더보기 →</a>
+        <a class="more" href="<?= url('shop/products') ?>">더보기 →</a>
       </div>
       <div class="cards-wrap cards-slide">
-        <?php if (count($popularTemplates ?? []) > 1): ?>
+        <?php if (count($popularPapers ?? []) > 1): ?>
         <button class="card-arrow card-arrow-prev" type="button" aria-label="이전">‹</button>
         <?php endif; ?>
         <div class="cards">
-          <?php if (empty($popularTemplates)): ?>
-          <p class="cards-empty">등록된 인기 템플릿이 없습니다.</p>
+          <?php if (empty($popularPapers)): ?>
+          <p class="cards-empty">등록된 인기 용지가 없습니다.</p>
           <?php else: ?>
-            <?php foreach ($popularTemplates as $tpl): ?>
-            <?php
-              $tplUrl = url('editor/') . '?template=' . (int) ($tpl['id'] ?? 0);
-              $paperLabel = trim(
-                  (string) ($tpl['paperNo'] ?? '') . ' · ' .
-                  rtrim(rtrim(number_format((float) ($tpl['widthMm'] ?? 0), 1), '0'), '.') .
-                  '×' .
-                  rtrim(rtrim(number_format((float) ($tpl['heightMm'] ?? 0), 1), '0'), '.') .
-                  'mm',
-                  ' ·'
-              );
-            ?>
-            <article class="card" data-category="<?= e((string) ($tpl['category'] ?? '')) ?>">
-              <a class="card-link" href="<?= e($tplUrl) ?>">
-                <div class="card-img tpl-img">
-                  <?php if (!empty($tpl['previewSvg'])): ?>
-                  <span class="tpl-preview"><?= $tpl['previewSvg'] ?></span>
-                  <?php elseif (!empty($tpl['thumbUrl'])): ?>
-                  <img src="<?= e((string) $tpl['thumbUrl']) ?>" alt="<?= e((string) ($tpl['name'] ?? '')) ?>" loading="lazy">
+            <?php foreach ($popularPapers as $paper): ?>
+            <article class="card" data-category="<?= e((string) ($paper['category'] ?? '')) ?>">
+              <a class="card-link" href="<?= e((string) ($paper['url'] ?? url('shop/products'))) ?>">
+                <div class="card-img paper-img">
+                  <?php if (!empty($paper['thumbUrl'])): ?>
+                  <img src="<?= e((string) $paper['thumbUrl']) ?>" alt="<?= e((string) ($paper['name'] ?? '')) ?>" loading="lazy">
                   <?php else: ?>
-                  <span class="tpl-fallback"><?= e(mb_substr((string) ($tpl['name'] ?? '템플릿'), 0, 8)) ?></span>
+                  <span class="tpl-fallback"><?= e(mb_substr((string) ($paper['name'] ?? '용지'), 0, 8)) ?></span>
                   <?php endif; ?>
                 </div>
                 <div class="meta">
-                  <span><?= e((string) ($tpl['name'] ?? '')) ?></span>
-                  <small><?= e((string) ($tpl['categoryName'] ?? $paperLabel)) ?></small>
+                  <span><?= e((string) ($paper['name'] ?? '')) ?></span>
+                  <small><?= e((string) (($paper['specLabel'] ?? '') !== '' ? $paper['specLabel'] : ($paper['priceLabel'] ?? ''))) ?></small>
                 </div>
               </a>
             </article>
             <?php endforeach; ?>
           <?php endif; ?>
         </div>
-        <?php if (count($popularTemplates ?? []) > 1): ?>
-        <button class="card-arrow card-arrow-next" type="button" aria-label="다음">›</button>
-        <?php endif; ?>
-      </div>
-    </section>
-
-    <section class="section" data-filter-cards="cliparts">
-      <div class="section-head">
-        <h2>인기 클립아트</h2>
-        <?php
-          $clipCats = [];
-          foreach ($popularCliparts ?? [] as $clip) {
-              $cid = (string) ((int) ($clip['category_id'] ?? 0));
-              $cn = (string) ($clip['category_name'] ?? '');
-              if ($cid !== '0' && $cn !== '' && !isset($clipCats[$cid])) {
-                  $clipCats[$cid] = $cn;
-              }
-          }
-        ?>
-        <?php if ($clipCats !== []): ?>
-        <div class="tabs" role="tablist" aria-label="클립아트 분류">
-          <button type="button" class="active" data-cat="">전체</button>
-          <?php foreach ($clipCats as $cid => $cn): ?>
-          <button type="button" data-cat="<?= e($cid) ?>"><?= e($cn) ?></button>
-          <?php endforeach; ?>
-        </div>
-        <?php endif; ?>
-        <a class="more" href="<?= url('editor/') ?>">더보기 →</a>
-      </div>
-      <div class="cards-wrap cards-slide">
-        <?php if (count($popularCliparts ?? []) > 1): ?>
-        <button class="card-arrow card-arrow-prev" type="button" aria-label="이전">‹</button>
-        <?php endif; ?>
-        <div class="cards">
-          <?php if (empty($popularCliparts)): ?>
-          <p class="cards-empty">등록된 인기 클립아트가 없습니다.</p>
-          <?php else: ?>
-            <?php foreach ($popularCliparts as $clip): ?>
-            <?php
-              $img = (string) ($clip['image_url'] ?? '');
-              $title = (string) ($clip['title'] ?? '클립아트');
-              $clipUrl = url('editor/') . '?clipart=' . rawurlencode($img) . '&name=' . rawurlencode($title);
-            ?>
-            <article class="card card-clip" data-category="<?= e((string) ((int) ($clip['category_id'] ?? 0))) ?>">
-              <a class="card-link js-home-clipart" href="<?= e($clipUrl) ?>" data-clipart-url="<?= e($img) ?>" data-clipart-name="<?= e($title) ?>">
-                <div class="card-img clip-img">
-                  <?php if ($img !== ''): ?>
-                  <img src="<?= e($img) ?>" alt="<?= e($title) ?>" loading="lazy">
-                  <?php else: ?>
-                  <span class="tpl-fallback"><?= e(mb_substr($title, 0, 8)) ?></span>
-                  <?php endif; ?>
-                </div>
-                <div class="meta">
-                  <span><?= e($title) ?></span>
-                  <small><?= e((string) ($clip['category_name'] ?? '')) ?></small>
-                </div>
-              </a>
-            </article>
-            <?php endforeach; ?>
-          <?php endif; ?>
-        </div>
-        <?php if (count($popularCliparts ?? []) > 1): ?>
+        <?php if (count($popularPapers ?? []) > 1): ?>
         <button class="card-arrow card-arrow-next" type="button" aria-label="다음">›</button>
         <?php endif; ?>
       </div>

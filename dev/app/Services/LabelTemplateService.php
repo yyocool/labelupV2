@@ -105,6 +105,15 @@ final class LabelTemplateService
         return $row ? $this->present($row, true) : null;
     }
 
+    public function labiById(int $id): ?array
+    {
+        $row = $this->repo->find($id);
+        if (!$row || (int) ($row['is_active'] ?? 0) !== 1) {
+            return null;
+        }
+        return $this->presentForLabi($row);
+    }
+
     public function findByKey(string $key): ?array
     {
         $key = trim($key);
@@ -141,6 +150,153 @@ final class LabelTemplateService
             $items[] = $this->present($row, false);
         }
         return $items;
+    }
+
+    /**
+     * 사용자 요청과 비슷한 등록 템플릿. 최대 $limit개.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function similarForRequest(string $query, float $widthMm = 0.0, float $heightMm = 0.0, int $limit = 5): array
+    {
+        $limit = max(1, min(5, $limit));
+        $query = trim($query);
+        if ($query === '') {
+            return [];
+        }
+
+        $this->ensureSeeded();
+        $tokens = $this->searchTokens($query);
+        $scored = [];
+        foreach ($this->repo->listActiveAll() as $row) {
+            $score = $this->scoreAgainstRequest($row, $query, $tokens, $widthMm, $heightMm);
+            if ($score < 3) {
+                continue;
+            }
+            $scored[] = ['score' => $score, 'row' => $row];
+        }
+        usort($scored, static fn (array $a, array $b): int => $b['score'] <=> $a['score']);
+
+        $out = [];
+        foreach (array_slice($scored, 0, $limit) as $hit) {
+            $out[] = $this->presentForLabi($hit['row']);
+        }
+        return $out;
+    }
+
+    /** @param array<string, mixed> $row */
+    public function presentForLabi(array $row): array
+    {
+        $item = $this->present($row, true);
+        $w = (float) ($item['widthMm'] ?? 0);
+        $h = (float) ($item['heightMm'] ?? 0);
+        $document = is_array($item['document'] ?? null) ? $item['document'] : [];
+        $preview = (string) ($item['previewSvg'] ?? '');
+        if ($preview !== '') {
+            $preview = LabelTemplatePreview::withInlinedImages($preview);
+        }
+
+        return [
+            'id' => (int) ($item['id'] ?? 0),
+            'catalog_id' => (int) ($item['id'] ?? 0),
+            'source' => 'catalog',
+            'title' => (string) ($item['name'] ?? '등록 템플릿'),
+            'width_mm' => $w,
+            'height_mm' => $h,
+            'url' => (string) ($item['thumbUrl'] ?? ''),
+            'preview_svg' => $preview,
+            'document' => $document,
+            'editor_url' => url('editor/') . '?template=' . (int) ($item['id'] ?? 0),
+            'paper_name' => (string) ($item['paperNo'] ?? ''),
+            'sku' => (string) ($item['paperNo'] ?? ''),
+            'category' => (string) ($item['category'] ?? ''),
+            'categoryName' => (string) ($item['categoryName'] ?? ''),
+            'fit' => 'contain',
+        ];
+    }
+
+    /** @return list<string> */
+    private function searchTokens(string $query): array
+    {
+        $query = mb_strtolower(trim($query));
+        $parts = preg_split('~[\s,./|·•\-_:;!?()\[\]{}]+~u', $query) ?: [];
+        $stop = [
+            '라벨', '라벨지', '만들어줘', '만들어', '주세요', '해주세요', '해줘',
+            '템플릿', '디자인', '스티커', '부탁', '좀', '으로', '같은',
+        ];
+        $tokens = [];
+        foreach ($parts as $part) {
+            $part = trim((string) $part);
+            if (mb_strlen($part) < 2 || in_array($part, $stop, true)) {
+                continue;
+            }
+            $tokens[$part] = $part;
+        }
+        return array_values($tokens);
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @param list<string> $tokens
+     */
+    private function scoreAgainstRequest(array $row, string $query, array $tokens, float $widthMm, float $heightMm): int
+    {
+        $score = 0;
+        $q = mb_strtolower($query);
+        $cat = (string) ($row['category'] ?? '');
+        $hay = mb_strtolower(trim(
+            (string) ($row['name'] ?? '') . ' '
+            . (string) ($row['tags'] ?? '') . ' '
+            . (string) ($row['description'] ?? '') . ' '
+            . (string) ($row['slug'] ?? '') . ' '
+            . (string) (self::CATEGORIES[$cat] ?? '')
+        ));
+
+        foreach (self::categoryKeywords() as $key => $words) {
+            foreach ($words as $word) {
+                if ($word === '' || mb_strpos($q, $word) === false) {
+                    continue;
+                }
+                $score += $cat === $key ? 6 : 1;
+            }
+        }
+
+        foreach ($tokens as $token) {
+            if (mb_strpos($hay, $token) !== false) {
+                $score += mb_strlen($token) >= 3 ? 3 : 2;
+            }
+        }
+
+        $rw = (float) ($row['paper_w_mm'] ?? 0);
+        $rh = (float) ($row['paper_h_mm'] ?? 0);
+        if ($score > 0 && $widthMm >= 15 && $heightMm >= 15 && $rw > 0 && $rh > 0) {
+            $diff = abs($rw - $widthMm) + abs($rh - $heightMm);
+            if ($diff <= 2) {
+                $score += 4;
+            } elseif ($diff <= 8) {
+                $score += 2;
+            }
+        }
+
+        return $score;
+    }
+
+    /** @return array<string, list<string>> */
+    private static function categoryKeywords(): array
+    {
+        return [
+            'food' => ['식품', '음식', '반찬', '도시락', '김치', '잼', '소스', '먹거리', '푸드'],
+            'shipping' => ['배송', '택배', '주소', '발송', '운송', '우편', '국제'],
+            'beauty' => ['화장품', '뷰티', '크림', '세럼', '샴푸', '로션', '향수'],
+            'price' => ['가격', '가격표', '세일', '할인', '원가'],
+            'round' => ['원형', '동그란', '원형스티커', '라운드'],
+            'gift' => ['선물', '답례', '감사', '감사패', '답례품'],
+            'cafe' => ['카페', '커피', '원두', '음료', '핸드드립', '라떼'],
+            'warning' => ['주의', '경고', '위험', '취급주의'],
+            'warehouse' => ['재고', '물류', '창고', '박스', '보관'],
+            'office' => ['사무', '파일', '문서', '사무실'],
+            'event' => ['행사', '축제', '웨딩', '이벤트', '초대'],
+        ];
     }
 
     /** @param array<string, mixed> $data */

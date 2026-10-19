@@ -43,24 +43,24 @@ $categoryIcons = [
   <?php endif; ?>
 </section>
 
-<nav class="shop-cat-icons" aria-label="카테고리">
+<nav class="shop-cat-icons" aria-label="카테고리" data-cat-enc="261018b">
   <?php foreach ($categories as $cat): ?>
   <?php $children = is_array($cat['children'] ?? null) ? $cat['children'] : []; ?>
   <div class="shop-cat-tile">
     <a class="shop-cat-icon" href="<?= url('shop/products') ?>?category=<?= e($cat['slug']) ?>">
       <span class="shop-cat-icon-box">
         <?php if (!empty($cat['image_path'])): ?>
-        <img src="<?= e(\App\Services\ShopProductImageService::resolveUrl((string) $cat['image_path'])) ?>" alt="<?= e($cat['name']) ?>" loading="lazy" decoding="async">
+        <img src="<?= e(\App\Services\ShopProductImageService::resolveUrl((string) $cat['image_path'])) ?>" alt="<?= e(shop_category_display_name($cat['name'] ?? '', $cat['slug'] ?? '')) ?>" loading="lazy" decoding="async">
         <?php else: ?>
         <span class="shop-cat-icon-fallback"><?= e($categoryIcons[$cat['slug']] ?? $categoryIcons['default']) ?></span>
         <?php endif; ?>
       </span>
-      <span class="shop-cat-icon-name"><?= e($cat['name']) ?></span>
+      <span class="shop-cat-icon-name"><?= e(shop_category_display_name($cat['name'] ?? '', $cat['slug'] ?? '')) ?></span>
     </a>
     <?php if ($children !== []): ?>
     <div class="shop-cat-icon-subs">
       <?php foreach ($children as $child): ?>
-      <a href="<?= url('shop/products') ?>?category=<?= e($child['slug']) ?>"><?= e($child['name']) ?></a>
+      <a href="<?= url('shop/products') ?>?category=<?= e($child['slug']) ?>"><?= e(shop_category_display_name($child['name'] ?? '', $child['slug'] ?? '')) ?></a>
       <?php endforeach; ?>
     </div>
     <?php endif; ?>

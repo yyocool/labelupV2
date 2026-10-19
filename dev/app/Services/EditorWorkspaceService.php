@@ -106,7 +106,7 @@ final class EditorWorkspaceService
             if ($uid > 0) {
                 $this->walkDocumentMedia($previewDoc, $uid, true);
             }
-            $previewSvg = LabelTemplatePreview::svgFromRow($row, $previewDoc);
+            $previewSvg = LabelTemplatePreview::svgFromRow($row, $previewDoc, true);
         }
         $previewUrl = $this->previewUrl((string) ($row['preview_path'] ?? ''));
         if ($previewUrl === '' && $previewSvg !== '') {

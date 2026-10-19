@@ -9,7 +9,9 @@ $childCategories = $childCategories ?? [];
 $category = is_array($category ?? null) ? $category : null;
 $parentCategory = is_array($parentCategory ?? null) ? $parentCategory : null;
 $isChildSelected = $category && (int) ($category['parent_id'] ?? 0) > 0;
-$pageTitleHead = $category['name'] ?? ($q !== '' ? '"' . $q . '" 검색' : '전체 상품');
+$pageTitleHead = $category
+    ? shop_category_display_name($category['name'] ?? '', $category['slug'] ?? '')
+    : ($q !== '' ? '"' . $q . '" 검색' : '전체 상품');
 $parentSlug = (string) (($parentCategory['slug'] ?? '') ?: ($category['slug'] ?? ''));
 ?>
 <section class="shop-page-head">
@@ -21,9 +23,9 @@ $parentSlug = (string) (($parentCategory['slug'] ?? '') ?: ($category['slug'] ??
   <div>
     <?php if ($isChildSelected && $parentCategory): ?>
     <p class="shop-cat-crumb">
-      <a href="<?= url('shop/products') ?>?category=<?= e((string) $parentCategory['slug']) ?>"><?= e((string) $parentCategory['name']) ?></a>
+      <a href="<?= url('shop/products') ?>?category=<?= e((string) $parentCategory['slug']) ?>"><?= e(shop_category_display_name($parentCategory['name'] ?? '', $parentCategory['slug'] ?? '')) ?></a>
       <span>›</span>
-      <strong><?= e((string) $category['name']) ?></strong>
+      <strong><?= e(shop_category_display_name($category['name'] ?? '', $category['slug'] ?? '')) ?></strong>
     </p>
     <?php endif; ?>
     <h1><?= e((string) $pageTitleHead) ?></h1>
@@ -44,7 +46,7 @@ $parentSlug = (string) (($parentCategory['slug'] ?? '') ?: ($category['slug'] ??
       <?php if (!empty($cat['image_path'])): ?>
       <img class="shop-filter-chip-img" src="<?= e(\App\Services\ShopProductImageService::resolveUrl((string) $cat['image_path'])) ?>" alt="" loading="lazy" decoding="async">
       <?php endif; ?>
-      <?= e($cat['name']) ?>
+      <?= e(shop_category_display_name($cat['name'] ?? '', $cat['slug'] ?? '')) ?>
     </a>
     <?php endforeach; ?>
   </div>
@@ -56,7 +58,7 @@ $parentSlug = (string) (($parentCategory['slug'] ?? '') ?: ($category['slug'] ??
     <a class="shop-filter-chip<?= !$isChildSelected ? ' is-active' : '' ?>" href="<?= url('shop/products') ?>?category=<?= e($parentSlug) ?>">전체</a>
     <?php foreach ($childCategories as $cat): ?>
     <a class="shop-filter-chip shop-filter-chip--child<?= (($category['slug'] ?? '') === $cat['slug']) ? ' is-active' : '' ?>" href="<?= url('shop/products') ?>?category=<?= e($cat['slug']) ?>">
-      <?= e($cat['name']) ?>
+      <?= e(shop_category_display_name($cat['name'] ?? '', $cat['slug'] ?? '')) ?>
     </a>
     <?php endforeach; ?>
   </div>

@@ -42,6 +42,54 @@ final class ShopService
     }
 
     /**
+     * 홈 인기 용지 카드용. 관리자 정렬(sort_order)이 앞선 메인 상품을 보여준다.
+     *
+     * @return list<array{
+     *   id:int,name:string,category:string,categoryName:string,thumbUrl:string,
+     *   specLabel:string,priceLabel:string,url:string
+     * }>
+     */
+    public function popularPapersForHome(int $limit = 12): array
+    {
+        $out = [];
+        foreach ($this->repo->popularPapersForHome($limit) as $product) {
+            $id = (int) ($product['id'] ?? 0);
+            if ($id <= 0) {
+                continue;
+            }
+            $w = $product['width_mm'] ?? null;
+            $h = $product['height_mm'] ?? null;
+            $specParts = [];
+            if ($w !== null && $w !== '' && $h !== null && $h !== '' && (float) $w > 0 && (float) $h > 0) {
+                $specParts[] = format_label_mm($w) . '×' . format_label_mm($h) . 'mm';
+            }
+            $material = trim((string) ($product['material'] ?? ''));
+            if ($material !== '') {
+                $specParts[] = $material;
+            }
+            $thumb = ShopProductImageService::resolveUrl((string) ($product['thumbnail'] ?? ''));
+            if ($thumb === '') {
+                $thumb = $this->productThumb($product);
+            }
+            $out[] = [
+                'id' => $id,
+                'name' => (string) ($product['name'] ?? ''),
+                'category' => (string) ($product['category_slug'] ?? ''),
+                'categoryName' => shop_category_display_name(
+                    (string) ($product['category_name'] ?? ''),
+                    (string) ($product['category_slug'] ?? '')
+                ),
+                'thumbUrl' => $thumb,
+                'specLabel' => $specParts !== [] ? implode(' · ', $specParts) : (string) ($product['sku'] ?? ''),
+                'priceLabel' => $this->formatPrice($this->unitPrice($product)),
+                'url' => url('shop/products/' . $id),
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
      * @param array<int, array<string, mixed>> $categories
      * @return list<array{parent: array<string, mixed>, children: list<array<string, mixed>>}>
      */
@@ -266,7 +314,10 @@ final class ShopService
             'id' => (int) ($product['id'] ?? 0),
             'name' => (string) ($product['name'] ?? ''),
             'sku' => (string) ($product['sku'] ?? ''),
-            'category' => (string) ($product['category_name'] ?? ''),
+            'category' => shop_category_display_name(
+                (string) ($product['category_name'] ?? ''),
+                (string) ($product['category_slug'] ?? '')
+            ),
             'category_slug' => (string) ($product['category_slug'] ?? ''),
             'spec' => $spec,
             'spec_name' => (string) ($product['spec_name'] ?? ''),

@@ -6,7 +6,7 @@ namespace App\Services;
 
 use RuntimeException;
 
-final class OpenAIService
+class OpenAIService
 {
     private const CHAT_URL = 'https://api.openai.com/v1/chat/completions';
     private const IMAGE_URL = 'https://api.openai.com/v1/images/generations';
@@ -14,7 +14,7 @@ final class OpenAIService
     /** @var array{model:?string,prompt_tokens:?int,completion_tokens:?int,total_tokens:?int,image_count:int,image_model:?string,image_quality:?string,models:array<int,string>,steps:array<int,array<string,mixed>>}|null */
     private ?array $lastUsage = null;
 
-    private ?string $chatModelOverride = null;
+    protected ?string $chatModelOverride = null;
 
     /** @return array{model:?string,prompt_tokens:?int,completion_tokens:?int,total_tokens:?int,image_count:int,image_model:?string,image_quality:?string,models:array<int,string>,steps:array<int,array<string,mixed>>}|null */
     public function lastUsage(): ?array
@@ -91,7 +91,7 @@ final class OpenAIService
         }
 
         $intent = (string) ($decoded['intent'] ?? 'chat');
-        if (!in_array($intent, ['recommend_product', 'generate_clipart', 'generate_template', 'ask_image_mode', 'chat'], true)) {
+        if (!in_array($intent, ['recommend_product', 'generate_clipart', 'generate_template', 'ask_image_mode', 'ask_background', 'chat'], true)) {
             $intent = 'chat';
         }
 
@@ -871,7 +871,7 @@ PROMPT;
         ];
     }
 
-    private function withTransparentBackgroundPrompt(string $prompt, bool $isolatedSubject): string
+    protected function withTransparentBackgroundPrompt(string $prompt, bool $isolatedSubject): string
     {
         $clean = trim($prompt);
         if ($clean === '') {
@@ -928,7 +928,7 @@ PROMPT;
     }
 
     /** @param array<string, mixed> $overrides */
-    private function chatRequest(array $messages, array $overrides = []): array
+    protected function chatRequest(array $messages, array $overrides = []): array
     {
         $apiKey = $this->apiKey();
         $model = $this->chatModelOverride
@@ -955,7 +955,7 @@ PROMPT;
         }
     }
 
-    private function apiKey(): string
+    protected function apiKey(): string
     {
         $apiKey = trim((string) env('OPENAI_API_KEY', ''));
         if ($apiKey === '') {
@@ -1063,7 +1063,7 @@ PROMPT;
         ];
     }
 
-    private function recordChatUsage(?string $model, int $promptTokens, int $completionTokens, ?int $totalTokens): void
+    protected function recordChatUsage(?string $model, int $promptTokens, int $completionTokens, ?int $totalTokens): void
     {
         $this->ensureUsageBag();
         $total = $totalTokens ?? ($promptTokens + $completionTokens);
@@ -1085,7 +1085,7 @@ PROMPT;
         ];
     }
 
-    private function recordImageUsage(string $model, string $quality, int $count = 1): void
+    protected function recordImageUsage(string $model, string $quality, int $count = 1): void
     {
         $this->ensureUsageBag();
         $count = max(1, $count);
@@ -1106,7 +1106,7 @@ PROMPT;
         ];
     }
 
-    private function storeClipartFromBase64(string $b64, bool $knockoutBackdrop = true): string
+    protected function storeClipartFromBase64(string $b64, bool $knockoutBackdrop = true): string
     {
         $bin = base64_decode($b64, true);
         if ($bin === false || $bin === '') {
@@ -1354,7 +1354,7 @@ PROMPT;
 
 반드시 아래 JSON 객체만 출력하세요 (설명 문장·마크다운 금지):
 {
-  "intent": "recommend_product" | "generate_clipart" | "generate_template" | "ask_image_mode" | "chat",
+  "intent": "recommend_product" | "generate_clipart" | "generate_template" | "ask_image_mode" | "ask_background" | "chat",
   "message": "사용자에게 보여줄 친절한 한국어 안내",
   "product_id": null 또는 카탈로그의 숫자 id,
   "search_query": "상품 검색용 짧은 한국어 키워드",
@@ -1378,6 +1378,7 @@ intent 선택 규칙:
    - 기본: 텍스트/워터마크 없음. 예외 — 사용자가 "그림/이미지 안에 이름·글자를 넣어달라"고 **명시**하면 clipart_prompt에 그 문구(원문 철자 그대로)를 또렷이 그리라고 포함합니다. 따옴표·「」 안 이름도 빠뜨리지 마세요.
    - 첨부 이미지가 있으면 그 분위기·모티프를 반영하되 장식이 되는 클립아트로 재해석합니다.
 3) generate_template — 완성된 라벨 디자인/템플릿을 만들어 편집기에서 쓰려 할 때.
+   - 배경 이미지를 넣을지는 서버가 사용자에게 따로 묻습니다. 배경을 바로 그리지 마세요.
    - 기본: clipart_prompt에는 글자·숫자·특수문자가 없는 배경/장식만 영어로 묘사합니다. 문구는 서버가 별도 텍스트 오브젝트로 만듭니다.
    - 예외 — 사용자가 이미지/그림 안에 특정 이름·글자를 넣으라고 **명시**하면 clipart_prompt에 그 문구만 이미지에 또렷이 포함시키고, 나머지 라벨 문구는 텍스트 분리 원칙을 유지합니다.
    - 캔버스를 가장자리까지 채우고(full-bleed). 흰 스튜디오·목업·책상·찢어진 종이·여백 배경은 넣지 마세요. 인쇄 장식이 아닌 영역은 투명.
@@ -1389,7 +1390,9 @@ intent 선택 규칙:
 4) ask_image_mode — 첨부 이미지가 있는데 클립아트인지 템플릿인지 분명하지 않을 때.
    - 이미지를 생성하지 않습니다.
    - message에서 클립아트 그리기 / 템플릿 만들기 중 고르라고 짧게 안내합니다.
-5) chat — 일반 질문, 인쇄 팁, 추가 확인이 필요할 때.
+5) ask_background — 라벨/템플릿을 만들 때 배경 이미지를 넣을지 아직 고르지 않았을 때.
+   - 이미지를 생성하지 않습니다. 배경 넣기 / 텍스트만 중 고르라고 짧게 안내합니다.
+6) chat — 일반 질문, 인쇄 팁, 추가 확인이 필요할 때.
 
 원칙:
 - "라벨 추천해줘", "라벨지 추천", "용지 골라줘", "주소 라벨 추천"처럼 상품·용지를 고르라는 말이면 반드시 recommend_product입니다. generate_template으로 보내지 마세요. (디자인을 그리지 말고 카탈로그 상품 1개만 고릅니다.)
@@ -1397,7 +1400,7 @@ intent 선택 규칙:
 - 단순 "라벨 추천/주소라벨/바코드라벨"처럼 상품(용지) 선택이면 recommend_product를 우선합니다.
 - "고양이 그림 그려줘", "로고 아이콘 만들어줘"처럼 그림만 생성이면 generate_clipart입니다.
 - "꽃그림에 '이름' 넣어서 이미지 만들어줘"처럼 그림·이미지 안에 글자를 넣으라는 요청도 generate_clipart입니다(문구를 clipart_prompt에 포함).
-- "템플릿 만들어줘", "이 사진으로 라벨 디자인 만들어줘", "문구 넣어서 라벨 템플릿 만들어줘"면 generate_template입니다. (편집 가능 텍스트+배경+카탈로그 용지 추천)
+- "템플릿 만들어줘", "이 사진으로 라벨 디자인 만들어줘", "문구 넣어서 라벨 템플릿 만들어줘", "라벨 만들어줘"면 generate_template입니다. 배경 그림은 사용자가 넣어 달라고 한 뒤에만 그립니다.
 - "추천"만 있고 "템플릿/디자인 만들어"가 없으면 generate_template이 아닙니다.
 - 템플릿 요청에는 product_id를 카탈로그에서 반드시 고르려 하고, clipart_prompt에는 글자 없는 배경만 넣습니다.
 - 이미지만 보냈거나 "이거 참고해서"처럼 목적이 모호하면 ask_image_mode입니다. 추측으로 바로 그리지 마세요.

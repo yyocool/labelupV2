@@ -29,7 +29,7 @@ body.site-intro-open{overflow:hidden}
 .site-intro--anim .site-intro__bar{background:rgba(20,12,16,.72);backdrop-filter:blur(8px)}
 .site-intro__sound,.site-intro__skip{
   height:40px;padding:0 16px;border-radius:999px;border:1px solid rgba(255,255,255,.28);
-  background:rgba(255,255,255,.08);color:#fff;font-size:13px;font-weight:800;cursor:pointer
+  background:rgba(255,255,255,.08);color:#fff;font-size:15px;font-weight:800;cursor:pointer
 }
 .site-intro__skip{
   border:0;background:linear-gradient(135deg,#7B2840,#9A3A55);box-shadow:0 8px 18px rgba(123,40,64,.35)
@@ -79,7 +79,7 @@ body.site-intro-open{overflow:hidden}
 }
 .sia-logo{height:28px;width:auto;opacity:.92;margin-bottom:18px}
 .sia-kicker{
-  margin:0 0 8px;font-size:12px;font-weight:800;letter-spacing:.28em;
+  margin:0 0 8px;font-size:14px;font-weight:800;letter-spacing:.28em;
   text-transform:uppercase;color:rgba(255,230,236,.78)
 }
 .sia-title{
@@ -92,12 +92,12 @@ body.site-intro-open{overflow:hidden}
 }
 .sia-badge{
   display:inline-flex;align-items:center;height:28px;padding:0 12px;margin-bottom:16px;
-  border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.06em;
+  border-radius:999px;font-size:13px;font-weight:800;letter-spacing:.06em;
   background:linear-gradient(90deg,#7B2840,#9A3A55);box-shadow:0 8px 20px rgba(123,40,64,.35)
 }
 .sia-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:22px}
 .sia-chips em{
-  font-style:normal;font-size:12px;font-weight:700;padding:8px 12px;border-radius:999px;
+  font-style:normal;font-size:14px;font-weight:700;padding:8px 12px;border-radius:999px;
   background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14)
 }
 .sia-steps{
@@ -108,8 +108,8 @@ body.site-intro-open{overflow:hidden}
   padding:12px 8px;border-radius:16px;background:rgba(255,255,255,.07);
   border:1px solid rgba(255,255,255,.12)
 }
-.sia-steps b{display:block;font-size:11px;letter-spacing:.08em;color:#f0c9d4;margin-bottom:4px}
-.sia-steps span{font-size:12px;font-weight:700}
+.sia-steps b{display:block;font-size:13px;letter-spacing:.08em;color:#f0c9d4;margin-bottom:4px}
+.sia-steps span{font-size:14px;font-weight:700}
 .sia-shop-card{
   width:min(220px,56vw);aspect-ratio:1.15;margin:0 auto 20px;border-radius:22px;
   background:
@@ -123,7 +123,7 @@ body.site-intro-open{overflow:hidden}
 .sia-shop-card span:nth-child(2){width:48%}
 .sia-shop-card span:nth-child(3){width:60%;background:rgba(123,40,64,.7)}
 .sia-end{
-  margin:20px 0 0;font-size:13px;font-weight:800;letter-spacing:.34em;color:rgba(255,220,228,.7)
+  margin:20px 0 0;font-size:15px;font-weight:800;letter-spacing:.34em;color:rgba(255,220,228,.7)
 }
 .site-intro-anim__progress{
   position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.08);z-index:2

@@ -334,17 +334,17 @@ CREATE TABLE IF NOT EXISTS shop_banners (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 INSERT INTO shop_categories (name, slug, image_path, sort_order, is_active, created_at, updated_at) VALUES
-('?????/???/????/????', 'logistics-label', '/assets/categories/cat_logistics-label.webp', 1, 1, NOW(), NOW()),
-('?????? ??', 'government-doc', '/assets/categories/cat_government-doc.webp', 2, 1, NOW(), NOW()),
-('?? ??', 'gloss-label', '/assets/categories/cat_gloss-label.webp', 3, 1, NOW(), NOW()),
-('?? ??', 'waterproof-label', '/assets/categories/cat_waterproof-label.webp', 4, 1, NOW(), NOW()),
-('??? ??', 'translucent-label', '/assets/categories/cat_translucent-label.webp', 5, 1, NOW(), NOW()),
-('??? ?? ??', 'inkjet-clear-label', '/assets/categories/cat_inkjet-clear-label.webp', 6, 1, NOW(), NOW()),
-('??? ?? ??', 'laser-clear-label', '/assets/categories/cat_laser-clear-label.webp', 7, 1, NOW(), NOW()),
-('??? ??', 'protective-film', '/assets/categories/cat_protective-film.webp', 8, 1, NOW(), NOW()),
-('?? ??(??)', 'color-label', '/assets/categories/cat_color-label.webp', 9, 1, NOW(), NOW()),
-('??? ?? ??', 'pastel-color-label', '/assets/categories/cat_pastel-color-label.webp', 10, 1, NOW(), NOW()),
-('???? ??', 'kraft-label', '/assets/categories/cat_kraft-label.webp', 11, 1, NOW(), NOW())
+('다용도라벨', 'logistics-label', '/assets/categories/cat_logistics-label.webp', 1, 1, NOW(), NOW()),
+('정부문서화일 라벨', 'government-doc', '/assets/categories/cat_government-doc.webp', 2, 1, NOW(), NOW()),
+('광택 라벨', 'gloss-label', '/assets/categories/cat_gloss-label.webp', 3, 1, NOW(), NOW()),
+('방수 라벨', 'waterproof-label', '/assets/categories/cat_waterproof-label.webp', 4, 1, NOW(), NOW()),
+('반투명 라벨', 'translucent-label', '/assets/categories/cat_translucent-label.webp', 5, 1, NOW(), NOW()),
+('잉크젯 투명 라벨', 'inkjet-clear-label', '/assets/categories/cat_inkjet-clear-label.webp', 6, 1, NOW(), NOW()),
+('레이저 투명 라벨', 'laser-clear-label', '/assets/categories/cat_laser-clear-label.webp', 7, 1, NOW(), NOW()),
+('보호용 필름', 'protective-film', '/assets/categories/cat_protective-film.webp', 8, 1, NOW(), NOW()),
+('컬러 라벨(형광)', 'color-label', '/assets/categories/cat_color-label.webp', 9, 1, NOW(), NOW()),
+('파스텔 컬러 라벨', 'pastel-color-label', '/assets/categories/cat_pastel-color-label.webp', 10, 1, NOW(), NOW()),
+('크라프트 라벨', 'kraft-label', '/assets/categories/cat_kraft-label.webp', 11, 1, NOW(), NOW())
 ON DUPLICATE KEY UPDATE name = VALUES(name), image_path = VALUES(image_path), sort_order = VALUES(sort_order), is_active = VALUES(is_active), updated_at = VALUES(updated_at);
 
 INSERT INTO label_specs (name, width_mm, height_mm, material, shape, labels_per_sheet, description, is_active, created_at, updated_at) VALUES

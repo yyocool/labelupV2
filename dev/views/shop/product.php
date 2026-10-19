@@ -10,6 +10,8 @@ $gallery = $shopService->productGallery($product);
 $options = $shopService->productOptions($product);
 $hasOptions = $options !== [];
 $sellableOptions = array_values(array_filter($options, static fn (array $o): bool => !$o['soldout']));
+$autoSelectOptionId = count($sellableOptions) === 1 ? (int) $sellableOptions[0]['id'] : 0;
+$selectedUnit = $autoSelectOptionId > 0 ? (int) $sellableOptions[0]['unit_price'] : $unit;
 $isInk = $shopService->isInkProduct($product);
 $inkAmount = (int) ($product['ink_amount'] ?? 0);
 $isSoldout = ($product['status'] ?? '') === 'soldout'
@@ -115,7 +117,7 @@ $hashtags = is_array($pageLayout['hashtags'] ?? null) ? $pageLayout['hashtags'] 
   <div class="shop-detail-info">
     <div class="shop-detail-topline">
       <?php if (!empty($product['category_name'])): ?>
-      <span class="shop-product-cat"><?= e((string) $product['category_name']) ?></span>
+      <span class="shop-product-cat"><?= e(shop_category_display_name($product['category_name'] ?? '', $product['category_slug'] ?? '')) ?></span>
       <?php endif; ?>
       <?php if ($isSoldout): ?>
       <span class="shop-detail-badge shop-detail-badge--soldout">품절</span>
@@ -210,7 +212,8 @@ $hashtags = is_array($pageLayout['hashtags'] ?? null) ? $pageLayout['hashtags'] 
               value="<?= (int) $opt['id'] ?>"
               data-unit="<?= (int) $opt['unit_price'] ?>"
               data-stock="<?= (int) $opt['stock_qty'] ?>"
-              <?= $opt['soldout'] ? 'disabled' : '' ?>>
+              <?= $opt['soldout'] ? 'disabled' : '' ?>
+              <?= $autoSelectOptionId === (int) $opt['id'] ? 'checked' : '' ?>>
             <label class="shop-option-card" for="<?= e($optId) ?>">
               <span class="shop-option-card__name"><?= e((string) $opt['name']) ?></span>
               <span class="shop-option-card__price"><?= e((string) $opt['price_label']) ?></span>
@@ -223,7 +226,7 @@ $hashtags = is_array($pageLayout['hashtags'] ?? null) ? $pageLayout['hashtags'] 
             <?php endforeach; ?>
           </div>
         </fieldset>
-        <p class="shop-detail-option__live">선택 금액 <strong id="productPriceLive"><?= e($shopService->formatPrice($unit)) ?></strong></p>
+        <p class="shop-detail-option__live">선택 금액 <strong id="productPriceLive"><?= e($shopService->formatPrice($selectedUnit)) ?></strong></p>
       </div>
       <?php endif; ?>
       <div class="shop-detail-buy">

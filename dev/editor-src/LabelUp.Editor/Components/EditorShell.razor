@@ -18,7 +18,7 @@
 @inject IJSRuntime Js
 @implements IDisposable
 
-<div class="ed @(Session.TopBarPinned ? "is-topbar-pinned" : "is-topbar-auto")"
+<div class="ed @(Session.TopBarPinned ? "is-topbar-pinned" : "is-topbar-auto") @(_canvasReady ? null : "is-booting")"
      data-ed-root
      style="--ed-ui-scale: @(Session.UiScale.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))">
   <TopBar />
@@ -86,8 +86,8 @@
     private ErrorBoundary? _errorBoundary;
     private CanvasHost? _canvas;
     private bool _panelsReady;
-    /// <summary>Canvas mounts only after Hangul fonts + initial document load finish (avoids garbled/default flash).</summary>
-    private bool _bootReady;
+    /// <summary>초안·용지 적용이 끝난 뒤에만 캔버스를 보여 샘플 글자 깜빡임을 막는다.</summary>
+    private bool _canvasReady;
     private DotNetObjectReference<EditorShell>? _self;
     private object? _pendingUiLayout;
     /// <summary>부트 중 적용한 규격의 이상. 첫 렌더가 끝난 뒤 팝업으로 알린다.</summary>
@@ -113,6 +113,9 @@
             {
                 EditorLog.Error("폰트어썸 카탈로그 로드 실패", iconEx);
             }
+            // WMF·상점 용지·클라우드·추가 글꼴은 수 초~수십 초가 걸릴 수 있다.
+            // 빈 문서로 캔버스만 먼저 연다. 샘플 「라벨업」 글자는 CreateBlank 에 넣지 않는다.
+            await RevealCanvasAsync();
             await Papers.EnsureLoadedAsync();
             await Papers.EnsureShopPapersAsync();
 
@@ -206,11 +209,21 @@
         }
         finally
         {
-            // Hangul fonts + boot document first, then drop HTML boot overlay in the same frame.
-            _bootReady = Fonts.IsReady;
-            await InvokeAsync(StateHasChanged);
-            try { await Js.InvokeVoidAsync("labelUpEditor.hideBoot"); } catch { /* ignore */ }
+            await RevealCanvasAsync();
         }
+    }
+
+    private async Task HideBootOverlayAsync()
+    {
+        try { await Js.InvokeVoidAsync("labelUpEditor.hideBoot"); } catch { /* ignore */ }
+    }
+
+    private async Task RevealCanvasAsync()
+    {
+        if (_canvasReady) return;
+        _canvasReady = true;
+        await InvokeAsync(StateHasChanged);
+        await HideBootOverlayAsync();
     }
 
     private async Task<bool> TryRestoreCloudWorkspaceAsync()
@@ -989,7 +1002,7 @@
     }
 
     [JSInvokable]
-    public async Task ApplyLabiClipart(string json)
+    public async Task ApplyLabiClipart(string json, string mode = "append")
     {
         try
         {
@@ -1012,13 +1025,20 @@
                 return;
             }
 
+            var replace = IsReplaceMode(mode);
             History.Push(Session.Document);
             Session.Document.EnsureStructure();
-            var fillLabel = IsFillFit(ReadString(root, "fit", "mode"));
+            if (replace)
+                Session.CurrentCell.Objects.Clear();
+            var fillLabel = replace || IsFillFit(ReadString(root, "fit", "mode"));
             PlaceLabiImage(dataUrl, fillLabel);
-            Session.Status = string.IsNullOrWhiteSpace(title)
-                ? "라비 클립아트를 편집기에 넣었습니다"
-                : $"「{title}」 클립아트를 편집기에 넣었습니다";
+            Session.Status = replace
+                ? (string.IsNullOrWhiteSpace(title)
+                    ? "기존 내용을 지우고 클립아트로 새로 편집합니다"
+                    : $"기존 내용을 지우고 「{title}」 클립아트로 새로 편집합니다")
+                : (string.IsNullOrWhiteSpace(title)
+                    ? "라비 클립아트를 현재 라벨에 추가했습니다"
+                    : $"「{title}」 클립아트를 현재 라벨에 추가했습니다");
             Session.CloseDialog();
         }
         catch (Exception ex)
@@ -1030,7 +1050,7 @@
     }
 
     [JSInvokable]
-    public async Task ApplyLabiTemplate(string json)
+    public async Task ApplyLabiTemplate(string json, string mode = "append")
     {
         try
         {
@@ -1057,7 +1077,8 @@
             var h = ReadFloat(root, "height_mm", "heightMm", "h", "height");
             var sku = ReadString(root, "sku", "paper", "paperNo", "paper_no");
             Session.Document.EnsureStructure();
-            var editing = DocumentHasObjects(Session.Document);
+            var replace = IsReplaceMode(mode);
+            var editing = !replace && DocumentHasObjects(Session.Document);
             History.Push(Session.Document);
             if (!editing && w is > 0 && h is > 0)
             {
@@ -1093,9 +1114,13 @@
                 ? (string.IsNullOrWhiteSpace(title)
                     ? "라비 템플릿을 현재 라벨에 추가했습니다"
                     : $"「{title}」 템플릿을 현재 라벨에 추가했습니다")
-                : (string.IsNullOrWhiteSpace(title)
-                    ? "라비 템플릿을 편집기에 넣었습니다"
-                    : $"「{title}」 템플릿으로 편집을 시작합니다");
+                : replace
+                    ? (string.IsNullOrWhiteSpace(title)
+                        ? "기존 내용을 지우고 라비 템플릿으로 새로 편집합니다"
+                        : $"기존 내용을 지우고 「{title}」 템플릿으로 새로 편집합니다")
+                    : (string.IsNullOrWhiteSpace(title)
+                        ? "라비 템플릿을 편집기에 넣었습니다"
+                        : $"「{title}」 템플릿으로 편집을 시작합니다");
             Session.CloseDialog();
         }
         catch (Exception ex)
@@ -1107,14 +1132,15 @@
     }
 
     [JSInvokable]
-    public async Task ApplyLabiDocument(string json)
+    public async Task ApplyLabiDocument(string json, string mode = "append")
     {
         try
         {
             var doc = LabelDocumentJson.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json);
             doc.EnsureStructure();
             Session.Document.EnsureStructure();
-            var editing = DocumentHasObjects(Session.Document);
+            var replace = IsReplaceMode(mode);
+            var editing = !replace && DocumentHasObjects(Session.Document);
             if (editing && IsLabiPaperPlaceholder(doc))
             {
                 await ApplyIncomingPaperKeepingDesign(doc);
@@ -1138,9 +1164,13 @@
             Session.ReplaceDocument(doc);
             await BindLabiDocumentToShopAsync(doc.Paper.PaperNo);
             Session.Dirty = true;
-            Session.Status = string.IsNullOrWhiteSpace(doc.Name)
-                ? "라비 데이터 템플릿을 편집기에 넣었습니다"
-                : $"「{doc.Name}」 데이터 템플릿을 적용했습니다";
+            Session.Status = replace
+                ? (string.IsNullOrWhiteSpace(doc.Name)
+                    ? "기존 내용을 지우고 라비 템플릿으로 새로 편집합니다"
+                    : $"기존 내용을 지우고 「{doc.Name}」 템플릿으로 새로 편집합니다")
+                : (string.IsNullOrWhiteSpace(doc.Name)
+                    ? "라비 데이터 템플릿을 편집기에 넣었습니다"
+                    : $"「{doc.Name}」 데이터 템플릿을 적용했습니다");
             Session.CloseDialog();
         }
         catch (Exception ex)
@@ -1150,6 +1180,9 @@
             Session.Notify();
         }
     }
+
+    private static bool IsReplaceMode(string? mode)
+        => string.Equals((mode ?? "").Trim(), "replace", StringComparison.OrdinalIgnoreCase);
 
     private static bool DocumentHasObjects(LabelDocument doc)
         => doc.Pages.Any(page => page.Cells.Any(cell => cell.Objects.Count > 0));

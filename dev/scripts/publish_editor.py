@@ -152,6 +152,8 @@ def write_charset_shim(out: Path) -> None:
     (out / "index.php").write_text(
         "<?php\n"
         "header('Content-Type: text/html; charset=utf-8');\n"
+        "header('Cache-Control: no-store, no-cache, must-revalidate');\n"
+        "header('Pragma: no-cache');\n"
         "readfile(__DIR__ . '/index.html');\n",
         encoding="utf-8",
     )

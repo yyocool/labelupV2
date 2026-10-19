@@ -64,7 +64,42 @@
     if (!document.getElementById('bugReportShotStyle')) {
       const style = document.createElement('style');
       style.id = 'bugReportShotStyle';
-      style.textContent = '.bug-report-kind{display:flex;gap:8px;margin:0 0 12px}.bug-report-kind label{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;height:40px;border:1px solid #e6e1de;border-radius:12px;font-size:13px;font-weight:800;cursor:pointer}.bug-report-kind label:has(input:checked){border-color:#7b2840;color:#7b2840;background:#fdf6f8}.bug-report-attach{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.bug-report-attach__hint{margin:0;color:#8a8d98;font-size:12px;font-weight:500;line-height:1.45}.bug-report-shots{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.bug-report-shot{position:relative;width:92px;height:72px;margin:0;border:1px solid #e6e1de;border-radius:10px;overflow:hidden;background:#f7f5f4}.bug-report-shot img{width:100%;height:100%;object-fit:cover;display:block}.bug-report-shot button{position:absolute;top:2px;right:2px;width:20px;height:20px;border:0;border-radius:999px;background:rgba(46,42,39,.72);color:#fff;cursor:pointer;line-height:1}';
+      // 홈(home.css) 없이도 편집기 등에서 모달이 정상 보이도록 전체 스타일을 주입한다.
+      style.textContent = [
+        '.bug-report-modal{position:fixed;inset:0;z-index:20000;display:flex;align-items:center;justify-content:center;padding:18px;font-family:Pretendard,"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:15px;line-height:1.55;color:#2e2a27}',
+        '.bug-report-modal[hidden]{display:none!important}',
+        '.bug-report-modal__backdrop{position:absolute;inset:0;background:rgba(46,42,39,.45)}',
+        '.bug-report-modal__dialog{position:relative;width:min(520px,100%);max-height:min(92vh,880px);overflow:auto;background:#fff;border-radius:18px;padding:22px 22px 18px;box-shadow:0 24px 60px rgba(46,42,39,.2)}',
+        '.bug-report-modal__head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}',
+        '.bug-report-modal__head h2{margin:0;font-size:20px;font-weight:900;letter-spacing:-.02em;color:#2e2a27}',
+        '.bug-report-modal__close{border:0;background:transparent;font-size:26px;line-height:1;cursor:pointer;color:#666;width:36px;height:36px;border-radius:10px}',
+        '.bug-report-modal__close:hover{background:#f3f1ef;color:#2e2a27}',
+        '.bug-report-modal__lead{margin:0 0 14px;color:#5c5f6a;font-size:15px;line-height:1.55;font-weight:500}',
+        '.bug-report-kind{display:flex;gap:8px;margin:0 0 12px}',
+        '.bug-report-kind label{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;height:auto;padding:0 10px;border:1px solid #e6e1de;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;box-sizing:border-box;background:#fff;color:#2e2a27;margin:0}',
+        '.bug-report-kind label input{margin:0;accent-color:#7b2840}',
+        '.bug-report-kind label:has(input:checked),.bug-report-kind label.is-on{border-color:#7b2840;color:#7b2840;background:#fdf6f8}',
+        '.bug-report-field{display:flex;flex-direction:column;align-items:stretch;gap:6px;margin:0 0 12px;font-size:15px;font-weight:700;color:#2e2a27;width:100%;box-sizing:border-box}',
+        '.bug-report-field>span{display:block;line-height:1.3}',
+        '.bug-report-field input,.bug-report-field select,.bug-report-field textarea{display:block;width:100%;max-width:100%;box-sizing:border-box;border:1px solid #e6e1de;border-radius:12px;padding:10px 12px;font:inherit;font-size:15px;font-weight:500;color:#2e2a27;background:#fff;margin:0}',
+        '.bug-report-field textarea{resize:vertical;min-height:120px;line-height:1.5}',
+        '.bug-report-attach{display:flex;align-items:center;gap:10px;flex-wrap:wrap}',
+        '.bug-report-attach__hint{margin:0;color:#8a8d98;font-size:14px;font-weight:500;line-height:1.45;flex:1 1 180px}',
+        '.bug-report-shots{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}',
+        '.bug-report-shot{position:relative;width:92px;height:72px;margin:0;border:1px solid #e6e1de;border-radius:10px;overflow:hidden;background:#f7f5f4}',
+        '.bug-report-shot img{width:100%;height:100%;object-fit:cover;display:block}',
+        '.bug-report-shot button{position:absolute;top:2px;right:2px;width:20px;height:20px;border:0;border-radius:999px;background:rgba(46,42,39,.72);color:#fff;cursor:pointer;line-height:1}',
+        '.bug-report-modal__page{margin:0 0 10px;color:#8a8d98;font-size:14px;word-break:break-all;font-weight:500}',
+        '.bug-report-modal__alert{margin:0 0 10px;font-size:15px;color:#b42318;font-weight:700}',
+        '.bug-report-modal__alert.is-ok{color:#067647}',
+        '.bug-report-modal__foot{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}',
+        '.bug-report-modal .bug-report-btn{height:40px;display:inline-flex;align-items:center;justify-content:center;padding:0 16px;border-radius:22px;border:1px solid #ecd9df;background:#fff;color:#2e2a27;font-size:15px;font-weight:800;text-decoration:none;cursor:pointer;flex:0 0 auto;box-sizing:border-box}',
+        '.bug-report-modal .bug-report-btn:hover{border-color:#7b2840;color:#7b2840}',
+        '.bug-report-modal .bug-report-btn--solid{border:0;background:#7b2840;color:#fff}',
+        '.bug-report-modal .bug-report-btn--solid:hover{color:#fff;filter:brightness(1.05)}',
+        '.bug-report-modal .bug-report-btn--ghost{background:#fff}',
+        '@media (max-width:560px){.bug-report-modal{padding:12px;align-items:flex-end}.bug-report-modal__dialog{width:100%;max-height:min(86vh,880px);border-radius:18px 18px 12px 12px}}',
+      ].join('');
       document.head.appendChild(style);
     }
     document.body.appendChild(modal);
@@ -123,6 +158,10 @@
     const form = document.getElementById('bugReportForm');
     if (!form) return;
     const kind = form.kind && form.kind.value === 'suggestion' ? 'suggestion' : 'error';
+    form.querySelectorAll('.bug-report-kind label').forEach((label) => {
+      const input = label.querySelector('input[name="kind"]');
+      label.classList.toggle('is-on', !!(input && input.checked));
+    });
     const title = form.querySelector('input[name="title"]');
     const content = form.querySelector('textarea[name="content"]');
     if (title) {

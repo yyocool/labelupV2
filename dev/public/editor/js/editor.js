@@ -1236,6 +1236,7 @@ window.labelUpEditor = {
     el.classList.add('is-done');
     el.setAttribute('hidden', '');
     el.setAttribute('aria-busy', 'false');
+    el.style.setProperty('display', 'none', 'important');
     try { document.documentElement.classList.add('editor-ready'); } catch (e) { /* ignore */ }
     this.applyMobileChrome();
   },
@@ -1458,17 +1459,18 @@ window.labelUpEditor = {
       onApplyProduct: function (product) {
         self.applyLabiProduct(product);
       },
-      onApplyClipart: function (clipart) {
+      onApplyClipart: function (clipart, mode) {
         if (!self._labiDotNet) return;
-        self._labiDotNet.invokeMethodAsync('ApplyLabiClipart', JSON.stringify(clipart || {}));
+        self._labiDotNet.invokeMethodAsync('ApplyLabiClipart', JSON.stringify(clipart || {}), mode || 'append');
       },
-      onApplyTemplate: function (template) {
+      onApplyTemplate: function (template, mode) {
         if (!self._labiDotNet) return;
+        var applyMode = mode || 'append';
         if (template && template.document) {
-          self._labiDotNet.invokeMethodAsync('ApplyLabiDocument', JSON.stringify(template.document));
+          self._labiDotNet.invokeMethodAsync('ApplyLabiDocument', JSON.stringify(template.document), applyMode);
           return;
         }
-        self._labiDotNet.invokeMethodAsync('ApplyLabiTemplate', JSON.stringify(template || {}));
+        self._labiDotNet.invokeMethodAsync('ApplyLabiTemplate', JSON.stringify(template || {}), applyMode);
       },
       onApplyVendor: function (file) {
         if (!self._labiDotNet || !file) return;

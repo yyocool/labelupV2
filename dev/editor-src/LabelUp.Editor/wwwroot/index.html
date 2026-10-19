@@ -14,11 +14,12 @@
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="preload" href="fonts/Pretendard-Regular.otf" as="font" type="font/otf" crossorigin />
   <link rel="preload" href="fonts/Pretendard-Bold.otf" as="font" type="font/otf" crossorigin />
-  <link rel="stylesheet" href="css/app.css?v=20261008w" />
-  <link rel="stylesheet" href="css/editor.css?v=20261016retry" />
+  <link rel="preload" href="_framework/icudt.bin?v=BOOTSTAMP" as="fetch" crossorigin />
+  <link rel="stylesheet" href="css/app.css?v=20261018full" />
+  <link rel="stylesheet" href="css/editor.css?v=f4ea47421d8d" />
   <link rel="stylesheet" href="css/tutorial.css?v=20261001tut" />
 </head>
-<body>
+<body class="editor-body">
   <div id="app"></div>
 
   <div id="editor-boot" class="boot" aria-busy="true">
@@ -42,8 +43,8 @@
   <script src="js/editor.js?v=20261016svg"></script>
   <script src="js/panel-dock.js?v=20260908g"></script>
   <script src="js/tutorial.js?v=20261001tut2"></script>
-  <script src="/js/home-ai-chat.js?v=20261016resend"></script>
-  <script src="/js/bug-report.js?v=20261009c"></script>
+  <script src="/js/home-ai-chat.js?v=20261018labi"></script>
+  <script src="/js/bug-report.js?v=20261019modal"></script>
   <script src="/js/daum-address.js?v=20260906c"></script>
   <script src="/js/address-book.js?v=20260913a"></script>
   <script src="/js/toss-pay.js?v=20261001a"></script>
@@ -61,11 +62,72 @@
   -->
   <script src="_framework/blazor.webassembly.js?v=BOOTSTAMP" autostart="false"></script>
   <script>
-    Blazor.start({
-      loadBootResource: function (type, name, defaultUri) {
-        return defaultUri + (defaultUri.indexOf('?') >= 0 ? '&' : '?') + 'v=BOOTSTAMP';
+    (function () {
+      var token = 'BOOTSTAMP';
+      var hidden = false;
+      function hideBoot() {
+        if (hidden) return;
+        hidden = true;
+        if (window.labelUpEditor && window.labelUpEditor.hideBoot) {
+          window.labelUpEditor.hideBoot();
+          return;
+        }
+        var el = document.getElementById('editor-boot');
+        if (!el) return;
+        el.classList.add('is-done');
+        el.setAttribute('hidden', '');
+        el.style.setProperty('display', 'none', 'important');
       }
-    });
+      function withStamp(uri) {
+        return uri + (uri.indexOf('?') >= 0 ? '&' : '?') + 'v=' + token;
+      }
+      function resourceUrl(name, defaultUri) {
+        if (/icudt\.(dat|bin)$/i.test(name) || /icudt\.(dat|bin)/i.test(defaultUri)) {
+          return 'icu.php?v=' + token;
+        }
+        return withStamp(defaultUri);
+      }
+      var lastText = '';
+      var lastChange = Date.now();
+      var seenPct = false;
+      var stallTimer = setInterval(function () {
+        var el = document.querySelector('.loading-progress-text');
+        var cssPct = getComputedStyle(document.documentElement).getPropertyValue('--blazor-load-percentage-text') || '';
+        var now = String(el ? el.textContent || '' : '').trim() || String(cssPct).replace(/"/g, '').trim();
+        var m = now.match(/(\d+)\s*%/);
+        var pct = m ? parseInt(m[1], 10) : -1;
+        if (now !== lastText) {
+          lastText = now;
+          lastChange = Date.now();
+          if (pct >= 0) seenPct = true;
+        }
+        if (seenPct && Date.now() - lastChange >= 2500 && pct >= 85) {
+          hideBoot();
+          clearInterval(stallTimer);
+        }
+      }, 400);
+      setTimeout(function () {
+        hideBoot();
+        clearInterval(stallTimer);
+      }, 6000);
+      try {
+        Blazor.start({
+          loadBootResource: function (type, name, defaultUri) {
+            var url = resourceUrl(name, defaultUri);
+            if (type === 'dotnetjs') return url;
+            return fetch(url, { cache: 'no-cache' }).then(function (res) {
+              if (res.ok) return res;
+              if (/icudt/i.test(String(name) + String(defaultUri))) {
+                return fetch('_framework/icudt.bin?v=' + token, { cache: 'reload' });
+              }
+              return res;
+            });
+          }
+        }).then(hideBoot).catch(hideBoot);
+      } catch (e) {
+        hideBoot();
+      }
+    })();
   </script>
 </body>
 </html>
