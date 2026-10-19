@@ -44,6 +44,20 @@ public sealed class EditorSession
     public bool ShowAdminTools { get; set; } = false;
     public bool DataPanelVisible { get; set; }
     public bool DataPanelExpanded { get; set; }
+
+    /// <summary>
+    /// 끌어서 정한 자료 판넬 높이(px). 0이면 아직 정하지 않은 것이고, 그때는 CSS 기본 높이를 쓴다.
+    /// 판넬에 걸린 화면 배율(--ed-ui-scale) 안쪽 자로 잰 값이다.
+    /// </summary>
+    public int DataPanelHeight { get; set; }
+
+    /// <summary>자료 판넬을 끌어서 줄일 수 있는 가장 작은 높이(px). 제목줄과 한두 줄이 남는 높이다.</summary>
+    public const int DataPanelMinHeight = 120;
+
+    /// <summary>
+    /// 이 높이부터는 고쳐 쓰는 표로 바꾼다. 그보다 낮으면 자리가 모자라 미리보기만 보여 준다.
+    /// </summary>
+    public const int DataPanelExpandHeight = 240;
     public int DataPage { get; set; }
     public int DataPageSize { get; set; } = 8;
     public float CursorMmX { get; set; }
@@ -313,6 +327,72 @@ public sealed class EditorSession
         }
     }
 
+    /// <summary>
+    /// 끌어서 정한 자료 판넬 높이를 받아 둔다. 높이가 넉넉해지면 고쳐 쓰는 표로, 모자라면
+    /// 미리보기로 바꾼다. 단추 두 개로 갈라 두던 것을 높이 하나로 정하게 모은 것이다.
+    /// </summary>
+    public void SetDataPanelHeight(int px)
+    {
+        var h = Math.Max(DataPanelMinHeight, px);
+        var expand = h >= DataPanelExpandHeight;
+        if (h == DataPanelHeight && expand == DataPanelExpanded) return;
+        var wasExpanded = DataPanelExpanded;
+        DataPanelHeight = h;
+        DataPanelExpanded = expand;
+        // 표를 접을 때는 고친 칸이 라벨 수와 맞는지 다시 맞춘다. 「최소화」가 하던 일과 같다.
+        if (wasExpanded && !expand)
+        {
+            SyncDataLabels();
+            Dirty = true;
+        }
+        Notify();
+    }
+
+    /// <summary>
+    /// 자료 행 하나를 다른 자리로 옮긴다. 라벨은 행 차례대로 매겨지므로(1행 → 1번 라벨)
+    /// 행을 옮기면 그 자료가 찍히는 라벨 자리도 함께 바뀐다.
+    /// </summary>
+    /// <returns>자리가 실제로 바뀌었으면 true.</returns>
+    public bool MoveDataRow(int from, int to)
+    {
+        if (Document.Data is not { } data) return false;
+        if (!data.MoveRow(from, to)) return false;
+        SyncDataLabels();
+        Dirty = true;
+        Status = $"{from + 1}행을 {Math.Clamp(to, 0, data.RowCount - 1) + 1}행 자리로 옮겼습니다";
+        Notify();
+        return true;
+    }
+
+    /// <summary>
+    /// 자료표에서 열 하나를 뺀다. 그 열을 쓰는 라벨 항목은 모든 라벨에서 함께 사라진다.
+    /// 라벨 항목은 열 이름으로 값을 찾으므로, 열이 없어진 뒤에도 남겨 두면 빈 값만 들고 선다.
+    /// </summary>
+    /// <returns>라벨에서 함께 지운 항목 수.</returns>
+    public int RemoveDataColumn(int col)
+    {
+        if (Document.Data is not { } data) return 0;
+        if (col < 0 || col >= data.Columns.Count) return 0;
+        var name = data.Columns[col].Trim();
+        data.RemoveColumn(col);
+
+        var removed = 0;
+        foreach (var cell in Document.Pages.SelectMany(p => p.Cells))
+        {
+            removed += cell.Objects.RemoveAll(o =>
+                o.DataBound
+                && string.Equals((o.DataColumn ?? "").Trim(), name, StringComparison.OrdinalIgnoreCase));
+        }
+        if (removed > 0) ClearSelection();
+        SyncDataLabels();
+        Dirty = true;
+        Status = removed > 0
+            ? $"‘{name}’ 열을 지우고 라벨 항목 {removed}개를 함께 뺐습니다"
+            : $"‘{name}’ 열을 지웠습니다";
+        Notify();
+        return removed;
+    }
+
     /// <summary>쓰고 있는 자료표가 있는지. 열만 있고 행이 없어도 판넬에는 보인다.</summary>
     public bool HasConnectedData => Document.Data is { ColumnCount: > 0 };
 
@@ -530,6 +610,71 @@ public sealed class EditorSession
     }
 
     /// <summary>
+    /// 그림의 원본 가로세로 비. 아직 읽어 오지 못한 그림(원격 주소를 받는 중)은
+    /// 지금 상자의 비를 그대로 쓴다. 그래야 비가 1:1 로 튀면서 상자가 갑자기 찌그러지지 않는다.
+    /// </summary>
+    private float ImageAspect(DesignObject obj)
+    {
+        var media = ResolveObjectText(obj);
+        if (string.IsNullOrWhiteSpace(media)) media = obj.ImageData;
+        var bmp = DocumentRenderer.GetBitmap(obj, media);
+        if (bmp is { Width: > 0, Height: > 0 }) return (float)bmp.Width / bmp.Height;
+        return obj.Height > 0.01f ? obj.Width / obj.Height : 1f;
+    }
+
+    /// <summary>
+    /// 그림을 라벨 칸에 맞춘다. 「맞춤·채우기·늘리기」를 고르면 상자를 라벨에 맞게 다시 잡는다.
+    ///
+    /// 상자를 그대로 두고 그리는 방식만 바꾸면 셋이 모두 똑같아 보인다. 그림을 넣을 때
+    /// <see cref="PlaceImage"/> 가 상자를 이미 원본 비율로 잡아 두기 때문에, 상자 안에서
+    /// 비율을 맞추는 일이 애초에 할 일이 없어서다.
+    ///
+    /// 「맞춤」은 자르지도 늘이지도 않고 원본 비율 그대로 라벨 안에 가장 크게 넣는다.
+    /// 「채우기」는 라벨을 꽉 채우고 넘치는 쪽을 잘라 내며, 「늘리기」는 비율을 버리고 늘인다.
+    /// 뒤 둘은 상자가 라벨과 같아지고, 자르느냐 늘이느냐는 그릴 때 <c>ImageFit</c> 으로 갈린다.
+    /// </summary>
+    /// <returns>실제로 바뀌었으면 true.</returns>
+    public bool FitImageToLabel(DesignObject obj, string fit)
+    {
+        if (obj.Type != ObjectType.Image || obj.Locked) return false;
+        var mode = fit is "contain" or "cover" or "stretch" ? fit : "contain";
+
+        var labelW = Math.Max(ImageMinMm, Document.WidthMm);
+        var labelH = Math.Max(ImageMinMm, Document.HeightMm);
+        var w = labelW;
+        var h = labelH;
+        if (mode == "contain")
+        {
+            var aspect = Math.Max(0.01f, ImageAspect(obj));
+            if (labelW / labelH > aspect)
+            {
+                h = labelH;
+                w = h * aspect;
+            }
+            else
+            {
+                w = labelW;
+                h = w / aspect;
+            }
+        }
+
+        obj.ImageFit = mode;
+        obj.Width = Math.Max(ImageMinMm, w);
+        obj.Height = Math.Max(ImageMinMm, h);
+        obj.X = (labelW - obj.Width) / 2f;
+        obj.Y = (labelH - obj.Height) / 2f;
+        Dirty = true;
+        Status = mode switch
+        {
+            "cover" => "그림을 라벨에 가득 채웠습니다 (넘치는 쪽은 잘립니다)",
+            "stretch" => "그림을 라벨 크기로 늘렸습니다",
+            _ => "그림을 라벨 안에 비율 그대로 맞췄습니다"
+        };
+        Notify();
+        return true;
+    }
+
+    /// <summary>
     /// 새 그림을 원본 비에 맞춘 상자로 넣는다. 에디터에서 직접 넣은 그림만 비 잠금을 켠다.
     /// 타사 변환으로 들어온 그림은 원본 파일 기하를 지키려고 이 길을 타지 않는다.
     /// </summary>
@@ -687,6 +832,49 @@ public sealed class EditorSession
         return unbound;
     }
 
+    /// <summary>
+    /// 칼선에서 인쇄 안전선까지 비워 두는 거리(mm). 화면에 파선을 그리는 데만 쓴다.
+    /// 맞춤은 이 선이 아니라 칼선에 붙인다(<see cref="PlanAlign"/>).
+    /// </summary>
+    public const float SafeAreaMm = 2f;
+
+    /// <summary>
+    /// 안전선을 그릴 만한 라벨인지. 양쪽에서 2mm 씩 빼면 4mm 가 주므로 그보다 작으면 남는 자리가 없다.
+    /// </summary>
+    public bool HasSafeArea =>
+        Document.WidthMm > SafeAreaMm * 2f + 0.5f && Document.HeightMm > SafeAreaMm * 2f + 0.5f;
+
+    /// <summary>라벨 한 칸의 칼선 네모(mm). 맞춤이 붙는 기준선이다.</summary>
+    public (float Left, float Top, float Right, float Bottom) CutBoxMm()
+        => (0f, 0f, Document.WidthMm, Document.HeightMm);
+
+    /// <summary>방향키로 움직이는 한 걸음(mm).</summary>
+    public const float NudgeStepMm = 0.5f;
+
+    /// <summary>
+    /// 고른 항목을 방향키로 옮긴다. 잠긴 항목은 그 자리에 둔다.
+    /// 라벨 밖으로 나가는 것은 막지 않는다. 마우스로도 밖에 둘 수 있고, 큰 그림을 일부러
+    /// 밖으로 빼 두고 자리를 잡는 일이 있어서다.
+    /// </summary>
+    /// <returns>실제로 움직인 항목 수.</returns>
+    public int NudgeSelection(float dxMm, float dyMm)
+    {
+        if (dxMm == 0f && dyMm == 0f) return 0;
+        var moved = 0;
+        foreach (var obj in SelectedObjects)
+        {
+            if (obj.Locked) continue;
+            obj.X += dxMm;
+            obj.Y += dyMm;
+            moved++;
+        }
+        if (moved == 0) return 0;
+        Dirty = true;
+        Status = moved == 1 ? "항목을 옮겼습니다" : $"항목 {moved}개를 옮겼습니다";
+        Notify();
+        return moved;
+    }
+
     /// <summary>맞춤 이름. 단추 도움말과 상태줄에 같은 말을 쓴다.</summary>
     public static string AlignName(AlignEdge edge) => edge switch
     {
@@ -697,6 +885,13 @@ public sealed class EditorSession
         AlignEdge.CenterY => "세로 가운데 정렬",
         _ => "세로 아래쪽 정렬"
     };
+
+    /// <summary>
+    /// 맞춤 단추 도움말. 하나만 골랐을 때는 맞추는 기준이 다른 항목이 아니라 라벨의 칼선이므로
+    /// 그 사실을 적어 준다. 같은 아이콘이 고른 개수에 따라 다르게 움직이기 때문이다.
+    /// </summary>
+    public string AlignHint(AlignEdge edge)
+        => SelectedIds.Count == 1 ? $"칼선 기준 {AlignName(edge)}" : AlignName(edge);
 
     /// <summary>움직일 항목이 있는지 미리 본다. 없으면 되돌리기 단계를 만들지 않는다.</summary>
     public bool CanAlignSelection(AlignEdge edge) => PlanAlign(edge).Count > 0;
@@ -713,43 +908,92 @@ public sealed class EditorSession
             obj.Y = y;
         }
         Dirty = true;
-        Status = $"{AlignName(edge)} — {moves.Count}개 이동";
+        Status = moves.Count == 1 ? AlignHint(edge) : $"{AlignHint(edge)} — {moves.Count}개 이동";
+        // 라벨 칸에 다 들어가지 못한 항목은 누른 쪽이 아니라 들어갈 수 있는 쪽에 붙는다.
+        // 그대로 두면 「오른쪽 정렬」을 눌렀는데 왼쪽으로 간 것처럼 보이므로 까닭을 적어 준다.
+        if (OversizeForCutBox(edge))
+            Status += " — 항목이 라벨보다 커서 들어가는 쪽 끝에 붙였습니다";
         Notify();
         return moves.Count;
     }
 
     /// <summary>
-    /// 맞춤 뒤 자리를 계산한다. 기준은 선택 전체를 감싸는 네모이며, 잠긴 항목도 기준에는 넣되
-    /// 움직이지는 않는다(잠근 항목을 그대로 둔 기준선 노릇을 한다). 회전은 무시하고 상자 기준으로 맞춘다.
+    /// 맞추려는 쪽으로 항목이 라벨 칸보다 커서 다 들어가지 못하는지.
+    /// 가운데 맞춤은 묶지 않고 양쪽으로 고르게 넘치게 두므로 여기서 세지 않는다.
+    /// </summary>
+    private bool OversizeForCutBox(AlignEdge edge)
+    {
+        if (SelectedIds.Count != 1) return false;
+        var obj = SelectedObjects[0];
+        var cut = CutBoxMm();
+        var (room, size) = edge switch
+        {
+            AlignEdge.Left or AlignEdge.Right => (cut.Right - cut.Left, obj.Width),
+            AlignEdge.Top or AlignEdge.Bottom => (cut.Bottom - cut.Top, obj.Height),
+            _ => (0f, 0f)
+        };
+        return room > 0f && size + DocumentRenderer.SelectionPadMm * 2f > room + 0.01f;
+    }
+
+    /// <summary>
+    /// 맞춤 뒤 자리를 계산한다. 여럿을 골랐으면 선택 전체를 감싸는 네모가 기준이며, 잠긴 항목도
+    /// 기준에는 넣되 움직이지는 않는다(잠근 항목을 그대로 둔 기준선 노릇을 한다).
+    /// 하나만 골랐으면 맞출 상대가 없으므로 라벨 칸의 칼선을 기준으로 삼는다. 2mm 안쪽에
+    /// 그려지는 인쇄 안전선은 눈으로 보는 길잡이일 뿐이라 맞춤이 거기서 멈추지 않는다.
+    /// 이때 붙이는 것은 상자가 아니라 눈에 보이는 항목의 영역, 곧 선택 테두리까지다.
+    /// 가운데 맞춤은 사방을 똑같이 들이므로 결과가 달라지지 않는다.
+    /// 회전은 무시하고 상자 기준으로 맞춘다.
     /// </summary>
     private List<(DesignObject Obj, float X, float Y)> PlanAlign(AlignEdge edge)
     {
         var moves = new List<(DesignObject, float, float)>();
         var all = SelectedObjects;
-        if (all.Count < 2) return moves;
+        if (all.Count == 0) return moves;
 
-        var left = all.Min(o => o.X);
-        var right = all.Max(o => o.X + o.Width);
-        var top = all.Min(o => o.Y);
-        var bottom = all.Max(o => o.Y + o.Height);
+        var one = all.Count == 1;
+        var cut = CutBoxMm();
+        var left = one ? cut.Left : all.Min(o => o.X);
+        var right = one ? cut.Right : all.Max(o => o.X + o.Width);
+        var top = one ? cut.Top : all.Min(o => o.Y);
+        var bottom = one ? cut.Bottom : all.Max(o => o.Y + o.Height);
+
+        // 항목은 제 상자보다 조금 넓게 그려진다(선택 테두리). 라벨에 맞출 때는 그 번짐까지
+        // 넣어 세야 눈에 보이는 테두리가 칼선 안으로 들어온다. 상자만 보고 맞추면 테두리가
+        // 칼선을 넘어 걸쳐, 맞췄는데도 밖으로 나간 것처럼 보인다.
+        // 항목끼리 맞출 때는 기준이 다른 항목의 상자이므로 번짐을 넣지 않는다. 넣으면 서로
+        // 맞춘 변이 0.6mm 씩 벌어진다.
+        var bleed = one ? DocumentRenderer.SelectionPadMm : 0f;
 
         foreach (var obj in all)
         {
             if (obj.Locked) continue;
             var x = edge switch
             {
-                AlignEdge.Left => left,
+                AlignEdge.Left => left + bleed,
                 AlignEdge.CenterX => (left + right - obj.Width) / 2f,
-                AlignEdge.Right => right - obj.Width,
+                AlignEdge.Right => right - obj.Width - bleed,
                 _ => obj.X
             };
             var y = edge switch
             {
-                AlignEdge.Top => top,
+                AlignEdge.Top => top + bleed,
                 AlignEdge.CenterY => (top + bottom - obj.Height) / 2f,
-                AlignEdge.Bottom => bottom - obj.Height,
+                AlignEdge.Bottom => bottom - obj.Height - bleed,
                 _ => obj.Y
             };
+
+            if (one)
+            {
+                // 항목이 라벨 칸보다 크면 어느 쪽에 맞춰도 반대쪽이 넘친다. 그래도 밖으로
+                // 내보내지는 않고 들어갈 수 있는 쪽(왼쪽·위쪽) 끝에 붙여 둔다. 아래 Max 가
+                // Min 보다 나중이라, 넣을 자리가 없을 때는 그 끝이 이긴다.
+                // 가운데 맞춤은 일부러 양쪽으로 고르게 넘치라고 고른 것이라 묶지 않는다.
+                if (edge is AlignEdge.Left or AlignEdge.Right)
+                    x = Math.Max(left + bleed, Math.Min(x, right - obj.Width - bleed));
+                if (edge is AlignEdge.Top or AlignEdge.Bottom)
+                    y = Math.Max(top + bleed, Math.Min(y, bottom - obj.Height - bleed));
+            }
+
             // 0.01mm 안쪽 차이는 이미 맞은 것으로 본다.
             if (Math.Abs(x - obj.X) < 0.01f && Math.Abs(y - obj.Y) < 0.01f) continue;
             moves.Add((obj, x, y));

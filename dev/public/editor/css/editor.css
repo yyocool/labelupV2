@@ -938,6 +938,15 @@ html[data-ed-save="off"] .ed-autosave:hover {
   width: 28px;
   height: 28px;
   background: #f3e8ec;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: #7b2840;
+  line-height: 1;
+  /* 이 칸은 그림판을 끄는 손잡이다. 끌 때 글자가 잡혀 끌리지 않게 막는다. */
+  user-select: none;
 }
 .ed-guides__tick {
   position: absolute;
@@ -2004,8 +2013,16 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 .ed-preview__cell {
   position: absolute;
   box-sizing: border-box;
-  border: 1px solid var(--ed-border);
-  border-radius: 2px;
+  /* 재단선을 테두리로 그리지 않는다. 테두리는 저마다 제 상자 안쪽에 그려지므로 맞붙은
+     라벨 사이에서는 두 줄이 나란히 놓여 2px 로 굵어지고, 간격이 0인 용지가 벌어져 보인다.
+     실제 재단선은 맞붙은 두 라벨이 한 줄을 나눠 쓴다. 그래서 위·왼쪽 안쪽에만 한 줄을
+     깔아 경계마다 1px 만 남게 한다. 아래·오른쪽 끝은 받침지 색이 라벨과 달라
+     선을 긋지 않아도 경계가 드러난다.
+     모서리를 둥글리거나 그림자를 드리우는 것도 맞붙은 라벨을 떨어진 조각으로 보이게 하므로
+     두지 않는다. 둥근 모서리가 실제로 있는 용지는 규격의 반경을 인라인 스타일로 따로 받는다. */
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 1px 1px 0 var(--ed-border);
   background: #fff;
   display: flex;
   align-items: stretch;
@@ -2013,7 +2030,6 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   cursor: pointer;
   padding: 0;
   overflow: hidden;
-  box-shadow: 0 1px 2px rgba(46, 42, 39, 0.04);
 }
 .ed-preview__cell.is-round {
   border-radius: 50%;
@@ -2024,8 +2040,9 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   box-shadow: none;
 }
 .ed-preview__cell.is-selected {
-  border-color: var(--ed-primary);
-  box-shadow: 0 0 0 2px rgba(123, 40, 64, 0.16);
+  /* 고른 칸의 테두리도 안쪽에 깐다. 테두리로 두르면 칸이 1px 씩 밀려, 고를 때마다
+     라벨 자리가 흔들린 것처럼 보인다. */
+  box-shadow: inset 0 0 0 1.5px var(--ed-primary), 0 0 0 2px rgba(123, 40, 64, 0.16);
 }
 .ed-preview__thumb {
   width: 100%;
@@ -4009,14 +4026,39 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(46, 42, 39, 0.12);
   overflow: hidden;
+  /* 두 모습 모두 세로로 쌓는다. 그래야 끌어서 아무 높이로 두어도 표가 남는 자리를 채운다. */
+  display: flex;
+  flex-direction: column;
 }
+/* 아직 끌어서 높이를 정한 적이 없을 때 쓰는 기본 높이. 끌면 인라인 height 가 이긴다. */
 .ed-data-panel.is-mini { max-height: 168px; }
 .ed-data-panel.is-expanded {
   height: 50vh;
   max-height: 50vh;
-  display: flex;
-  flex-direction: column;
 }
+/* 위쪽 선. 여기를 잡고 위아래로 끌어 판넬을 키우고 줄인다. */
+.ed-data-panel__grip {
+  flex-shrink: 0;
+  height: 11px;
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #faf6f7;
+  border-bottom: 1px solid var(--ed-border);
+  touch-action: none;
+}
+.ed-data-panel__grip::before {
+  content: "";
+  width: 40px;
+  height: 3px;
+  border-radius: 999px;
+  background: #d8c3cb;
+}
+.ed-data-panel__grip:hover::before { background: var(--burgundy); }
+/* 끄는 동안은 글자가 잡혀 끌리지 않게 막는다. */
+.ed-data-panel.is-resizing { user-select: none; }
+.ed-data-panel.is-resizing .ed-data-panel__grip::before { background: var(--burgundy); }
 .ed-data-panel__bar {
   display: flex;
   align-items: center;
@@ -4028,32 +4070,23 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 }
 .ed-data-panel__bar strong { color: var(--burgundy); }
 .ed-data-panel__bar span { color: var(--muted); flex: 1; }
-.ed-data-panel__table-wrap { overflow: auto; max-height: 118px; }
-.ed-data-panel.is-expanded .ed-data-panel__table-wrap { flex: 1; max-height: none; min-height: 0; }
-.ed-data-panel__expand {
-  position: absolute;
-  inset: 36px 0 0 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.55) 40%, rgba(255,255,255,0.82) 100%);
-}
-.ed-data-panel__expand-btn {
-  pointer-events: auto;
-  min-width: 88px;
-  height: 36px;
-  border: 1px solid #E8D4DB;
-  border-radius: 999px;
-  background: #7B2840;
-  color: #fff;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 800;
-  cursor: pointer;
-  box-shadow: 0 8px 20px rgba(123, 40, 64, 0.28);
-}
+/* 표는 제목줄을 뺀 나머지를 다 쓴다. 판넬 높이가 자라면 보이는 행도 같이 늘어난다. */
+.ed-data-panel__table-wrap { overflow: auto; flex: 1; min-height: 0; }
 .ed-data-colhead { display: grid; gap: 4px; justify-items: start; }
+.ed-data-colhead__acts { display: inline-flex; align-items: center; gap: 4px; }
+.ed-data-colhead__del {
+  border: 1px solid #e8d4db;
+  border-radius: 7px;
+  background: #fff;
+  color: var(--burgundy);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  cursor: pointer;
+}
+.ed-data-colhead__del:hover:not(:disabled) { background: #fbeff3; }
+.ed-data-colhead__del:disabled { opacity: 0.4; cursor: default; }
 .ed-data-colhead em { font-style: normal; font-weight: 800; }
 .ed-data-colhead__add {
   height: 22px;
@@ -4074,6 +4107,35 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 }
 .ed-data-panel__empty { text-align: center; color: var(--muted); }
 .ed-data-table__idx { width: 36px; text-align: center; color: var(--muted); }
+/* 번호 칸을 잡고 끌면 행 차례가 바뀐다. 잡을 수 있다는 것이 보이게 손 모양과 점선을 둔다. */
+.ed-data-table__idx--handle {
+  cursor: grab;
+  user-select: none;
+  font-weight: 800;
+}
+.ed-data-table__idx--handle:hover {
+  background: #fbeff3;
+  color: var(--burgundy);
+}
+.ed-data-panel__table-wrap.is-reordering,
+.ed-data-panel__table-wrap.is-reordering .ed-data-table__idx--handle {
+  cursor: grabbing;
+  user-select: none;
+}
+.ed-data-table tr.is-row-dragging > td {
+  background: #fbeff3;
+  opacity: 0.75;
+}
+/* 놓을 자리를 알려 주는 선. 판넬(z-index 88)보다 위에 떠야 가려지지 않는다. */
+.ed-data-drop {
+  position: fixed;
+  z-index: 200;
+  height: 3px;
+  border-radius: 99px;
+  background: var(--ed-primary, #7b2840);
+  box-shadow: 0 0 0 2px rgba(123, 40, 64, 0.16);
+  pointer-events: none;
+}
 .ed-bind { display: grid; gap: 10px; }
 .ed-bind__opt { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
 /* 표시 형식과 다른 갈래의 물음이라 선을 하나 긋고 묶는다. */

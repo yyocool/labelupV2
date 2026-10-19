@@ -268,6 +268,8 @@
             Session.DataPanelVisible = dv.GetBoolean();
         if (ui.TryGetProperty("dataPanelExpanded", out var de) && (de.ValueKind is System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False))
             Session.DataPanelExpanded = de.GetBoolean();
+        if (ui.TryGetProperty("dataPanelHeight", out var dh) && dh.TryGetInt32(out var panelH) && panelH > 0)
+            Session.DataPanelHeight = Math.Max(EditorSession.DataPanelMinHeight, panelH);
         if (ui.TryGetProperty("pageIndex", out var pi) && pi.TryGetInt32(out var page))
             Session.PageIndex = Math.Max(0, page);
         if (ui.TryGetProperty("labelIndex", out var li) && li.TryGetInt32(out var label))
@@ -762,6 +764,7 @@
         {
             _self = DotNetObjectReference.Create(this);
             try { await Js.InvokeVoidAsync("labelUpEditor.bindHotkeys", _self); } catch { }
+            try { await Js.InvokeVoidAsync("labelUpEditor.bindDataPanelResize", _self); } catch { }
             try { await Js.InvokeVoidAsync("labelUpEditor.bindVendorDrop", "[data-ed-workspace]", _self); } catch { }
             try { await Js.InvokeVoidAsync("labelUpEditor.bindLabi", _self); } catch { }
             try { await Js.InvokeVoidAsync("labelUpEditor.watchLocalFonts", _self); } catch { }
@@ -884,6 +887,31 @@
         if (Session.Dialog != EditorDialog.None) return;
         SelectionActions.DeleteSelection(Session, History);
     }
+
+    /// <summary>
+    /// 방향키로 고른 항목을 옮긴다. 키를 누르고 있으면 운영체제가 같은 키를 계속 보내는데,
+    /// 그때마다 되돌리기 단계를 쌓으면 한 번 옮긴 것을 되돌리는 데 수십 번을 눌러야 한다.
+    /// 그래서 쉬지 않고 이어지는 동안은 한 단계로 묶고, 손을 뗐다 다시 누르면 새 단계로 센다.
+    /// </summary>
+    [JSInvokable]
+    public void OnEditorNudge(float dx, float dy)
+    {
+        if (Session.Dialog != EditorDialog.None) return;
+        if (Session.SelectedIds.Count == 0) return;
+        var now = Environment.TickCount64;
+        if (now - _lastNudgeAt > NudgeGroupMs)
+            History.Push(Session.Document);
+        _lastNudgeAt = now;
+        Session.NudgeSelection(dx * EditorSession.NudgeStepMm, dy * EditorSession.NudgeStepMm);
+    }
+
+    /// <summary>방향키 이동을 한 되돌리기 단계로 묶는 시간(ms).</summary>
+    private const long NudgeGroupMs = 700;
+    private long _lastNudgeAt;
+
+    /// <summary>자료 판넬 위쪽 선을 끌어 정한 높이(px)를 받는다.</summary>
+    [JSInvokable]
+    public void OnDataPanelResized(int height) => Session.SetDataPanelHeight(height);
 
     [JSInvokable]
     public void OnEditorUndo()

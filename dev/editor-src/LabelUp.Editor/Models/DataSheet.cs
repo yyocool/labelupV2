@@ -84,6 +84,26 @@ public sealed class DataSheet
         Rows.RemoveAt(row);
     }
 
+    /// <summary>
+    /// 행 하나를 다른 자리로 옮긴다. <paramref name="to"/> 는 그 행을 빼낸 뒤에 세는 자리 번호다
+    /// (끌어 놓기가 알려 주는 번호와 같은 셈법이고, 레이어 순서 바꾸기도 같은 약속을 쓴다).
+    /// </summary>
+    /// <returns>자리가 실제로 바뀌었으면 true.</returns>
+    public bool MoveRow(int from, int to)
+    {
+        if (from < 0 || from >= Rows.Count) return false;
+        var row = Rows[from];
+        Rows.RemoveAt(from);
+        to = Math.Clamp(to, 0, Rows.Count);
+        if (to == from)
+        {
+            Rows.Insert(from, row);
+            return false;
+        }
+        Rows.Insert(to, row);
+        return true;
+    }
+
     public void AddRow(IEnumerable<string>? values = null)
     {
         var line = values?.ToList() ?? [];
@@ -101,6 +121,10 @@ public sealed class DataSheet
         Columns.Add(unique);
         foreach (var row in Rows)
             row.Add("");
+        // 파일에서 온 첫 줄을 들고 있다면 자리를 같이 늘려 둔다. 칸 수가 어긋나면
+        // SetFirstRowIsData 가 끼워 넣는 줄이 한 칸씩 밀린다. 새 열에는 원래 값이 없으므로 빈칸이다.
+        if (HeaderTexts.Count > 0)
+            HeaderTexts.Add("");
         return unique;
     }
 
@@ -122,6 +146,10 @@ public sealed class DataSheet
             if (col < row.Count)
                 row.RemoveAt(col);
         }
+        // 열과 같은 자리의 첫 줄 값도 같이 뺀다. 남겨 두면 자리가 밀려, 첫 줄을 자료로 되돌릴 때
+        // 엉뚱한 열에 값이 들어간다.
+        if (col < HeaderTexts.Count)
+            HeaderTexts.RemoveAt(col);
     }
 
     public DataSheet Clone()

@@ -123,14 +123,15 @@
         }
       </span>
       <button type="button" class="@(o.Locked ? "is-on" : null)" title="잠금" @onclick="() => Toggle(v => o.Locked = v, o.Locked)">잠금</button>
-      @* 맞춤은 기준이 될 상대가 있어야 뜻이 있으므로 두 개 이상 골랐을 때만 낸다. *@
-      @if (Session.SelectedIds.Count > 1)
+      @* 여럿이면 서로 맞추고, 하나면 라벨 칸에 맞춘다. 어느 쪽이든 맞출 기준이 있으므로
+         고른 것이 있기만 하면 낸다. *@
+      @if (Session.SelectedIds.Count > 0)
       {
         <span class="ed-ctx-bar__div"></span>
         <span class="ed-ctx-bar__slot" data-slot="align">
           @foreach (var edge in AlignEdges)
           {
-            <button type="button" title="@EditorSession.AlignName(edge)" @onclick="() => AlignSelected(edge)">
+            <button type="button" title="@Session.AlignHint(edge)" @onclick="() => AlignSelected(edge)">
               <svg class="ed-ctx-bar__al-ico" viewBox="0 0 24 24" aria-hidden="true">
                 @foreach (var r in AlignIconRects(edge))
                 {
@@ -435,11 +436,18 @@
         <span class="ed-ctx-bar__slot" data-slot="fit">
           <em class="ed-ctx-bar__lab">이미지</em>
           <InputFile OnChange="OnImage" accept="image/*" />
-          <select title="맞춤" value="@o.ImageFit" @onchange="e => SetString(v => o.ImageFit = v, e)">
-            <option value="contain">맞춤</option>
-            <option value="cover">채우기</option>
-            <option value="stretch">늘리기</option>
-          </select>
+          @* 고르는 칸이 아니라 누르는 단추로 둔다. 고르는 칸은 이미 고른 것과 같은 값을 다시
+             고를 수 없어서, 「맞춤」으로 되어 있는 그림을 라벨에 다시 맞추려 눌러도 아무 일이
+             일어나지 않았다. 누를 때마다 다시 앉히는 일거리라 단추가 맞다. *@
+          <button type="button" class="@(o.ImageFit == "contain" ? "is-on" : null)"
+                  title="라벨 안에 비율 그대로 들어가게 맞춥니다"
+                  @onclick="@(() => ApplyImageFit("contain"))">맞춤</button>
+          <button type="button" class="@(o.ImageFit == "cover" ? "is-on" : null)"
+                  title="라벨을 가득 채웁니다. 넘치는 쪽은 잘립니다"
+                  @onclick="@(() => ApplyImageFit("cover"))">채우기</button>
+          <button type="button" class="@(o.ImageFit == "stretch" ? "is-on" : null)"
+                  title="비율을 버리고 라벨 크기에 꼭 맞게 늘립니다"
+                  @onclick="@(() => ApplyImageFit("stretch"))">늘리기</button>
           <button type="button" class="@(o.FlipHorizontal ? "is-on" : null)" title="좌우 반전" @onclick="() => Toggle(v => o.FlipHorizontal = v, o.FlipHorizontal)">뒤집기</button>
           <button type="button" class="@(o.FlipVertical ? "is-on" : null)" title="상하 반전" @onclick="() => Toggle(v => o.FlipVertical = v, o.FlipVertical)">상하</button>
           <label class="ed-field ed-field--check" title="크기를 바꿔도 지금 상자의 가로세로 비를 그대로 지킵니다">
@@ -687,12 +695,12 @@
 
     private void AlignSelected(AlignEdge edge)
     {
-        if (Session.SelectedIds.Count < 2) return;
+        if (Session.SelectedIds.Count < 1) return;
         if (!Session.CanAlignSelection(edge))
         {
             Session.Status = Session.SelectedObjects.All(o => o.Locked)
                 ? "잠긴 항목은 맞출 수 없습니다"
-                : $"{EditorSession.AlignName(edge)} — 이미 맞춰져 있습니다";
+                : $"{Session.AlignHint(edge)} — 이미 맞춰져 있습니다";
             Session.Notify();
             return;
         }
@@ -952,6 +960,22 @@
         o.BarcodeFormat = e.Value?.ToString() ?? "";
         if (IsKoreanPost(o))
             o.BarcodeShowText = false;
+        Touch();
+    }
+
+    /// <summary>
+    /// 그림 상자를 라벨 크기에 맞춰 다시 앉힌다. 고른 그림이 여럿이면 모두 같이 맞춘다.
+    /// 상자를 건드리지 않고 ImageFit 만 바꾸면 그림을 넣을 때 이미 원본 비율로 잡아 둔 상자 탓에
+    /// 셋이 모두 똑같아 보여, 눌러도 아무 일이 없는 것처럼 느껴진다.
+    /// </summary>
+    private void ApplyImageFit(string mode)
+    {
+        if (BindGuarded) return;
+        var images = Session.SelectedObjects.Where(x => x.Type == ObjectType.Image && !x.Locked).ToList();
+        if (images.Count == 0) return;
+        History.Push(Session.Document);
+        foreach (var img in images)
+            Session.FitImageToLabel(img, mode);
         Touch();
     }
 

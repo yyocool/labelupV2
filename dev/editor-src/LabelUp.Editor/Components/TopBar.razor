@@ -351,20 +351,22 @@
             var saved = await Export.SaveTextAsAsync(json, LabelFileName(Session.Document.Name));
             if (string.IsNullOrEmpty(saved))
             {
+                // 저장 창에서 사람이 직접 취소한 것이라 알릴 일이 아니다.
                 Session.Status = "파일 저장을 취소했습니다";
+                Session.Notify();
             }
             else
             {
                 await Drafts.SaveAsync(Session.Document);
                 Session.Status = $"{saved} 파일로 저장했습니다";
+                Session.ShowNotice("저장", $"저장되었습니다.\n{saved}");
             }
         }
         catch (Exception ex)
         {
             EditorLog.Error("라벨 파일 저장 실패", ex);
-            Session.Status = "파일 저장 실패: " + ex.Message;
+            Session.ShowError("저장 실패", "파일로 저장하지 못했습니다.\n" + EditorSession.FriendlyError(ex));
         }
-        Session.Notify();
     }
 
     private static string LabelFileName(string? name)
@@ -400,9 +402,11 @@
                 cloudOk = await Cloud.EnsureLoggedInForSaveAsync();
                 if (!cloudOk)
                 {
+                    // 로그인하지 않았어도 이 브라우저의 초안에는 저장이 끝났다. 저장은 저장이므로
+                    // 알리되, 계정에는 올라가지 않았다는 것을 같이 적는다.
                     Session.Dirty = false;
                     Session.Status = "로컬 초안에 저장됨";
-                    Session.Notify();
+                    Session.ShowNotice("저장", "저장되었습니다.\n로그인하지 않아 이 브라우저에만 보관했습니다.");
                     return;
                 }
             }
@@ -427,6 +431,7 @@
                     previewMinimized = Session.PreviewMinimized,
                     dataPanelVisible = Session.DataPanelVisible,
                     dataPanelExpanded = Session.DataPanelExpanded,
+                    dataPanelHeight = Session.DataPanelHeight,
                     pageIndex = Session.PageIndex,
                     labelIndex = Session.LabelIndex
                 };
@@ -440,13 +445,25 @@
             Session.Status = auto
                 ? (cloudOk ? "자동저장됨 · 계정에 보관했습니다" : "자동저장됨 · 로컬 초안")
                 : "저장됨 · 계정에 작업과 미리보기를 보관했습니다";
-            Session.Notify();
+            // 자동저장은 사람이 누른 것이 아니라 5분마다 저절로 도는 것이라 팝업을 띄우지 않는다.
+            // 띄우면 편집하는 내내 창이 튀어나와 일을 끊는다.
+            if (auto)
+                Session.Notify();
+            else
+                Session.ShowNotice("저장", "저장되었습니다.");
         }
         catch (Exception ex)
         {
             EditorLog.Error(auto ? "자동저장 실패" : "저장 실패", ex);
-            Session.Status = (auto ? "자동저장 실패: " : "저장 실패: ") + ex.Message;
-            Session.Notify();
+            if (auto)
+            {
+                Session.Status = "자동저장 실패: " + ex.Message;
+                Session.Notify();
+            }
+            else
+            {
+                Session.ShowError("저장 실패", "저장하지 못했습니다.\n" + EditorSession.FriendlyError(ex));
+            }
         }
         finally
         {

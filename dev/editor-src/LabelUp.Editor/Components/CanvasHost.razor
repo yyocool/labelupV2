@@ -66,7 +66,8 @@
         }
       }
     </div>
-    <div class="ed-guides__corner" style="@($"left:{rLeft:0.##}px;top:{rTop:0.##}px")"></div>
+    @* 두 자가 만나는 모서리 칸. 자에 적힌 숫자가 무슨 단위인지 여기에 적어 둔다. *@
+    <div class="ed-guides__corner" style="@($"left:{rLeft:0.##}px;top:{rTop:0.##}px")">mm</div>
   </div>
   @if (InlineEdit is { } editing)
   {
@@ -712,6 +713,7 @@
             },
             skipObjectId: _inlineId,
             clipObjects: false);
+        DrawSafeArea(canvas, doc);
         if (Fonts.IsReady)
         {
             foreach (var sel in Session.SelectedObjects)
@@ -721,6 +723,44 @@
 
         if (_marquee)
             DrawMarquee(canvas, bleedX, bleedY, scale);
+    }
+
+    /// <summary>
+    /// 인쇄 안전영역. 칼선에서 2mm 안쪽에 파선을 두른다. 재단 자리가 조금씩 어긋나므로
+    /// 이 선 밖에 둔 글씨나 바코드는 잘려 나갈 수 있다. 눈으로 보는 길잡이일 뿐이어서,
+    /// 맞춤은 이 선이 아니라 칼선에 붙는다(<see cref="EditorSession.CutBoxMm"/>).
+    /// 화면에만 그린다. 그리는 자리가 CanvasHost 라서 인쇄·내보내기 그림에는 들어가지 않는다.
+    /// 칼선 모양을 통째로 2mm 깎아 쓰므로 원형·하트는 물론, 구멍 뚫린 용지는 구멍 둘레에서도
+    /// 같이 2mm 비켜난다. 네모 자리에 네모를 그리는 식으로는 그 둘을 다 맞출 수 없다.
+    /// </summary>
+    private void DrawSafeArea(SKCanvas canvas, LabelDocument doc)
+    {
+        if (!Session.HasSafeArea) return;
+
+        using var outline = DocumentRenderer.CreateLabelPath(doc.Paper.Shape, doc.WidthMm, doc.HeightMm);
+        if (outline.IsEmpty) return;
+
+        // 칼선 위에 4mm 폭의 띠를 올려 놓고 그만큼 도려내면 2mm 안쪽 모양이 남는다.
+        using var pen = new SKPaint
+        {
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = EditorSession.SafeAreaMm * 2f,
+            StrokeJoin = SKStrokeJoin.Miter
+        };
+        using var band = new SKPath();
+        if (!pen.GetFillPath(outline, band)) return;
+        using var safe = outline.Op(band, SKPathOp.Difference);
+        if (safe is null || safe.IsEmpty) return;
+
+        using var paint = new SKPaint
+        {
+            Color = new SKColor(0xE0, 0x1B, 0x24),
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = 0.2f,
+            IsAntialias = true,
+            PathEffect = SKPathEffect.CreateDash([1f, 0.8f], 0)
+        };
+        canvas.DrawPath(safe, paint);
     }
 
     private static float RulerStep(float zoom)

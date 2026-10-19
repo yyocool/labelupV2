@@ -126,6 +126,8 @@ public sealed class EditorCloudStorage(IJSRuntime js)
             session.DataPanelVisible = dv.GetBoolean();
         if (ui.TryGetProperty("dataPanelExpanded", out var de) && (de.ValueKind is JsonValueKind.True or JsonValueKind.False))
             session.DataPanelExpanded = de.GetBoolean();
+        if (ui.TryGetProperty("dataPanelHeight", out var dh) && dh.TryGetInt32(out var panelH) && panelH > 0)
+            session.DataPanelHeight = Math.Max(EditorSession.DataPanelMinHeight, panelH);
         if (ui.TryGetProperty("pageIndex", out var pi) && pi.TryGetInt32(out var page))
             session.PageIndex = Math.Max(0, page);
         if (ui.TryGetProperty("labelIndex", out var li) && li.TryGetInt32(out var label))

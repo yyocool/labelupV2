@@ -2767,6 +2767,14 @@ public static class DocumentRenderer
                || path.EndsWith(".gif", StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// 선택 테두리를 항목 상자에서 얼마나 띄워 그릴지(mm).
+    /// 쓰는 사람 눈에는 이 테두리가 곧 항목의 영역이라, 맞춤도 이만큼을 항목 크기에 넣어 센다
+    /// (<see cref="Services.EditorSession.AlignSelection"/>). 상자를 안전선에 딱 붙이면
+    /// 보이는 테두리는 그만큼 선을 넘어 걸친다.
+    /// </summary>
+    public const float SelectionPadMm = 0.6f;
+
     public static void DrawSelection(SKCanvas canvas, DesignObject obj, float pxPerMm, float zoom)
     {
         canvas.Save();
@@ -2775,7 +2783,7 @@ public static class DocumentRenderer
             canvas.RotateDegrees(obj.Rotation);
         canvas.Translate(-obj.Width / 2f, -obj.Height / 2f);
 
-        var pad = 0.6f;
+        var pad = SelectionPadMm;
         var rect = new SKRect(-pad, -pad, obj.Width + pad, obj.Height + pad);
         using var box = new SKPaint
         {
@@ -2816,7 +2824,7 @@ public static class DocumentRenderer
         canvas.Restore();
     }
 
-    public static IEnumerable<(float X, float Y)> HandleCenters(DesignObject obj, float pad = 0.6f)
+    public static IEnumerable<(float X, float Y)> HandleCenters(DesignObject obj, float pad = SelectionPadMm)
     {
         float l = -pad, t = -pad, r = obj.Width + pad, b = obj.Height + pad;
         float cx = obj.Width / 2f, cy = obj.Height / 2f;

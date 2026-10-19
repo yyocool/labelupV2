@@ -34,6 +34,7 @@ public sealed class DesignSaveService(EditorSession session, DraftStorage drafts
                 previewMinimized = session.PreviewMinimized,
                 dataPanelVisible = session.DataPanelVisible,
                 dataPanelExpanded = session.DataPanelExpanded,
+                dataPanelHeight = session.DataPanelHeight,
                 pageIndex = session.PageIndex,
                 labelIndex = session.LabelIndex
             };

@@ -959,6 +959,13 @@ window.labelUpEditor = {
   bindHotkeys: function (dotnet) {
     if (window.__luEditorKeysBound) return;
     window.__luEditorKeysBound = true;
+    // 방향키 한 번에 움직일 칸수. 실제 거리(mm)는 편집기 쪽에서 곱한다.
+    var ARROW_STEPS = {
+      ArrowLeft: [-1, 0],
+      ArrowRight: [1, 0],
+      ArrowUp: [0, -1],
+      ArrowDown: [0, 1]
+    };
     document.addEventListener('keydown', function (e) {
       var t = e.target;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
@@ -987,6 +994,11 @@ window.labelUpEditor = {
       } else if (key === 'delete' || key === 'backspace') {
         e.preventDefault();
         dotnet.invokeMethodAsync('OnEditorDelete');
+      } else if (ARROW_STEPS[e.key]) {
+        // 방향키는 기본으로 화면을 굴린다. 고른 항목을 옮기는 동안은 그쪽을 막는다.
+        var step = ARROW_STEPS[e.key];
+        e.preventDefault();
+        dotnet.invokeMethodAsync('OnEditorNudge', step[0], step[1]);
       }
     });
     document.addEventListener('contextmenu', function (e) {
@@ -998,6 +1010,180 @@ window.labelUpEditor = {
       }
     }, true);
   },
+
+  // 자료 판넬에서 행 번호를 잡고 끌어 행 차례를 바꾼다.
+  bindDataRowDrag: function (dotnet) {
+    this._dataRowHost = dotnet;
+    if (this._dataRowDragBound) return;
+    this._dataRowDragBound = true;
+    var self = this;
+    var drag = null;
+    var line = null;
+    var THRESH = 5;
+
+    var rowEls = function () {
+      return Array.prototype.slice.call(
+        document.querySelectorAll('[data-ed-data-panel] tbody > tr[data-ed-row]'));
+    };
+
+    var ensureLine = function () {
+      if (line && line.isConnected) return line;
+      line = document.createElement('div');
+      line.className = 'ed-data-drop';
+      line.hidden = true;
+      document.body.appendChild(line);
+      return line;
+    };
+
+    // 끌던 행을 뺀 나머지에서 몇 번째 앞에 놓을지. 편집기 쪽 MoveRow 가 쓰는 셈법과 같다.
+    var dropIndexAt = function (clientY, from) {
+      var items = rowEls();
+      if (!items.length) return from;
+      var others = items.filter(function (_, i) { return i !== from; });
+      var to = others.length;
+      for (var i = 0; i < others.length; i++) {
+        var r = others[i].getBoundingClientRect();
+        if (clientY < r.top + r.height / 2) { to = i; break; }
+      }
+      return to;
+    };
+
+    var placeLine = function (to, from) {
+      var items = rowEls();
+      var wrap = document.querySelector('[data-ed-data-panel] .ed-data-panel__table-wrap');
+      if (!wrap || !items.length) return;
+      var others = items.filter(function (_, i) { return i !== from; });
+      var box = wrap.getBoundingClientRect();
+      var y;
+      if (!others.length) y = box.top;
+      else if (to <= 0) y = others[0].getBoundingClientRect().top;
+      else if (to >= others.length) y = others[others.length - 1].getBoundingClientRect().bottom;
+      else y = others[to].getBoundingClientRect().top;
+      var marker = ensureLine();
+      // 표가 굴러가 있으면 선이 판넬 밖으로 비어져 나간다. 보이는 자리 안으로 묶어 둔다.
+      marker.style.top = (Math.min(Math.max(y, box.top), box.bottom) - 1) + 'px';
+      marker.style.left = box.left + 'px';
+      marker.style.width = box.width + 'px';
+      marker.hidden = false;
+    };
+
+    var finish = function (s) {
+      if (s.row) s.row.classList.remove('is-row-dragging');
+      var wrap = document.querySelector('[data-ed-data-panel] .ed-data-panel__table-wrap');
+      if (wrap) wrap.classList.remove('is-reordering');
+      if (line) line.hidden = true;
+    };
+
+    document.addEventListener('pointerdown', function (e) {
+      var t = e.target;
+      if (e.button !== 0 || !t || !t.closest) return;
+      var handle = t.closest('[data-ed-row-handle]');
+      if (!handle) return;
+      var row = handle.closest('tr[data-ed-row]');
+      if (!row || rowEls().length < 2) return;
+      var from = parseInt(row.getAttribute('data-ed-row'), 10);
+      if (isNaN(from)) return;
+      e.preventDefault();
+      drag = { row: row, handle: handle, from: from, to: from, startY: e.clientY, dragging: false };
+    }, true);
+
+    document.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      if (!drag.dragging) {
+        if (Math.abs(e.clientY - drag.startY) < THRESH) return;
+        drag.dragging = true;
+        drag.row.classList.add('is-row-dragging');
+        var wrap = document.querySelector('[data-ed-data-panel] .ed-data-panel__table-wrap');
+        if (wrap) wrap.classList.add('is-reordering');
+        try { drag.handle.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      }
+      e.preventDefault();
+      drag.to = dropIndexAt(e.clientY, drag.from);
+      placeLine(drag.to, drag.from);
+    }, true);
+
+    document.addEventListener('pointerup', function (e) {
+      if (!drag) return;
+      var s = drag;
+      drag = null;
+      finish(s);
+      if (!s.dragging || s.to === s.from) return;
+      e.preventDefault();
+      var dn = self._dataRowHost;
+      if (!dn) {
+        console.warn('[labelup] data row drag host missing');
+        return;
+      }
+      dn.invokeMethodAsync('ReorderDataRows', s.from, s.to);
+    }, true);
+  },
+
+  // 자료 판넬 위쪽 선을 잡고 끌어 높이를 바꾼다.
+  bindDataPanelResize: function (dotnet) {
+    if (window.__luDataPanelResizeBound) return;
+    window.__luDataPanelResizeBound = true;
+    var MIN = 120;
+    var drag = null;
+
+    // 판넬에는 화면 배율(--ed-ui-scale)이 zoom 으로 걸려 있다. 마우스가 움직인 거리는 화면에서
+    // 잰 값이라, 판넬 안쪽 자로 바꾸려면 배율로 나눠야 끌린 만큼만 늘어난다.
+    function uiScale() {
+      var root = document.querySelector('[data-ed-root]');
+      if (!root) return 1;
+      var v = parseFloat(getComputedStyle(root).getPropertyValue('--ed-ui-scale'));
+      return v > 0.05 ? v : 1;
+    }
+
+    // 작업 공간보다 커지면 위쪽이 화면 밖으로 넘어가 잡을 선이 사라진다.
+    function roomFor(panel) {
+      var host = panel.offsetParent || panel.parentElement;
+      var room = host ? host.clientHeight : window.innerHeight;
+      return Math.max(MIN, room - 56);
+    }
+
+    document.addEventListener('pointerdown', function (e) {
+      var t = e.target;
+      if (!t || !t.closest || e.button !== 0) return;
+      var grip = t.closest('[data-ed-data-grip]');
+      if (!grip) return;
+      var panel = grip.closest('[data-ed-data-panel]');
+      if (!panel) return;
+      e.preventDefault();
+      e.stopPropagation();
+      // offsetHeight 는 zoom 이 걸리기 전 자리값이라, 우리가 style.height 에 적는 수와 같은 자다.
+      drag = {
+        panel: panel,
+        startY: e.clientY,
+        startH: panel.offsetHeight,
+        scale: uiScale(),
+        max: roomFor(panel),
+        last: 0
+      };
+      panel.classList.add('is-resizing');
+      try { grip.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    }, true);
+
+    document.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      // 위로 끌면 dy 가 음수가 되고 판넬이 커진다.
+      var dy = (e.clientY - drag.startY) / drag.scale;
+      var h = Math.round(Math.min(drag.max, Math.max(MIN, drag.startH - dy)));
+      drag.panel.style.height = h + 'px';
+      drag.panel.style.maxHeight = 'none';
+      drag.last = h;
+    });
+
+    document.addEventListener('pointerup', function () {
+      if (!drag) return;
+      var panel = drag.panel;
+      var h = drag.last;
+      panel.classList.remove('is-resizing');
+      drag = null;
+      // 누르기만 하고 끌지 않았으면 높이를 건드리지 않는다.
+      if (h > 0) dotnet.invokeMethodAsync('OnDataPanelResized', h);
+    }, true);
+  },
+
   hideErrorUi: function () {
     var el = document.getElementById('blazor-error-ui');
     if (!el) return;
