@@ -43,8 +43,15 @@
           </article>
           <?php endforeach; ?>
         </div>
-        <button class="hero-nav hero-prev" type="button" aria-label="이전">‹</button>
-        <button class="hero-nav hero-next" type="button" aria-label="다음">›</button>
+        <div class="hero-pager">
+          <button class="hero-nav hero-prev" type="button" aria-label="이전 슬라이드">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>
+          </button>
+          <span class="hero-pager-count" data-hero-count>1 / <?= max(1, count($heroSlides ?? [])) ?></span>
+          <button class="hero-nav hero-next" type="button" aria-label="다음 슬라이드">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+          </button>
+        </div>
         <div class="hero-dots">
           <?php foreach (($heroSlides ?? []) as $i => $_): ?>
           <button<?= $i === 0 ? ' class="active"' : '' ?> type="button" aria-label="<?= $i + 1 ?>"></button>
@@ -54,34 +61,53 @@
 
       <section class="prompt" id="aiPromptPanel">
         <div class="prompt-head">
+          <span class="prompt-mark" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg>
+          </span>
           <div class="prompt-title">
             <b>라비와 라벨 만들기</b>
-            <span>원하는 라벨을 말로 설명하면 디자인을 바로 제안해요</span>
+            <span class="prompt-sub" data-labi-sub data-idle-text="원하는 라벨을 말로 설명해 보세요">원하는 라벨을 말로 설명해 보세요</span>
           </div>
           <div class="prompt-head-actions">
             <?php if (!empty($authUser)): ?>
             <button type="button" class="prompt-reuse-btn" data-labi-prompt-history>내 프롬프트</button>
             <?php endif; ?>
-            <span class="prompt-badge">AI DESIGN</span>
+            <button type="button" class="prompt-close" data-labi-close hidden>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+              대화 닫기
+            </button>
           </div>
         </div>
 
-        <div class="ai-chat-log" id="aiChatLog" hidden aria-live="polite"></div>
+        <div class="ai-chat-wrap">
+          <div class="ai-chat-log" id="aiChatLog" hidden aria-live="polite"></div>
+        </div>
 
         <div class="prompt-composer">
           <div class="ai-attach-preview" id="aiAttachPreview" hidden></div>
           <div class="prompt-row">
-            <div class="spark" aria-hidden="true">✦</div>
             <div class="prompt-input">
-              <textarea id="promptInput" rows="2" placeholder="어떤 라벨을 만들고 싶으신가요? 이미지·엑셀·워드·타사포맷도 첨부할 수 있어요"<?= empty($authUser) ? ' readonly' : '' ?>></textarea>
-              <div class="prompt-helper" id="promptHelper">제품명 · 용도 · 규격, 또는 이미지·엑셀·워드·폼텍/아이라벨/애니라벨 파일을 올리면 변환·템플릿까지 만들어 드려요<?= empty($authUser) ? ' · 이용하려면 로그인이 필요합니다' : '' ?></div>
+              <label class="sr-only" for="promptInput">원하는 라벨 설명</label>
+              <textarea id="promptInput" rows="1" placeholder="만들고 싶은 라벨을 설명해 주세요"<?= empty($authUser) ? ' readonly' : '' ?>></textarea>
+              <div class="prompt-helper" id="promptHelper" hidden><?= empty($authUser) ? '이용하려면 로그인이 필요합니다' : '' ?></div>
             </div>
+            <label class="prompt-mode">
+              <span class="sr-only">만들기 방식</span>
+              <select id="labiModeSelect" data-labi-mode-select>
+                <option value="auto">자동</option>
+                <option value="chat">대화</option>
+                <option value="clipart">클립아트</option>
+                <option value="template">템플릿</option>
+              </select>
+            </label>
             <div class="prompt-tools">
               <input type="file" id="aiFileInput" hidden multiple accept="image/*,.xlsx,.xls,.csv,.tsv,.docx,.doc,.txt,.json,.md,.pdf,.lbl,.idf,.xml,.dgz,.dgf,.fmt,.fdx,.zip">
               <button class="prompt-tool-btn" id="aiAttachBtn" type="button" title="파일 첨부" aria-label="파일 첨부">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21.44 11.05 12.25 20.24a5.5 5.5 0 0 1-7.78-7.78l9.19-9.19a3.5 3.5 0 1 1 4.95 4.95l-9.2 9.19a1.5 1.5 0 1 1-2.12-2.12l8.49-8.48" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M21 11l-8.5 8.5a5 5 0 0 1-7-7L14 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 7"></path></svg>
               </button>
-              <button class="send" id="sendBtn" type="button" disabled title="전송">➤</button>
+              <button class="send" id="sendBtn" type="button" disabled title="전송" aria-label="라비에게 보내기">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.5 4.2l17 7.8-17 7.8 2.8-7.8z"></path></svg>
+              </button>
             </div>
           </div>
         </div>

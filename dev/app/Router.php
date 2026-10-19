@@ -37,7 +37,6 @@ use App\Controllers\Api\AiChatApiController;
 use App\Controllers\Api\AiExamplePromptApiController;
 use App\Controllers\Api\AccountAddressApiController;
 use App\Controllers\Api\NotificationApiController;
-use App\Controllers\Api\AuthApiController;
 use App\Controllers\Api\EditorTemplateApiController;
 use App\Controllers\Api\EditorRemoteImageApiController;
 use App\Controllers\Api\EditorIlabelExcelApiController;
@@ -183,7 +182,6 @@ final class Router
         $health = new HealthController();
         $system = new SystemController();
         $seed = new SeedController();
-        $authApi = new AuthApiController();
         $editorWorkspaceApi = new EditorWorkspaceApiController();
         $library = new LibraryController();
         $libraryApi = new LibraryApiController();
@@ -363,24 +361,25 @@ final class Router
 
         $router->get('/api/legal/{key}', [$legalApi, 'show']);
 
-        $router->post('/api/auth/register', [$authApi, 'register']);
-        $router->post('/api/auth/login', [$authApi, 'login']);
-        $router->post('/api/auth/logout', [$authApi, 'logout']);
-        $router->get('/api/auth/me', [$authApi, 'me']);
-        $router->get('/api/auth/oauth', [$authApi, 'oauthProviders']);
+        $router->post('/api/auth/register', [$auth, 'apiRegister']);
+        $router->post('/api/auth/login', [$auth, 'apiLogin']);
+        $router->post('/api/auth/logout', [$auth, 'apiLogout']);
+        $router->get('/api/auth/me', [$auth, 'apiMe']);
+        $router->get('/api/auth/oauth', [$auth, 'oauthProviders']);
+        $router->post('/api/auth/oauth/google', [$auth, 'googleTokenLogin']);
         $router->get('/api/credit/me', [$creditApi, 'me']);
         $router->get('/api/notifications', [$notificationApi, 'index']);
         $router->get('/api/notifications/unread', [$notificationApi, 'unread']);
         $router->post('/api/notifications/read', [$notificationApi, 'markRead']);
         $router->get('/api/notifications/prefs', [$notificationApi, 'prefs']);
         $router->post('/api/notifications/prefs', [$notificationApi, 'savePrefs']);
-        $router->get('/api/auth/check-email', [$authApi, 'checkEmail']);
-        $router->post('/api/auth/profile', [$authApi, 'updateProfile']);
-        $router->post('/api/auth/password', [$authApi, 'changePassword']);
-        $router->post('/api/auth/withdraw', [$authApi, 'withdraw']);
-        $router->post('/api/auth/find-email', [$authApi, 'findEmail']);
-        $router->post('/api/auth/password-reset/request', [$authApi, 'requestPasswordReset']);
-        $router->post('/api/auth/password-reset/confirm', [$authApi, 'resetPassword']);
+        $router->get('/api/auth/check-email', [$auth, 'apiCheckEmail']);
+        $router->post('/api/auth/profile', [$auth, 'apiUpdateProfile']);
+        $router->post('/api/auth/password', [$auth, 'apiChangePassword']);
+        $router->post('/api/auth/withdraw', [$auth, 'apiWithdraw']);
+        $router->post('/api/auth/find-email', [$auth, 'apiFindEmail']);
+        $router->post('/api/auth/password-reset/request', [$auth, 'apiRequestPasswordReset']);
+        $router->post('/api/auth/password-reset/confirm', [$auth, 'apiResetPassword']);
 
         $router->get('/api/editor/papers', [$editorPaperApi, 'index']);
         $router->options('/api/editor/papers', [$editorPaperApi, 'preflight']);
