@@ -4599,7 +4599,7 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 /* 화면이 낮으면 조절 줄이 다 들어가지 않는다. 미리보기는 늘 보이게 두고 이 칸만 굴린다. */
 .ed-print__controls {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   align-content: start;
   min-height: 0;
   overflow-y: auto;
@@ -4607,10 +4607,25 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   padding-right: 4px;
 }
 .ed-print__hint { margin: 0; font-size: 14px; line-height: 1.5; color: var(--ed-muted); }
-.ed-print__pad { display: grid; grid-template-columns: 36px 1fr 36px; gap: 6px; justify-items: center; }
+/* 놓치면 라벨 한 장을 통째로 버리게 되는 안내. 회색 안내문 사이에 묻히지 않게 띄운다. */
+.ed-print__hint--alert {
+  padding: 9px 12px;
+  border: 1px solid #f3bcbc;
+  border-radius: 8px;
+  background: #fdecec;
+  color: #9b1c1c;
+  font-weight: 700;
+  /* 조절 칸이 240px 뿐이라 그냥 두면 '선택하/세요' 처럼 낱말 가운데가 끊긴다. */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.ed-print__hint--alert strong { color: #c01919; font-weight: 800; white-space: nowrap; }
+/* align-items 를 주지 않으면 가운데 숫자가 칸 높이(36px)만큼 늘어난 채 글자만 맨 위에
+   붙어, 좌우 화살표보다 예닐곱 px 위로 떠 보인다. 가운데로 모아 화살표 중심과 맞춘다. */
+.ed-print__pad { display: grid; grid-template-columns: 36px 1fr 36px; gap: 6px; place-items: center; }
 .ed-print__pad button { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--ed-border); background: #fff; cursor: pointer; }
 .ed-print__xy { font-weight: 800; font-size: 15px; }
-.ed-print__dirs { display: grid; gap: 6px; }
+.ed-print__dirs { display: grid; gap: 4px; }
 .ed-data-scroll { max-height: 58vh; overflow: auto; }
 
 /* 캔버스에서 글상자를 더블클릭했을 때 그 자리에 얹는 편집기 */
@@ -4756,26 +4771,30 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   height: 48px;
   object-fit: contain;
 }
+/* 조절 줄 넷이 세로로 쌓이는 자리라, 한 줄에서 아낀 높이가 네 배로 돌아온다. 테두리를
+   바짝 붙여 아래의 배율 보정 줄이 스크롤 없이 같이 보이게 한다. 글자 크기는 바로 위
+   제목('인쇄 위치 조정 (mm)')과 같은 15px 로 맞춘다. */
 .ed-print__nudge {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   width: 100%;
-  min-height: 36px;
-  padding: 4px 8px;
+  min-height: 28px;
+  padding: 1px 8px;
   border: 1px solid var(--ed-border);
   border-radius: 8px;
   background: #fff;
   font: inherit;
-  font-size: 16px;
+  line-height: 1.2;
 }
 .ed-print__nudge input {
   width: 56px;
   border: 1px solid var(--ed-border);
   border-radius: 6px;
-  padding: 4px 6px;
+  padding: 1px 6px;
   font: inherit;
+  line-height: 1.2;
   text-align: center;
 }
 /* 배율 보정 줄은 위치 보정 줄과 사정이 다르다. 이름이 '가로 설계'처럼 길고 값도
