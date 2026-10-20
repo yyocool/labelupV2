@@ -12,10 +12,13 @@
   let timer = null;
   const delay = 3800;
 
+  const countEl = slider.querySelector('[data-hero-count]');
+
   function go(index) {
     current = (index + slides.length) % slides.length;
     track.style.transform = `translate3d(${-current * 100}%,0,0)`;
     dots.forEach((dot, i) => dot.classList.toggle('active', i === current));
+    if (countEl) countEl.textContent = `${current + 1} / ${Math.max(1, slides.length)}`;
   }
 
   function stop() {

@@ -61,6 +61,7 @@ window.LabelUpLabiChat = {
   /** @type {Array<Record<string, any>>} */
   const transcript = [];
   let restoringChat = false;
+  let chatCollapsed = false;
   /** 오류 후 재전송 시 마지막 force_intent 유지 */
   let lastForceIntent = '';
 
@@ -496,9 +497,27 @@ window.LabelUpLabiChat = {
     });
   }
 
-  function setChatActive(active) {
+  function setChatActive(active, opts) {
+    if (active) chatCollapsed = false;
+    else if (opts && opts.byUser) chatCollapsed = true;
     panel.classList.toggle('is-chat-active', active);
     if (chatLog) chatLog.hidden = !active;
+    const closeBtn = root.querySelector('[data-labi-close]');
+    if (closeBtn) closeBtn.hidden = !active;
+    const sub = root.querySelector('[data-labi-sub]');
+    if (sub) {
+      sub.textContent = active
+        ? '대화 중 · 시안을 고르면 편집으로 넘어가요'
+        : (sub.getAttribute('data-idle-text') || '원하는 라벨을 말로 설명해 보세요');
+    }
+    if (active && !embedMode) {
+      requestAnimationFrame(() => {
+        try {
+          panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } catch (e) { /* ignore */ }
+        if (chatLog) chatLog.scrollTop = chatLog.scrollHeight;
+      });
+    }
   }
 
   function formatAiKrw(amount) {
@@ -2387,6 +2406,7 @@ window.LabelUpLabiChat = {
   function renderExamplePrompts(items) {
     const box = root.querySelector('.prompt-actions');
     if (!box || !Array.isArray(items) || !items.length) return;
+    const preview = 5;
     box.innerHTML = items.map((item, i) => {
       const label = String(item.label || item.prompt_text || '예시');
       const text = String(item.prompt_text || '');
@@ -2396,7 +2416,26 @@ window.LabelUpLabiChat = {
         .replace(/"/g, '&quot;')
         .replace(/</g, '&lt;');
       return `<button class="chip${active}" type="button" data-text="${esc(text)}">${esc(label)}</button>`;
-    }).join('');
+    }).join('') + (items.length > preview
+      ? '<button type="button" class="chip-more" data-labi-chips-more>더보기 +</button>'
+      : '');
+    if (items.length > preview) {
+      box.classList.add('is-collapsed');
+      box.querySelectorAll('.chip').forEach((chip, i) => {
+        chip.hidden = i >= preview;
+      });
+      const more = box.querySelector('[data-labi-chips-more]');
+      if (more) {
+        more.addEventListener('click', () => {
+          const open = box.classList.toggle('is-expanded');
+          box.classList.toggle('is-collapsed', !open);
+          box.querySelectorAll('.chip').forEach((chip, i) => {
+            chip.hidden = !open && i >= preview;
+          });
+          more.textContent = open ? '접기' : '더보기 +';
+        });
+      }
+    }
   }
 
   async function loadExamplePrompts() {
@@ -2533,7 +2572,7 @@ window.LabelUpLabiChat = {
     chatLog.querySelectorAll('.ai-chat-msg, .ai-demo-thread, .ai-demo-msg').forEach((el) => el.remove());
     chatLog.innerHTML = '';
     chatLog.hidden = true;
-    panel.classList.remove('is-chat-active');
+    setChatActive(false);
   }
 
   function paintTranscript() {
@@ -2561,8 +2600,7 @@ window.LabelUpLabiChat = {
         error: !!entry.error,
       });
     });
-    chatLog.hidden = false;
-    panel.classList.add('is-chat-active');
+    setChatActive(true);
     chatLog.scrollTop = chatLog.scrollHeight;
     restoringChat = false;
   }
@@ -2577,13 +2615,12 @@ window.LabelUpLabiChat = {
         }
         return;
       }
-      if (restoringChat || !transcript.length) return;
+      if (chatCollapsed || restoringChat || !transcript.length) return;
       const missing = !chatLog.querySelector('.ai-chat-msg');
       if (!missing && !chatLog.hidden) return;
       if (missing) paintTranscript();
       else {
-        chatLog.hidden = false;
-        panel.classList.add('is-chat-active');
+        setChatActive(true);
       }
     });
     observer.observe(chatLog, { childList: true, attributes: true, attributeFilter: ['hidden'] });
@@ -2627,10 +2664,31 @@ window.LabelUpLabiChat = {
       btn.classList.toggle('is-on', on);
       btn.setAttribute('aria-checked', on ? 'true' : 'false');
     });
+    const sel = root.querySelector('[data-labi-mode-select]');
+    if (sel && sel.value !== id) sel.value = id;
     applyModeHint();
   }
 
+  function bindModeSelect() {
+    const sel = root.querySelector('[data-labi-mode-select]');
+    if (!sel || sel.dataset.boundMode === '1') return !!sel;
+    sel.dataset.boundMode = '1';
+    labiMode = readLabiMode();
+    if (LABI_MODES.some((mode) => mode.id === labiMode)) sel.value = labiMode;
+    sel.addEventListener('change', () => setLabiMode(sel.value));
+    applyModeHint();
+    return true;
+  }
+
+  function bindCloseChat() {
+    const btn = root.querySelector('[data-labi-close]');
+    if (!btn || btn.dataset.boundClose === '1') return;
+    btn.dataset.boundClose = '1';
+    btn.addEventListener('click', () => setChatActive(false, { byUser: true }));
+  }
+
   function ensureModeBar() {
+    if (bindModeSelect()) return;
     const composer = root.querySelector('.prompt-composer');
     if (!composer || composer.querySelector('[data-labi-mode-bar]')) return;
     labiMode = readLabiMode();
@@ -2677,6 +2735,7 @@ window.LabelUpLabiChat = {
   }
 
   ensureModeBar();
+  bindCloseChat();
   if (isLoggedIn && userId <= 0 && typeof cfg.fetchAuthUser === 'function') {
     await refreshAuth();
   }

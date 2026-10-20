@@ -57,13 +57,15 @@ final class OAuthService
         $redirectUri = $this->callbackUrl($provider);
 
         return match ($provider) {
+            // implicit(token): PHPS WAF가 콜백 쿼리의 iss/https://googleapis.com 을 403 처리한다.
+            // access_token 은 fragment 로 오므로 서버/WAF 에 노출되지 않는다.
             'google' => 'https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query([
                 'client_id' => $cfg['client_id'],
                 'redirect_uri' => $redirectUri,
-                'response_type' => 'code',
-                'scope' => 'openid email profile',
+                'response_type' => 'token',
+                'scope' => 'email profile',
                 'state' => $state,
-                'access_type' => 'online',
+                'include_granted_scopes' => 'false',
                 'prompt' => 'select_account',
             ], '', '&', PHP_QUERY_RFC3986),
             'naver' => 'https://nid.naver.com/oauth2.0/authorize?' . http_build_query([
@@ -88,7 +90,27 @@ final class OAuthService
      */
     public function handleCallback(string $provider, string $code): array
     {
-        $token = $this->exchangeCode($provider, $code);
+        return $this->completeWithToken($provider, $this->exchangeCode($provider, $code));
+    }
+
+    /**
+     * @return array{id:int,email:string,name:?string,role:string,status:string}
+     */
+    public function loginWithAccessToken(string $provider, string $accessToken, ?int $expiresIn = null): array
+    {
+        $token = ['access_token' => $accessToken];
+        if ($expiresIn !== null && $expiresIn > 0) {
+            $token['expires_in'] = $expiresIn;
+        }
+        return $this->completeWithToken($provider, $token);
+    }
+
+    /**
+     * @param array<string, mixed> $token
+     * @return array{id:int,email:string,name:?string,role:string,status:string}
+     */
+    private function completeWithToken(string $provider, array $token): array
+    {
         $profile = $this->fetchProfile($provider, (string) ($token['access_token'] ?? ''));
 
         $providerUserId = (string) ($profile['id'] ?? '');
@@ -156,6 +178,11 @@ final class OAuthService
     public function callbackUrl(string $provider): string
     {
         return $this->absoluteUrl('auth/' . $provider . '/callback');
+    }
+
+    public function publicClientId(string $provider): string
+    {
+        return $this->config($provider)['client_id'];
     }
 
     /** @return array{client_id:string,client_secret:string} */
@@ -233,7 +260,7 @@ final class OAuthService
                 'Authorization: Bearer ' . $accessToken,
             ]);
             return [
-                'id' => (string) ($data['sub'] ?? ''),
+                'id' => (string) ($data['sub'] ?? $data['id'] ?? ''),
                 'email' => isset($data['email']) ? (string) $data['email'] : null,
                 'name' => (string) ($data['name'] ?? $data['given_name'] ?? ''),
             ];
