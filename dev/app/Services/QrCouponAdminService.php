@@ -767,10 +767,14 @@ final class QrCouponAdminService
         return [
             'key' => 'default',
             'name' => 'QR 출력템플릿',
+            // 품번은 비워 둔다. 예전에는 LU-3230 이라 적었는데 쇼핑몰에 없는 품번이라,
+            // 관리자 화면에 살 수 없는 용지번호가 찍혔다. 치수는 그대로 두어야 이미 이
+            // 템플릿으로 찍고 있는 쿠폰의 자리가 어긋나지 않으므로 번호만 뗀다.
+            // 용지를 고르면 그때 쇼핑몰 품번이 들어온다(paperFromProduct).
             'paper' => [
-                'paperNo' => 'LU-3230',
-                'name' => 'A4 70×36 mm',
-                'sku' => 'LU-3230',
+                'paperNo' => '',
+                'name' => 'A4 70×36 mm 14칸',
+                'sku' => '',
                 'paperWidthMm' => 210,
                 'paperHeightMm' => 297,
                 'labelWidthMm' => 70,

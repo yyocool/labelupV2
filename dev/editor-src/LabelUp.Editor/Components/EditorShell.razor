@@ -1324,7 +1324,11 @@
         {
             await Papers.EnsureLoadedAsync();
             await Papers.EnsureShopPapersAsync();
-            if (!string.IsNullOrWhiteSpace(paperNo) && !string.Equals(paperNo, "LU-AI", StringComparison.OrdinalIgnoreCase))
+            // 'CUSTOM' 은 라비가 파는 용지를 못 찾아 치수로 급조했다는 표시라 찾아볼 것이 없다.
+            // 'LU-AI' 는 그 자리에 쓰던 옛 표시로, 그때 저장한 문서가 아직 남아 있어 같이 거른다.
+            if (!string.IsNullOrWhiteSpace(paperNo)
+                && !string.Equals(paperNo, "CUSTOM", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(paperNo, "LU-AI", StringComparison.OrdinalIgnoreCase))
             {
                 var shop = Papers.ShopPapers.FirstOrDefault(p =>
                     string.Equals(p.Sku, paperNo, StringComparison.OrdinalIgnoreCase));

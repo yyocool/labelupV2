@@ -466,19 +466,25 @@ final class LabiDesignService
      */
     private function handleOfficeTemplate(array $messages, array $sheet, ?int $userId, string $surface, string $difficulty = 'hard', bool $translated = false): array
     {
+        // 고를 용지는 쇼핑몰에서 파는 것만 쓴다. 프롬프트에 적는 품번과 그 품번을 규격으로
+        // 바꾸는 쪽이 같은 목록을 봐야, AI 가 돌려준 품번을 반드시 찾을 수 있다.
+        $papers = new AiPaperCatalogService();
+
         $ai = null;
         try {
             $ai = $this->openai->suggestDataLabelLayout(
                 $sheet['source_name'],
                 $sheet['columns'],
                 $sheet['rows'],
-                $this->lastUserText($messages)
+                $this->lastUserText($messages),
+                $papers->promptPaperNos(),
+                $papers->promptGuide()
             );
         } catch (RuntimeException) {
             $ai = null;
         }
 
-        $builder = new LabiDataTemplateService();
+        $builder = new LabiDataTemplateService($papers);
         $built = $builder->build($sheet, $this->lastUserText($messages), $ai);
         $template = $builder->present($built, $sheet, $userId);
         $reply = (string) $built['message'];
@@ -2408,7 +2414,10 @@ final class LabiDesignService
 
         return [
             'version' => 1,
-            'paperNo' => $sku !== '' ? $sku : 'LU-AI',
+            // 파는 용지를 못 찾았을 때는 'CUSTOM' 으로 둔다. 편집기가 치수로 급조한 용지에
+            // 쓰는 것과 같은 말이다. 예전에는 'LU-AI' 라 적었는데, 이 값이 미리보기와
+            // 떠 있는 도구막대에 그대로 찍혀 살 수 없는 품번처럼 보였다.
+            'paperNo' => $sku !== '' ? $sku : 'CUSTOM',
             'name' => $name !== '' ? $name : sprintf(
                 '%s×%s mm',
                 rtrim(rtrim(sprintf('%.1f', $lw), '0'), '.'),

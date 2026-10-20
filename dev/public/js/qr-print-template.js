@@ -44,11 +44,13 @@
     shapeBtn: document.getElementById('qrTplShapeBtn'),
   };
 
+  // 서버의 QrCouponAdminService::defaultPrintTemplate() 와 같은 값이어야 한다.
+  // 품번은 비워 둔다. 쇼핑몰에 없는 번호를 적어 두면 살 수 없는 용지번호가 화면에 찍힌다.
   function defaultPaper() {
     return {
-      paperNo: 'LU-3230',
-      name: 'A4 70×36 mm',
-      sku: 'LU-3230',
+      paperNo: '',
+      name: 'A4 70×36 mm 14칸',
+      sku: '',
       paperWidthMm: 210,
       paperHeightMm: 297,
       labelWidthMm: 70,
@@ -418,7 +420,9 @@
   function renderPaperMeta() {
     var p = state.paper;
     if (els.paperMeta) {
-      els.paperMeta.textContent = (p.paperNo || p.sku || '용지') + ' · ' +
+      // 용지를 아직 안 고른 기본 템플릿은 품번이 없다. 그때는 치수만 적는다.
+      var code = p.paperNo || p.sku || '';
+      els.paperMeta.textContent = (code ? code + ' · ' : '') +
         fmt(p.labelWidthMm) + '×' + fmt(p.labelHeightMm) + ' mm';
     }
     if (els.sheetMeta) {

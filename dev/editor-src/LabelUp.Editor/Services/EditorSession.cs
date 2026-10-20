@@ -835,14 +835,31 @@ public sealed class EditorSession
     /// <summary>
     /// 칼선에서 인쇄 안전선까지 비워 두는 거리(mm). 화면에 파선을 그리는 데만 쓴다.
     /// 맞춤은 이 선이 아니라 칼선에 붙인다(<see cref="PlanAlign"/>).
+    ///
+    /// 변이 짧을수록 적게 비운다. 어느 라벨이나 2mm 를 비우면 좁은 라벨에서는 양쪽에서
+    /// 4mm 를 떼어 가, 20mm 짜리 변은 쓸 수 있는 길이의 다섯 중 하나가 사라진다.
+    /// 재단이 어긋나는 정도는 라벨 크기를 따라 줄지 않지만, 그렇다고 쓸 자리를 다 먹을
+    /// 수는 없어 좁은 쪽에서는 길잡이를 좁힌다.
     /// </summary>
-    public const float SafeAreaMm = 2f;
+    public static float SafeInsetMm(float sideMm)
+        => sideMm <= 20f ? 1f
+         : sideMm <= 30f ? 1.5f
+         : 2f;
 
     /// <summary>
-    /// 안전선을 그릴 만한 라벨인지. 양쪽에서 2mm 씩 빼면 4mm 가 주므로 그보다 작으면 남는 자리가 없다.
+    /// 좌우 안전선 거리(mm). 가로와 세로를 저마다 제 길이로 재므로, 길쭉한 라벨은 긴 쪽만
+    /// 2mm 를 지키고 짧은 쪽은 좁혀진다.
+    /// </summary>
+    public float SafeInsetXMm => SafeInsetMm(Document.WidthMm);
+
+    /// <summary>위아래 안전선 거리(mm). 세로 길이로 정한다.</summary>
+    public float SafeInsetYMm => SafeInsetMm(Document.HeightMm);
+
+    /// <summary>
+    /// 안전선을 그릴 만한 라벨인지. 양쪽에서 떼어 내고도 가운데에 자리가 남아야 한다.
     /// </summary>
     public bool HasSafeArea =>
-        Document.WidthMm > SafeAreaMm * 2f + 0.5f && Document.HeightMm > SafeAreaMm * 2f + 0.5f;
+        Document.WidthMm > SafeInsetXMm * 2f + 0.5f && Document.HeightMm > SafeInsetYMm * 2f + 0.5f;
 
     /// <summary>라벨 한 칸의 칼선 네모(mm). 맞춤이 붙는 기준선이다.</summary>
     public (float Left, float Top, float Right, float Bottom) CutBoxMm()

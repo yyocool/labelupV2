@@ -122,23 +122,41 @@ class OpenAIService
     /**
      * @param array<int, string> $columns
      * @param array<int, array<int, string>> $sampleRows
+     * @param array<int, string> $paperNos AI 가 고를 수 있는 용지 품번. 쇼핑몰에서 파는 것만 넘어온다.
+     * @param string $paperGuide 「용도→용지」 안내. 두 값 모두 AiPaperCatalogService 가 만든다.
      * @return array{title:string, message:string, width_mm:float, height_mm:float, fields:array<int, array{column:string, kind:string}>}
      */
-    public function suggestDataLabelLayout(string $sourceName, array $columns, array $sampleRows, string $userHint = ''): array
-    {
+    public function suggestDataLabelLayout(
+        string $sourceName,
+        array $columns,
+        array $sampleRows,
+        string $userHint = '',
+        array $paperNos = [],
+        string $paperGuide = ''
+    ): array {
         $table = '| ' . implode(' | ', $columns) . " |\n| " . implode(' | ', array_fill(0, count($columns), '---')) . " |\n";
         foreach (array_slice($sampleRows, 0, 8) as $row) {
             $table .= '| ' . implode(' | ', $row) . " |\n";
         }
         $hint = trim($userHint);
+
+        // 품번은 코드에 적어 두지 않는다. 팔지 않는 품번을 추천하면 사용자가 살 수 없다.
+        // 용지를 못 읽어 후보가 비면 품번은 묻지 않고 치수만 받아, 서버가 가장 가까운 용지로 맞춘다.
+        $paperNoLine = $paperNos === []
+            ? '  "paper_no": "",' . "\n"
+            : sprintf('  "paper_no": "%s 중 하나",' . "\n", implode('|', $paperNos));
+        $paperNoRule = $paperNos === []
+            ? "- paper_no는 빈 문자열로 두고 width_mm·height_mm만 채우세요.\n"
+            : "- paper_no는 위에 적힌 품번만 쓰세요. 다른 품번은 지어내지 마세요.\n";
+        $paperGuideBlock = trim($paperGuide) === '' ? '' : "용도→용지:\n" . trim($paperGuide) . "\n";
+
         $prompt = <<<PROMPT
 첨부 표로 라벨 템플릿을 만듭니다. JSON만 출력하세요.
 {
   "title": "짧은 한국어 템플릿 이름",
   "message": "사용자에게 보여줄 2~3문장 안내(용도·용지·장당 칸 수 언급)",
   "use_case": "shipping|packing|picking|inventory|hangtag|product|general",
-  "paper_no": "LU-3102|LU-3230|LU-3659|LU-3775 중 하나",
-  "width_mm": 라벨 가로 mm,
+{$paperNoLine}  "width_mm": 라벨 가로 mm,
   "height_mm": 라벨 세로 mm,
   "fields": [{"column":"표의 열 이름 그대로","kind":"text|barcode|qr|date|serial"}]
 }
@@ -146,14 +164,7 @@ class OpenAIService
 - fields는 라벨에 넣을 열만, 최대 7개, column은 아래 표에 있는 이름만. URL·단가·이메일은 제외.
 - 이름/수취인/상품명은 text, 바코드·SKU는 barcode, 날짜·일자·유통기한은 date, 시리얼·일련번호·로트는 serial.
 - 반드시 A4 다칸 용지. 한 장 1칸 금지. width/height는 paper_no에 맞출 것.
-용도→용지:
-- shipping(배송·수취·주소·택배): LU-3102 (A4 100×50mm 10칸)
-- packing(패킹·내품·동봉, 필드 많음): LU-3775 (A4 84×58mm 8칸)
-- picking(피킹·SKU·바코드 집품): LU-3230 (A4 70×36mm 14칸)
-- inventory(검수·재고·소형 다량): LU-3659 (A4 50×30mm 21칸)
-- hangtag(행거·타공): LU-3775
-- product(일반 상품): LU-3230 또는 LU-3659
-사용자 힌트에 용도가 있으면 그걸 우선하세요.
+{$paperNoRule}{$paperGuideBlock}사용자 힌트에 용도가 있으면 그걸 우선하세요.
 파일: {$sourceName}
 사용자 요청: {$hint}
 표:

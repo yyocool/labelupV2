@@ -46,9 +46,9 @@
                 <td><input @bind="row.VendorPaperNo" placeholder="V3230" /></td>
                 <td>
                   <select @bind="row.OurPaperNo">
-                    @foreach (var p in Papers.Papers)
+                    @foreach (var no in OurPaperNos())
                     {
-                      <option value="@p.PaperNo">@p.PaperNo</option>
+                      <option value="@no">@no</option>
                     }
                   </select>
                 </td>
@@ -87,7 +87,17 @@
         _ = InvokeAsync(StateHasChanged);
     }
 
-    private void AddRow() => _map.Entries.Add(new VendorPaperMapEntry { OurPaperNo = Papers.Papers.FirstOrDefault()?.PaperNo ?? "LU-3230" });
+    /// <summary>
+    /// 옮겨 갈 우리 품번 후보. 쇼핑몰에서 파는 품번이라야 쓸모가 있으므로 그 목록을 먼저 쓰고,
+    /// 서버를 못 받았을 때만 코드에 박아 둔 비상 목록으로 내려간다.
+    /// </summary>
+    private IEnumerable<string> OurPaperNos()
+        => Papers.ShopPapers.Count > 0
+            ? Papers.ShopPapers.Select(p => p.Sku.Trim()).Where(s => s.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase)
+            : Papers.Papers.Select(p => p.PaperNo);
+
+    private void AddRow()
+        => _map.Entries.Add(new VendorPaperMapEntry { OurPaperNo = OurPaperNos().FirstOrDefault() ?? "" });
 
     private async Task SaveLocal()
     {

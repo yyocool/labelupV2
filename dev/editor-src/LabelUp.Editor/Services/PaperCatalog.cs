@@ -85,8 +85,6 @@ public sealed class PaperCatalog
 
         if (_papers.Count == 0)
             _papers.AddRange(BuiltInPapers.All());
-        if (_map.Entries.Count == 0)
-            _map.Entries.AddRange(DefaultMap());
 
         await FormtecWmf.EnsureLoadedAsync();
         await AniLabelWmf.EnsureLoadedAsync();
@@ -550,6 +548,9 @@ public sealed class PaperCatalog
     {
         var paper = PaperSpec.CreateDefault().Clone();
         paper.PaperNo = "CUSTOM";
+        // 기본 용지의 분류(주소용 등)를 물려받으면 치수로 급조한 용지가 엉뚱한 쓰임새로
+        // 보인다. 쓰임새를 알 수 없으므로 용지 크기만 적는다.
+        paper.Category = "A4";
         paper.Name = string.IsNullOrWhiteSpace(name)
             ? $"{widthMm:0.#}×{heightMm:0.#} mm"
             : name!;
@@ -773,6 +774,12 @@ public sealed class PaperCatalog
 
     public void ReplaceMap(VendorPaperMap map) => _map = map.Clone();
 
+    /// <summary>
+    /// 타사 용지번호를 우리 품번으로 옮긴다. 사용자가 「용지 변환표」에 손수 넣은 것이 먼저고,
+    /// 없으면 쇼핑몰 용지가 들고 있는 호환코드에서 찾는다. 기본 변환표를 따로 싣지 않는 것은
+    /// 판매 중인 용지에 이미 호환코드가 다 달려 있어서다. 표를 끼워 두면 그 쪽이 먼저 집혀,
+    /// 서버에서 품번이 바뀌어도 옛 품번을 계속 내놓는다.
+    /// </summary>
     public string? MapVendor(string vendor, string vendorPaperNo)
     {
         var mapped = _map.Resolve(vendor, vendorPaperNo);
@@ -796,16 +803,6 @@ public sealed class PaperCatalog
 
         return null;
     }
-
-    private static IEnumerable<VendorPaperMapEntry> DefaultMap() =>
-    [
-        new() { Vendor = "anylabel", VendorPaperNo = "V3230", OurPaperNo = "LU-3230" },
-        new() { Vendor = "anylabel", VendorPaperNo = "V3630", OurPaperNo = "LU-3630" },
-        new() { Vendor = "anylabel", VendorPaperNo = "V3775", OurPaperNo = "LU-3775" },
-        new() { Vendor = "formtec", VendorPaperNo = "3230", OurPaperNo = "LU-3230" },
-        new() { Vendor = "formtec", VendorPaperNo = "3102", OurPaperNo = "LU-3102" },
-        new() { Vendor = "ilabel", VendorPaperNo = "100", OurPaperNo = "LU-H100" }
-    ];
 
     private sealed class PaperIndex
     {

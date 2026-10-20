@@ -11,25 +11,29 @@ namespace LabelUp.Editor.Models;
 public sealed class PaperSpec
 {
     public int Version { get; set; } = 1;
-    public string PaperNo { get; set; } = "LU-3230";
-    public string Name { get; set; } = "A4 70×36 mm";
-    public string Category { get; set; } = "A4";
+
+    // 아래 기본값은 기본 용지 A207 과 같은 값으로 맞춰 두었다(BuiltInPapers.A207).
+    // 규격을 덜 채운 JSON 을 읽었을 때 쓰이는 자리라, 품번만 바꾸고 치수를 두면 품번과
+    // 치수가 서로 다른 규격을 가리키게 된다. 둘을 한 용지로 맞춰 두어야 그런 일이 없다.
+    public string PaperNo { get; set; } = "A207";
+    public string Name { get; set; } = "A207 / 주소용 라벨 14칸";
+    public string Category { get; set; } = "주소용";
     public string Brand { get; set; } = "LabelUp";
 
     public float PaperWidthMm { get; set; } = 210f;
     public float PaperHeightMm { get; set; } = 297f;
-    public float LabelWidthMm { get; set; } = 70f;
-    public float LabelHeightMm { get; set; } = 36f;
+    public float LabelWidthMm { get; set; } = 99.06f;
+    public float LabelHeightMm { get; set; } = 38.1f;
 
     public int Columns { get; set; } = 2;
     public int Rows { get; set; } = 7;
 
-    public float LeftMarginMm { get; set; } = 32.5f;
-    public float TopMarginMm { get; set; } = 13.5f;
-    public float RightMarginMm { get; set; } = 32.5f;
-    public float BottomMarginMm { get; set; } = 13.5f;
-    public float HGapMm { get; set; } = 5f;
-    public float VGapMm { get; set; } = 3f;
+    public float LeftMarginMm { get; set; } = 5.086f;
+    public float TopMarginMm { get; set; } = 15.875f;
+    public float RightMarginMm { get; set; } = 4.254f;
+    public float BottomMarginMm { get; set; } = 14.425f;
+    public float HGapMm { get; set; } = 2.54f;
+    public float VGapMm { get; set; } = 0f;
 
     public string LabelColor { get; set; } = "#FFFFFF";
     /// <summary>WMF 용지 모양이 없을 때 사용자에게 보여줄 안내.</summary>
@@ -160,7 +164,25 @@ public sealed class PaperSpec
         return sb.ToString();
     }
 
-    public static PaperSpec CreateDefault() => BuiltInPapers.Lu3230();
+    public static PaperSpec CreateDefault() => BuiltInPapers.A207();
+
+    /// <summary>
+    /// 왼쪽·위 여백을 규격이 준 값으로 두고, 오른쪽·아래는 남는 자리로 채운다.
+    /// 칸 자리는 왼쪽·위 여백에서 세기 시작하므로(<see cref="EnumerateGridSlots"/>)
+    /// 인쇄 자리를 맞추는 것은 이 두 값이고, 나머지 두 쪽은 셈을 맞추려고 둔다.
+    /// 쇼핑몰 규격을 받아 올 때와 같은 셈이라, 내장 기본값이 그 결과와 어긋나지 않는다.
+    /// </summary>
+    public void SetMarginsFromTopLeft(float leftMm, float topMm)
+    {
+        var cols = Math.Max(1, Columns);
+        var rows = Math.Max(1, Rows);
+        var usedW = LabelWidthMm * cols + HGapMm * Math.Max(0, cols - 1);
+        var usedH = LabelHeightMm * rows + VGapMm * Math.Max(0, rows - 1);
+        LeftMarginMm = leftMm;
+        TopMarginMm = topMm;
+        RightMarginMm = Math.Max(0f, PaperWidthMm - usedW - leftMm);
+        BottomMarginMm = Math.Max(0f, PaperHeightMm - usedH - topMm);
+    }
 
     public void RecalcMarginsFromGaps()
     {
@@ -365,142 +387,157 @@ public sealed class PaperHole
 public readonly record struct LabelSlot(
     int Col, int Row, int Index, float X, float Y, float W, float H, PaperShape? Shape = null);
 
+/// <summary>
+/// 코드에 박아 둔 용지 규격. 값은 모두 쇼핑몰 용지 API(<c>/api/editor/papers</c>)에서
+/// 그대로 옮겨 온 실제 판매 규격이라, 여기 품번은 쇼핑몰에서 찾을 수 있는 품번과 같다.
+/// 쓰이는 때는 둘뿐이다. 목록을 받기 전에 캔버스를 먼저 열 때 보여 줄 기본 용지
+/// (<see cref="PaperSpec.CreateDefault"/>)와, 목록을 끝내 못 받았을 때의 비상 목록
+/// (<see cref="All"/>)이다. 목록이 오면 서버 값이 이 자리를 덮어쓴다.
+/// </summary>
 public static class BuiltInPapers
 {
-    public static PaperSpec Lu3230()
+    /// <summary>
+    /// 편집기를 처음 열 때 쓰는 기본 용지(쇼핑몰 A207 · 주소용 14칸).
+    ///
+    /// 쇼핑몰 용지 목록은 받아 오는 데 수 초가 걸려, 그 전에 캔버스를 먼저 연다
+    /// (<see cref="Components.EditorShell"/>). 그래서 목록이 오기 전에 보여 줄 규격이
+    /// 하나 있어야 하고, 그것이 목록을 받은 뒤 고르는 규격과 다르면 용지가 눈앞에서
+    /// 바뀌어 보인다. 여기 값을 A207 과 똑같이 맞춰 두어 바뀜이 보이지 않게 한다.
+    ///
+    /// 진짜 값은 서버(label_specs)에 있다. 목록이 오면
+    /// <see cref="Services.PaperCatalog.FromShopProduct"/> 가 만든 규격으로 덮어쓰므로,
+    /// 서버에서 A207 치수가 바뀌어도 열자마자 잠깐 옛 치수가 비칠 뿐 곧 맞춰진다.
+    /// </summary>
+    public static PaperSpec A207()
     {
         var p = new PaperSpec
         {
-            PaperNo = "LU-3230",
-            Name = "A4 70×36 mm 14칸",
-            Category = "A4",
-            LabelWidthMm = 70f,
-            LabelHeightMm = 36f,
+            PaperNo = "A207",
+            Name = "A207 / 주소용 라벨 14칸",
+            Category = "주소용",
+            LabelWidthMm = 99.06f,
+            LabelHeightMm = 38.1f,
             Columns = 2,
             Rows = 7,
-            HGapMm = 5f,
-            VGapMm = 3f,
-            Shape = new PaperShape { Kind = "roundrect", CornerRadiusMm = 1.5f }
+            HGapMm = 2.54f,
+            VGapMm = 0f,
+            Shape = new PaperShape { Kind = "roundrect", CornerRadiusMm = 2.778f }
         };
-        p.RecalcMarginsFromGaps();
+        p.SetMarginsFromTopLeft(5.086f, 15.875f);
         return p;
     }
 
-    public static PaperSpec Lu3630()
+    /// <summary>A206 / 주소용 라벨 12칸 (100×46.4mm 2열 6행).</summary>
+    public static PaperSpec A206()
     {
-        return new PaperSpec
+        var p = new PaperSpec
         {
-            PaperNo = "LU-3630",
-            Name = "A4 원형 40 mm 24칸",
-            Category = "A4",
+            PaperNo = "A206",
+            Name = "A206 / 주소용 라벨 12칸",
+            Category = "주소용",
+            LabelWidthMm = 100f,
+            LabelHeightMm = 46.4f,
+            Columns = 2,
+            Rows = 6,
+            HGapMm = 2.59f,
+            VGapMm = 0f,
+            Shape = new PaperShape { Kind = "roundrect", CornerRadiusMm = 2.778f }
+        };
+        p.SetMarginsFromTopLeft(4f, 7.5f);
+        return p;
+    }
+
+    /// <summary>A307 / 주소용 라벨 21칸 (63.5×38.1mm 3열 7행).</summary>
+    public static PaperSpec A307()
+    {
+        var p = new PaperSpec
+        {
+            PaperNo = "A307",
+            Name = "A307 / 주소용 라벨 21칸",
+            Category = "주소용",
+            LabelWidthMm = 63.5f,
+            LabelHeightMm = 38.1f,
+            Columns = 3,
+            Rows = 7,
+            HGapMm = 2.54f,
+            VGapMm = 0f,
+            Shape = new PaperShape { Kind = "roundrect", CornerRadiusMm = 2.778f }
+        };
+        p.SetMarginsFromTopLeft(7.62f, 15.875f);
+        return p;
+    }
+
+    /// <summary>A410 / 바코드용 라벨 40칸 (47×26.9mm 4열 10행).</summary>
+    public static PaperSpec A410()
+    {
+        var p = new PaperSpec
+        {
+            PaperNo = "A410",
+            Name = "A410 / 바코드용 라벨 40칸",
+            Category = "바코드용",
+            LabelWidthMm = 47f,
+            LabelHeightMm = 26.9f,
+            Columns = 4,
+            Rows = 10,
+            HGapMm = 2.54f,
+            VGapMm = 0f,
+            Shape = new PaperShape { Kind = "roundrect", CornerRadiusMm = 1.191f }
+        };
+        p.SetMarginsFromTopLeft(7.5f, 14f);
+        return p;
+    }
+
+    /// <summary>A304R / 인덱스용 라벨 12칸 (원형 63.5mm 3열 4행).</summary>
+    public static PaperSpec A304R()
+    {
+        var p = new PaperSpec
+        {
+            PaperNo = "A304R",
+            Name = "A304R / 인덱스용 라벨 12칸",
+            Category = "인덱스용",
+            LabelWidthMm = 63.5f,
+            LabelHeightMm = 63.5f,
+            Columns = 3,
+            Rows = 4,
+            HGapMm = 4.31f,
+            VGapMm = 4.31f,
+            Shape = new PaperShape { Kind = "ellipse" }
+        };
+        p.SetMarginsFromTopLeft(5.84f, 15.748f);
+        return p;
+    }
+
+    /// <summary>A406R / 인덱스용 라벨 24칸 (원형 40mm 4열 6행).</summary>
+    public static PaperSpec A406R()
+    {
+        var p = new PaperSpec
+        {
+            PaperNo = "A406R",
+            Name = "A406R / 인덱스용 라벨 24칸",
+            Category = "인덱스용",
             LabelWidthMm = 40f,
             LabelHeightMm = 40f,
             Columns = 4,
             Rows = 6,
-            LeftMarginMm = 16f,
-            RightMarginMm = 16f,
-            TopMarginMm = 13.5f,
-            BottomMarginMm = 13.5f,
             HGapMm = 6f,
             VGapMm = 6f,
             Shape = new PaperShape { Kind = "ellipse" }
         };
-    }
-
-    public static PaperSpec Lu3775()
-    {
-        return new PaperSpec
-        {
-            PaperNo = "LU-3775",
-            Name = "A4 84×58 mm 타공 8칸",
-            Category = "A4",
-            LabelWidthMm = 84f,
-            LabelHeightMm = 58f,
-            Columns = 2,
-            Rows = 4,
-            LeftMarginMm = 14f,
-            RightMarginMm = 14f,
-            TopMarginMm = 17.5f,
-            BottomMarginMm = 17.5f,
-            HGapMm = 14f,
-            VGapMm = 10f,
-            Shape = new PaperShape
-            {
-                Kind = "roundrect",
-                CornerRadiusMm = 2f,
-                Hole = new PaperHole { X = 30.5f, Y = 17.5f, Width = 23f, Height = 23f }
-            }
-        };
-    }
-
-    public static PaperSpec Lu3659()
-    {
-        var p = new PaperSpec
-        {
-            PaperNo = "LU-3659",
-            Name = "A4 50×30 mm 21칸",
-            Category = "A4",
-            LabelWidthMm = 50f,
-            LabelHeightMm = 30f,
-            Columns = 3,
-            Rows = 7,
-            HGapMm = 5f,
-            VGapMm = 4f,
-            Shape = new PaperShape { Kind = "roundrect", CornerRadiusMm = 1.2f }
-        };
-        p.RecalcMarginsFromGaps();
+        p.SetMarginsFromTopLeft(16f, 13.5f);
         return p;
     }
 
-    public static PaperSpec Lu3102()
-    {
-        var p = new PaperSpec
-        {
-            PaperNo = "LU-3102",
-            Name = "A4 100×50 mm 10칸",
-            Category = "A4",
-            LabelWidthMm = 100f,
-            LabelHeightMm = 50f,
-            Columns = 2,
-            Rows = 5,
-            HGapMm = 4f,
-            VGapMm = 4f,
-            Shape = new PaperShape { Kind = "rect" }
-        };
-        p.RecalcMarginsFromGaps();
-        return p;
-    }
-
-    public static PaperSpec LuHeart()
-    {
-        var p = new PaperSpec
-        {
-            PaperNo = "LU-H100",
-            Name = "A4 하트 25×20 mm",
-            Category = "A4",
-            LabelWidthMm = 25f,
-            LabelHeightMm = 20f,
-            Columns = 6,
-            Rows = 10,
-            HGapMm = 3f,
-            VGapMm = 3f,
-            Shape = new PaperShape
-            {
-                Kind = "svg",
-                Svg = SvgLibrary.HeartPath
-            }
-        };
-        p.RecalcMarginsFromGaps();
-        return p;
-    }
-
+    /// <summary>
+    /// 서버에서 용지 목록을 못 받아 왔을 때 쓸 비상 목록. 네모 넷과 원형 둘로, 큰 칸부터
+    /// 작은 칸까지 고를 수 있게만 추렸다. 목록이 오면 이 자리는 쓰이지 않는다.
+    /// </summary>
     public static IReadOnlyList<PaperSpec> All() =>
     [
-        Lu3230(),
-        Lu3659(),
-        Lu3630(),
-        Lu3102(),
-        Lu3775(),
-        LuHeart()
+        A207(),
+        A206(),
+        A307(),
+        A410(),
+        A304R(),
+        A406R()
     ];
 }

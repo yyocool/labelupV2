@@ -8,6 +8,17 @@ use RuntimeException;
 
 final class LabiDataTemplateService
 {
+    private AiPaperCatalogService $papers;
+
+    /**
+     * @param ?AiPaperCatalogService $papers 고를 용지 목록. 한 번 추천하는 동안 프롬프트 쪽과
+     *        같은 것을 써야 AI 가 받은 품번을 여기서 그대로 찾을 수 있어, 바깥에서 넣어 준다.
+     */
+    public function __construct(?AiPaperCatalogService $papers = null)
+    {
+        $this->papers = $papers ?? new AiPaperCatalogService();
+    }
+
     /**
      * @param array{source_name:string, source_kind:string, columns:array<int,string>, rows:array<int,array<int,string>>, summary:string} $sheet
      * @return array{
@@ -352,7 +363,7 @@ final class LabiDataTemplateService
      */
     private function resolvePaper(string $labelKind, array $fields, array $layout, int $rowCount): array
     {
-        $catalog = $this->paperCatalog();
+        $catalog = $this->papers->specs();
         $aiUse = trim((string) ($layout['use_case'] ?? $layout['useCase'] ?? ''));
         if ($aiUse !== '' && in_array($aiUse, ['shipping', 'packing', 'picking', 'inventory', 'hangtag', 'product', 'general'], true)) {
             // 사용자/AI가 명시한 용도를 우선하되, 이미 labelKind가 세부 용도면 유지
@@ -377,17 +388,28 @@ final class LabiDataTemplateService
             if ($matched !== null) {
                 return $matched;
             }
+            // 파는 용지 중에 그만한 것이 없으면 치수를 살려 급조한다. 목록이 비어 있을 때도
+            // 이 길로 와서, 용지를 못 읽었다고 라벨 만들기가 멈추지는 않는다.
+            if ($this->papers->isEmpty()) {
+                return $this->improvisedPaper($aiW, $aiH);
+            }
         }
 
-        return $this->defaultPaperForUse($catalog, $labelKind, $fields, $rowCount);
+        return $this->defaultPaperForUse($labelKind, $fields, $rowCount);
     }
 
     /**
-     * @param array<string, array<string, mixed>> $catalog
+     * 용도에 맞는 기본 용지. 품번을 적어 두는 대신 「어떤 용도에는 어느 정도 크기」라는
+     * 뜻만 남기고, 그 크기에 가장 가까운 판매 용지를 AiPaperCatalogService 가 집는다.
+     *
+     * 자료 생김새를 보고 용도를 한 칸 옮기기도 한다. 패킹인데 넣을 것이 많거나 주소가 있으면
+     * 좁은 칸에 다 안 들어가므로 배송 쪽 큰 칸으로, 피킹인데 줄 수가 아주 많고 넣을 것이
+     * 적으면 한 장에 많이 뽑는 재고 쪽 작은 칸으로 간다.
+     *
      * @param array<int, array{column:string, kind:string}> $fields
      * @return array<string, mixed>
      */
-    private function defaultPaperForUse(array $catalog, string $use, array $fields, int $rowCount): array
+    private function defaultPaperForUse(string $use, array $fields, int $rowCount): array
     {
         $fieldCount = count($fields);
         $hasCode = false;
@@ -401,22 +423,62 @@ final class LabiDataTemplateService
             }
         }
 
-        return match ($use) {
-            // 배송·수취: 주소 넣을 공간 + 장당 10건
-            'shipping', 'logistics' => $catalog['LU-3102'],
-            // 패킹·내품: 필드 많으면 84×58 8칸, 적으면 100×50 10칸
-            'packing' => ($fieldCount >= 6 || $hasAddr) ? $catalog['LU-3775'] : $catalog['LU-3102'],
-            // 피킹·SKU: 바코드 중심 70×36 14칸 (대량 시 50×30 21칸)
-            'picking' => ($rowCount >= 200 && $fieldCount <= 3) ? $catalog['LU-3659'] : $catalog['LU-3230'],
-            // 검수·재고: 소형 다칸
-            'inventory' => $catalog['LU-3659'],
-            // 행거·타공
-            'hangtag' => $catalog['LU-3775'],
-            'product' => $hasCode ? $catalog['LU-3230'] : $catalog['LU-3659'],
+        $target = match ($use) {
+            'shipping', 'logistics' => 'shipping',
+            'packing' => ($fieldCount >= 6 || $hasAddr) ? 'shipping' : 'packing',
+            'picking' => ($rowCount >= 200 && $fieldCount <= 3) ? 'inventory' : 'picking',
+            'inventory' => 'inventory',
+            'hangtag' => 'hangtag',
+            'product' => $hasCode ? 'picking' : 'inventory',
             default => ($hasAddr || $fieldCount >= 6)
-                ? $catalog['LU-3102']
-                : ($hasCode ? $catalog['LU-3230'] : $catalog['LU-3659']),
+                ? 'shipping'
+                : ($hasCode ? 'picking' : 'inventory'),
         };
+
+        return $this->papers->specForUse($target) ?? $this->papers->specForUse('general') ?? $this->improvisedPaper(70.0, 36.0);
+    }
+
+    /**
+     * 용지 목록을 끝내 못 읽었을 때 치수만 보고 급조하는 용지. 품번은 비워 둔다.
+     * 팔지 않는 품번을 지어내 보여 주면 사용자가 그 품번으로 용지를 찾게 되기 때문이다.
+     *
+     * @return array<string, mixed>
+     */
+    private function improvisedPaper(float $w, float $h): array
+    {
+        $lw = max(10.0, min(200.0, $w));
+        $lh = max(10.0, min(280.0, $h));
+        $gap = 2.5;
+        $minMargin = 5.0;
+        $cols = max(1, (int) floor((210.0 - $minMargin * 2 + $gap) / ($lw + $gap)));
+        $rows = max(1, (int) floor((297.0 - $minMargin * 2 + $gap) / ($lh + $gap)));
+
+        $usedW = $lw * $cols + $gap * ($cols - 1);
+        $usedH = $lh * $rows + $gap * ($rows - 1);
+        $wText = rtrim(rtrim(sprintf('%.2f', $lw), '0'), '.');
+        $hText = rtrim(rtrim(sprintf('%.2f', $lh), '0'), '.');
+
+        return [
+            'version' => 1,
+            'paperNo' => '',
+            'name' => sprintf('%s×%s mm %d칸', $wText, $hText, $cols * $rows),
+            'category' => 'A4',
+            'brand' => 'LabelUp',
+            'paperWidthMm' => 210,
+            'paperHeightMm' => 297,
+            'labelWidthMm' => round($lw, 2),
+            'labelHeightMm' => round($lh, 2),
+            'columns' => $cols,
+            'rows' => $rows,
+            'leftMarginMm' => round((210.0 - $usedW) / 2, 2),
+            'topMarginMm' => round((297.0 - $usedH) / 2, 2),
+            'rightMarginMm' => round((210.0 - $usedW) / 2, 2),
+            'bottomMarginMm' => round((297.0 - $usedH) / 2, 2),
+            'hGapMm' => $gap,
+            'vGapMm' => $gap,
+            'labelColor' => '#FFFFFF',
+            'shape' => ['kind' => 'rect'],
+        ];
     }
 
     /**
@@ -445,101 +507,6 @@ final class LabiDataTemplateService
             }
         }
         return $bestScore <= 25 ? $best : null;
-    }
-
-    /** @return array<string, array<string, mixed>> */
-    private function paperCatalog(): array
-    {
-        return [
-            'LU-3102' => [
-                'version' => 1,
-                'paperNo' => 'LU-3102',
-                'name' => 'A4 100×50 mm 10칸',
-                'category' => 'A4',
-                'brand' => 'LabelUp',
-                'paperWidthMm' => 210,
-                'paperHeightMm' => 297,
-                'labelWidthMm' => 100,
-                'labelHeightMm' => 50,
-                'columns' => 2,
-                'rows' => 5,
-                'leftMarginMm' => 3,
-                'topMarginMm' => 14.5,
-                'rightMarginMm' => 3,
-                'bottomMarginMm' => 14.5,
-                'hGapMm' => 4,
-                'vGapMm' => 4,
-                'labelColor' => '#FFFFFF',
-                'shape' => ['kind' => 'rect'],
-            ],
-            'LU-3230' => [
-                'version' => 1,
-                'paperNo' => 'LU-3230',
-                'name' => 'A4 70×36 mm 14칸',
-                'category' => 'A4',
-                'brand' => 'LabelUp',
-                'paperWidthMm' => 210,
-                'paperHeightMm' => 297,
-                'labelWidthMm' => 70,
-                'labelHeightMm' => 36,
-                'columns' => 2,
-                'rows' => 7,
-                'leftMarginMm' => 32.5,
-                'topMarginMm' => 13.5,
-                'rightMarginMm' => 32.5,
-                'bottomMarginMm' => 13.5,
-                'hGapMm' => 5,
-                'vGapMm' => 3,
-                'labelColor' => '#FFFFFF',
-                'shape' => ['kind' => 'roundrect', 'cornerRadiusMm' => 1.5],
-            ],
-            'LU-3659' => [
-                'version' => 1,
-                'paperNo' => 'LU-3659',
-                'name' => 'A4 50×30 mm 21칸',
-                'category' => 'A4',
-                'brand' => 'LabelUp',
-                'paperWidthMm' => 210,
-                'paperHeightMm' => 297,
-                'labelWidthMm' => 50,
-                'labelHeightMm' => 30,
-                'columns' => 3,
-                'rows' => 7,
-                'leftMarginMm' => 25,
-                'topMarginMm' => 22.5,
-                'rightMarginMm' => 25,
-                'bottomMarginMm' => 22.5,
-                'hGapMm' => 5,
-                'vGapMm' => 4,
-                'labelColor' => '#FFFFFF',
-                'shape' => ['kind' => 'roundrect', 'cornerRadiusMm' => 1.2],
-            ],
-            'LU-3775' => [
-                'version' => 1,
-                'paperNo' => 'LU-3775',
-                'name' => 'A4 84×58 mm 타공 8칸',
-                'category' => 'A4',
-                'brand' => 'LabelUp',
-                'paperWidthMm' => 210,
-                'paperHeightMm' => 297,
-                'labelWidthMm' => 84,
-                'labelHeightMm' => 58,
-                'columns' => 2,
-                'rows' => 4,
-                'leftMarginMm' => 14,
-                'topMarginMm' => 17.5,
-                'rightMarginMm' => 14,
-                'bottomMarginMm' => 17.5,
-                'hGapMm' => 14,
-                'vGapMm' => 10,
-                'labelColor' => '#FFFFFF',
-                'shape' => [
-                    'kind' => 'roundrect',
-                    'cornerRadiusMm' => 2,
-                    'hole' => ['x' => 30.5, 'y' => 17.5, 'width' => 23, 'height' => 23],
-                ],
-            ],
-        ];
     }
 
     /**

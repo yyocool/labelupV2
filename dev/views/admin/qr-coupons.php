@@ -214,7 +214,7 @@ $sampleCouponUrl = qr_public_url('qr-coupon', [
         <section class="qr-tpl-paper">
           <header class="qr-tpl-left-head">
             <span>용지선택</span>
-            <em id="qrTplPaperMeta">LU-3230 · 70×36 mm</em>
+            <em id="qrTplPaperMeta">70×36 mm</em>
           </header>
           <input class="admin-input qr-tpl-search" type="search" id="qrTplPaperSearch" placeholder="상품명, SKU, 호환코드 검색" autocomplete="off">
           <div class="qr-tpl-paper-list" id="qrTplPaperList"></div>
