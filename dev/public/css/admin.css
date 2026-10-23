@@ -329,7 +329,7 @@
 .admin-legal-meta code{font-size:13px;color:var(--charcoal)}
 .admin-field{margin-bottom:14px}
 .admin-field label{display:block;margin-bottom:6px;font-size:14px;font-weight:700;color:var(--charcoal)}
-.admin-field input:not([type="checkbox"]):not([type="radio"]),.admin-field textarea{
+.admin-field input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),.admin-field textarea{
   width:100%;border:1px solid var(--line);border-radius:10px;
   padding:10px 12px;font-size:15px;background:#fff;color:var(--charcoal);
 }
@@ -571,12 +571,14 @@
 .admin-product-form--spec .admin-field--images{margin:0}
 .admin-product-form--spec .admin-field--check{align-self:end;padding-bottom:10px}
 .admin-product-form--spec .admin-field--readonly input{background:var(--ivory);color:var(--muted);cursor:default}
-.admin-color-row{display:flex;align-items:center;gap:8px;min-width:0}
-.admin-color-row input[type="color"]{
+.admin-color-row{display:flex;align-items:center;gap:8px;width:max-content;max-width:100%}
+.admin-field .admin-color-row input[type="color"]:not([type="checkbox"]):not([type="radio"]){
   width:42px;height:38px;flex:none;padding:2px;border:1px solid var(--line);border-radius:10px;
   background:#fff;cursor:pointer;
 }
-.admin-color-row input[type="text"]{flex:1 1 auto;width:auto;min-width:0;text-transform:uppercase}
+.admin-field .admin-color-row input[type="text"]:not([type="checkbox"]):not([type="radio"]):not([type="color"]){
+  width:96px;max-width:96px;flex:none;min-width:0;text-transform:uppercase
+}
 .admin-spec-path{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px}
 .admin-spec-path-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .admin-product-form{display:flex;flex-direction:column;gap:22px}
@@ -891,10 +893,14 @@
   margin:16px 0 4px;padding:14px 14px 4px;border:1px solid #efe8e4;border-radius:14px;background:#faf8f6
 }
 .mid-text-style{
-  display:grid;grid-template-columns:minmax(120px,140px) minmax(0,1fr);gap:12px
+  display:grid;grid-template-columns:minmax(160px,1fr) max-content;gap:16px;align-items:end
 }
-.mid-text-style .admin-field{min-width:0}
+.mid-text-style .admin-field{min-width:0;margin-bottom:0}
 .mid-text-style .admin-field:first-child{grid-column:1/-1}
+.mid-text-style .admin-field input,
+.mid-text-style .admin-field select{
+  box-sizing:border-box;max-width:100%;min-width:0
+}
 .mid-align-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .mid-align-pills{display:flex;gap:6px;margin-top:6px}
 .mid-align-pill{position:relative;flex:1;margin:0;cursor:pointer}
