@@ -275,6 +275,8 @@ final class Router
         $router->get('/register', [$auth, 'registerForm']);
         $router->get('/reset-password', [$auth, 'resetPasswordForm']);
         $router->get('/account', [$auth, 'account']);
+        $router->get('/account/orders', [$auth, 'accountOrders']);
+        $router->get('/account/orders/{orderNo}', [$auth, 'accountOrder']);
         $router->get('/projects', [$library, 'projects']);
         $router->get('/locker', [$library, 'locker']);
         $router->get('/trash', [$library, 'trash']);

@@ -46,8 +46,8 @@ $usagePct = $usageLimit > 0 ? min(100, (int) round(($usageUsed / max(1, $usageLi
     <a class="account-stat" href="#credits"><span class="account-stat-ic purple">C</span><span class="account-stat-val"><?= number_format((int) $stats['points']) ?> C</span><span class="account-stat-label">잉크</span></a>
     <a class="account-stat" href="#ai-usage"><span class="account-stat-ic yellow">✦</span><span class="account-stat-val"><?= number_format((int) ($aiUsage['used'] ?? 0)) ?> C</span><span class="account-stat-label">이번달 AI</span></a>
     <a class="account-stat" href="<?= url('shop/cart') ?>"><span class="account-stat-ic green">🎫</span><span class="account-stat-val"><?= (int) $stats['coupons'] ?></span><span class="account-stat-label">쿠폰</span></a>
-    <a class="account-stat" href="#orders"><span class="account-stat-ic yellow">📦</span><span class="account-stat-val"><?= (int) $stats['orders'] ?></span><span class="account-stat-label">최근 주문</span></a>
-    <a class="account-stat" href="#orders"><span class="account-stat-ic blue">🚚</span><span class="account-stat-val"><?= (int) $stats['shipping'] ?></span><span class="account-stat-label">배송중</span></a>
+    <a class="account-stat" href="<?= url('account/orders') ?>"><span class="account-stat-ic yellow">📦</span><span class="account-stat-val"><?= (int) $stats['orders'] ?></span><span class="account-stat-label">최근 주문</span></a>
+    <a class="account-stat" href="<?= url('account/orders') ?>"><span class="account-stat-ic blue">🚚</span><span class="account-stat-val"><?= (int) $stats['shipping'] ?></span><span class="account-stat-label">배송중</span></a>
   </div>
   <div class="account-quick-links">
     <?php foreach ($dash['quickLinks'] as $link): ?>
@@ -113,20 +113,26 @@ $usagePct = $usageLimit > 0 ? min(100, (int) round(($usageUsed / max(1, $usageLi
   <section class="account-panel card" id="orders">
     <div class="account-panel-head">
       <h2>최근 주문 내역</h2>
-      <a href="<?= url('shop/cart') ?>">더보기 →</a>
+      <a href="<?= url('account/orders') ?>">더보기 →</a>
     </div>
+    <?php if (empty($dash['recentOrders'])): ?>
+    <p class="account-empty">아직 주문 내역이 없습니다.</p>
+    <?php else: ?>
     <ul class="account-order-list">
       <?php foreach ($dash['recentOrders'] as $order): ?>
       <li>
-        <img src="<?= e($order['thumb']) ?>" alt="">
-        <div class="account-order-info">
-          <strong><?= e($order['name']) ?></strong>
-          <span><?= e($order['date']) ?> · <?= number_format((int) $order['total']) ?>원</span>
-        </div>
-        <span class="account-order-status <?= e($accountService->orderStatusClass($order['status'])) ?>"><?= e($order['status_label']) ?></span>
+        <a class="account-order-link" href="<?= e((string) ($order['href'] ?? url('account/orders'))) ?>">
+          <img src="<?= e($order['thumb']) ?>" alt="">
+          <div class="account-order-info">
+            <strong><?= e($order['name']) ?></strong>
+            <span><?= e($order['date']) ?> · <?= number_format((int) $order['total']) ?>원</span>
+          </div>
+          <span class="account-order-status <?= e($accountService->orderStatusClass($order['status'])) ?>"><?= e($order['status_label']) ?></span>
+        </a>
       </li>
       <?php endforeach; ?>
     </ul>
+    <?php endif; ?>
   </section>
 </div>
 

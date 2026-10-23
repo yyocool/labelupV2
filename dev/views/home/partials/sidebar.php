@@ -8,6 +8,7 @@ $isDesignActive = str_starts_with($path, '/editor');
 $isShopBuyActive = $activeNav === 'shop' && !str_contains($path, '/cart');
 $isCartActive = str_contains($path, '/shop/cart');
 $isAccountActive = $activeNav === 'account' && $path === '/account';
+$isOrdersActive = str_starts_with($path, '/account/orders');
 $isFaqActive = $activeNav === 'faq';
 $isProjectsActive = $path === '/projects';
 $isLockerActive = $path === '/locker';

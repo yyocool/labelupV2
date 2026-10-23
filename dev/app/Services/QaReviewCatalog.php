@@ -118,7 +118,7 @@ final class QaReviewCatalog
             $u('user-register', '회원', '회원가입', '/register', '가입·약관·이메일 중복검사'),
             $u('user-reset', '회원', '비밀번호 재설정', '/reset-password', '재설정 메일·토큰 처리'),
             $u('user-account-profile', '회원', '마이페이지 프로필', '/account', '이름·연락처 수정'),
-            $u('user-account-orders', '회원', '주문 내역', '/account', '주문 목록·상태 확인'),
+            $u('user-account-orders', '회원', '주문 내역', '/account/orders', '주문 목록·상세·배송조회'),
             $u('user-account-credits', '회원', '잉크/알림', '/account', '잔액·이력·알림 설정'),
             $u('user-account-address', '회원', '배송지 관리', '/account', '주소 추가·수정·삭제'),
         ];

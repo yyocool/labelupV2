@@ -46,7 +46,7 @@ $memberGrade = $isLoggedIn ? member_grade_for_user($authUser) : null;
         <span class="profile-dropdown-ic">★</span>
         <span>내 보관함</span>
       </a>
-      <a class="profile-dropdown-item" href="<?= url('account') ?>#orders">
+      <a class="profile-dropdown-item" href="<?= url('account/orders') ?>">
         <span class="profile-dropdown-ic">▧</span>
         <span>주문·배송 내역</span>
       </a>

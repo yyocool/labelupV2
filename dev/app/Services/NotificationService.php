@@ -211,7 +211,7 @@ final class NotificationService
             self::TYPE_ORDER_PLACED,
             '주문이 접수되었습니다',
             '주문번호 ' . $orderNo . ' · ' . number_format($total) . '원. 진행 상황은 마이페이지에서 확인할 수 있습니다.',
-            url('account') . '#orders',
+            url('account/orders/' . $orderNo),
             'order',
             $orderNo
         );
@@ -229,7 +229,7 @@ final class NotificationService
             self::TYPE_ORDER_STATUS,
             '주문 상태가 변경되었습니다',
             $body,
-            url('account') . '#orders',
+            url('account/orders/' . $orderNo),
             'order',
             $orderNo
         );

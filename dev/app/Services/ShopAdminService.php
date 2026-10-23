@@ -987,5 +987,25 @@ final class ShopAdminService
     {
         return ['CJ대한통운', '우체국택배', '한진택배', '롯데택배', '로젠택배', '대신택배', '경동택배', 'GS25편의점택배', 'CU편의점택배'];
     }
+
+    public static function trackingUrl(string $carrier, string $trackingNo): string
+    {
+        $no = preg_replace('/\s+/', '', $trackingNo) ?? '';
+        if ($no === '') {
+            return '';
+        }
+        $c = str_replace(' ', '', $carrier);
+        $enc = rawurlencode($no);
+        return match (true) {
+            str_contains($c, 'CJ') || str_contains($c, '대한통운') => 'https://trace.cjlogistics.com/next/tracking.html?wblNo=' . $enc,
+            str_contains($c, '우체국') => 'https://service.epost.go.kr/trace.RetrieveDomRigiTraceList.comm?sid1=' . $enc,
+            str_contains($c, '한진') => 'https://www.hanjin.com/kor/CMS/DeliveryMgr/WaybillResult.do?mCode=MN038&schLang=KR&wblnumText2=' . $enc,
+            str_contains($c, '롯데') => 'https://www.lotteglogis.com/home/reservation/tracking/linkView?InvNo=' . $enc,
+            str_contains($c, '로젠') => 'https://www.ilogen.com/web/personal/trace/' . $enc,
+            str_contains($c, '대신') => 'https://www.ds3211.co.kr/freight/internalFreightSearch.ht?billno=' . $enc,
+            str_contains($c, '경동') => 'https://kdexp.com/basicNewDelivery.kd?barcode=' . $enc,
+            default => 'https://tracker.delivery/guide/' . $enc,
+        };
+    }
 }
 

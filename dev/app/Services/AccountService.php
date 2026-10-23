@@ -178,29 +178,68 @@ final class AccountService
         ];
     }
 
+    /**
+     * @return array{items: array<int, array<string, mixed>>, page: int, pages: int, total: int}
+     */
+    public function orders(int $userId, int $page = 1, int $perPage = 10): array
+    {
+        $perPage = max(5, min(30, $perPage));
+        $total = $this->shop->countOrdersByUser($userId);
+        $pages = max(1, (int) ceil($total / $perPage));
+        $page = max(1, min($pages, $page));
+        $rows = $this->shop->ordersByUser($userId, $perPage, ($page - 1) * $perPage);
+        return [
+            'items' => $this->formatOrders($rows),
+            'page' => $page,
+            'pages' => $pages,
+            'total' => $total,
+        ];
+    }
+
     /** @param array<int, array<string, mixed>> $orders */
     /** @return array<int, array<string, mixed>> */
     private function formatOrders(array $orders): array
     {
-        $shop = new ShopAdminService();
         $items = [];
         foreach ($orders as $order) {
+            $orderNo = (string) ($order['order_no'] ?? '');
+            $status = (string) ($order['status'] ?? 'pending');
+            $tracking = trim((string) ($order['tracking_no'] ?? ''));
             $items[] = [
-                'order_no' => (string) $order['order_no'],
+                'id' => (int) ($order['id'] ?? 0),
+                'order_no' => $orderNo,
+                'href' => url('account/orders/' . $orderNo),
                 'name' => self::orderItemsLabel($order['items'] ?? [], (string) ($order['customer_name'] ?? '주문')),
                 'date' => date('Y.m.d', strtotime((string) ($order['created_at'] ?? 'now'))),
-                'status' => (string) ($order['status'] ?? 'pending'),
-                'status_label' => ShopAdminService::orderStatusLabel((string) ($order['status'] ?? 'pending')),
+                'status' => $status,
+                'status_label' => ShopAdminService::orderStatusLabel($status),
+                'status_class' => $this->orderStatusClass($status),
                 'total' => (int) ($order['total_amount'] ?? 0),
-                'thumb' => asset('hero-tall-1.webp'),
+                'thumb' => $this->orderThumb($order['items'] ?? []),
+                'tracking_no' => $tracking,
+                'tracking_url' => ShopAdminService::trackingUrl((string) ($order['carrier'] ?? ''), $tracking),
+                'can_track' => $tracking !== '' && in_array($status, ['shipping', 'delivered'], true),
             ];
         }
-        if (!$items) {
-            foreach ($this->fallbackOrders() as $row) {
-                $items[] = $row;
+        return $items;
+    }
+
+    /** @param array<int, array<string, mixed>> $items */
+    private function orderThumb(array $items): string
+    {
+        $first = $items[0] ?? null;
+        if (!is_array($first)) {
+            return asset('hero-tall-1.webp');
+        }
+        $pid = (int) ($first['product_id'] ?? 0);
+        if ($pid > 0) {
+            $product = $this->shop->findProductForPreview($pid);
+            $path = trim((string) ($product['thumbnail'] ?? ''));
+            if ($path !== '') {
+                return ShopProductImageService::resolveUrl($path);
             }
         }
-        return $items;
+        return asset('hero-tall-1.webp');
     }
 
     /**
@@ -227,31 +266,6 @@ final class AccountService
             $label .= ' 외 ' . $extra . '건';
         }
         return $label;
-    }
-
-    /** @return array<int, array<string, mixed>> */
-    private function fallbackOrders(): array
-    {
-        return [
-            [
-                'order_no' => 'LU-SAMPLE-001',
-                'name' => '50x30 유포지 500매',
-                'date' => date('Y.m.d', strtotime('-3 days')),
-                'status' => 'shipping',
-                'status_label' => '배송중',
-                'total' => 33700,
-                'thumb' => asset('hero-tall-1.webp'),
-            ],
-            [
-                'order_no' => 'LU-SAMPLE-002',
-                'name' => '100x50 아트지 250매',
-                'date' => date('Y.m.d', strtotime('-8 days')),
-                'status' => 'delivered',
-                'status_label' => '배송완료',
-                'total' => 25000,
-                'thumb' => asset('hero-tall-2.webp'),
-            ],
-        ];
     }
 
     public function orderStatusClass(string $status): string

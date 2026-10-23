@@ -38,8 +38,8 @@ final class TossPaymentsService
 
     public function variantKey(): string
     {
-        $key = trim((string) env('TOSS_VARIANT_KEY', 'DEFAULT'));
-        return $key !== '' ? $key : 'DEFAULT';
+        $key = trim((string) env('TOSS_VARIANT_KEY', 'default'));
+        return $key !== '' ? $key : 'default';
     }
 
     public function agreementVariantKey(): string

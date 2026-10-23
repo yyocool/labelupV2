@@ -112,8 +112,8 @@ final class LaunchChecklistCatalog
                 '구글 OAuth 클라이언트·승인된 리디렉션이 프로덕션용인지, 로그인 후 홈/편집기 복귀가 되는지 확인한다.',
                 '백엔드'),
             $i('auth-account', '계정·인증', 'P0', '마이페이지 기본',
-                '/account에서 프로필, 비밀번호 변경, 로그아웃, 주문·잉크 진입이 동작하는지 확인한다.',
-                'QA', '/account'),
+                '/account에서 프로필, 비밀번호 변경, 로그아웃, 주문·잉크 진입이 동작하는지 확인한다. /account/orders에서 주문 목록·상세·배송조회를 확인한다.',
+                'QA', '/account/orders'),
 
             // ── 홈·마케팅 ──
             $i('home-hero', '홈·마케팅', 'P0', '홈 히어로·CTA',

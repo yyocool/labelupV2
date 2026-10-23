@@ -1093,11 +1093,12 @@ final class ShopRepository extends BaseModel
     }
 
     /** @return array<int, array<string, mixed>> */
-    public function ordersByUser(int $userId, int $limit = 5): array
+    public function ordersByUser(int $userId, int $limit = 5, int $offset = 0): array
     {
-        $limit = max(1, min(20, $limit));
+        $limit = max(1, min(50, $limit));
+        $offset = max(0, $offset);
         $orders = $this->fetchAll(
-            "SELECT * FROM shop_orders WHERE user_id = :user_id ORDER BY id DESC LIMIT {$limit}",
+            "SELECT * FROM shop_orders WHERE user_id = :user_id ORDER BY id DESC LIMIT {$limit} OFFSET {$offset}",
             ['user_id' => $userId]
         );
         $this->attachOrderItems($orders);

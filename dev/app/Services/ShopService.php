@@ -616,6 +616,7 @@ final class ShopService
             }
             $out[] = [
                 'order_no' => (string) ($row['order_no'] ?? ''),
+                'href' => url('account/orders/' . rawurlencode((string) ($row['order_no'] ?? ''))),
                 'status' => (string) ($row['status'] ?? 'pending'),
                 'status_label' => ShopAdminService::orderStatusLabel((string) ($row['status'] ?? 'pending')),
                 'total_label' => $this->formatPrice((int) ($row['total_amount'] ?? 0)),
@@ -1187,6 +1188,10 @@ final class ShopService
             'shipping_memo' => (string) ($order['shipping_memo'] ?? ''),
             'carrier' => trim((string) ($order['carrier'] ?? '')) !== '' ? (string) $order['carrier'] : '라벨업배송 (기본배송)',
             'tracking_no' => (string) ($order['tracking_no'] ?? ''),
+            'tracking_url' => ShopAdminService::trackingUrl(
+                (string) ($order['carrier'] ?? ''),
+                (string) ($order['tracking_no'] ?? '')
+            ),
             'steps' => $steps,
         ];
     }

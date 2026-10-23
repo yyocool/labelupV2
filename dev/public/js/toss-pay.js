@@ -100,7 +100,7 @@ window.LabelUpTossPay = (function () {
     await widgets.setAmount({ currency: payment.currency || 'KRW', value: Number(payment.amount || 0) });
     await widgets.renderPaymentMethods({
       selector: '#luTossPaymentMethod',
-      variantKey: payment.variant_key || 'DEFAULT',
+      variantKey: payment.variant_key || 'default',
     });
     await widgets.renderAgreement({
       selector: '#luTossAgreement',

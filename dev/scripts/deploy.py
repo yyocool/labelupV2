@@ -161,7 +161,7 @@ def main():
     toss_enabled = pick_env(existing_env, 'TOSS_PAYMENTS_ENABLED', '1')
     toss_client = pick_env(existing_env, 'TOSS_CLIENT_KEY')
     toss_secret = pick_env(existing_env, 'TOSS_SECRET_KEY')
-    toss_variant = pick_env(existing_env, 'TOSS_VARIANT_KEY', 'DEFAULT')
+    toss_variant = pick_env(existing_env, 'TOSS_VARIANT_KEY', 'default')
     toss_agree = pick_env(existing_env, 'TOSS_AGREEMENT_VARIANT_KEY', 'AGREEMENT')
     session_key = existing_env.get('SESSION_KEY') or 'labelup_session'
     app_url = existing_env.get('APP_URL') or APP_URL

@@ -175,6 +175,51 @@ final class AuthController extends BaseController
         ]);
     }
 
+    public function accountOrders(): void
+    {
+        (new AuthMiddleware($this->auth))->handle();
+        $userId = (int) $this->auth->id();
+        $accountService = new AccountService();
+        $list = $accountService->orders($userId, (int) ($_GET['page'] ?? 1));
+        view('account/layout', [
+            'pageTitle' => '주문 내역 — 라벨업',
+            'contentTemplate' => 'account/orders',
+            'authUser' => $this->auth->user(),
+            'accountService' => $accountService,
+            'orderList' => $list,
+            'cartCount' => (new ShopService())->cartCount(),
+            'activeNav' => 'account',
+            'eventPopups' => (new EventPopupService())->activeForSite(),
+        ]);
+    }
+
+    public function accountOrder(string $orderNo): void
+    {
+        (new AuthMiddleware($this->auth))->handle();
+        $user = $this->auth->user() ?? [];
+        $userId = (int) ($user['id'] ?? 0);
+        $orderNo = trim(rawurldecode($orderNo));
+        $order = (new ShopService())->completeOrderForUser(
+            $userId,
+            $orderNo,
+            (string) ($user['email'] ?? '')
+        );
+        if (!$order) {
+            redirect('/account/orders');
+        }
+        $accountService = new AccountService();
+        view('account/layout', [
+            'pageTitle' => '주문 상세 — 라벨업',
+            'contentTemplate' => 'account/order',
+            'authUser' => $user,
+            'accountService' => $accountService,
+            'order' => $order,
+            'cartCount' => (new ShopService())->cartCount(),
+            'activeNav' => 'account',
+            'eventPopups' => (new EventPopupService())->activeForSite(),
+        ]);
+    }
+
     public function logout(): never
     {
         $this->auth->logoutUser();
