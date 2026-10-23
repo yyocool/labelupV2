@@ -45,6 +45,7 @@ final class UserService
         $this->profiles->create($userId, trim($name));
         (new MemberGradeService())->assignDefault($userId);
         (new NotificationService())->notifyWelcome($userId, trim($name));
+        (new CreditService())->grantByTrigger($userId, 'signup');
 
         return $this->users->findById($userId) ?? [];
     }
@@ -116,6 +117,7 @@ final class UserService
         if (!empty($payload['send_welcome'])) {
             (new NotificationService())->notifyWelcome($userId, $name);
         }
+        (new CreditService())->grantByTrigger($userId, 'signup');
 
         return $this->users->findById($userId) ?? [];
     }

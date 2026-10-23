@@ -73,4 +73,40 @@ final class CompanyInfoService
             static fn (array $row): bool => trim($row['value']) !== ''
         ));
     }
+
+    /** @return list<array{kind:string,label:string,href:string}> */
+    public function socialLinks(): array
+    {
+        $raw = trim((string) (new SeoService())->setting('seo.org_same_as', ''));
+        if ($raw === '') {
+            return [];
+        }
+        $urls = array_values(array_filter(array_map('trim', preg_split('/[\r\n,]+/', $raw) ?: [])));
+        $out = [];
+        $seen = [];
+        foreach ($urls as $url) {
+            if (!preg_match('~^https?://~i', $url) || isset($seen[$url])) {
+                continue;
+            }
+            $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+            $kind = 'link';
+            $label = '바로가기';
+            if (str_contains($host, 'youtube') || str_contains($host, 'youtu.be')) {
+                $kind = 'youtube';
+                $label = '유튜브';
+            } elseif (str_contains($host, 'instagram')) {
+                $kind = 'instagram';
+                $label = '인스타그램';
+            } elseif (str_contains($host, 'facebook') || str_contains($host, 'fb.com')) {
+                $kind = 'facebook';
+                $label = '페이스북';
+            } elseif (str_contains($host, 'blog.naver') || str_contains($host, 'naver')) {
+                $kind = 'blog';
+                $label = '블로그';
+            }
+            $seen[$url] = true;
+            $out[] = ['kind' => $kind, 'label' => $label, 'href' => $url];
+        }
+        return $out;
+    }
 }

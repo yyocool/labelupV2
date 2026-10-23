@@ -210,6 +210,20 @@ final class ShopAdminApiController extends BaseController
         }
     }
 
+    public function uploadBannerImages(): never
+    {
+        $this->guard();
+        try {
+            if (empty($_FILES['images'])) {
+                throw new RuntimeException('업로드할 이미지를 선택해주세요.');
+            }
+            $urls = $this->shop->uploadBannerImages($_FILES['images']);
+            $this->jsonSuccess(['urls' => $urls], '이미지가 업로드되었습니다.');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage());
+        }
+    }
+
     public function saveBanner(): never
     {
         $this->guard();

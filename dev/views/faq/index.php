@@ -71,8 +71,8 @@
     <p class="faq-empty-search" hidden>검색 결과가 없습니다. 다른 키워드로 찾아 보세요.</p>
     <?php endif; ?>
 
-    <?php render_site_footer(['year' => $year ?? date('Y')]); ?>
   </div>
+  <?php render_site_footer(['year' => $year ?? date('Y')]); ?>
 </main>
 </div>
 <script src="<?= js('home.js') ?>"></script>

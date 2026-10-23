@@ -571,12 +571,12 @@
 .admin-product-form--spec .admin-field--images{margin:0}
 .admin-product-form--spec .admin-field--check{align-self:end;padding-bottom:10px}
 .admin-product-form--spec .admin-field--readonly input{background:var(--ivory);color:var(--muted);cursor:default}
-.admin-color-row{display:flex;align-items:center;gap:8px}
+.admin-color-row{display:flex;align-items:center;gap:8px;min-width:0}
 .admin-color-row input[type="color"]{
   width:42px;height:38px;flex:none;padding:2px;border:1px solid var(--line);border-radius:10px;
   background:#fff;cursor:pointer;
 }
-.admin-color-row input[type="text"]{flex:1;min-width:0;text-transform:uppercase}
+.admin-color-row input[type="text"]{flex:1 1 auto;width:auto;min-width:0;text-transform:uppercase}
 .admin-spec-path{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px}
 .admin-spec-path-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .admin-product-form{display:flex;flex-direction:column;gap:22px}
@@ -704,6 +704,8 @@
 .admin-category-image-preview{
   width:200px;height:200px;object-fit:contain;border-radius:14px;border:1px solid var(--line);background:#fff;display:block;
 }
+.admin-banner-preview{width:min(420px,100%);height:auto;aspect-ratio:16/7;object-fit:cover}
+.admin-banner-thumb{width:96px;height:56px;object-fit:cover;border-radius:8px;display:block;border:1px solid var(--line);background:#fff}
 .admin-category-image-actions{display:flex;gap:8px;flex-wrap:wrap}
 .admin-lightbox{
   position:fixed;inset:0;z-index:320;display:flex;align-items:center;justify-content:center;padding:24px;
@@ -835,6 +837,85 @@
 .admin-modal-panel--wide .admin-field--editor .note-editor{width:100%}
 .admin-modal-panel--wide{overflow:visible}
 .admin-modal-panel--wide .admin-modal-body{max-height:min(78vh,720px);overflow:auto}
+.admin-modal-panel--xl{
+  width:min(1280px,96vw);height:fit-content;max-height:min(92vh,980px);
+  overflow:hidden;align-self:center
+}
+.admin-modal-panel--xl .admin-modal-head,
+.admin-modal-panel--xl .admin-modal-foot{flex:0 0 auto}
+.admin-modal-panel--xl .admin-modal-body{
+  flex:0 1 auto;min-height:0;max-height:none;overflow:hidden;overflow-anchor:none
+}
+.admin-field.admin-field--short textarea{min-height:72px}
+.admin-field select{
+  width:100%;border:1px solid var(--line);border-radius:10px;
+  padding:10px 12px;font-size:15px;background:#fff;color:var(--charcoal)
+}
+.admin-field select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.mid-form-layout{
+  display:grid;grid-template-columns:minmax(380px,.95fr) minmax(420px,1.15fr);
+  gap:22px;align-items:start;min-height:0
+}
+.mid-form-preview-col{min-width:0;position:sticky;top:0}
+.mid-form-preview-col .admin-field{margin-bottom:0}
+.mid-form-fields{min-width:0;max-height:min(74vh,780px);overflow:auto;overflow-anchor:none;padding-right:4px}
+.mid-form-fields .mid-text-block:first-of-type{margin-top:0}
+.mid-form-preview{
+  position:relative;width:100%;aspect-ratio:11/10;height:auto;max-height:none;
+  border-radius:14px;overflow:hidden;background:#1c1a1f;border:1px solid #ececf2;
+  isolation:isolate;contain:layout paint
+}
+.mid-form-preview img{width:100%;height:100%;object-fit:cover;display:block}
+.mid-form-preview-empty{display:grid;place-items:center;height:100%;color:#9ca3af;font-size:14px;font-weight:600}
+.mid-form-preview .mid-banner-copy[hidden]{display:none!important}
+.mid-form-preview .mid-banner-copy{
+  position:absolute;inset:auto;z-index:2;pointer-events:none;display:flex;flex-direction:column;gap:8px;
+  max-width:min(72%,520px);text-shadow:0 2px 16px rgba(20,16,18,.22);transform:none
+}
+.mid-form-preview .mid-banner-copy--h-left{left:56px;right:auto;text-align:left;align-items:flex-start}
+.mid-form-preview .mid-banner-copy--h-center{left:50%;right:auto;text-align:center;align-items:center}
+.mid-form-preview .mid-banner-copy--h-right{right:56px;left:auto;text-align:right;align-items:flex-end}
+.mid-form-preview .mid-banner-copy--v-top{top:28px;bottom:auto}
+.mid-form-preview .mid-banner-copy--v-middle{top:50%;bottom:auto}
+.mid-form-preview .mid-banner-copy--v-bottom{bottom:28px;top:auto}
+.mid-form-preview .mid-banner-copy--h-left.mid-banner-copy--v-middle,
+.mid-form-preview .mid-banner-copy--h-right.mid-banner-copy--v-middle{transform:translateY(-50%)}
+.mid-form-preview .mid-banner-copy--h-center.mid-banner-copy--v-top,
+.mid-form-preview .mid-banner-copy--h-center.mid-banner-copy--v-bottom{transform:translateX(-50%)}
+.mid-form-preview .mid-banner-copy--h-center.mid-banner-copy--v-middle{transform:translate(-50%,-50%)}
+.mid-form-preview .mid-banner-copy-main,
+.mid-form-preview .mid-banner-copy-sub{
+  margin:0;line-height:1.28;letter-spacing:-.03em;white-space:pre-line;word-break:keep-all
+}
+.mid-text-block{
+  margin:16px 0 4px;padding:14px 14px 4px;border:1px solid #efe8e4;border-radius:14px;background:#faf8f6
+}
+.mid-text-style{
+  display:grid;grid-template-columns:minmax(120px,140px) minmax(0,1fr);gap:12px
+}
+.mid-text-style .admin-field{min-width:0}
+.mid-text-style .admin-field:first-child{grid-column:1/-1}
+.mid-align-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.mid-align-pills{display:flex;gap:6px;margin-top:6px}
+.mid-align-pill{position:relative;flex:1;margin:0;cursor:pointer}
+.mid-align-pill input{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);border:0;
+  appearance:none;pointer-events:none
+}
+.mid-align-pill input:focus{box-shadow:none;outline:none}
+.mid-align-pill span{
+  display:flex;align-items:center;justify-content:center;height:36px;
+  border:1px solid #e4ddd6;border-radius:10px;background:#fff;color:#6b6570;
+  font-size:14px;font-weight:800
+}
+.mid-align-pill input:checked + span{background:var(--accent-soft);border-color:var(--accent-soft-2);color:var(--accent)}
+.mid-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end}
+@media (max-width:900px){
+  .mid-form-layout{grid-template-columns:1fr}
+  .mid-form-preview-col{position:static}
+  .mid-form-fields{max-height:none}
+}
 .clip-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
 .clip-empty{grid-column:1/-1;padding:40px;text-align:center;color:#8b8fa0;background:#fafafa;border:1px dashed #e5e7eb;border-radius:14px}
 .clip-card{border:1px solid #ececf2;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 6px 16px rgba(30,28,50,.04)}

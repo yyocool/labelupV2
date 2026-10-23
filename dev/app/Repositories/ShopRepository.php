@@ -924,7 +924,47 @@ final class ShopRepository extends BaseModel
 
     }
 
+    /** @return array<int, array<string, mixed>> */
+    public function activeCoupons(): array
+    {
+        return $this->fetchAll(
+            'SELECT * FROM shop_coupons
+             WHERE is_active = 1
+               AND (starts_at IS NULL OR starts_at <= NOW())
+               AND (ends_at IS NULL OR ends_at >= NOW())
+               AND (max_uses IS NULL OR used_count < max_uses)
+             ORDER BY (ends_at IS NULL) ASC, ends_at ASC, id DESC'
+        );
+    }
 
+    /** @return array<string, mixed>|null */
+    public function findCouponByCode(string $code): ?array
+    {
+        $code = strtoupper(trim($code));
+        if ($code === '') {
+            return null;
+        }
+        $row = $this->fetchOne(
+            'SELECT * FROM shop_coupons WHERE code = :code LIMIT 1',
+            ['code' => $code]
+        );
+        return $row ?: null;
+    }
+
+    public function incrementCouponUse(string $code): void
+    {
+        $code = strtoupper(trim($code));
+        if ($code === '') {
+            return;
+        }
+        $this->execute(
+            'UPDATE shop_coupons
+             SET used_count = used_count + 1, updated_at = :now
+             WHERE code = :code
+               AND (max_uses IS NULL OR used_count < max_uses)',
+            ['now' => date('Y-m-d H:i:s'), 'code' => $code]
+        );
+    }
 
     public function saveCoupon(array $data): int
 
@@ -1886,12 +1926,12 @@ final class ShopRepository extends BaseModel
             $this->execute(
                 'INSERT INTO shop_orders (
                     order_no, user_id, customer_name, customer_email, customer_phone,
-                    status, payment_status, subtotal, shipping_fee, discount_amount, total_amount,
+                    status, payment_status, subtotal, shipping_fee, discount_amount, coupon_code, total_amount,
                     shipping_name, shipping_phone, shipping_address, shipping_memo,
                     created_at, updated_at
                 ) VALUES (
                     :order_no, :user_id, :customer_name, :customer_email, :customer_phone,
-                    :status, :payment_status, :subtotal, :shipping_fee, :discount_amount, :total_amount,
+                    :status, :payment_status, :subtotal, :shipping_fee, :discount_amount, :coupon_code, :total_amount,
                     :shipping_name, :shipping_phone, :shipping_address, :shipping_memo,
                     :created_at, :updated_at
                 )',
@@ -1906,6 +1946,7 @@ final class ShopRepository extends BaseModel
                     'subtotal' => (int) ($order['subtotal'] ?? 0),
                     'shipping_fee' => (int) ($order['shipping_fee'] ?? 0),
                     'discount_amount' => (int) ($order['discount_amount'] ?? 0),
+                    'coupon_code' => $this->nullableText($order['coupon_code'] ?? null),
                     'total_amount' => (int) ($order['total_amount'] ?? 0),
                     'shipping_name' => $order['shipping_name'] ?? $order['customer_name'],
                     'shipping_phone' => $order['shipping_phone'] ?? ($order['customer_phone'] ?? null),
@@ -1960,6 +2001,10 @@ final class ShopRepository extends BaseModel
                         ['qty' => $qty, 'now' => $now, 'id' => $optionId, 'pid' => $pid]
                     );
                 }
+            }
+            $couponCode = strtoupper(trim((string) ($order['coupon_code'] ?? '')));
+            if ($couponCode !== '' && (int) ($order['discount_amount'] ?? 0) > 0) {
+                $this->incrementCouponUse($couponCode);
             }
             $this->db->commit();
             return ['id' => $orderId, 'order_no' => $orderNo];

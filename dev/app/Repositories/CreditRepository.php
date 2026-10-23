@@ -88,6 +88,34 @@ final class CreditRepository extends BaseModel
         );
     }
 
+    /** @return array<int, array<string, mixed>> */
+    public function activeRulesByTrigger(string $trigger): array
+    {
+        return $this->fetchAll(
+            'SELECT * FROM credit_reward_rules
+             WHERE trigger_type = :trigger AND is_active = 1
+             ORDER BY sort_order ASC, id ASC',
+            ['trigger' => $trigger]
+        );
+    }
+
+    public function countUserRewardByCode(int $userId, string $code, ?string $since = null): int
+    {
+        $sql = 'SELECT COUNT(*) AS cnt FROM credit_transactions
+                WHERE user_id = :user_id AND source = :source AND source_ref LIKE :ref';
+        $params = [
+            'user_id' => $userId,
+            'source' => 'reward',
+            'ref' => $code . ':%',
+        ];
+        if ($since !== null && $since !== '') {
+            $sql .= ' AND created_at >= :since';
+            $params['since'] = $since;
+        }
+        $row = $this->fetchOne($sql, $params);
+        return (int) ($row['cnt'] ?? 0);
+    }
+
     public function saveRewardRule(array $data): int
     {
         $now = date('Y-m-d H:i:s');
@@ -370,7 +398,7 @@ final class CreditRepository extends BaseModel
         $page = max(1, $page);
         $perPage = max(1, min(100, $perPage));
         $offset = ($page - 1) * $perPage;
-        $where = 't.source = \'admin\' AND t.amount > 0';
+        $where = 't.amount > 0 AND t.tx_type = \'earn\' AND t.source IN (\'admin\', \'reward\')';
         $params = [];
         if ($userId !== null && $userId > 0) {
             $where .= ' AND t.user_id = :user_id';

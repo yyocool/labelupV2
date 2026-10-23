@@ -33,20 +33,7 @@
 .legal-body p,.legal-body li{margin:0 0 8px}
 .legal-body ul{padding-left:1.2em;margin:0 0 12px}
 
-.site-footer{margin-top:20px;padding:18px 4px 8px;border-top:1px solid #eceaf2}
-.site-footer-links{display:flex;flex-wrap:wrap;gap:12px 14px;margin-bottom:12px}
-.site-footer-links a{font-size:14px;font-weight:700;color:#6b6560;text-decoration:none}
-.site-footer-links a:hover{color:var(--burgundy,#7B2840)}
-.site-footer-brand{display:block;font-size:14px;margin-bottom:8px}
-.site-footer-biz-list{
-  list-style:none;margin:0;padding:0;display:grid;gap:4px 18px;
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-}
-.site-footer-biz-list li{display:flex;gap:8px;font-size:14px;line-height:1.45;color:#5c5650}
-.site-footer-biz-list span{flex:0 0 auto;color:#8a837c;min-width:7.5em}
-.site-footer-biz-list em{font-style:normal;font-weight:600;color:#2e2a27;word-break:keep-all}
-.site-footer-biz-empty{margin:0 0 8px;font-size:14px;color:#8a837c;line-height:1.5}
-.site-footer .copy{margin-top:10px;font-size:14px;color:#989aac}
+.legal-page .site-footer.page-footer{margin-top:0}
 
 .about-eyebrow{margin:0 0 8px;font-size:14px;font-weight:800;letter-spacing:.04em;color:var(--burgundy,#7B2840)}
 .about-lead{margin:10px 0 0;font-size:15px;line-height:1.7;color:#5c5650;max-width:62ch}
@@ -80,5 +67,4 @@
 
 @media (max-width:640px){
   .legal-card{padding:22px 16px}
-  .site-footer-biz-list{grid-template-columns:1fr}
 }

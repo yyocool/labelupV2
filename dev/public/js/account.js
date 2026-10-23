@@ -233,6 +233,54 @@
     });
   }
 
+  document.querySelectorAll('[data-use-coupon]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const code = String(btn.getAttribute('data-use-coupon') || '').trim();
+      if (!code || btn.disabled) return;
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/shop/coupon/select', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.success === false) {
+          throw new Error(data.message || '쿠폰을 선택하지 못했습니다.');
+        }
+        window.location.href = data.data?.redirect || '/shop/products';
+      } catch (err) {
+        window.alert(err.message || '쿠폰을 선택하지 못했습니다.');
+        btn.disabled = false;
+      }
+    });
+  });
+
+  document.querySelectorAll('[data-copy-coupon]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const code = String(btn.getAttribute('data-copy-coupon') || '');
+      if (!code) return;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(code);
+        } else {
+          const tmp = document.createElement('textarea');
+          tmp.value = code;
+          document.body.appendChild(tmp);
+          tmp.select();
+          document.execCommand('copy');
+          tmp.remove();
+        }
+        const prev = btn.textContent;
+        btn.textContent = '복사됨';
+        setTimeout(() => { btn.textContent = prev; }, 1400);
+      } catch (_) {
+        window.prompt('쿠폰 코드를 복사하세요', code);
+      }
+    });
+  });
+
   document.querySelectorAll('a.account-btn--primary[href*="clipart="]').forEach((link) => {
     link.addEventListener('click', () => {
       try {

@@ -337,6 +337,7 @@ function admin_menu_catalog(): array
         ['key' => 'users', 'label' => '회원 관리', 'href' => 'admin/users', 'group' => '운영관리', 'ic' => '◎'],
         ['key' => 'settings', 'label' => '운영설정', 'href' => 'admin/settings', 'group' => '운영관리', 'ic' => '⚙'],
         ['key' => 'ops-hero-slides', 'label' => '히어로 이미지 관리', 'href' => 'admin/ops/hero-slides', 'group' => '운영관리', 'ic' => '▦'],
+        ['key' => 'ops-mid-banners', 'label' => '중간배너 관리', 'href' => 'admin/ops/mid-banners', 'group' => '운영관리', 'ic' => '▣'],
         ['key' => 'ops-event-popups', 'label' => '이벤트 팝업관리', 'href' => 'admin/ops/event-popups', 'group' => '운영관리', 'ic' => '◎'],
         ['key' => 'ops-faq', 'label' => 'FAQ 관리', 'href' => 'admin/ops/faq', 'group' => '운영관리', 'ic' => '?'],
         ['key' => 'ops-inquiries', 'label' => '1:1 문의', 'href' => 'admin/ops/inquiries', 'group' => '운영관리', 'ic' => '✉'],

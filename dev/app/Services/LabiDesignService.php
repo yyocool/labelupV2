@@ -53,6 +53,14 @@ final class LabiDesignService
         $difficulty = AiCostService::assessDifficulty($messages, $forced, $hasImage, $hasOffice);
         $this->openai->setChatModel(AiCostService::modelForDifficulty($difficulty));
 
+        $earlyText = $this->lastUserText($messages);
+        if ($forced === 'followup_done' || ($forced === '' && $this->looksLikeNoMoreHelp($earlyText))) {
+            return $this->replyFollowUpDone($userId, $surface, $difficulty);
+        }
+        if ($forced === 'followup_more') {
+            return $this->replyFollowUpMore($userId, $surface, $difficulty);
+        }
+
         if (
             $officeSheet !== null
             && $forced !== 'generate_clipart'
@@ -429,6 +437,11 @@ final class LabiDesignService
             'status' => 'ok',
         ]);
 
+        if ($choices === null && ($clipart !== null || $template !== null || $product !== null)) {
+            $reply = $this->appendFollowUpAsk($reply);
+            $choices = $this->followUpChoices();
+        }
+
         return [
             'reply' => $reply,
             'intent' => $intent,
@@ -512,12 +525,12 @@ final class LabiDesignService
         ]);
 
         return [
-            'reply' => $reply,
+            'reply' => $this->appendFollowUpAsk($reply),
             'intent' => 'generate_data_template',
             'product' => null,
             'clipart' => null,
             'template' => $template,
-            'choices' => null,
+            'choices' => $this->followUpChoices(),
             'usage' => $usageView,
             'clipart_id' => null,
         ];
@@ -539,6 +552,8 @@ final class LabiDesignService
             'background_no',
             'translate_yes',
             'translate_no',
+            'followup_done',
+            'followup_more',
         ], true)) {
             return $intent;
         }
@@ -694,6 +709,108 @@ final class LabiDesignService
         }
 
         return false;
+    }
+
+    private function appendFollowUpAsk(string $reply): string
+    {
+        $reply = rtrim($reply);
+        if ($reply === '' || $this->alreadyAsksFollowUp($reply)) {
+            return $reply;
+        }
+
+        return $reply . "\n\n다른 궁금한 점이나 수정하고 싶은 부분이 있으시면 말씀해 주세요. 더 도와드릴까요?";
+    }
+
+    private function alreadyAsksFollowUp(string $reply): bool
+    {
+        return (bool) preg_match('/더 도와|더 필요|더 궁금|더 문의|더 손볼|더 바꿀|더 있으|괜찮으신가요|말씀해 주/u', $reply);
+    }
+
+    private function looksLikeNoMoreHelp(string $text): bool
+    {
+        $text = trim($text);
+        if ($text === '') {
+            return false;
+        }
+
+        return (bool) preg_match(
+            '/^(없어요|없어|괜찮아요|괜찮아|됐어요|됐어|충분해요|충분해|이대로\s*좋아요|더\s*없어요|아니요\s*괜찮아요)[.!]?\s*$/u',
+            $text
+        );
+    }
+
+    /** @return array<int, array{id:string, title:string, desc:string}> */
+    private function followUpChoices(): array
+    {
+        return [
+            [
+                'id' => 'followup_more',
+                'title' => '더 부탁할게요',
+                'desc' => '색·문구·다른 디자인을 이어서 손봐요',
+            ],
+            [
+                'id' => 'followup_done',
+                'title' => '이대로 좋아요',
+                'desc' => '지금은 더 물어볼 게 없어요',
+            ],
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function replyFollowUpDone(?int $userId, string $surface, string $difficulty): array
+    {
+        return $this->replyPlainChat(
+            '네, 알겠어요. 색 바꾸기, 문구 수정, 다른 용지나 그림이 필요하시면 언제든 말씀해 주세요.',
+            $userId,
+            $surface,
+            $difficulty
+        );
+    }
+
+    /** @return array<string, mixed> */
+    private function replyFollowUpMore(?int $userId, string $surface, string $difficulty): array
+    {
+        return $this->replyPlainChat(
+            '좋아요. 어떤 걸 더 손볼까요? 색·문구·크기, 다른 그림이나 용지 추천도 편하게 말씀해 주세요.',
+            $userId,
+            $surface,
+            $difficulty
+        );
+    }
+
+    /** @return array<string, mixed> */
+    private function replyPlainChat(string $reply, ?int $userId, string $surface, string $difficulty): array
+    {
+        $usage = $this->openai->lastUsage();
+        $usageView = AiCostService::present($usage, 'chat', $difficulty);
+        (new AiUsageService())->log([
+            'user_id' => $userId ?? 0,
+            'surface' => $surface,
+            'intent' => 'chat',
+            'model' => $usageView['model'] ?? ($usage['model'] ?? null),
+            'prompt_tokens' => $usageView['prompt_tokens'] ?? ($usage['prompt_tokens'] ?? null),
+            'completion_tokens' => $usageView['completion_tokens'] ?? ($usage['completion_tokens'] ?? null),
+            'total_tokens' => $usageView['total_tokens'] ?? ($usage['total_tokens'] ?? null),
+            'cost_usd' => $usageView['usd'] ?? null,
+            'cost_krw' => $usageView['krw'] ?? null,
+            'agent' => $usageView['agent'] ?? null,
+            'difficulty' => $usageView['difficulty'] ?? $difficulty,
+            'has_image' => false,
+            'clipart_id' => null,
+            'status' => 'ok',
+        ]);
+
+        return [
+            'reply' => $reply,
+            'intent' => 'chat',
+            'product' => null,
+            'clipart' => null,
+            'template' => null,
+            'templates' => null,
+            'choices' => null,
+            'usage' => $usageView,
+            'clipart_id' => null,
+        ];
     }
 
     /**
@@ -945,13 +1062,13 @@ final class LabiDesignService
         ]);
 
         return [
-            'reply' => "관리자에 등록된 「{$name}」 템플릿을 골랐어요. 아래에서 바로 편집할 수 있어요.",
+            'reply' => $this->appendFollowUpAsk("관리자에 등록된 「{$name}」 템플릿을 골랐어요. 아래에서 바로 편집할 수 있어요."),
             'intent' => 'generate_template',
             'product' => null,
             'clipart' => null,
             'template' => $template,
             'templates' => null,
-            'choices' => null,
+            'choices' => $this->followUpChoices(),
             'usage' => $usageView,
             'clipart_id' => null,
         ];
@@ -1975,6 +2092,8 @@ final class LabiDesignService
             '텍스트만 만들어 주세요',
             '이걸로 진행해 주세요',
             '새로 만들어 주세요',
+            '색이나 문구를 더 바꿔 주세요',
+            '이대로 좋아요',
         ];
         for ($i = count($messages) - 1; $i >= 0; $i--) {
             if (($messages[$i]['role'] ?? '') !== 'user') {

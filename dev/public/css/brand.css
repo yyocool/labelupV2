@@ -24,21 +24,82 @@
   --shadow:0 14px 36px rgba(46,42,39,.08);
 }
 
-/* 공통 사업자정보 푸터 */
-.site-footer.page-footer{margin-top:28px;padding:18px 4px 8px;border-top:1px solid #eceaf2}
-.site-footer-links{display:flex;flex-wrap:wrap;gap:12px 14px;margin-bottom:12px}
-.site-footer-links a{font-size:14px;font-weight:700;color:#6b6560;text-decoration:none}
-.site-footer-links a:hover{color:var(--burgundy,#7B2840)}
-.site-footer-brand{display:block;font-size:15px;margin:4px 0 8px}
-.site-footer-biz-list{
-  list-style:none;margin:0 0 8px;padding:0;display:grid;gap:4px 16px;
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+/* 공통 사용자 푸터 — 본문(15px)과 같은 스케일 */
+.site-footer.page-footer{
+  width:100%;
+  margin:32px 0 0;
+  padding:0;
+  border-top:1px solid #e8e2dc;
+  background:#f4f1ec;
 }
-.site-footer-biz-list li{display:flex;gap:8px;font-size:14px;line-height:1.45;color:#5c5650}
-.site-footer-biz-list span{flex:0 0 auto;color:#8a837c;min-width:7.5em}
-.site-footer-biz-list em{font-style:normal;font-weight:600;color:#2e2a27;word-break:keep-all}
-.site-footer-biz-empty{margin:0 0 8px;font-size:14px;color:#8a837c;line-height:1.5}
-.site-footer .copy{margin-top:10px;font-size:14px;color:#989aac}
+.site-footer-inner{
+  width:100%;
+  margin:0;
+  padding:36px 31px 64px 39px;
+  box-sizing:border-box;
+}
+.site-footer-nav{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px 28px;
+  margin:0 0 28px;
+  padding:0 0 22px;
+  border-bottom:1px solid #e4ddd4;
+}
+.site-footer-nav a{
+  font-size:15px;
+  font-weight:700;
+  color:#3d3834;
+  text-decoration:none;
+}
+.site-footer-nav a:hover{color:var(--burgundy,#7B2840)}
+.site-footer-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.7fr) minmax(260px,360px);
+  gap:32px 56px;
+  align-items:start;
+}
+.site-footer-company-title,
+.site-footer-cs-title{
+  display:flex;align-items:center;gap:8px;
+  margin:0 0 12px;font-size:16px;font-weight:800;color:#2e2a27;letter-spacing:-.02em;
+}
+.site-footer-cs-title svg{width:22px;height:22px;flex:0 0 auto}
+.site-footer-company{font-size:15px;line-height:1.7;color:#5c5650}
+.site-footer-company p{margin:0 0 2px}
+.site-footer-company-name{font-weight:700;color:#2e2a27}
+.site-footer-copy{margin-top:12px;font-size:14px;color:#8a837c}
+.site-footer-social{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.site-footer-social a{
+  width:36px;height:36px;border-radius:50%;
+  border:1px solid #d5cfc6;color:#6b6560;background:#fff;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.site-footer-social a:hover{border-color:var(--burgundy,#7B2840);color:var(--burgundy,#7B2840)}
+.site-footer-social svg{width:16px;height:16px;display:block}
+.site-footer-cs-links{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 10px}
+.site-footer-cs-links a,
+.site-footer-cs-meta a,
+.site-footer-cs-phone a{
+  color:inherit;text-decoration:none;
+}
+.site-footer-cs-links a{font-size:15px;font-weight:700;color:#5c5650}
+.site-footer-cs-links a:hover,
+.site-footer-cs-phone a:hover,
+.site-footer-cs-meta a:hover{color:var(--burgundy,#7B2840)}
+.site-footer-cs-phone{margin:0 0 6px;font-size:24px;font-weight:800;color:#2e2a27;letter-spacing:-.03em}
+.site-footer-cs-meta{margin:0;font-size:15px;line-height:1.6;color:#6b6560}
+.login-page .site-footer-inner,
+.legal-page .site-footer-inner{
+  max-width:1180px;
+  margin:0 auto;
+  padding:36px 24px 48px;
+}
+@media (max-width:800px){
+  .site-footer-inner{padding:28px 16px 88px}
+  .site-footer-grid{grid-template-columns:1fr;gap:28px}
+  .site-footer-cs-phone{font-size:22px}
+}
 
 /* 사용자 페이지: 가로 1920px 초과 시 화면 폭 고정(관리자·QA·편집기 제외)
    transform 으로 fixed 사이드바·모달도 1920 영역 안에 묶는다.

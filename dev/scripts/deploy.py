@@ -210,9 +210,9 @@ TOSS_AGREEMENT_VARIANT_KEY={toss_agree}
 
     cmds = [
         f"mkdir -p {REMOTE_ROOT}/storage/{{uploads,designs,pdf,logs,ai-clipart,imports}}",
-        f"mkdir -p {REMOTE_PUBLIC}/assets/{{ai-clipart,cliparts,hero,editor-previews,editor-media,shop-page}}",
+        f"mkdir -p {REMOTE_PUBLIC}/assets/{{ai-clipart,cliparts,hero,mid-banners,editor-previews,editor-media,shop-page}}",
         f"chmod -R u+rwX,g+rwX {REMOTE_ROOT}/storage",
-        f"chmod -R u+rwX,g+rwX {REMOTE_PUBLIC}/assets/ai-clipart {REMOTE_PUBLIC}/assets/cliparts {REMOTE_PUBLIC}/assets/hero {REMOTE_PUBLIC}/assets/editor-previews {REMOTE_PUBLIC}/assets/editor-media {REMOTE_PUBLIC}/assets/shop-page {REMOTE_ROOT}/storage/ai-clipart {REMOTE_ROOT}/storage/imports 2>/dev/null || true",
+        f"chmod -R u+rwX,g+rwX {REMOTE_PUBLIC}/assets/ai-clipart {REMOTE_PUBLIC}/assets/cliparts {REMOTE_PUBLIC}/assets/hero {REMOTE_PUBLIC}/assets/mid-banners {REMOTE_PUBLIC}/assets/editor-previews {REMOTE_PUBLIC}/assets/editor-media {REMOTE_PUBLIC}/assets/shop-page {REMOTE_ROOT}/storage/ai-clipart {REMOTE_ROOT}/storage/imports 2>/dev/null || true",
         f"chmod 640 {REMOTE_ROOT}/.env",
     ]
     for cmd in cmds:

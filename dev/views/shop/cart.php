@@ -153,9 +153,33 @@
       </li>
       <?php endforeach; ?>
     </ul>
+    <div class="shop-cart-coupon" id="shopCouponBox">
+      <label>
+        <span>쿠폰 코드</span>
+        <span class="shop-cart-coupon__row">
+          <input id="shopCouponInput" name="coupon_code" maxlength="50" autocomplete="off"
+            placeholder="예: WELCOME10"
+            value="<?= e((string) ($cart['coupon_code'] ?? '')) ?>"
+            <?= !empty($cart['coupon_code']) && empty($cart['coupon_error']) ? 'readonly' : '' ?>>
+          <button type="button" id="shopCouponApply" data-applied="<?= !empty($cart['coupon_code']) && empty($cart['coupon_error']) ? '1' : '0' ?>">
+            <?= !empty($cart['coupon_code']) && empty($cart['coupon_error']) ? '해제' : '적용' ?>
+          </button>
+        </span>
+      </label>
+      <?php if (!empty($cart['coupon_name']) && empty($cart['coupon_error'])): ?>
+      <p class="shop-cart-coupon__ok"><?= e((string) $cart['coupon_name']) ?> 적용됨</p>
+      <?php endif; ?>
+      <?php if (!empty($cart['coupon_error'])): ?>
+      <p class="shop-cart-coupon__err"><?= e((string) $cart['coupon_error']) ?></p>
+      <?php endif; ?>
+    </div>
     <dl>
       <div><dt>상품 금액</dt><dd id="cartSubtotal"><?= e($shopService->formatPrice($cart['subtotal'])) ?></dd></div>
       <div><dt>배송비</dt><dd id="cartShipping"><?= $cart['shipping_fee'] === 0 ? '무료' : e($shopService->formatPrice($cart['shipping_fee'])) ?></dd></div>
+      <div id="cartDiscountRow"<?= empty($cart['discount_amount']) ? ' hidden' : '' ?>>
+        <dt>쿠폰 할인</dt>
+        <dd id="cartDiscount"><?= e((string) ($cart['discount_label'] ?? '0원')) ?></dd>
+      </div>
       <div class="shop-cart-total"><dt>결제 예정</dt><dd id="cartTotal"><?= e($shopService->formatPrice($cart['total'])) ?></dd></div>
     </dl>
     <p class="shop-cart-note"><?= !empty($cart['ink_only']) ? '잉크는 배송 없이 결제 후 계정에 지급됩니다.' : '5만원 이상 구매 시 배송비 무료' ?></p>

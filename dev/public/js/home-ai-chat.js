@@ -1120,7 +1120,7 @@ window.LabelUpLabiChat = {
     list.forEach((choice) => {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = `ai-choice-btn${choice.id === 'generate_template' || choice.id === 'generate_new_template' || choice.id === 'translate_yes' || choice.id === 'background_yes' ? ' ai-choice-btn--tpl' : ''}`;
+      btn.className = `ai-choice-btn${choice.id === 'generate_template' || choice.id === 'generate_new_template' || choice.id === 'translate_yes' || choice.id === 'background_yes' || choice.id === 'followup_more' ? ' ai-choice-btn--tpl' : ''}`;
       if (pickedId && choice.id === pickedId) btn.classList.add('is-picked');
       if (pickedId) btn.disabled = true;
       btn.innerHTML = `
@@ -1983,6 +1983,8 @@ window.LabelUpLabiChat = {
       translate_no: '아니요, 원문 그대로 만들어 주세요',
       background_yes: '배경 이미지 넣어 주세요',
       background_no: '텍스트만 만들어 주세요',
+      followup_more: '색이나 문구를 더 바꿔 주세요',
+      followup_done: '이대로 좋아요',
     };
     const label = labels[intent] || '이걸로 진행해 주세요';
     appendMessage('user', label);

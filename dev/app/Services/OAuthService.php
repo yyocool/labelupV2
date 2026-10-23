@@ -167,6 +167,7 @@ final class OAuthService
         $this->users->updateLastLogin($userId);
         $this->loginLogs->log($userId, $email, true, 'oauth_register_' . $provider);
         (new NotificationService())->notifyWelcome($userId, mb_substr($name, 0, 100));
+        (new CreditService())->grantByTrigger($userId, 'signup');
 
         $user = $this->users->findById($userId);
         if (!$user) {

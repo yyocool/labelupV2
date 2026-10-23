@@ -32,13 +32,25 @@
   <?php require view_path('shop/partials/topbar.php'); ?>
   <div class="shop-wrap<?= !empty($hideShopAside) ? ' shop-wrap--complete' : '' ?>">
     <div class="shop-content">
+      <?php
+        $couponNotice = null;
+        if (($contentTemplate ?? '') !== 'shop/cart' && isset($shopService) && is_object($shopService)) {
+            $couponNotice = $shopService->selectedCouponNotice();
+        }
+      ?>
+      <?php if ($couponNotice): ?>
+      <div class="shop-coupon-picked" role="status">
+        <strong><?= e((string) $couponNotice['code']) ?></strong>
+        <span><?= e((string) $couponNotice['text']) ?></span>
+      </div>
+      <?php endif; ?>
       <?php require view_path(str_replace('.', '/', $contentTemplate) . '.php'); ?>
     </div>
     <?php if (empty($hideShopAside)): ?>
     <?php require view_path('shop/partials/aside-panel.php'); ?>
     <?php endif; ?>
-    <?php render_site_footer(['year' => (int) date('Y')]); ?>
   </div>
+  <?php render_site_footer(['year' => (int) date('Y')]); ?>
 </main>
 </div>
 <?php require view_path('shop/partials/floating-bar.php'); ?>

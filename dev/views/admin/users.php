@@ -121,7 +121,7 @@ $grades = $grades ?? [];
 <section class="admin-section">
   <div class="admin-section-head">
     <h2 class="admin-section-title">최근 잉크 지급 이력</h2>
-    <p class="admin-muted">총 <?= number_format($grantTotal) ?>건 · 관리자가 임의 지급한 내역입니다.</p>
+    <p class="admin-muted">총 <?= number_format($grantTotal) ?>건 · 관리자 지급과 회원가입 웰컴 등 자동 보상 내역입니다.</p>
   </div>
   <div class="admin-table-wrap">
     <table class="admin-table">
@@ -129,6 +129,7 @@ $grades = $grades ?? [];
         <tr>
           <th>일시</th>
           <th>회원</th>
+          <th>구분</th>
           <th>지급</th>
           <th>지급 후 잔액</th>
           <th>지급 사유</th>
@@ -137,7 +138,7 @@ $grades = $grades ?? [];
       </thead>
       <tbody>
         <?php if (empty($grantItems)): ?>
-        <tr><td colspan="6" class="empty">지급 이력이 없습니다.</td></tr>
+        <tr><td colspan="7" class="empty">지급 이력이 없습니다.</td></tr>
         <?php else: ?>
         <?php foreach ($grantItems as $grant): ?>
         <tr>
@@ -148,10 +149,11 @@ $grades = $grades ?? [];
             <br><small class="admin-muted"><?= e($grant['user_name']) ?></small>
             <?php endif; ?>
           </td>
+          <td><?= e((string) ($grant['source_label'] ?? \App\Services\CreditService::sourceLabel((string) ($grant['source'] ?? '')))) ?></td>
           <td class="is-plus">+<?= number_format((int) ($grant['amount'] ?? 0)) ?> C</td>
           <td><?= number_format((int) ($grant['balance_after'] ?? 0)) ?> C</td>
-          <td><?= e($grant['description'] ?? '') ?></td>
-          <td><small><?= e($grant['admin_email'] ?? $grant['admin_name'] ?? '-') ?></small></td>
+          <td><?= e((string) ($grant['description'] ?? '')) ?></td>
+          <td><small><?= e((string) ($grant['actor_label'] ?? $grant['admin_email'] ?? $grant['admin_name'] ?? '-')) ?></small></td>
         </tr>
         <?php endforeach; ?>
         <?php endif; ?>

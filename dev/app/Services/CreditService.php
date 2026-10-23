@@ -19,6 +19,39 @@ final class CreditService
         $this->repo = new CreditRepository();
     }
 
+    /** UTF-8이 Latin-1로 잘못 읽힌 한글을 복구한다. */
+    public static function repairUtf8(string $text): string
+    {
+        $text = trim($text);
+        if ($text === '' || preg_match('/[가-힣]/u', $text) === 1) {
+            return $text;
+        }
+        foreach (['ISO-8859-1', 'Windows-1252'] as $from) {
+            $try = @mb_convert_encoding($text, $from, 'UTF-8');
+            if (is_string($try) && $try !== '' && preg_match('/[가-힣]/u', $try) === 1) {
+                return $try;
+            }
+        }
+        return $text;
+    }
+
+    public static function rewardLabel(string $code, string $name = ''): string
+    {
+        $code = strtoupper(trim($code));
+        $name = self::repairUtf8($name);
+        if ($name !== '' && preg_match('/[가-힣]/u', $name) === 1) {
+            return $name;
+        }
+        return match ($code) {
+            'SIGNUP_WELCOME' => '회원가입 웰컴 잉크',
+            'DAILY_LOGIN' => '일일 접속 보상',
+            'DESIGN_COMPLETE' => '디자인 완료 보상',
+            'REFERRAL' => '친구 추천 보상',
+            'EVENT_BONUS' => '이벤트 보너스',
+            default => $name !== '' ? $name : ($code !== '' ? $code : '잉크 보상'),
+        };
+    }
+
     public static function krwToCredits(float|int $krw): int
     {
         return (int) round(((float) $krw) * self::CREDITS_PER_KRW);
@@ -81,6 +114,84 @@ final class CreditService
             'source_ref' => $sourceRef,
             'description' => $description,
             'admin_id' => $adminId,
+        ]);
+        $notifier = new NotificationService();
+        $notifier->notifyCreditChange($userId, $amount, $next, $description);
+        $notifier->maybeNotifyCreditLow($userId, $current, $next);
+        return $next;
+    }
+
+    /**
+     * 관리자 잉크보상 규칙(trigger_type)에 따라 지급한다.
+     * 회원가입은 SIGNUP_WELCOME 등 signup 트리거 활성 규칙이 있으면 1회 지급.
+     */
+    public function grantByTrigger(int $userId, string $trigger): int
+    {
+        if ($userId <= 0 || $trigger === '') {
+            return 0;
+        }
+        $granted = 0;
+        foreach ($this->repo->activeRulesByTrigger($trigger) as $rule) {
+            $amount = (int) ($rule['credit_amount'] ?? 0);
+            $code = strtoupper(trim((string) ($rule['code'] ?? '')));
+            if ($amount <= 0 || $code === '') {
+                continue;
+            }
+            $maxTotal = $rule['max_total_per_user'] ?? null;
+            if ($maxTotal !== null && $maxTotal !== '') {
+                if ($this->repo->countUserRewardByCode($userId, $code) >= (int) $maxTotal) {
+                    continue;
+                }
+            }
+            $dailyLimit = $rule['daily_limit'] ?? null;
+            if ($dailyLimit !== null && $dailyLimit !== '') {
+                if ($this->repo->countUserRewardByCode($userId, $code, date('Y-m-d 00:00:00')) >= (int) $dailyLimit) {
+                    continue;
+                }
+            }
+            $sourceRef = $code . ':' . $userId;
+            if ($trigger === 'daily_login') {
+                $sourceRef .= ':' . date('Ymd');
+            } elseif ($trigger !== 'signup') {
+                $sourceRef .= ':' . date('YmdHis');
+            }
+            if ($this->repo->hasSourceRef('reward', $sourceRef)) {
+                continue;
+            }
+            $this->grantReward($userId, $amount, self::rewardLabel($code, (string) ($rule['name'] ?? '')), $sourceRef);
+            $granted += $amount;
+        }
+        return $granted;
+    }
+
+    public function grantReward(int $userId, int $amount, string $description, string $sourceRef): int
+    {
+        if ($userId <= 0 || $amount <= 0) {
+            return $this->balance($userId);
+        }
+        if ($sourceRef !== '' && $this->repo->hasSourceRef('reward', $sourceRef)) {
+            return $this->balance($userId);
+        }
+        $description = self::repairUtf8(trim($description));
+        if ($description === '') {
+            $description = '잉크 보상';
+        }
+        if (mb_strlen($description) > 255) {
+            $description = mb_substr($description, 0, 252) . '...';
+        }
+        $this->repo->ensureBalanceRow($userId);
+        $current = $this->repo->getBalance($userId);
+        $next = $current + $amount;
+        $this->repo->setBalance($userId, $next);
+        $this->repo->addTransaction([
+            'user_id' => $userId,
+            'amount' => $amount,
+            'balance_after' => $next,
+            'tx_type' => 'earn',
+            'source' => 'reward',
+            'source_ref' => $sourceRef !== '' ? $sourceRef : null,
+            'description' => $description,
+            'admin_id' => null,
         ]);
         $notifier = new NotificationService();
         $notifier->notifyCreditChange($userId, $amount, $next, $description);
@@ -257,7 +368,7 @@ final class CreditService
                 'tx_type_label' => self::txTypeLabel((string) ($row['tx_type'] ?? '')),
                 'source' => (string) ($row['source'] ?? ''),
                 'source_label' => self::sourceLabel((string) ($row['source'] ?? '')),
-                'description' => (string) ($row['description'] ?? ''),
+                'description' => self::repairUtf8((string) ($row['description'] ?? '')),
                 'created_at' => (string) ($row['created_at'] ?? ''),
             ];
         }

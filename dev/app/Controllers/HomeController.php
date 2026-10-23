@@ -9,6 +9,7 @@ use App\Services\AuthService;
 use App\Services\EditorWorkspaceService;
 use App\Services\EventPopupService;
 use App\Services\HomeHeroService;
+use App\Services\HomeMidBannerService;
 use App\Services\ShopService;
 use App\Services\SiteModeService;
 
@@ -34,6 +35,12 @@ final class HomeController extends BaseController
         } catch (\Throwable) {
             $popularPapers = [];
         }
+        $midBanners = [];
+        try {
+            $midBanners = (new HomeMidBannerService())->slidesForHome();
+        } catch (\Throwable) {
+            $midBanners = [];
+        }
         $siteRuntime = (new SiteModeService())->publicConfig();
         $this->render('home/index', [
             'pageTitle' => 'labelup — 라벨업',
@@ -45,6 +52,7 @@ final class HomeController extends BaseController
             'recentWorks' => $recentWorks,
             'examplePrompts' => $examplePrompts,
             'popularPapers' => $popularPapers,
+            'midBanners' => $midBanners,
             'siteRuntime' => $siteRuntime,
         ]);
     }

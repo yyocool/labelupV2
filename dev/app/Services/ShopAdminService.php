@@ -748,7 +748,18 @@ final class ShopAdminService
     /** @return array<int, array<string, mixed>> */
     public function banners(): array
     {
-        return $this->repo->allBanners();
+        $rows = $this->repo->allBanners();
+        foreach ($rows as &$row) {
+            $row['image_src'] = ShopProductImageService::resolveUrl((string) ($row['image_url'] ?? ''));
+        }
+        unset($row);
+        return $rows;
+    }
+
+    /** @return array<int, string> */
+    public function uploadBannerImages(array $files): array
+    {
+        return ShopProductImageService::storeBannerUploads($files);
     }
 
     public function saveBanner(array $data): int
@@ -761,7 +772,7 @@ final class ShopAdminService
             'id' => (int) ($data['id'] ?? 0),
             'title' => $title,
             'subtitle' => trim((string) ($data['subtitle'] ?? '')),
-            'image_url' => trim((string) ($data['image_url'] ?? '')),
+            'image_url' => ShopProductImageService::normalizePublicPath((string) ($data['image_url'] ?? '')),
             'link_url' => trim((string) ($data['link_url'] ?? '')),
             'sort_order' => (int) ($data['sort_order'] ?? 0),
             'is_active' => !empty($data['is_active']),

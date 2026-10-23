@@ -134,15 +134,6 @@
       </section>
     </div>
 
-    <section class="features">
-      <div class="feature"><div class="fi p">✦</div><div><b>디자인 추천</b><span>용도에 맞는 디자인을 자동으로 추천해드려요</span></div></div>
-      <div class="feature"><div class="fi g">⌕</div><div><b>규격 검색</b><span>원하는 용지 규격을 빠르게 찾아보세요</span></div></div>
-      <div class="feature"><a class="feature-link" href="<?= url('shop') ?>"><div class="fi b">🛒</div><div><b>라벨지 쇼핑몰</b><span>다양한 규격 라벨지를 바로 구매하세요</span></div></a></div>
-      <div class="feature"><a class="feature-link" href="<?= url('about') ?>"><div class="fi o">◇</div><div><b>서비스 소개</b><span>이용 흐름과 사업자정보를 확인해보세요</span></div></a></div>
-      <div class="feature"><div class="fi c">⌘</div><div><b>데이터 연동</b><span>엑셀 데이터로 라벨을 자동 생성하세요</span></div></div>
-      <div class="feature"><a class="feature-link" href="<?= url('faq') ?>"><div class="fi r">▶</div><div><b>사용 가이드</b><span>처음이신가요? FAQ로 시작해보세요</span></div></a></div>
-    </section>
-
     <?php if (!empty($recentWorks)): ?>
     <section class="section recent-works">
       <div class="section-head">
@@ -175,9 +166,12 @@
     </section>
     <?php endif; ?>
 
-    <section class="section" data-filter-cards="papers">
-      <div class="section-head">
-        <h2>인기 용지</h2>
+    <div class="home-split">
+      <section class="section home-split__papers" data-filter-cards="papers">
+        <div class="section-head">
+          <h2>인기 용지</h2>
+          <a class="more" href="<?= url('shop/products') ?>">더보기 →</a>
+        </div>
         <?php
           $paperCats = [];
           foreach ($popularPapers ?? [] as $paper) {
@@ -196,44 +190,113 @@
           <?php endforeach; ?>
         </div>
         <?php endif; ?>
-        <a class="more" href="<?= url('shop/products') ?>">더보기 →</a>
-      </div>
-      <div class="cards-wrap cards-slide">
-        <?php if (count($popularPapers ?? []) > 1): ?>
-        <button class="card-arrow card-arrow-prev" type="button" aria-label="이전">‹</button>
-        <?php endif; ?>
-        <div class="cards">
-          <?php if (empty($popularPapers)): ?>
-          <p class="cards-empty">등록된 인기 용지가 없습니다.</p>
-          <?php else: ?>
-            <?php foreach ($popularPapers as $paper): ?>
-            <article class="card" data-category="<?= e((string) ($paper['category'] ?? '')) ?>">
-              <a class="card-link" href="<?= e((string) ($paper['url'] ?? url('shop/products'))) ?>">
-                <div class="card-img paper-img">
-                  <?php if (!empty($paper['thumbUrl'])): ?>
-                  <img src="<?= e((string) $paper['thumbUrl']) ?>" alt="<?= e((string) ($paper['name'] ?? '')) ?>" loading="lazy">
+        <div class="cards-wrap home-paper-grid">
+          <div class="cards">
+            <?php if (empty($popularPapers)): ?>
+            <p class="cards-empty">등록된 인기 용지가 없습니다.</p>
+            <?php else: ?>
+              <?php foreach ($popularPapers as $paper): ?>
+              <article class="card" data-category="<?= e((string) ($paper['category'] ?? '')) ?>">
+                <a class="card-link" href="<?= e((string) ($paper['url'] ?? url('shop/products'))) ?>">
+                  <div class="card-img paper-img">
+                    <?php if (!empty($paper['thumbUrl'])): ?>
+                    <img src="<?= e((string) $paper['thumbUrl']) ?>" alt="<?= e((string) ($paper['name'] ?? '')) ?>" loading="lazy">
+                    <?php else: ?>
+                    <span class="tpl-fallback"><?= e(mb_substr((string) ($paper['name'] ?? '용지'), 0, 8)) ?></span>
+                    <?php endif; ?>
+                  </div>
+                  <div class="meta">
+                    <span><?= e((string) ($paper['name'] ?? '')) ?></span>
+                    <small><?= e((string) (($paper['specLabel'] ?? '') !== '' ? $paper['specLabel'] : ($paper['priceLabel'] ?? ''))) ?></small>
+                  </div>
+                </a>
+              </article>
+              <?php endforeach; ?>
+            <?php endif; ?>
+          </div>
+        </div>
+      </section>
+
+      <section class="section home-split__uses">
+        <?php $midBanners = $midBanners ?? []; ?>
+        <?php if ($midBanners === []): ?>
+        <div class="mid-banner mid-banner--empty">
+          <header class="mid-banner-head">
+            <h2>용도별 라벨</h2>
+          </header>
+          <div class="mid-banner-visual mid-banner-visual--empty">등록된 연출 이미지가 없습니다.</div>
+        </div>
+        <?php else: ?>
+        <section class="mid-banner" id="midBannerSlider" aria-label="용도별 라벨 연출 이미지">
+          <header class="mid-banner-head">
+            <h2>용도별 라벨</h2>
+            <div class="mid-banner-badges" role="tablist" aria-label="용도별 라벨 목록">
+              <?php foreach ($midBanners as $i => $slide):
+                $badge = trim((string) ($slide['title'] ?? ''));
+                if ($badge === '') {
+                    $badge = '이미지 ' . ($i + 1);
+                }
+              ?>
+              <button type="button" class="mid-banner-badge<?= $i === 0 ? ' is-active' : '' ?>" role="tab" aria-selected="<?= $i === 0 ? 'true' : 'false' ?>" data-mid-go="<?= (int) $i ?>">
+                <?= e($badge) ?>
+              </button>
+              <?php endforeach; ?>
+            </div>
+          </header>
+          <div class="mid-banner-viewport">
+            <div class="mid-banner-track">
+              <?php foreach ($midBanners as $slide): ?>
+              <article class="mid-banner-slide">
+                <div class="mid-banner-visual">
+                  <?php if (!empty($slide['link_url'])): ?>
+                  <a href="<?= e((string) $slide['link_url']) ?>" class="mid-banner-link">
+                    <img src="<?= e((string) ($slide['image_src'] ?? '')) ?>" alt="<?= e((string) ($slide['title'] ?? '용도별 라벨')) ?>">
+                  </a>
                   <?php else: ?>
-                  <span class="tpl-fallback"><?= e(mb_substr((string) ($paper['name'] ?? '용지'), 0, 8)) ?></span>
+                  <img src="<?= e((string) ($slide['image_src'] ?? '')) ?>" alt="<?= e((string) ($slide['title'] ?? '용도별 라벨')) ?>">
+                  <?php endif; ?>
+                  <?php
+                    $mainText = trim((string) ($slide['main_text'] ?? ''));
+                    $subText = trim((string) ($slide['sub_text'] ?? ''));
+                  ?>
+                  <?php if ($mainText !== '' || $subText !== ''): ?>
+                  <?php
+                    $alignH = (string) ($slide['text_align_h'] ?? 'left');
+                    $alignV = (string) ($slide['text_align_v'] ?? 'middle');
+                  ?>
+                  <div class="mid-banner-copy mid-banner-copy--h-<?= e($alignH) ?> mid-banner-copy--v-<?= e($alignV) ?>">
+                    <?php if ($mainText !== ''): ?>
+                    <p class="mid-banner-copy-main" style="<?= e((string) ($slide['main_style'] ?? '')) ?>"><?= e($mainText) ?></p>
+                    <?php endif; ?>
+                    <?php if ($subText !== ''): ?>
+                    <p class="mid-banner-copy-sub" style="<?= e((string) ($slide['sub_style'] ?? '')) ?>"><?= e($subText) ?></p>
+                    <?php endif; ?>
+                  </div>
                   <?php endif; ?>
                 </div>
-                <div class="meta">
-                  <span><?= e((string) ($paper['name'] ?? '')) ?></span>
-                  <small><?= e((string) (($paper['specLabel'] ?? '') !== '' ? $paper['specLabel'] : ($paper['priceLabel'] ?? ''))) ?></small>
-                </div>
-              </a>
-            </article>
-            <?php endforeach; ?>
-          <?php endif; ?>
-        </div>
-        <?php if (count($popularPapers ?? []) > 1): ?>
-        <button class="card-arrow card-arrow-next" type="button" aria-label="다음">›</button>
+              </article>
+              <?php endforeach; ?>
+            </div>
+            <?php if (count($midBanners) > 1): ?>
+            <div class="mid-banner-overlay">
+              <button class="mid-banner-nav mid-banner-prev" type="button" aria-label="이전 이미지">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>
+              </button>
+              <span class="mid-banner-count" data-mid-count>1 / <?= count($midBanners) ?></span>
+              <button class="mid-banner-nav mid-banner-next" type="button" aria-label="다음 이미지">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+              </button>
+            </div>
+            <?php endif; ?>
+          </div>
+        </section>
         <?php endif; ?>
-      </div>
-    </section>
+      </section>
+    </div>
 
 
-    <?php render_site_footer(['year' => $year ?? date('Y')]); ?>
   </div>
+  <?php render_site_footer(['year' => $year ?? date('Y')]); ?>
 </main>
 </div>
 <script>

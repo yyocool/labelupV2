@@ -120,8 +120,8 @@ $companyRows = $companyRows ?? [];
     </p>
   </section>
 
-  <?php render_site_footer(['year' => $year ?? date('Y')]); ?>
 </main>
+<?php render_site_footer(['year' => $year ?? date('Y')]); ?>
 <?php marketing_render_body_end(); ?>
 <script>
 (function () {

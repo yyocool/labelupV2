@@ -55,6 +55,11 @@ final class ShopProductImageService
         return public_path('assets/specs');
     }
 
+    public static function bannersDir(): string
+    {
+        return public_path('assets/banners');
+    }
+
     public static function pageSettingsDir(): string
     {
         return public_path('assets/shop-page');
@@ -67,6 +72,12 @@ final class ShopProductImageService
         }
         if (str_contains($dir, 'specs')) {
             return '/assets/specs/';
+        }
+        if (str_contains($dir, 'mid-banners')) {
+            return '/assets/mid-banners/';
+        }
+        if (str_contains($dir, 'banners')) {
+            return '/assets/banners/';
         }
         if (str_contains($dir, 'cliparts')) {
             return '/assets/cliparts/';
@@ -312,6 +323,12 @@ final class ShopProductImageService
     public static function storeSpecUploads(array $files): array
     {
         return self::storeUploadedFiles($files, self::specsDir(), 'spec_');
+    }
+
+    /** @return array<int, string> */
+    public static function storeBannerUploads(array $files): array
+    {
+        return self::storeUploadedFiles($files, self::bannersDir(), 'banner_');
     }
 
     /**

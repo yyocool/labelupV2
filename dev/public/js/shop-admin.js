@@ -47,7 +47,11 @@ const SHOP_ENDPOINTS = {
     bulk: '/api/admin/shop/order/bulk',
   },
   coupon: { save: '/api/admin/shop/coupon/save', delete: '/api/admin/shop/coupon/delete' },
-  banner: { save: '/api/admin/shop/banner/save', delete: '/api/admin/shop/banner/delete' },
+  banner: {
+    save: '/api/admin/shop/banner/save',
+    delete: '/api/admin/shop/banner/delete',
+    uploadImages: '/api/admin/shop/banner/upload-images',
+  },
 };
 
 const PRODUCT_EDITOR_OPTS = {
@@ -88,24 +92,38 @@ const PRODUCT_META_FIELDS = [
 let productImagesState = [];
 let categoryImagePath = '';
 let specImagePath = '';
+let bannerImagePath = '';
+
+function entityImageMeta(entity) {
+  if (entity === 'spec') return { prefix: 'shopSpec', label: '규격 이미지', field: 'image_path' };
+  if (entity === 'banner') return { prefix: 'shopBanner', label: '배너 이미지', field: 'image_url' };
+  return { prefix: 'shopCategory', label: '카테고리 이미지', field: 'image_path' };
+}
 
 function buildEntityImageSection(imagePath = '', entity = 'category', full = true) {
-  const prefix = entity === 'spec' ? 'shopSpec' : 'shopCategory';
-  const label = entity === 'spec' ? '규격 이미지' : '카테고리 이미지';
+  const meta = entityImageMeta(entity);
   const src = imagePath ? resolveImageUrl(imagePath) : '';
+  const previewClass = entity === 'banner' ? 'admin-category-image-preview admin-banner-preview' : 'admin-category-image-preview';
   const preview = src
-    ? `<img src="${src}" alt="${label}" class="admin-category-image-preview">`
+    ? `<img src="${src}" alt="${meta.label}" class="${previewClass}">`
     : '<span class="admin-muted">등록된 이미지가 없습니다.</span>';
+  const urlHint = entity === 'banner'
+    ? '<small class="admin-muted">파일을 올리거나, 아래에 이미지 URL을 붙여 넣을 수 있습니다.</small>'
+    : '';
+  const pathInput = entity === 'banner'
+    ? `<input type="text" name="${meta.field}" id="${meta.prefix}ImagePath" value="${escHtml(imagePath)}" placeholder="https:// 또는 /assets/banners/...">`
+    : `<input type="hidden" name="${meta.field}" id="${meta.prefix}ImagePath" value="${escHtml(imagePath)}">`;
   return `
     <div class="admin-field admin-field--images${full ? ' admin-field--full' : ''}">
-      <label>${label}</label>
-      <div class="admin-category-image-wrap" id="${prefix}ImagePreview">${preview}</div>
-      <input type="file" id="${prefix}ImageInput" accept="image/jpeg,image/png,image/gif,image/webp" hidden>
+      <label>${meta.label}</label>
+      <div class="admin-category-image-wrap" id="${meta.prefix}ImagePreview">${preview}</div>
+      <input type="file" id="${meta.prefix}ImageInput" accept="image/jpeg,image/png,image/gif,image/webp" hidden>
       <div class="admin-category-image-actions">
-        <button type="button" class="admin-btn admin-btn--sm" id="${prefix}ImageAdd">+ 이미지 업로드</button>
-        <button type="button" class="admin-btn admin-btn--sm" id="${prefix}ImageRemove"${src ? '' : ' disabled'}>삭제</button>
+        <button type="button" class="admin-btn admin-btn--sm" id="${meta.prefix}ImageAdd">+ 이미지 업로드</button>
+        <button type="button" class="admin-btn admin-btn--sm" id="${meta.prefix}ImageRemove"${src ? '' : ' disabled'}>삭제</button>
       </div>
-      <input type="hidden" name="image_path" id="${prefix}ImagePath" value="${escHtml(imagePath)}">
+      ${urlHint}
+      ${pathInput}
     </div>`;
 }
 
@@ -114,15 +132,23 @@ function buildCategoryImageSection(imagePath = '') {
 }
 
 function initEntityImage(entity, path = '') {
-  const prefix = entity === 'spec' ? 'shopSpec' : 'shopCategory';
+  const meta = entityImageMeta(entity);
+  const prefix = meta.prefix;
   const uploadEndpoint = SHOP_ENDPOINTS[entity]?.uploadImages;
   if (entity === 'spec') specImagePath = path || '';
+  else if (entity === 'banner') bannerImagePath = path || '';
   else categoryImagePath = path || '';
 
-  const getPath = () => (entity === 'spec' ? specImagePath : categoryImagePath);
+  const getPath = () => {
+    if (entity === 'spec') return specImagePath;
+    if (entity === 'banner') return bannerImagePath;
+    return categoryImagePath;
+  };
   const setPath = (value) => {
-    if (entity === 'spec') specImagePath = value || '';
-    else categoryImagePath = value || '';
+    const next = value || '';
+    if (entity === 'spec') specImagePath = next;
+    else if (entity === 'banner') bannerImagePath = next;
+    else categoryImagePath = next;
   };
 
   const render = () => {
@@ -131,14 +157,15 @@ function initEntityImage(entity, path = '') {
     const removeBtn = document.getElementById(`${prefix}ImageRemove`);
     const current = getPath();
     if (!wrap || !input) return;
-    input.value = current;
+    if (input.value !== current) input.value = current;
     if (removeBtn) removeBtn.disabled = !current;
     if (!current) {
       wrap.innerHTML = '<span class="admin-muted">등록된 이미지가 없습니다.</span>';
       return;
     }
     const src = resolveImageUrl(current);
-    wrap.innerHTML = `<button type="button" class="admin-thumb-btn js-image-preview" data-src="${src}" data-title="카테고리 이미지"><img src="${src}" alt="" class="admin-category-image-preview"></button>`;
+    const previewClass = entity === 'banner' ? 'admin-category-image-preview admin-banner-preview' : 'admin-category-image-preview';
+    wrap.innerHTML = `<button type="button" class="admin-thumb-btn js-image-preview" data-src="${src}" data-title="${meta.label}"><img src="${src}" alt="" class="${previewClass}"></button>`;
   };
 
   const addBtn = document.getElementById(`${prefix}ImageAdd`);
@@ -170,6 +197,17 @@ function initEntityImage(entity, path = '') {
       setPath('');
       render();
     };
+  }
+  const pathInput = document.getElementById(`${prefix}ImagePath`);
+  if (pathInput && pathInput.type !== 'hidden') {
+    pathInput.addEventListener('change', () => {
+      setPath(pathInput.value.trim());
+      render();
+    });
+    pathInput.addEventListener('blur', () => {
+      setPath(pathInput.value.trim());
+      render();
+    });
   }
   render();
 }
@@ -760,12 +798,12 @@ function buildShopForm(entity, row = {}) {
     html += shopField('종료일', 'ends_at', (row.ends_at || '').slice(0, 16), 'datetime-local');
     html += shopField('사용', 'is_active', row.is_active, 'checkbox');
   } else if (entity === 'banner') {
+    html += buildEntityImageSection(row.image_url || '', 'banner');
     html += shopField('제목', 'title', row.title, 'text', { required: true });
     html += shopField('부제', 'subtitle', row.subtitle);
-    html += shopField('이미지 URL', 'image_url', row.image_url);
     html += shopField('링크 URL', 'link_url', row.link_url);
     html += shopField('정렬', 'sort_order', row.sort_order ?? 0, 'number');
-    html += shopField('노출', 'is_active', row.is_active, 'checkbox');
+    html += shopField('노출', 'is_active', row.id ? row.is_active : 1, 'checkbox');
   }
   return html;
 }
@@ -938,7 +976,7 @@ function openShopModal(entity, row = {}) {
 
   destroyProductSummernote();
   dialog?.classList.toggle('admin-modal-dialog--product', entity === 'product');
-  dialog?.classList.toggle('admin-modal-dialog--wide', entity === 'category');
+  dialog?.classList.toggle('admin-modal-dialog--wide', entity === 'category' || entity === 'banner');
   dialog?.classList.toggle('admin-modal-dialog--spec', entity === 'spec');
   dialog?.classList.toggle('admin-modal-dialog--order', entity === 'order');
 
@@ -966,6 +1004,8 @@ function openShopModal(entity, row = {}) {
   } else if (entity === 'spec') {
     initEntityImage('spec', row.image_path || '');
     initSpecFormControls();
+  } else if (entity === 'banner') {
+    initEntityImage('banner', row.image_url || '');
   }
 }
 

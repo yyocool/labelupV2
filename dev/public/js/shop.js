@@ -160,9 +160,13 @@ function bindCartPage() {
     const sub = document.getElementById('cartSubtotal');
     const ship = document.getElementById('cartShipping');
     const total = document.getElementById('cartTotal');
-    if (sub) sub.textContent = fmt(data.subtotal);
-    if (ship) ship.textContent = data.shipping_fee === 0 ? '무료' : fmt(data.shipping_fee);
-    if (total) total.textContent = fmt(data.total);
+    const disc = document.getElementById('cartDiscount');
+    const discRow = document.getElementById('cartDiscountRow');
+    if (sub) sub.textContent = data.subtotal_label || fmt(data.subtotal);
+    if (ship) ship.textContent = data.shipping_label || (data.shipping_fee === 0 ? '무료' : fmt(data.shipping_fee));
+    if (total) total.textContent = data.total_label || fmt(data.total);
+    if (disc) disc.textContent = data.discount_label || fmt(data.discount_amount || 0);
+    if (discRow) discRow.hidden = !(data.discount_amount > 0);
     updateCartBadges(data.count ?? 0);
   };
 
@@ -249,6 +253,7 @@ function bindCartPage() {
       || document.querySelector('button[type="submit"][form="shopCheckoutForm"]');
     if (submit) submit.disabled = true;
     try {
+      const couponInput = document.getElementById('shopCouponInput');
       const res = await ShopAPI.post('/api/shop/checkout', {
         customer_name: String(fd.get('customer_name') || ''),
         customer_email: String(fd.get('customer_email') || ''),
@@ -262,6 +267,7 @@ function bindCartPage() {
         shipping_memo: String(fd.get('shipping_memo') || ''),
         save_address: fd.get('save_address') === '1',
         address_label: String(fd.get('address_label') || ''),
+        coupon_code: String(couponInput?.value || '').trim(),
         source: 'shop',
       });
       const orderNo = res.data?.order_no || '';
@@ -279,6 +285,43 @@ function bindCartPage() {
       if (submit) submit.disabled = false;
     }
   });
+
+  const couponInput = document.getElementById('shopCouponInput');
+  const couponBtn = document.getElementById('shopCouponApply');
+  couponBtn?.addEventListener('click', async () => {
+    const applied = couponBtn.dataset.applied === '1';
+    couponBtn.disabled = true;
+    try {
+      if (applied) {
+        await ShopAPI.post('/api/shop/coupon/remove', {});
+      } else {
+        await ShopAPI.post('/api/shop/coupon/apply', { code: String(couponInput?.value || '').trim() });
+      }
+      location.reload();
+    } catch (err) {
+      showShopToast(err.message);
+      couponBtn.disabled = false;
+    }
+  });
+  couponInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      couponBtn?.click();
+    }
+  });
+  const preset = new URLSearchParams(location.search).get('coupon');
+  if (preset && couponInput && couponBtn?.dataset.applied !== '1') {
+    couponInput.value = preset;
+    ShopAPI.post('/api/shop/coupon/apply', { code: preset })
+      .then(() => {
+        history.replaceState({}, '', location.pathname);
+        location.reload();
+      })
+      .catch((err) => {
+        history.replaceState({}, '', location.pathname);
+        showShopToast(err.message);
+      });
+  }
 
   document.getElementById('shopPayRetryBtn')?.addEventListener('click', async (e) => {
     const btn = e.currentTarget;

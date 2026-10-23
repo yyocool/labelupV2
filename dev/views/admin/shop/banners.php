@@ -5,12 +5,21 @@
 <div id="adminAlert" class="admin-alert"></div>
 <div class="admin-table-wrap">
   <table class="admin-table">
-    <thead><tr><th>ID</th><th>제목</th><th>부제</th><th>링크</th><th>정렬</th><th>상태</th><th>관리</th></tr></thead>
+    <thead><tr><th>ID</th><th>이미지</th><th>제목</th><th>부제</th><th>링크</th><th>정렬</th><th>상태</th><th>관리</th></tr></thead>
     <tbody>
-    <?php if (empty($items)): ?><tr><td colspan="7" class="empty">등록된 배너가 없습니다.</td></tr><?php else: ?>
+    <?php if (empty($items)): ?><tr><td colspan="8" class="empty">등록된 배너가 없습니다.</td></tr><?php else: ?>
     <?php foreach ($items as $row): ?>
     <tr>
       <td><?= (int) $row['id'] ?></td>
+      <td>
+        <?php if (!empty($row['image_src'])): ?>
+        <button type="button" class="admin-thumb-btn js-image-preview" data-src="<?= e((string) $row['image_src']) ?>" data-title="<?= e((string) $row['title']) ?>">
+          <img class="admin-banner-thumb" src="<?= e((string) $row['image_src']) ?>" alt="">
+        </button>
+        <?php else: ?>
+        <span class="admin-muted">없음</span>
+        <?php endif; ?>
+      </td>
       <td><?= e($row['title']) ?></td>
       <td><?= e($row['subtitle'] ?? '-') ?></td>
       <td class="admin-cell-wrap"><code><?= e($row['link_url'] ?? '-') ?></code></td>

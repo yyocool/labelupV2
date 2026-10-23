@@ -43,6 +43,13 @@ final class AccountService
         $wishlistService = new ShopWishlistService();
         $wishlist = $wishlistService->items($userId, 12);
         $wishlistCount = $wishlistService->count($userId);
+        $coupons = [];
+        try {
+            $coupons = $this->usableCoupons();
+        } catch (\Throwable) {
+            $coupons = [];
+        }
+        $couponCount = count($coupons);
 
         return [
             'user' => $user,
@@ -50,13 +57,16 @@ final class AccountService
             'plan' => $this->planInfo($user),
             'stats' => [
                 'points' => $creditBalance,
-                'coupons' => 3,
+                'coupons' => $couponCount,
                 'orders' => $orderCount,
                 'shipping' => $shippingCount,
             ],
             'credit' => [
                 'balance' => $creditBalance,
-                'transactions' => $creditTx['items'] ?? [],
+                'transactions' => array_map(static function (array $row): array {
+                    $row['description'] = CreditService::repairUtf8((string) ($row['description'] ?? ''));
+                    return $row;
+                }, $creditTx['items'] ?? []),
             ],
             'ai_usage' => $aiCredit,
             'usage' => [
@@ -72,8 +82,7 @@ final class AccountService
                 ['label' => '내 클립아트', 'ic' => '✦', 'href' => '#cliparts', 'badge' => $clipartCount],
                 ['label' => '찜한 상품', 'ic' => '♥', 'href' => '#wishlist', 'badge' => $wishlistCount],
                 ['label' => '배송지 관리', 'ic' => '📍', 'href' => '#address'],
-                ['label' => '결제수단 관리', 'ic' => '💳', 'href' => '#', 'disabled' => true],
-                ['label' => '쿠폰함', 'ic' => '🎫', 'href' => url('shop/cart'), 'badge' => 3],
+                ['label' => '쿠폰함', 'ic' => '🎫', 'href' => url('account/coupons'), 'badge' => $couponCount],
             ],
             'shortcuts' => [
                 ['label' => '라벨 편집', 'ic' => '✎', 'href' => url('editor/')],
@@ -193,6 +202,41 @@ final class AccountService
             'page' => $page,
             'pages' => $pages,
             'total' => $total,
+        ];
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function usableCoupons(): array
+    {
+        $items = [];
+        foreach ($this->shop->activeCoupons() as $row) {
+            $items[] = $this->formatCoupon($row);
+        }
+        return $items;
+    }
+
+    /** @param array<string, mixed> $row */
+    private function formatCoupon(array $row): array
+    {
+        $type = (string) ($row['discount_type'] ?? 'fixed');
+        $value = (int) ($row['discount_value'] ?? 0);
+        $discount = $type === 'percent'
+            ? $value . '% 할인'
+            : number_format($value) . '원 할인';
+        $min = (int) ($row['min_order_amount'] ?? 0);
+        $start = substr((string) ($row['starts_at'] ?? ''), 0, 10);
+        $end = substr((string) ($row['ends_at'] ?? ''), 0, 10);
+        $period = ($start !== '' || $end !== '')
+            ? trim(($start !== '' ? str_replace('-', '.', $start) : '시작일 없음') . ' ~ ' . ($end !== '' ? str_replace('-', '.', $end) : '기한 없음'))
+            : '기간 제한 없음';
+
+        return [
+            'id' => (int) ($row['id'] ?? 0),
+            'code' => (string) ($row['code'] ?? ''),
+            'name' => (string) ($row['name'] ?? '할인 쿠폰'),
+            'discount_label' => $discount,
+            'min_label' => $min > 0 ? number_format($min) . '원 이상 주문 시' : '최소 주문금액 없음',
+            'period_label' => $period,
         ];
     }
 

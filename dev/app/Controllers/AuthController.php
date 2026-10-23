@@ -193,6 +193,28 @@ final class AuthController extends BaseController
         ]);
     }
 
+    public function accountCoupons(): void
+    {
+        (new AuthMiddleware($this->auth))->handle();
+        $accountService = new AccountService();
+        $coupons = [];
+        try {
+            $coupons = $accountService->usableCoupons();
+        } catch (\Throwable) {
+            $coupons = [];
+        }
+        view('account/layout', [
+            'pageTitle' => '쿠폰함 — 라벨업',
+            'contentTemplate' => 'account/coupons',
+            'authUser' => $this->auth->user(),
+            'accountService' => $accountService,
+            'coupons' => $coupons,
+            'cartCount' => (new ShopService())->cartCount(),
+            'activeNav' => 'account',
+            'eventPopups' => (new EventPopupService())->activeForSite(),
+        ]);
+    }
+
     public function accountOrder(string $orderNo): void
     {
         (new AuthMiddleware($this->auth))->handle();

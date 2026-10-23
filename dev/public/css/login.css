@@ -224,7 +224,7 @@
 .login-admin-link{margin:10px 0 0;text-align:center;font-size:14px;color:var(--muted)}
 .login-admin-link a{color:var(--muted);font-weight:700;text-decoration:none}
 .login-admin-link a:hover{color:var(--accent)}
-.login-page .site-footer{max-width:960px;margin:0 auto;padding:24px 20px 40px}
+.login-page .site-footer.page-footer{margin-top:0}
 .login-alert{
   margin-bottom:16px;padding:10px 12px;border-radius:10px;
   font-size:14px;display:none;

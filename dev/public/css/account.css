@@ -323,6 +323,22 @@ body.lu-postcode-open,body.lu-addr-book-open{overflow:hidden}
 .account-orders-card__hint{font-size:13px;color:var(--muted);font-weight:700}
 .account-orders-pager{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:16px;font-weight:800}
 .account-orders-pager a{color:var(--accent)}
+.account-coupon-list{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:12px}
+.account-coupon-card{display:grid;grid-template-columns:120px 1fr;border:1px solid #efece8;border-radius:16px;overflow:hidden;background:#fff}
+.account-coupon-card__disc{
+  display:grid;place-items:center;padding:16px 10px;text-align:center;
+  background:linear-gradient(160deg,var(--accent-soft),#fff);color:var(--accent);
+  font-size:16px;font-weight:900;border-right:1px dashed #ecd9df
+}
+.account-coupon-card__body{padding:14px 16px}
+.account-coupon-card__body strong{display:block;font-size:16px;margin-bottom:4px}
+.account-coupon-card__body p{margin:0 0 2px;font-size:14px;color:var(--muted)}
+.account-coupon-card__code{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+.account-coupon-card__code code{
+  display:inline-flex;align-items:center;height:32px;padding:0 10px;border-radius:8px;
+  background:#f6f3f0;font-size:14px;font-weight:800;letter-spacing:.04em
+}
+.account-coupon-card__code .account-btn{height:32px;padding:0 10px;font-size:13px}
 .account-order-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 18px}
 .account-order-summary div{background:var(--ivory);border-radius:12px;padding:12px}
 .account-order-summary dt{font-size:12px;color:var(--muted);margin-bottom:4px}
@@ -362,4 +378,6 @@ body.lu-postcode-open,body.lu-addr-book-open{overflow:hidden}
   .account-grid-sub{grid-template-columns:1fr}
   .account-support{flex-direction:column;align-items:flex-start}
   .account-order-summary,.account-order-steps,.account-order-grid,.account-order-items li{grid-template-columns:1fr}
+  .account-coupon-card{grid-template-columns:1fr}
+  .account-coupon-card__disc{border-right:0;border-bottom:1px dashed #ecd9df}
 }

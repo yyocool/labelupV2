@@ -40,6 +40,7 @@
   <div class="content account-content">
     <?php require view_path(str_replace('.', '/', $contentTemplate) . '.php'); ?>
   </div>
+  <?php render_site_footer(['year' => (int) date('Y')]); ?>
 </main>
 </div>
 <?php require view_path('account/partials/modals.php'); ?>

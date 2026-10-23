@@ -130,6 +130,8 @@ final class AdminAccessService
             '/api/admin/credit/codes' => 'ops-purchase-credits',
             '/admin/ops/hero-slides' => 'ops-hero-slides',
             '/api/admin/hero' => 'ops-hero-slides',
+            '/admin/ops/mid-banners' => 'ops-mid-banners',
+            '/api/admin/mid-banner' => 'ops-mid-banners',
             '/admin/ops/event-popups' => 'ops-event-popups',
             '/api/admin/event-popup' => 'ops-event-popups',
             '/admin/ops/faq' => 'ops-faq',

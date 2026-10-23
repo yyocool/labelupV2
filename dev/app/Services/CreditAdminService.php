@@ -106,7 +106,18 @@ final class CreditAdminService
     /** @return array{items: array, total: int, page: int, pages: int, per_page: int} */
     public function grantHistory(?int $userId = null, int $page = 1, int $perPage = 20): array
     {
-        return $this->credits->adminGrants($userId, $page, $perPage);
+        $history = $this->credits->adminGrants($userId, $page, $perPage);
+        $history['items'] = array_map(static function (array $row): array {
+            $row['description'] = CreditService::repairUtf8((string) ($row['description'] ?? ''));
+            $row['source_label'] = CreditService::sourceLabel((string) ($row['source'] ?? ''));
+            $actor = trim((string) ($row['admin_email'] ?? ''));
+            if ($actor === '') {
+                $actor = trim((string) ($row['admin_name'] ?? ''));
+            }
+            $row['actor_label'] = $actor !== '' ? $actor : ((($row['source'] ?? '') === 'admin') ? '-' : '시스템');
+            return $row;
+        }, $history['items'] ?? []);
+        return $history;
     }
 
     /** @return array<string, mixed> */
@@ -122,7 +133,7 @@ final class CreditAdminService
             'user' => $user,
             'credit_balance' => $this->creditService->balance($userId),
             'credit_tx' => $this->credits->transactionsForUser($userId, 1, 30),
-            'credit_grants' => $this->credits->adminGrants($userId, 1, 30),
+            'credit_grants' => $this->grantHistory($userId, 1, 30),
             'cs_logs' => $this->credits->csLogsForUser($userId),
             'login_logs' => (new UserLoginLogRepository())->recentForUser($userId, 15),
             'orders' => (new ShopRepository())->ordersByUser($userId, 10),

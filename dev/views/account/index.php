@@ -45,7 +45,7 @@ $usagePct = $usageLimit > 0 ? min(100, (int) round(($usageUsed / max(1, $usageLi
   <div class="account-hero-stats">
     <a class="account-stat" href="#credits"><span class="account-stat-ic purple">C</span><span class="account-stat-val"><?= number_format((int) $stats['points']) ?> C</span><span class="account-stat-label">잉크</span></a>
     <a class="account-stat" href="#ai-usage"><span class="account-stat-ic yellow">✦</span><span class="account-stat-val"><?= number_format((int) ($aiUsage['used'] ?? 0)) ?> C</span><span class="account-stat-label">이번달 AI</span></a>
-    <a class="account-stat" href="<?= url('shop/cart') ?>"><span class="account-stat-ic green">🎫</span><span class="account-stat-val"><?= (int) $stats['coupons'] ?></span><span class="account-stat-label">쿠폰</span></a>
+    <a class="account-stat" href="<?= url('account/coupons') ?>"><span class="account-stat-ic green">🎫</span><span class="account-stat-val"><?= (int) $stats['coupons'] ?></span><span class="account-stat-label">쿠폰</span></a>
     <a class="account-stat" href="<?= url('account/orders') ?>"><span class="account-stat-ic yellow">📦</span><span class="account-stat-val"><?= (int) $stats['orders'] ?></span><span class="account-stat-label">최근 주문</span></a>
     <a class="account-stat" href="<?= url('account/orders') ?>"><span class="account-stat-ic blue">🚚</span><span class="account-stat-val"><?= (int) $stats['shipping'] ?></span><span class="account-stat-label">배송중</span></a>
   </div>
@@ -273,7 +273,6 @@ $usagePct = $usageLimit > 0 ? min(100, (int) round(($usageUsed / max(1, $usageLi
     <div class="account-settings-grid">
       <button type="button" data-open-modal="profileModal"><span>◎</span>회원정보</button>
       <button type="button" data-open-modal="notifPrefsModal"><span>♧</span>알림 설정</button>
-      <button type="button" disabled title="준비 중"><span>💳</span>결제·구독</button>
       <button type="button" data-open-modal="passwordModal"><span>🔒</span>보안 설정</button>
     </div>
   </section>

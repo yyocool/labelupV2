@@ -64,13 +64,14 @@ $userId = (int) ($user['id'] ?? 0);
 
 <section class="admin-section">
   <div class="admin-section-head">
-    <h2 class="admin-section-title">관리자 지급 이력</h2>
+    <h2 class="admin-section-title">지급 이력</h2>
   </div>
   <div class="admin-table-wrap">
     <table class="admin-table">
       <thead>
         <tr>
           <th>일시</th>
+          <th>구분</th>
           <th>지급</th>
           <th>지급 후 잔액</th>
           <th>지급 사유</th>
@@ -79,15 +80,16 @@ $userId = (int) ($user['id'] ?? 0);
       </thead>
       <tbody>
       <?php if (empty($creditGrants)): ?>
-        <tr><td colspan="5" class="empty">지급 이력이 없습니다.</td></tr>
+        <tr><td colspan="6" class="empty">지급 이력이 없습니다.</td></tr>
       <?php else: ?>
       <?php foreach ($creditGrants as $grant): ?>
         <tr>
           <td><?= e(substr((string) ($grant['created_at'] ?? ''), 0, 16)) ?></td>
+          <td><?= e((string) ($grant['source_label'] ?? \App\Services\CreditService::sourceLabel((string) ($grant['source'] ?? '')))) ?></td>
           <td class="is-plus">+<?= number_format((int) ($grant['amount'] ?? 0)) ?> C</td>
           <td><?= number_format((int) ($grant['balance_after'] ?? 0)) ?> C</td>
-          <td><?= e($grant['description'] ?? '') ?></td>
-          <td><small><?= e($grant['admin_email'] ?? $grant['admin_name'] ?? '-') ?></small></td>
+          <td><?= e((string) ($grant['description'] ?? '')) ?></td>
+          <td><small><?= e((string) ($grant['actor_label'] ?? $grant['admin_email'] ?? $grant['admin_name'] ?? '-')) ?></small></td>
         </tr>
       <?php endforeach; ?>
       <?php endif; ?>

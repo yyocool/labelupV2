@@ -20,6 +20,8 @@ use App\Controllers\Api\FaqAdminApiController;
 use App\Controllers\FaqController;
 use App\Controllers\HeroAdminController;
 use App\Controllers\Api\HeroAdminApiController;
+use App\Controllers\MidBannerAdminController;
+use App\Controllers\Api\MidBannerAdminApiController;
 use App\Controllers\ShopAdminController;
 use App\Controllers\ShopController;
 use App\Controllers\ShopPaymentController;
@@ -205,6 +207,8 @@ final class Router
         $creditApi = new CreditApiController();
         $heroAdmin = new HeroAdminController();
         $heroAdminApi = new HeroAdminApiController();
+        $midBannerAdmin = new MidBannerAdminController();
+        $midBannerAdminApi = new MidBannerAdminApiController();
         $eventPopupAdmin = new EventPopupAdminController();
         $eventPopupAdminApi = new EventPopupAdminApiController();
         $faqAdmin = new FaqAdminController();
@@ -277,6 +281,7 @@ final class Router
         $router->get('/account', [$auth, 'account']);
         $router->get('/account/orders', [$auth, 'accountOrders']);
         $router->get('/account/orders/{orderNo}', [$auth, 'accountOrder']);
+        $router->get('/account/coupons', [$auth, 'accountCoupons']);
         $router->get('/projects', [$library, 'projects']);
         $router->get('/locker', [$library, 'locker']);
         $router->get('/trash', [$library, 'trash']);
@@ -320,6 +325,7 @@ final class Router
         $router->get('/admin/ops/credit-usage', [$creditAdmin, 'creditUsage']);
         $router->get('/admin/ops/purchase-credits', [$creditAdmin, 'purchaseCredits']);
         $router->get('/admin/ops/hero-slides', [$heroAdmin, 'index']);
+        $router->get('/admin/ops/mid-banners', [$midBannerAdmin, 'index']);
         $router->get('/admin/ops/event-popups', [$eventPopupAdmin, 'index']);
         $router->get('/admin/ops/faq', [$faqAdmin, 'index']);
         $router->get('/admin/ops/inquiries', [$inquiryAdmin, 'index']);
@@ -456,6 +462,10 @@ final class Router
         $router->post('/api/admin/hero/slide/upload', [$heroAdminApi, 'upload']);
         $router->post('/api/admin/hero/slide/delete', [$heroAdminApi, 'delete']);
 
+        $router->post('/api/admin/mid-banner/save', [$midBannerAdminApi, 'save']);
+        $router->post('/api/admin/mid-banner/upload', [$midBannerAdminApi, 'upload']);
+        $router->post('/api/admin/mid-banner/delete', [$midBannerAdminApi, 'delete']);
+
         $router->post('/api/admin/event-popup/save', [$eventPopupAdminApi, 'save']);
         $router->post('/api/admin/event-popup/delete', [$eventPopupAdminApi, 'delete']);
 
@@ -493,6 +503,7 @@ final class Router
         $router->post('/api/admin/shop/coupon/delete', [$shopApi, 'deleteCoupon']);
         $router->post('/api/admin/shop/banner/save', [$shopApi, 'saveBanner']);
         $router->post('/api/admin/shop/banner/delete', [$shopApi, 'deleteBanner']);
+        $router->post('/api/admin/shop/banner/upload-images', [$shopApi, 'uploadBannerImages']);
         $router->get('/api/admin/shop/product-page-settings', [$shopApi, 'productPageSettings']);
         $router->post('/api/admin/shop/product-page-settings/save', [$shopApi, 'saveProductPageSettings']);
         $router->post('/api/admin/shop/product-page-settings/upload-images', [$shopApi, 'uploadProductPageImages']);
@@ -510,6 +521,9 @@ final class Router
         $router->post('/api/shop/cart/add', [$shopPublicApi, 'addCart']);
         $router->post('/api/shop/cart/update', [$shopPublicApi, 'updateCart']);
         $router->post('/api/shop/cart/remove', [$shopPublicApi, 'removeCart']);
+        $router->post('/api/shop/coupon/apply', [$shopPublicApi, 'applyCoupon']);
+        $router->post('/api/shop/coupon/select', [$shopPublicApi, 'selectCoupon']);
+        $router->post('/api/shop/coupon/remove', [$shopPublicApi, 'removeCoupon']);
         $router->get('/api/shop/wishlist', [$shopPublicApi, 'wishlist']);
         $router->post('/api/shop/wishlist/toggle', [$shopPublicApi, 'toggleWishlist']);
         $router->post('/api/shop/wishlist/remove', [$shopPublicApi, 'removeWishlist']);

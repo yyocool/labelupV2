@@ -100,6 +100,7 @@
               'ops-credit-usage' => '운영관리 › 잉크 사용 설정',
               'ops-purchase-credits' => '운영관리 › 구매잉크',
               'ops-hero-slides' => '운영관리 › 히어로 이미지 관리',
+              'ops-mid-banners' => '운영관리 › 중간배너 관리',
               'ops-event-popups' => '운영관리 › 이벤트 팝업관리',
               'ops-faq' => '운영관리 › FAQ 관리',
               'ops-inquiries' => '운영관리 › 1:1 문의',

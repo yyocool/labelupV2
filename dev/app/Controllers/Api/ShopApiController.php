@@ -170,6 +170,35 @@ final class ShopApiController extends BaseController
         $this->jsonSuccess($this->shop->cartSummary(), '상품을 삭제했습니다.');
     }
 
+    public function applyCoupon(): never
+    {
+        $data = request_json();
+        try {
+            $this->jsonSuccess(
+                $this->shop->applyCoupon((string) ($data['code'] ?? '')),
+                '쿠폰이 적용되었습니다.'
+            );
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
+        }
+    }
+
+    public function selectCoupon(): never
+    {
+        $data = request_json();
+        try {
+            $picked = $this->shop->selectCoupon((string) ($data['code'] ?? ''));
+            $this->jsonSuccess($picked, $picked['notice']);
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
+        }
+    }
+
+    public function removeCoupon(): never
+    {
+        $this->jsonSuccess($this->shop->removeCoupon(), '쿠폰이 해제되었습니다.');
+    }
+
     public function paymentMethods(): never
     {
         $toss = new \App\Services\TossPaymentsService();

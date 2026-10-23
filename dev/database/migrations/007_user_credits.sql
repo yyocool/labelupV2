@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS user_cs_logs (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 INSERT INTO credit_reward_rules (code, name, description, credit_amount, trigger_type, daily_limit, max_total_per_user, is_active, sort_order, created_at, updated_at) VALUES
-('SIGNUP_WELCOME', '회원가입 웰컴 크레딧', '신규 가입 시 1회 지급', 500, 'signup', NULL, 1, 1, 1, NOW(), NOW()),
+('SIGNUP_WELCOME', '회원가입 웰컴 잉크', '신규 가입 시 1회 지급', 5000, 'signup', NULL, 1, 1, 1, NOW(), NOW()),
 ('DAILY_LOGIN', '일일 접속 보상', '하루 1회 로그인 시 지급', 10, 'daily_login', 1, NULL, 1, 2, NOW(), NOW()),
 ('DESIGN_COMPLETE', '디자인 완료 보상', '라벨 디자인 저장/완료 시', 50, 'design_complete', 5, NULL, 1, 3, NOW(), NOW()),
 ('REFERRAL', '친구 추천 보상', '추천인 가입 완료 시', 300, 'referral', NULL, 10, 1, 4, NOW(), NOW()),

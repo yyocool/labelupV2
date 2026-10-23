@@ -13,6 +13,7 @@ use RuntimeException;
 final class ShopService
 {
     public const SESSION_CART = 'shop_cart';
+    public const SESSION_COUPON = 'shop_coupon_code';
 
     private ShopRepository $repo;
 
@@ -32,7 +33,10 @@ final class ShopService
         }
 
         return [
-            'banners' => $this->repo->activeBanners(),
+            'banners' => array_map(static function (array $row): array {
+                $row['image_url'] = ShopProductImageService::resolveUrl((string) ($row['image_url'] ?? ''));
+                return $row;
+            }, $this->repo->activeBanners()),
             'categories' => $roots,
             'allCategories' => $tree,
             'specs' => $this->repo->activeSpecs(8),
@@ -272,17 +276,164 @@ final class ShopService
             $row['line_key'] = (string) ($item['line_key'] ?? self::cartLineKey((int) $row['id'], $row['option_id']));
             $presented[] = $row;
         }
+        $applied = $this->resolveAppliedCoupon($subtotal);
+        $discount = (int) $applied['discount'];
+        $total = max(0, $subtotal + $shipping - $discount);
         return [
             'items' => $presented,
             'subtotal' => $subtotal,
             'subtotal_label' => $this->formatPrice($subtotal),
             'shipping_fee' => $shipping,
             'shipping_label' => $shipping === 0 ? '무료' : $this->formatPrice($shipping),
-            'total' => $subtotal + $shipping,
-            'total_label' => $this->formatPrice($subtotal + $shipping),
+            'discount_amount' => $discount,
+            'discount_label' => $discount > 0 ? '-' . $this->formatPrice($discount) : $this->formatPrice(0),
+            'coupon_code' => (string) $applied['code'],
+            'coupon_name' => (string) $applied['name'],
+            'coupon_error' => (string) $applied['error'],
+            'total' => $total,
+            'total_label' => $this->formatPrice($total),
             'count' => $this->cartCount(),
             'ink_only' => $inkOnly,
         ];
+    }
+
+    public function applyCoupon(string $code): array
+    {
+        $code = strtoupper(trim($code));
+        if ($code === '') {
+            throw new RuntimeException('쿠폰 코드를 입력해 주세요.');
+        }
+        $items = $this->cartItems();
+        if ($items === []) {
+            throw new RuntimeException('장바구니가 비어 있습니다.');
+        }
+        $subtotal = array_sum(array_column($items, 'line_total'));
+        $this->usableCouponOrFail($code, $subtotal);
+        $_SESSION[self::SESSION_COUPON] = $code;
+        return $this->cartSummary();
+    }
+
+    /**
+     * 쿠폰함에서 미리 고른다. 장바구니가 비어 있어도 선택할 수 있고,
+     * 최소 금액은 주문할 때 다시 확인한다.
+     *
+     * @return array{code:string,name:string,redirect:string,notice:string}
+     */
+    public function selectCoupon(string $code): array
+    {
+        $code = strtoupper(trim($code));
+        if ($code === '') {
+            throw new RuntimeException('쿠폰 코드를 입력해 주세요.');
+        }
+        $coupon = $this->usableCouponOrFail($code, 0, false);
+        $_SESSION[self::SESSION_COUPON] = $code;
+        $min = (int) ($coupon['min_order_amount'] ?? 0);
+        $name = (string) ($coupon['name'] ?? $code);
+        $notice = $min > 0
+            ? $name . ' 쿠폰을 선택했습니다. ' . $this->formatPrice($min) . ' 이상 주문하면 자동 적용됩니다.'
+            : $name . ' 쿠폰을 선택했습니다. 주문할 때 자동 적용됩니다.';
+        return [
+            'code' => $code,
+            'name' => $name,
+            'redirect' => url('shop/products'),
+            'notice' => $notice,
+        ];
+    }
+
+    /** @return array{code:string,name:string,text:string}|null */
+    public function selectedCouponNotice(): ?array
+    {
+        $code = strtoupper(trim((string) ($_SESSION[self::SESSION_COUPON] ?? '')));
+        if ($code === '') {
+            return null;
+        }
+        try {
+            $coupon = $this->usableCouponOrFail($code, 0, false);
+        } catch (RuntimeException) {
+            return null;
+        }
+        $min = (int) ($coupon['min_order_amount'] ?? 0);
+        $name = (string) ($coupon['name'] ?? $code);
+        return [
+            'code' => $code,
+            'name' => $name,
+            'text' => $min > 0
+                ? $name . ' · ' . $this->formatPrice($min) . ' 이상 주문 시 적용'
+                : $name . ' · 주문 시 자동 적용',
+        ];
+    }
+
+    public function removeCoupon(): array
+    {
+        unset($_SESSION[self::SESSION_COUPON]);
+        return $this->cartSummary();
+    }
+
+    /**
+     * @return array{code:string,name:string,discount:int,error:string}
+     */
+    private function resolveAppliedCoupon(int $subtotal): array
+    {
+        $empty = ['code' => '', 'name' => '', 'discount' => 0, 'error' => ''];
+        $code = strtoupper(trim((string) ($_SESSION[self::SESSION_COUPON] ?? '')));
+        if ($code === '') {
+            return $empty;
+        }
+        try {
+            $coupon = $this->usableCouponOrFail($code, $subtotal);
+            return [
+                'code' => $code,
+                'name' => (string) ($coupon['name'] ?? $code),
+                'discount' => $this->calculateDiscount($coupon, $subtotal),
+                'error' => '',
+            ];
+        } catch (RuntimeException $e) {
+            return ['code' => $code, 'name' => '', 'discount' => 0, 'error' => $e->getMessage()];
+        }
+    }
+
+    /** @param array<string, mixed> $coupon */
+    public function calculateDiscount(array $coupon, int $subtotal): int
+    {
+        $type = (string) ($coupon['discount_type'] ?? 'fixed');
+        $value = (int) ($coupon['discount_value'] ?? 0);
+        if ($value <= 0 || $subtotal <= 0) {
+            return 0;
+        }
+        if ($type === 'percent') {
+            return min($subtotal, (int) floor($subtotal * $value / 100));
+        }
+        return min($subtotal, $value);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function usableCouponOrFail(string $code, int $subtotal, bool $checkMin = true): array
+    {
+        $code = strtoupper(trim($code));
+        $coupon = $this->repo->findCouponByCode($code);
+        if (!$coupon || (int) ($coupon['is_active'] ?? 0) !== 1) {
+            throw new RuntimeException('유효하지 않거나 사용할 수 없는 쿠폰입니다.');
+        }
+        $now = date('Y-m-d H:i:s');
+        $starts = (string) ($coupon['starts_at'] ?? '');
+        if ($starts !== '' && $starts > $now) {
+            throw new RuntimeException('아직 사용할 수 없는 쿠폰입니다.');
+        }
+        $ends = (string) ($coupon['ends_at'] ?? '');
+        if ($ends !== '' && $ends < $now) {
+            throw new RuntimeException('사용 기간이 끝난 쿠폰입니다.');
+        }
+        $maxUses = $coupon['max_uses'] ?? null;
+        if ($maxUses !== null && $maxUses !== '' && (int) $coupon['used_count'] >= (int) $maxUses) {
+            throw new RuntimeException('쿠폰 사용 가능 횟수를 초과했습니다.');
+        }
+        $min = (int) ($coupon['min_order_amount'] ?? 0);
+        if ($checkMin && $min > 0 && $subtotal < $min) {
+            throw new RuntimeException('이 쿠폰은 ' . $this->formatPrice($min) . ' 이상 주문에 사용할 수 있습니다.');
+        }
+        return $coupon;
     }
 
     /** @param array<string, mixed> $product */
@@ -433,7 +584,16 @@ final class ShopService
         }
 
         $userId = isset($user['id']) ? (int) $user['id'] : 0;
+        $requested = strtoupper(trim((string) ($payload['coupon_code'] ?? '')));
+        if ($requested !== '') {
+            $this->applyCoupon($requested);
+        }
         $summary = $this->cartSummary();
+        $couponCode = (string) ($summary['coupon_code'] ?? '');
+        $couponError = (string) ($summary['coupon_error'] ?? '');
+        if ($couponCode !== '' && ($couponError !== '' || (int) $summary['discount_amount'] <= 0)) {
+            throw new RuntimeException($couponError !== '' ? $couponError : '쿠폰을 적용할 수 없습니다. 코드를 확인하거나 쿠폰을 해제해 주세요.');
+        }
         $created = $this->repo->createCustomerOrder([
             'user_id' => $userId > 0 ? $userId : null,
             'customer_name' => $name,
@@ -441,7 +601,8 @@ final class ShopService
             'customer_phone' => $phone,
             'subtotal' => $summary['subtotal'],
             'shipping_fee' => $summary['shipping_fee'],
-            'discount_amount' => 0,
+            'discount_amount' => (int) $summary['discount_amount'],
+            'coupon_code' => $couponCode !== '' ? $couponCode : null,
             'total_amount' => $summary['total'],
             'shipping_name' => $shipName,
             'shipping_phone' => $shipPhone,
@@ -768,7 +929,7 @@ final class ShopService
 
     public function clearCart(): void
     {
-        unset($_SESSION[self::SESSION_CART]);
+        unset($_SESSION[self::SESSION_CART], $_SESSION[self::SESSION_COUPON]);
     }
 
     public function formatPrice(int $amount): string

@@ -39,8 +39,8 @@ $updatedAt = (string) ($doc['updated_at'] ?? '');
     <?php endif; ?>
     <div class="legal-body"><?= $content ?></div>
   </article>
-  <?php render_site_footer(['year' => $year ?? date('Y')]); ?>
 </main>
+<?php render_site_footer(['year' => $year ?? date('Y')]); ?>
 <?php marketing_render_body_end(); ?>
 </body>
 </html>

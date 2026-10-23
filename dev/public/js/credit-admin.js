@@ -298,6 +298,7 @@ function initCreditGrantUi() {
               <thead>
                 <tr>
                   <th>일시</th>
+                  <th>구분</th>
                   <th>지급</th>
                   <th>지급 후 잔액</th>
                   <th>지급 사유</th>
@@ -308,10 +309,11 @@ function initCreditGrantUi() {
                 ${items.map((row) => `
                   <tr>
                     <td>${escapeHtml(String(row.created_at || '').slice(0, 16))}</td>
+                    <td>${escapeHtml(row.source_label || '')}</td>
                     <td class="is-plus">+${Number(row.amount || 0).toLocaleString()} C</td>
                     <td>${Number(row.balance_after || 0).toLocaleString()} C</td>
                     <td>${escapeHtml(row.description || '')}</td>
-                    <td><small>${escapeHtml(row.admin_email || row.admin_name || '-')}</small></td>
+                    <td><small>${escapeHtml(row.actor_label || row.admin_email || row.admin_name || '-')}</small></td>
                   </tr>
                 `).join('')}
               </tbody>
