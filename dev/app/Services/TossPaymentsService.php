@@ -38,8 +38,11 @@ final class TossPaymentsService
 
     public function variantKey(): string
     {
-        $key = trim((string) env('TOSS_VARIANT_KEY', 'default'));
-        return $key !== '' ? $key : 'default';
+        $key = trim((string) env('TOSS_VARIANT_KEY', 'DEFAULT'));
+        if ($key === '' || strcasecmp($key, 'default') === 0) {
+            return 'DEFAULT';
+        }
+        return $key;
     }
 
     public function agreementVariantKey(): string
@@ -71,7 +74,8 @@ final class TossPaymentsService
     public function customerKey(?int $userId): string
     {
         if ($userId !== null && $userId > 0) {
-            return 'user_' . $userId;
+            // 토스 규격: 10~50자. user_1 처럼 짧으면 INVALID_CUSTOMER_KEY가 난다.
+            return 'labelup_user_' . $userId;
         }
         if (session_status() !== PHP_SESSION_ACTIVE) {
             @session_start();
