@@ -76,7 +76,7 @@
         }
       </svg>
     </button>
-    <div class="ed-ui-scale" data-tut="ui-scale" title="편집기 UI 글자 크기 (캔버스 확대와 별개)">
+    @* <div class="ed-ui-scale" data-tut="ui-scale" title="편집기 UI 글자 크기 (캔버스 확대와 별개)">
       <button type="button"
               class="ed-ui-scale__btn"
               disabled="@(Session.UiScale <= EditorSession.MinUiScale + 0.001f)"
@@ -88,7 +88,7 @@
               disabled="@(Session.UiScale >= EditorSession.MaxUiScale - 0.001f)"
               aria-label="UI 글자 크게"
               @onclick="IncreaseUiScale">A+</button>
-    </div>
+    </div> *@
   </div>
 
   <button type="button" class="ed-chip ed-m-more" title="메뉴" aria-label="메뉴" aria-expanded="@_mobileMenu" @onclick="ToggleMobileMenu">☰</button>
@@ -101,10 +101,10 @@
       <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M3.2 1.6h7.2c.7 0 1.2.5 1.2 1.2v10.4c0 .7-.5 1.2-1.2 1.2H3.2c-.7 0-1.2-.5-1.2-1.2V2.8c0-.7.5-1.2 1.2-1.2Zm.2 1.4v10h6.8V3H3.4Z"/><path fill="currentColor" d="M6.1 5h1.4v2.3h2.3v1.4H7.5V11H6.1V8.7H3.8V7.3h2.3V5Z"/></svg>
       새 디자인
     </button>
-    <button type="button" class="ed-btn" data-tut="save-file" title="라벨 파일(.lbu)로 내 PC에 저장 · 임시로 쓰는 단추입니다" @onclick="SaveToFile">
+    @* <button type="button" class="ed-btn" data-tut="save-file" title="라벨 파일(.lbu)로 내 PC에 저장 · 임시로 쓰는 단추입니다" @onclick="SaveToFile">
       <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M7.3 1.8h1.4v6.1l1.8-1.8 1 1-3.5 3.5L4.5 7.1l1-1 1.8 1.8V1.8ZM2.6 11.2H4v1.6h8v-1.6h1.4v2a1 1 0 0 1-1 1H3.6a1 1 0 0 1-1-1v-2Z"/></svg>
       저장(임시 사용)
-    </button>
+    </button> *@
     <button type="button" class="ed-btn ed-btn--shop" data-tut="shop" title="라벨 상품 구매" @onclick="OpenShop">
       <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M5.2 2.2 4.4 5H2.6a.6.6 0 0 0-.6.7l.9 6.2A1.6 1.6 0 0 0 4.5 14h7a1.6 1.6 0 0 0 1.6-1.1l.9-6.2a.6.6 0 0 0-.6-.7h-1.8l-.8-2.8A1.4 1.4 0 0 0 9.5 1.8H6.5c-.6 0-1.1.4-1.3.9Zm1.4.8h2.8l.6 2H6l.6-2ZM5 8.2a.7.7 0 0 1 1.4 0v2.4a.7.7 0 1 1-1.4 0V8.2Zm4.6 0a.7.7 0 0 1 1.4 0v2.4a.7.7 0 1 1-1.4 0V8.2Z"/></svg>
       라벨쇼핑
@@ -129,6 +129,10 @@
     <button type="button" class="ed-btn ed-btn--primary" data-tut="export" @onclick="OpenExport">
       <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4.2 2.2h7.6c.6 0 1 .4 1 .9V5h.6A1.6 1.6 0 0 1 15 6.6v4.2A1.4 1.4 0 0 1 13.6 12h-.8v1.8c0 .6-.5 1-1 .9H4.2c-.6 0-1-.4-1-.9V12h-.8A1.4 1.4 0 0 1 1 10.8V6.6A1.6 1.6 0 0 1 2.6 5h.6V3.1c0-.5.4-.9 1-.9ZM5 3.6v1.4h6V3.6H5Zm-.8 8.4v1.6h7.6V12H4.2Zm8.6-5.6a.8.8 0 1 0 0 1.6.8.8 0 0 0 0-1.6Z"/></svg>
       미리보기/프린트
+    </button>
+    <button type="button" class="ed-btn ed-btn--report" data-tut="bug-report" title="오류&amp;제안 · 오류 신고·기능 제안 보내기" aria-label="오류&amp;제안" @onclick="OpenBugReport">
+      <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3 2.2h10c.7 0 1.2.5 1.2 1.2v6.8c0 .7-.5 1.2-1.2 1.2H7.4l-3 2.4c-.4.3-.9 0-.9-.5v-1.9H3c-.7 0-1.2-.5-1.2-1.2V3.4c0-.7.5-1.2 1.2-1.2Zm4.3 2v3.4h1.4V4.2H7.3Zm0 4.4V10h1.4V8.6H7.3Z"/></svg>
+      <span class="ed-btn__label">오류&amp;제안</span>
     </button>
     @* <a class="ed-btn" data-tut="exit" href="/" title="편집기 나가기">
       <svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3.4 2.2h5.2c.7 0 1.2.5 1.2 1.2v2h-1.4V3.6H3.6v8.8h4.8V10.6h1.4v2.2c0 .7-.5 1.2-1.2 1.2H3.4c-.7 0-1.2-.5-1.2-1.2V3.4c0-.7.5-1.2 1.2-1.2Zm7.4 3.1 2.4 2.4c.3.3.3.7 0 1L10.8 11a.7.7 0 0 1-1.2-.5V9.2H6.6a.7.7 0 0 1 0-1.4h3V5.8a.7.7 0 0 1 1.2-.5Z"/></svg>
@@ -162,8 +166,8 @@
         {
             Session.TopBarPinned = await Js.InvokeAsync<bool>("labelUpEditor.getTopBarPinned");
             Session.AutoSaveEnabled = await Js.InvokeAsync<bool>("labelUpEditor.getAutoSave");
-            var uiScale = await Js.InvokeAsync<float>("labelUpEditor.getUiScale");
-            Session.SetUiScale(uiScale);
+            // UI 글자 크기 단추를 숨겨 두었으므로, 예전에 바꿔 둔 배율이 남지 않게 100%로 되돌린다.
+            Session.SetUiScale(1f);
             try { await Js.InvokeVoidAsync("labelUpEditor.setUiScale", Session.UiScale); } catch { }
             if (Session.AutoSaveEnabled)
                 StartAutoSave();
@@ -180,6 +184,12 @@
             ? "헤더를 고정했습니다"
             : "헤더를 숨겼습니다 · 상단에 마우스를 올리면 다시 표시됩니다";
         Session.Notify();
+    }
+
+    private async Task OpenBugReport()
+    {
+        CloseMobileMenu();
+        try { await Js.InvokeVoidAsync("LabelUpBugReport.open"); } catch { }
     }
 
     private async Task DecreaseUiScale() => await ChangeUiScale(Session.UiScale - 0.1f);

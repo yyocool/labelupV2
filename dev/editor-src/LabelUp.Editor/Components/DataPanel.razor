@@ -7,7 +7,7 @@
 
 @if (Session.DataPanelVisible && Session.Document.Data is { } data)
 {
-  var preview = data.Rows.Take(3).ToList();
+  var preview = data.Rows;
   <aside class="ed-data-panel @(Session.DataPanelExpanded ? "is-expanded" : "is-mini")"
          style="@HeightStyle"
          data-ed-data-panel

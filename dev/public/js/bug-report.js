@@ -308,10 +308,12 @@
     chip.insertAdjacentElement('afterend', btn);
   }
 
-  if (location.pathname.indexOf('/editor') !== -1) {
-    const editorWatch = new MutationObserver(mountEditorButton);
-    editorWatch.observe(document.documentElement, { childList: true, subtree: true });
-    mountEditorButton();
-  }
+  // 편집기는 상단 헤더(TopBar)의 '오류&제안' 단추가 LabelUpBugReport.open()을 부른다.
+  // 떠 있는 단추는 해상도에 따라 다른 영역을 가려서 더 이상 붙이지 않는다.
+  // if (location.pathname.indexOf('/editor') !== -1) {
+  //   const editorWatch = new MutationObserver(mountEditorButton);
+  //   editorWatch.observe(document.documentElement, { childList: true, subtree: true });
+  //   mountEditorButton();
+  // }
   window.LabelUpBugReport = { open: openModal };
 })();

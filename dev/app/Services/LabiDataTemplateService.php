@@ -1031,6 +1031,9 @@ final class LabiDataTemplateService
 
         $raw = trim($text);
         $dateFormat = 'yyyy-MM-dd';
+        if ($kind === 'date' && $raw !== '' && !self::isIsoDate($this->normalizeDateValue($raw))) {
+            $kind = 'text';
+        }
         if ($kind === 'date') {
             $raw = $this->normalizeDateValue($raw);
             $dateFormat = $this->inferDateFormat($column, $raw);
@@ -1280,11 +1283,20 @@ final class LabiDataTemplateService
         if (preg_match('/^(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/', $raw, $m)) {
             return sprintf('%04d-%02d-%02d', (int) $m[1], (int) $m[2], (int) $m[3]);
         }
+        // strtotime('2023')은 「오늘 20:23」이 된다. 숫자 하나뿐인 값(연도·수량)은 날짜가 아니다.
+        if (preg_match('/^[\d\s.,]+$/', $raw) || preg_match('/\d+\D+\d+/', $raw) !== 1) {
+            return $raw;
+        }
         $ts = strtotime($raw);
         if ($ts !== false) {
             return date('Y-m-d', $ts);
         }
         return $raw;
+    }
+
+    private static function isIsoDate(string $value): bool
+    {
+        return preg_match('/^\d{4}-\d{2}-\d{2}/', $value) === 1;
     }
 
     private function inferDateFormat(string $column, string $sample): string
@@ -1301,7 +1313,7 @@ final class LabiDataTemplateService
     private function formatDateValue(string $raw, string $format): string
     {
         $raw = trim($raw);
-        if ($raw === '') {
+        if (!self::isIsoDate($raw)) {
             return '';
         }
         $ts = strtotime($raw);

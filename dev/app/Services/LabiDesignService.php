@@ -61,13 +61,16 @@ final class LabiDesignService
             return $this->replyFollowUpMore($userId, $surface, $difficulty);
         }
 
-        if (
-            $officeSheet !== null
-            && $forced !== 'generate_clipart'
-            && $forced !== 'ask_image_mode'
-            && $forced !== 'ask_background'
-            && $forced !== 'chat'
-        ) {
+        $officeJustAttached = $officeSheet !== null && self::lastUserHasOfficePart($messages, $officeParser);
+        $officeRoute = $officeSheet !== null && (
+            ($forced !== 'generate_clipart'
+                && $forced !== 'ask_image_mode'
+                && $forced !== 'ask_background'
+                && $forced !== 'chat')
+            || ($forced !== 'generate_clipart' && $officeJustAttached)
+            || ($forced === 'chat' && $this->looksLikeDataTemplateAsk($earlyText))
+        );
+        if ($officeRoute) {
             $translateChoice = $this->resolveTranslateChoice($forced, $this->lastUserText($messages));
             if ($translateChoice === null && self::sheetHasForeignLanguage($officeSheet)) {
                 return $this->replyAskTranslate(
@@ -2056,6 +2059,25 @@ final class LabiDesignService
     }
 
     /** @param array<int, array{role:string, content:mixed}> $messages */
+    private static function lastUserHasOfficePart(array $messages, OfficeDocumentParser $parser): bool
+    {
+        for ($i = count($messages) - 1; $i >= 0; $i--) {
+            if (($messages[$i]['role'] ?? '') === 'user') {
+                return $parser->messagesHaveOfficePart([$messages[$i]]);
+            }
+        }
+        return false;
+    }
+
+    /** 엑셀 등 자료가 대화에 있을 때 「템플릿 만들고 데이터 넣어줘」 같은 요청 */
+    private function looksLikeDataTemplateAsk(string $text): bool
+    {
+        if ($text === '' || preg_match('/그려|클립아트|일러스트|추천/u', $text) === 1) {
+            return false;
+        }
+        return preg_match('/템플릿|라벨\s*(?:을|로)?\s*만들|이름표|데이터\s*(?:를|로)?\s*(?:넣|채|연결)|엑셀|자료\s*(?:를|로)/u', $text) === 1;
+    }
+
     private function lastUserText(array $messages): string
     {
         for ($i = count($messages) - 1; $i >= 0; $i--) {

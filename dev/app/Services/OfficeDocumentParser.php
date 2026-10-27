@@ -392,6 +392,21 @@ final class OfficeDocumentParser
      */
     private function gridToSheet(string $name, string $kind, array $grid): array
     {
+        if (self::firstRowLooksLikeData($grid)) {
+            $width = 0;
+            foreach (array_slice($grid, 0, self::MAX_ROWS) as $line) {
+                foreach ($line as $i => $cell) {
+                    if (trim((string) $cell) !== '') {
+                        $width = max($width, (int) $i + 1);
+                    }
+                }
+            }
+            $synthetic = [];
+            for ($i = 0; $i < min($width, self::MAX_COLS); $i++) {
+                $synthetic[] = '열' . ($i + 1);
+            }
+            array_unshift($grid, $synthetic);
+        }
         $header = array_map(fn($v) => $this->normalizeHeader((string) $v), $grid[0] ?? []);
         if ($header === []) {
             throw new RuntimeException('표 제목 행을 찾지 못했습니다.');
@@ -431,6 +446,36 @@ final class OfficeDocumentParser
             'columns' => $header,
             'rows' => $rows,
         ];
+    }
+
+    /**
+     * 제목 행 없이 바로 값이 시작하는 표인지 본다. 제목 칸은 순수 숫자가 아니고,
+     * 같은 열 아래에서 똑같은 값이 다시 나오지도 않는다.
+     *
+     * @param array<int, array<int, string>> $grid
+     */
+    private static function firstRowLooksLikeData(array $grid): bool
+    {
+        $first = $grid[0] ?? [];
+        $below = array_slice($grid, 1, self::MAX_ROWS);
+        if ($first === [] || $below === []) {
+            return false;
+        }
+        foreach ($first as $i => $cell) {
+            $value = trim((string) $cell);
+            if ($value === '') {
+                continue;
+            }
+            if (preg_match('/^-?\d+(?:[.,]\d+)?$/', $value) === 1) {
+                return true;
+            }
+            foreach ($below as $line) {
+                if (trim((string) ($line[$i] ?? '')) === $value) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**

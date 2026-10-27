@@ -20,6 +20,9 @@ public sealed class FontCatalog : IAsyncDisposable
     private SKTypeface? _regular;
     private SKTypeface? _bold;
     private SKTypeface? _symbols;
+    private SKTypeface? _hanja;
+    private SKTypeface? _hanjaBold;
+    private int _hanjaState;
     private bool _loaded;
     private bool _localDisabled;
     private readonly Dictionary<string, SKTypeface?> _faces = new(StringComparer.OrdinalIgnoreCase);
@@ -37,6 +40,9 @@ public sealed class FontCatalog : IAsyncDisposable
     }
 
     public bool IsReady => _loaded && _regular is not null;
+
+    /// <summary>나중에 불러온 대체 얼굴(한자 등)이 준비됐을 때. 캔버스를 다시 그려야 한다.</summary>
+    public event Action? FacesChanged;
 
     public IReadOnlyList<EditorFontSpec> Choices { get; } = Specs;
 
@@ -809,8 +815,48 @@ public sealed class FontCatalog : IAsyncDisposable
         // 로컬에서 읽은 얼굴은 글리프 검사가 틀려도 Pretendard로 바꾸지 않는다.
         if (!local && codepoint > 0 && !HasGlyph(primary, codepoint) && HasGlyph(_regular, codepoint))
             return bold && _bold is not null && HasGlyph(_bold, codepoint) ? _bold : _regular!;
+        if (codepoint > 0 && IsHanja(codepoint) && !HasGlyph(primary, codepoint))
+        {
+            var hanja = bold && _hanjaBold is not null ? _hanjaBold : _hanja;
+            if (HasGlyph(hanja, codepoint))
+                return hanja!;
+            StartHanjaLoad();
+        }
         if (primary is not null) return primary;
         return SKTypeface.Default;
+    }
+
+    /// <summary>Pretendard에는 한자가 없다. 한자를 처음 그릴 때만 Noto Sans KR 한자 서브셋을 받는다.</summary>
+    public static bool IsHanja(int codepoint)
+        => codepoint is >= 0x4E00 and <= 0x9FFF
+            or >= 0x3400 and <= 0x4DBF
+            or >= 0xF900 and <= 0xFAFF;
+
+    private void StartHanjaLoad()
+    {
+        if (_hanjaState != 0) return;
+        _hanjaState = 1;
+        _ = LoadHanjaAsync();
+    }
+
+    private async Task LoadHanjaAsync()
+    {
+        try
+        {
+            _hanja = await LoadAsync(Local("NotoSansKR-Hanja-Regular.otf"));
+            _hanjaBold = await LoadAsync(Local("NotoSansKR-Hanja-Bold.otf")) ?? _hanja;
+            EditorLog.Info(_hanja is not null ? "한자 대체 글꼴 로드" : "한자 대체 글꼴 로드 실패");
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error("한자 대체 글꼴 로드 실패", ex);
+        }
+        finally
+        {
+            _hanjaState = 2;
+        }
+        if (_hanja is not null)
+            FacesChanged?.Invoke();
     }
 
     public static bool PrefersSymbolRange(int codepoint)
@@ -1076,6 +1122,11 @@ public sealed class FontCatalog : IAsyncDisposable
         if (!ReferenceEquals(_bold, _regular))
             _bold?.Dispose();
         _symbols?.Dispose();
+        if (!ReferenceEquals(_hanjaBold, _hanja))
+            _hanjaBold?.Dispose();
+        _hanja?.Dispose();
+        _hanja = null;
+        _hanjaBold = null;
         _regular = null;
         _bold = null;
         _symbols = null;

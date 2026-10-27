@@ -200,6 +200,7 @@
 
             await WarmDocumentFontsAsync();
             Session.Changed += OnSessionChanged;
+            Fonts.FacesChanged += OnFontFacesChanged;
             Session.Notify();
         }
         catch (Exception ex)
@@ -1393,6 +1394,8 @@
 
     private void OnSessionChanged() => _ = WarmDocumentFontsAsync();
 
+    private void OnFontFacesChanged() => _ = InvokeAsync(Session.Notify);
+
     private async Task WarmDocumentFontsAsync()
     {
         var epoch = Session.DocumentEpoch;
@@ -1468,6 +1471,7 @@
     public void Dispose()
     {
         Session.Changed -= OnSessionChanged;
+        Fonts.FacesChanged -= OnFontFacesChanged;
         _self?.Dispose();
     }
 }

@@ -1355,6 +1355,12 @@ window.LabelUpLabiChat = {
     saveChat();
   }
 
+  function historyHasOffice() {
+    return history.some((msg) => Array.isArray(msg.content) && msg.content.some((part) => (
+      part && part.type === 'file' && OFFICE_EXT.test(part.name || (part.file && part.file.name) || '')
+    )));
+  }
+
   function historyHasImage() {
     return history.some((msg) => {
       if (!Array.isArray(msg.content)) return false;
@@ -2042,12 +2048,14 @@ window.LabelUpLabiChat = {
   function intentForLabiMode(displayText, attachments) {
     // 「라벨 추천해줘」→ 등록 상품(용지) 추천. 모드가 템플릿이어도 우선.
     if (isProductRecommendRequest(displayText)) return 'recommend_product';
+    // 엑셀·CSV·워드 표는 모드와 관계없이 바로 이미지 없는 데이터 템플릿으로 편집기에 넘긴다.
+    if (attachmentsHaveOffice(attachments) && !isClipartRequest(displayText)) return 'generate_data_template';
+    if (historyHasOffice() && isTemplateRequest(displayText) && !isClipartRequest(displayText)) {
+      return 'generate_data_template';
+    }
     if (labiMode === 'chat') return 'chat';
     if (labiMode === 'clipart') return 'generate_clipart';
-    if (labiMode === 'template') {
-      return attachmentsHaveOffice(attachments) ? 'generate_data_template' : 'generate_template';
-    }
-    if (attachmentsHaveOffice(attachments) && !isClipartRequest(displayText)) return 'generate_data_template';
+    if (labiMode === 'template') return 'generate_template';
     if (isTemplateRequest(displayText)) return 'generate_template';
     if (isClipartRequest(displayText)) return 'generate_clipart';
     return '';

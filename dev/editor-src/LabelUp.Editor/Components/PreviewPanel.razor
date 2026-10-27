@@ -130,12 +130,19 @@
     protected override async Task OnInitializedAsync()
     {
         Session.Changed += OnChanged;
+        Fonts.FacesChanged += OnFontFacesChanged;
         await Fonts.EnsureLoadedAsync();
         DocumentRenderer.SetFontCatalog(Fonts);
         _ = RebuildThumbsDeferred(force: true);
     }
 
-    public void Dispose() => Session.Changed -= OnChanged;
+    public void Dispose()
+    {
+        Session.Changed -= OnChanged;
+        Fonts.FacesChanged -= OnFontFacesChanged;
+    }
+
+    private void OnFontFacesChanged() => _ = InvokeAsync(() => RebuildThumbsDeferred(force: true));
 
     private void OnChanged()
     {

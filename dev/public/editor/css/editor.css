@@ -4177,6 +4177,12 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 .ed-data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .ed-data-table th, .ed-data-table td { border: 1px solid var(--ed-border); padding: 4px 6px; }
 .ed-data-table th { background: #faf8f6; }
+.ed-data-table--panel thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  box-shadow: inset 0 -1px 0 var(--ed-border);
+}
 .ed-data-table input { width: 100%; border: none; font: inherit; padding: 4px; }
 /* 라벨에 올라간 열은 옅게 칠해 구분한다. */
 .ed-data-table input.is-bound { background: #fdf6f8; font-weight: 700; }
@@ -6629,4 +6635,21 @@ html.is-ed-mobile .ed-data-restore {
 @media(max-width:560px){
  .lu-labi-confirm{padding:12px;align-items:flex-end}
  .lu-labi-confirm__card{width:100%;border-radius:18px 18px 12px 12px}
+}
+
+/* 상단 헤더의 오류&제안 단추. 헤더가 빠듯한 폭에서는 아이콘만 남기고
+   제목칸·배율 막대를 줄여, 다른 단추 글자가 두 줄로 접히지 않게 한다. */
+.ed-topbar .ed-btn--report { white-space: nowrap; }
+@media (max-width: 1600px) {
+  .ed:not(.is-mobile) .ed-topbar .ed-btn--report { padding: 9px 11px; }
+  .ed:not(.is-mobile) .ed-topbar .ed-btn--report .ed-btn__label { display: none; }
+  .ed:not(.is-mobile) .ed-topbar__name { max-width: 160px; }
+  .ed:not(.is-mobile) .ed-zoom { gap: 6px; }
+  .ed:not(.is-mobile) .ed-zoom__slider-wrap { width: 60px; }
+}
+@media (max-width: 1440px) {
+  .ed:not(.is-mobile) .ed-topbar { gap: 8px; }
+  .ed:not(.is-mobile) .ed-topbar__actions { gap: 6px; }
+  .ed:not(.is-mobile) .ed-topbar__name { max-width: 140px; }
+  .ed:not(.is-mobile) .ed-zoom__slider-wrap { width: 48px; }
 }

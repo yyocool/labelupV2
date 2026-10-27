@@ -971,7 +971,7 @@ PROMPT;
 
         $payload = array_merge([
             'model' => $model,
-            'messages' => $messages,
+            'messages' => self::chatSafeMessages($messages),
             'max_tokens' => (int) env('OPENAI_MAX_TOKENS', 1800),
             'temperature' => 0.7,
         ], $overrides);
@@ -985,6 +985,45 @@ PROMPT;
             }
             throw $e;
         }
+    }
+
+    /**
+     * Chat Completions는 text·image_url 파트만 받는다. 엑셀·워드 첨부(type=file)는
+     * OfficeDocumentParser가 따로 읽으므로, 대화 기록에 남은 첨부는 파일 이름만 텍스트로 넘긴다.
+     *
+     * @param array<int, mixed> $messages
+     * @return array<int, mixed>
+     */
+    private static function chatSafeMessages(array $messages): array
+    {
+        $out = [];
+        foreach ($messages as $message) {
+            if (!is_array($message) || !is_array($message['content'] ?? null)) {
+                $out[] = $message;
+                continue;
+            }
+            $parts = [];
+            foreach ($message['content'] as $part) {
+                if (!is_array($part)) {
+                    continue;
+                }
+                $type = (string) ($part['type'] ?? '');
+                if ($type === 'text') {
+                    $parts[] = ['type' => 'text', 'text' => (string) ($part['text'] ?? '')];
+                } elseif ($type === 'image_url' && is_array($part['image_url'] ?? null)) {
+                    $parts[] = ['type' => 'image_url', 'image_url' => $part['image_url']];
+                } elseif ($type === 'file') {
+                    $name = trim((string) ($part['name'] ?? $part['file']['name'] ?? '첨부파일'));
+                    $parts[] = ['type' => 'text', 'text' => '[첨부 파일: ' . ($name !== '' ? $name : '첨부파일') . ']'];
+                }
+            }
+            if ($parts === []) {
+                $parts[] = ['type' => 'text', 'text' => ''];
+            }
+            $message['content'] = $parts;
+            $out[] = $message;
+        }
+        return $out;
     }
 
     protected function apiKey(): string
