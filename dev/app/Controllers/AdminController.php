@@ -73,7 +73,6 @@ final class AdminController extends BaseController
             'user' => $user,
             'search' => $search,
             'list' => $credits->listUsers($search, $page),
-            'grants' => $credits->grantHistory(null, 1, 20),
             'grades' => (new MemberGradeService())->listActive(),
         ]);
     }

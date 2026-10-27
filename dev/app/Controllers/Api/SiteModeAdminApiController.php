@@ -8,6 +8,7 @@ use App\Controllers\BaseController;
 use App\Middleware\AuthMiddleware;
 use App\Services\AiProviderSettings;
 use App\Services\AuthService;
+use App\Services\NaverSmsSettings;
 use App\Services\SiteModeService;
 use RuntimeException;
 
@@ -39,6 +40,17 @@ final class SiteModeAdminApiController extends BaseController
         try {
             $payload = AiProviderSettings::save(request_json());
             $this->jsonSuccess(['aiSettings' => $payload], 'AI 설정을 저장했습니다.');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
+        }
+    }
+
+    public function saveNaverSms(): never
+    {
+        (new AuthMiddleware($this->auth))->handle(true);
+        try {
+            $payload = NaverSmsSettings::save(request_json());
+            $this->jsonSuccess(['naverSms' => $payload], '문자인증 설정을 저장했습니다.');
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage(), null, 422);
         }

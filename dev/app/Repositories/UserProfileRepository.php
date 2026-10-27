@@ -43,4 +43,25 @@ final class UserProfileRepository extends BaseModel
             $params
         );
     }
+
+    public function phoneExists(string $phone): bool
+    {
+        $alt = str_starts_with($phone, '0') ? '82' . substr($phone, 1) : $phone;
+        $row = $this->fetchOne(
+            'SELECT p.user_id
+             FROM user_profiles p
+             INNER JOIN users u ON u.id = p.user_id
+             WHERE p.deleted_at IS NULL
+               AND u.deleted_at IS NULL
+               AND u.status <> :withdrawn
+               AND REPLACE(REPLACE(REPLACE(REPLACE(IFNULL(p.phone, \'\'), \'-\', \'\'), \' \', \'\'), \'+\', \'\'), \'.\', \'\') IN (:phone, :alt)
+             LIMIT 1',
+            [
+                'withdrawn' => 'withdrawn',
+                'phone' => $phone,
+                'alt' => $alt,
+            ]
+        );
+        return $row !== null;
+    }
 }

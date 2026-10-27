@@ -36,7 +36,8 @@ final class QrCouponPublicController extends BaseController
         $sheets = isset($_GET['sheets']) ? (int) $_GET['sheets'] : 0;
         $isPreview = isset($_GET['preview']) && (string) $_GET['preview'] === '1';
 
-        $page = (new QrCouponPublicService())->resolvePage(
+        $qrPublic = new QrCouponPublicService();
+        $page = $qrPublic->resolvePage(
             $codeParam !== null && $codeParam !== '' ? $codeParam : null,
             $groupNo > 0 ? $groupNo : null,
             $cat !== null && $cat !== '' ? $cat : null,
@@ -67,6 +68,10 @@ final class QrCouponPublicController extends BaseController
                 );
                 $page['coupon_page_url'] = (new QrCouponAdminService())->groupLandingUrl($group);
             }
+        }
+
+        if (!$isPreview && is_array($user) && (int) ($user['id'] ?? 0) > 0) {
+            $page = $qrPublic->redeemForUser($page, (int) $user['id'], false);
         }
 
         $path = 'qr-coupon';

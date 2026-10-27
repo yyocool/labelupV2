@@ -187,6 +187,25 @@ final class AiCreditService
         ];
     }
 
+    /**
+     * charge() 결과를 오류 환불로 되돌린다. 차감이 없었으면 null.
+     *
+     * @param array<string, mixed>|null $chargeInfo
+     */
+    public function refundCharge(int $userId, ?array $chargeInfo, string $reason = ''): ?int
+    {
+        $amount = (int) ($chargeInfo['charged'] ?? 0);
+        if ($userId <= 0 || $amount <= 0) {
+            return null;
+        }
+        $label = trim((string) ($chargeInfo['label'] ?? ''));
+        $desc = '오류로 인한 환불' . ($label !== '' ? ' · ' . $label : '');
+        if ($reason !== '') {
+            $desc .= ' · ' . $reason;
+        }
+        return $this->credits->refundAi($userId, $amount, $desc, (string) ($chargeInfo['intent'] ?? 'ai'));
+    }
+
     /** @return array{used:int,limit:int,label:string,balance:int,items:array<int,array<string,mixed>>} */
     public function memberSummary(int $userId, int $page = 1, int $perPage = 20): array
     {

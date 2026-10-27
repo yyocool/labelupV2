@@ -9,7 +9,7 @@ $grades = $grades ?? [];
 <div class="admin-head">
   <div>
     <h1>회원 관리</h1>
-    <p>총 <?= number_format($total) ?>명 · 회원에게 잉크를 지급하고 지급 사유·이력을 확인할 수 있습니다.</p>
+    <p>총 <?= number_format($total) ?>명 · 이메일 아이디, 이름, 휴대폰은 일부를 가려 두었습니다. 항목을 클릭하고 로그인 비밀번호를 입력하면 확인할 수 있습니다.</p>
   </div>
   <div class="admin-head-actions">
     <button type="button" class="admin-btn admin-btn--primary" id="userCreateOpen">+ 회원 추가</button>
@@ -35,6 +35,7 @@ $grades = $grades ?? [];
         <th>ID</th>
         <th>이메일</th>
         <th>이름</th>
+        <th>휴대폰</th>
         <th>회사</th>
         <th>잉크</th>
         <th>회원등급</th>
@@ -46,16 +47,27 @@ $grades = $grades ?? [];
     </thead>
     <tbody>
       <?php if (empty($items)): ?>
-      <tr><td colspan="10" class="empty">검색 결과가 없습니다.</td></tr>
+      <tr><td colspan="11" class="empty">검색 결과가 없습니다.</td></tr>
       <?php else: ?>
       <?php foreach ($items as $row): ?>
       <?php $isSelf = (int) $row['id'] === $currentUserId; ?>
       <tr data-user-row="<?= (int) $row['id'] ?>">
-        <td><a href="<?= url('admin/users/' . (int) $row['id']) ?>"><?= (int) $row['id'] ?></a></td>
-        <td><a href="<?= url('admin/users/' . (int) $row['id']) ?>"><?= e($row['email'] ?? '') ?></a></td>
-        <td><?= e($row['name'] ?? '-') ?></td>
+        <td><a class="admin-cell-link" href="<?= url('admin/users/' . (int) $row['id']) ?>"><?= (int) $row['id'] ?></a></td>
+        <td><?= admin_masked_contact((int) $row['id'], 'email', $row['email'] ?? '') ?></td>
+        <td><?= admin_masked_contact((int) $row['id'], 'name', $row['name'] ?? '') ?></td>
+        <td><?= admin_masked_contact((int) $row['id'], 'phone', $row['phone'] ?? '') ?></td>
         <td><?= e($row['company'] ?? '-') ?></td>
-        <td><strong><?= number_format((int) ($row['credit_balance'] ?? 0)) ?> C</strong></td>
+        <td>
+          <?php $balance = (int) ($row['credit_balance'] ?? 0); ?>
+          <button
+            class="admin-btn admin-btn--sm admin-ink-btn js-credit-grant-history<?= $balance < 0 ? ' is-minus' : '' ?>"
+            type="button"
+            data-user-id="<?= (int) $row['id'] ?>"
+            data-user-email="<?= e(trim((string) ($row['email'] ?? '')) === '' ? '' : mask_email_id((string) $row['email'])) ?>"
+            data-user-name="<?= e(trim((string) ($row['name'] ?? '')) === '' ? '' : mask_person_name((string) $row['name'])) ?>"
+            title="지급 이력"
+          ><?= number_format($balance) ?> C</button>
+        </td>
         <td>
           <select class="admin-select js-grade">
             <?php foreach ($grades as $grade): ?>
@@ -80,21 +92,11 @@ $grades = $grades ?? [];
               class="admin-btn admin-btn--sm js-credit-grant"
               type="button"
               data-user-id="<?= (int) $row['id'] ?>"
-              data-user-email="<?= e($row['email'] ?? '') ?>"
-              data-user-name="<?= e($row['name'] ?? '') ?>"
+              data-user-email="<?= e(trim((string) ($row['email'] ?? '')) === '' ? '' : mask_email_id((string) $row['email'])) ?>"
+              data-user-name="<?= e(trim((string) ($row['name'] ?? '')) === '' ? '' : mask_person_name((string) $row['name'])) ?>"
               data-balance="<?= (int) ($row['credit_balance'] ?? 0) ?>"
             >잉크 지급</button>
-            <button
-              class="admin-btn admin-btn--sm js-credit-grant-history"
-              type="button"
-              data-user-id="<?= (int) $row['id'] ?>"
-              data-user-email="<?= e($row['email'] ?? '') ?>"
-              data-user-name="<?= e($row['name'] ?? '') ?>"
-            >지급 이력</button>
             <a class="admin-btn admin-btn--sm" href="<?= url('admin/users/' . (int) $row['id']) ?>">상세</a>
-            <?php if (($row['status'] ?? '') !== 'withdrawn'): ?>
-            <button class="admin-btn admin-btn--sm js-save-user" type="button" data-user-id="<?= (int) $row['id'] ?>">저장</button>
-            <?php endif; ?>
           </div>
         </td>
       </tr>
@@ -113,54 +115,6 @@ $grades = $grades ?? [];
   require view_path('admin/partials/pagination.php');
 ?>
 <?php endif; ?>
-
-<?php
-  $grantItems = $grants['items'] ?? [];
-  $grantTotal = (int) ($grants['total'] ?? 0);
-?>
-<section class="admin-section">
-  <div class="admin-section-head">
-    <h2 class="admin-section-title">최근 잉크 지급 이력</h2>
-    <p class="admin-muted">총 <?= number_format($grantTotal) ?>건 · 관리자 지급과 회원가입 웰컴 등 자동 보상 내역입니다.</p>
-  </div>
-  <div class="admin-table-wrap">
-    <table class="admin-table">
-      <thead>
-        <tr>
-          <th>일시</th>
-          <th>회원</th>
-          <th>구분</th>
-          <th>지급</th>
-          <th>지급 후 잔액</th>
-          <th>지급 사유</th>
-          <th>처리자</th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php if (empty($grantItems)): ?>
-        <tr><td colspan="7" class="empty">지급 이력이 없습니다.</td></tr>
-        <?php else: ?>
-        <?php foreach ($grantItems as $grant): ?>
-        <tr>
-          <td><?= e(substr((string) ($grant['created_at'] ?? ''), 0, 16)) ?></td>
-          <td>
-            <a href="<?= url('admin/users/' . (int) ($grant['user_id'] ?? 0)) ?>"><?= e($grant['user_email'] ?? '') ?></a>
-            <?php if (!empty($grant['user_name'])): ?>
-            <br><small class="admin-muted"><?= e($grant['user_name']) ?></small>
-            <?php endif; ?>
-          </td>
-          <td><?= e((string) ($grant['source_label'] ?? \App\Services\CreditService::sourceLabel((string) ($grant['source'] ?? '')))) ?></td>
-          <td class="is-plus">+<?= number_format((int) ($grant['amount'] ?? 0)) ?> C</td>
-          <td><?= number_format((int) ($grant['balance_after'] ?? 0)) ?> C</td>
-          <td><?= e((string) ($grant['description'] ?? '')) ?></td>
-          <td><small><?= e((string) ($grant['actor_label'] ?? $grant['admin_email'] ?? $grant['admin_name'] ?? '-')) ?></small></td>
-        </tr>
-        <?php endforeach; ?>
-        <?php endif; ?>
-      </tbody>
-    </table>
-  </div>
-</section>
 
 <div class="admin-modal" id="userCreateModal" hidden>
   <div class="admin-modal-backdrop" data-close="userCreateModal"></div>

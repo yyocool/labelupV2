@@ -125,6 +125,23 @@ final class AdminApiController extends BaseController
         $this->jsonSuccess(null, '회원 정보가 저장되었습니다.');
     }
 
+    public function revealUser(): never
+    {
+        $this->requireAdmin();
+        $payload = request_json();
+        try {
+            $value = $this->users->revealMemberField(
+                (int) ($this->auth->adminId() ?? 0),
+                (string) ($payload['password'] ?? ''),
+                (int) ($payload['user_id'] ?? 0),
+                (string) ($payload['field'] ?? '')
+            );
+            $this->jsonSuccess(['value' => $value]);
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
+        }
+    }
+
     public function updateLegal(): never
     {
         $this->requireAdmin();

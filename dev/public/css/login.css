@@ -368,6 +368,22 @@
 .register-hint{font-size:13px;margin-top:6px;color:var(--login-muted)}
 .register-hint.ok{color:#1a7f4b}
 .register-hint.err{color:#b42318}
+.register-req{font-style:normal;color:#b42318;font-weight:800;font-size:13px}
+.register-phone-row{display:flex;gap:8px;align-items:center}
+.register-phone-row input{flex:1;min-width:0}
+.register-sms-btn{
+  flex-shrink:0;
+  height:44px;padding:0 14px;
+  border:1px solid var(--accent-soft-2);
+  border-radius:12px;
+  background:#fff;
+  color:var(--accent);
+  font-size:14px;font-weight:800;
+  cursor:pointer;
+}
+.register-sms-btn:hover{background:var(--accent-soft)}
+.register-sms-btn:disabled{opacity:.55;cursor:not-allowed}
+.register-sms-btn.is-done{border-color:#1a7f4b;color:#1a7f4b;background:#f0fdf4}
 .register-pwd-strength{
   margin-top:8px;padding:8px 10px;
   border:1px solid var(--line);border-radius:10px;

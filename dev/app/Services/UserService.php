@@ -24,7 +24,7 @@ final class UserService
         $this->loginLogs = new UserLoginLogRepository();
     }
 
-    public function register(string $email, string $password, string $name): array
+    public function register(string $email, string $password, string $name, string $phone = '', string $phoneVerifyToken = ''): array
     {
         $email = strtolower(trim($email));
         if (!Validator::email($email)) {
@@ -40,9 +40,17 @@ final class UserService
             throw new RuntimeException('이미 사용 중인 이메일입니다.');
         }
 
+        $verifiedPhone = null;
+        if (NaverSmsSettings::isSignupRequired()) {
+            $verifiedPhone = (new SmsVerificationService())->consumeSignupToken($phone, $phoneVerifyToken);
+        }
+
         $hash = password_hash($password, PASSWORD_DEFAULT);
         $userId = $this->users->create($email, $hash);
         $this->profiles->create($userId, trim($name));
+        if ($verifiedPhone !== null) {
+            $this->profiles->update($userId, ['phone' => $verifiedPhone]);
+        }
         (new MemberGradeService())->assignDefault($userId);
         (new NotificationService())->notifyWelcome($userId, trim($name));
         (new CreditService())->grantByTrigger($userId, 'signup');
@@ -195,5 +203,52 @@ final class UserService
     {
         unset($user['password_hash']);
         return $user;
+    }
+
+    /**
+     * 로그인한 관리자 비밀번호를 확인한 뒤에만 회원 이름, 이메일, 휴대폰 원문을 돌려준다.
+     */
+    public function revealMemberField(int $adminId, string $password, int $userId, string $field): string
+    {
+        if ($adminId <= 0) {
+            throw new RuntimeException('로그인이 필요합니다.');
+        }
+        if ($userId <= 0 || !in_array($field, ['name', 'phone', 'email'], true)) {
+            throw new RuntimeException('확인할 수 없는 항목입니다.');
+        }
+        $this->assertRevealPassword($adminId, $password);
+        $user = $this->users->findById($userId);
+        if (!$user) {
+            throw new RuntimeException('회원을 찾을 수 없습니다.');
+        }
+        $value = trim((string) ($user[$field] ?? ''));
+
+        return $value !== '' ? $value : '-';
+    }
+
+    private function assertRevealPassword(int $adminId, string $password): void
+    {
+        $now = time();
+        $state = $_SESSION['admin_pii_reveal'] ?? ['fails' => 0, 'until' => 0];
+        if (!is_array($state)) {
+            $state = ['fails' => 0, 'until' => 0];
+        }
+        if ((int) ($state['until'] ?? 0) > $now) {
+            throw new RuntimeException('비밀번호를 여러 번 틀렸습니다. 5분 후 다시 시도해주세요.');
+        }
+
+        $admin = $this->users->findById($adminId);
+        $hash = (string) ($admin['password_hash'] ?? '');
+        if (!$admin || ($admin['role'] ?? '') !== 'admin' || $hash === '' || !password_verify($password, $hash)) {
+            $fails = (int) ($state['fails'] ?? 0) + 1;
+            $lockedUntil = $fails >= 5 ? $now + 300 : 0;
+            $_SESSION['admin_pii_reveal'] = [
+                'fails' => $lockedUntil > 0 ? 0 : $fails,
+                'until' => $lockedUntil,
+            ];
+            throw new RuntimeException('비밀번호가 올바르지 않습니다.');
+        }
+
+        $_SESSION['admin_pii_reveal'] = ['fails' => 0, 'until' => 0];
     }
 }

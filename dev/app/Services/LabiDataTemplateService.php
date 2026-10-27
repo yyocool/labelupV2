@@ -48,7 +48,12 @@ final class LabiDataTemplateService
         } else {
             $use = $kind;
         }
-        $fields = $this->resolveFields($columns, $layout['fields'] ?? null, $use);
+        $requestedCols = $this->requestedColumnIndexes($userHint, count($columns));
+        $textOnly = $this->wantsTextFields($userHint);
+        if ($requestedCols !== null || $textOnly) {
+            $use = 'general';
+        }
+        $fields = $this->resolveFields($columns, $layout['fields'] ?? null, $use, $userHint);
         $sheet = $this->normalizeSheetForFields($sheet, $fields);
         $paper = $this->resolvePaper($use, $fields, $layout, count($sheet['rows']));
         $w = (float) $paper['labelWidthMm'];
@@ -230,7 +235,7 @@ final class LabiDataTemplateService
      * @param mixed $raw
      * @return array<int, array{column:string, kind:string}>
      */
-    private function resolveFields(array $columns, mixed $raw, string $labelKind = 'general'): array
+    private function resolveFields(array $columns, mixed $raw, string $labelKind = 'general', string $userHint = ''): array
     {
         $known = [];
         foreach ($columns as $col) {
@@ -238,9 +243,22 @@ final class LabiDataTemplateService
         }
 
         $isLogistics = in_array($labelKind, ['shipping', 'packing', 'picking', 'inventory', 'hangtag', 'logistics'], true);
+        $textOnly = $this->wantsTextFields($userHint);
+        $requested = $this->requestedColumnIndexes($userHint, count($columns));
 
         $fields = [];
-        if (is_array($raw)) {
+        if ($requested !== null) {
+            foreach ($requested as $idx) {
+                if (!isset($columns[$idx])) {
+                    continue;
+                }
+                $col = (string) $columns[$idx];
+                $kind = $textOnly ? 'text' : $this->guessKind($col);
+                $fields[] = ['column' => $col, 'kind' => $kind];
+            }
+        }
+
+        if ($fields === [] && is_array($raw) && $requested === null && !$textOnly) {
             foreach ($raw as $item) {
                 if (!is_array($item)) {
                     continue;
@@ -258,23 +276,28 @@ final class LabiDataTemplateService
             }
         }
         if ($fields === []) {
-            $ordered = $isLogistics
+            $ordered = $isLogistics && !$textOnly
                 ? $this->orderLogisticsColumns($columns, $labelKind)
                 : $columns;
             foreach ($ordered as $col) {
-                if ($this->isNoiseColumn($col)) {
+                if (!$textOnly && $requested === null && $this->isNoiseColumn($col)) {
                     continue;
                 }
-                $fields[] = ['column' => $col, 'kind' => $this->guessKind($col)];
+                $fields[] = [
+                    'column' => $col,
+                    'kind' => $textOnly ? 'text' : $this->guessKind($col),
+                ];
             }
         }
 
-        $max = match ($labelKind) {
-            'shipping', 'packing', 'hangtag' => 7,
-            'picking' => 5,
-            'inventory' => 4,
-            default => $isLogistics ? 7 : 10,
-        };
+        $max = ($requested !== null || $textOnly)
+            ? 20
+            : match ($labelKind) {
+                'shipping', 'packing', 'hangtag' => 7,
+                'picking' => 5,
+                'inventory' => 4,
+                default => $isLogistics ? 7 : 10,
+            };
         $seen = [];
         $out = [];
         foreach ($fields as $field) {
@@ -354,6 +377,74 @@ final class LabiDataTemplateService
             '/url|homepage|링크|source\s*url|cost\s*price|단가|원가|금액|amount|price|status|상태|email|이메일|채널\s*id|판매채널\s*id/i',
             $column
         );
+    }
+
+    private function wantsTextFields(string $hint): bool
+    {
+        return (bool) preg_match(
+            '/텍스트\s*(만|형식|로)|글자만|문구만|그림은\s*(생성하지\s*말|넣지\s*말)|이미지를?\s*(생성하지\s*말|넣지\s*말)|이미지\s*없이|그림\s*말고/u',
+            $hint
+        );
+    }
+
+    /**
+     * 사용자 힌트의 A~E, 1~5열, 모든 열 요청을 0-based 인덱스 배열로 푼다.
+     * 지정 없으면 null. 모든 열이면 0..n-1.
+     *
+     * @return list<int>|null
+     */
+    private function requestedColumnIndexes(string $hint, int $columnCount): ?array
+    {
+        $hint = trim($hint);
+        if ($hint === '' || $columnCount < 1) {
+            return null;
+        }
+        if (preg_match('/모든\s*열|전\s*열|열을?\s*다|전부\s*(넣|추가)/u', $hint) === 1) {
+            return range(0, $columnCount - 1);
+        }
+        if (preg_match('/([A-Za-z]{1,3})\s*열?\s*(?:~|-|부터|내지)\s*([A-Za-z]{1,3})\s*열/u', $hint, $m) === 1
+            || preg_match('/([A-Za-z]{1,3})\s*(?:~|-|부터|내지)\s*([A-Za-z]{1,3})(?:\s*열)?/u', $hint, $m) === 1) {
+            $start = $this->excelColIndex($m[1]);
+            $end = $this->excelColIndex($m[2]);
+            if ($start < 0 || $end < 0) {
+                return null;
+            }
+            if ($start > $end) {
+                [$start, $end] = [$end, $start];
+            }
+            $out = [];
+            for ($i = $start; $i <= $end && $i < $columnCount; $i++) {
+                $out[] = $i;
+            }
+            return $out !== [] ? $out : null;
+        }
+        if (preg_match('/(\d+)\s*(?:~|-|부터|내지)\s*(\d+)\s*열/u', $hint, $m) === 1) {
+            $start = max(1, (int) $m[1]) - 1;
+            $end = max(1, (int) $m[2]) - 1;
+            if ($start > $end) {
+                [$start, $end] = [$end, $start];
+            }
+            $out = [];
+            for ($i = $start; $i <= $end && $i < $columnCount; $i++) {
+                $out[] = $i;
+            }
+            return $out !== [] ? $out : null;
+        }
+        return null;
+    }
+
+    private function excelColIndex(string $letters): int
+    {
+        $letters = strtoupper(preg_replace('/[^A-Za-z]/', '', $letters) ?? '');
+        if ($letters === '') {
+            return -1;
+        }
+        $n = 0;
+        $len = strlen($letters);
+        for ($i = 0; $i < $len; $i++) {
+            $n = $n * 26 + (ord($letters[$i]) - 64);
+        }
+        return $n - 1;
     }
 
     /**

@@ -56,6 +56,22 @@ final class CreditAdminController extends BaseController
         ]);
     }
 
+    public function creditGrants(): void
+    {
+        $page = max(1, (int) ($_GET['page'] ?? 1));
+        $filters = $this->credits->normalizeGrantFilters([
+            'q' => $_GET['q'] ?? '',
+            'source' => $_GET['source'] ?? '',
+            'date_from' => $_GET['date_from'] ?? '',
+            'date_to' => $_GET['date_to'] ?? '',
+        ]);
+        $this->renderAdmin('admin/credit-grants', 'ops-credit-grants', '운영관리 › 잉크지급이력', [
+            'filters' => $filters,
+            'stats' => $this->credits->grantStats($filters),
+            'history' => $this->credits->grantHistory(null, $page, 30, $filters),
+        ]);
+    }
+
     public function creditUsage(): void
     {
         $this->renderAdmin('admin/credit-usage', 'ops-credit-usage', '운영관리 › 잉크 사용 설정', [

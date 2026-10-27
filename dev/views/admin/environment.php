@@ -22,6 +22,14 @@ $aiLabels = [
     'openai' => 'Chat GPT',
     'claude' => 'Claude',
 ];
+$naverSms = $naverSms ?? [];
+$smsServiceId = (string) ($naverSms['service_id'] ?? '');
+$smsAccessKey = (string) ($naverSms['access_key'] ?? '');
+$smsSender = (string) ($naverSms['sender'] ?? '');
+$smsSecretReady = !empty($naverSms['secret_configured']);
+$smsReady = !empty($naverSms['ready']);
+$smsSignupEnabled = !empty($naverSms['signup_enabled']);
+$smsSaveUrl = url('api/admin/naver-sms/save');
 ?>
 <div class="admin-head">
   <div>
@@ -39,6 +47,7 @@ $aiLabels = [
 <div class="admin-env-tabs" role="tablist" aria-label="환경설정 구분">
   <button type="button" class="admin-env-tab is-active" role="tab" aria-selected="true" data-tab="site" id="envTabSite">사이트모드</button>
   <button type="button" class="admin-env-tab" role="tab" aria-selected="false" data-tab="ai" id="envTabAi">AI 설정</button>
+  <button type="button" class="admin-env-tab" role="tab" aria-selected="false" data-tab="sms" id="envTabSms">문자인증</button>
 </div>
 
 <section class="admin-env-pane is-active" data-pane="site" id="envPaneSite">
@@ -115,6 +124,53 @@ $aiLabels = [
   </form>
 </section>
 
+<section class="admin-env-pane" data-pane="sms" id="envPaneSms" hidden>
+  <form id="naverSmsForm" class="admin-card admin-seo-form">
+    <div class="admin-field admin-field--full">
+      <span>문자인증 사용 여부</span>
+      <p class="admin-muted" style="margin:6px 0 0">일반 가입과 네이버·카카오·구글 가입에 공통으로 적용됩니다.</p>
+      <div class="admin-mode-grid" role="radiogroup" aria-label="문자인증 사용 여부">
+        <label class="admin-mode-card<?= $smsSignupEnabled ? ' is-active' : '' ?>">
+          <input type="radio" name="signup_enabled" value="1"<?= $smsSignupEnabled ? ' checked' : '' ?>>
+          <strong>사용함</strong>
+          <p>일반·SNS 가입 시 휴대폰 문자인증을 완료해야 회원가입됩니다.</p>
+        </label>
+        <label class="admin-mode-card<?= $smsSignupEnabled ? '' : ' is-active' ?>">
+          <input type="radio" name="signup_enabled" value="0"<?= $smsSignupEnabled ? '' : ' checked' ?>>
+          <strong>사용하지 않음</strong>
+          <p>문자인증 없이 이름·이메일·약관만으로 회원가입할 수 있습니다.</p>
+        </label>
+      </div>
+    </div>
+    <p class="admin-muted" style="margin:18px 0 14px">문자인증을 사용할 때는 네이버 클라우드 SENS의 서비스 ID, Access Key, Secret Key, 등록된 발신번호가 필요합니다.</p>
+    <div class="admin-form-grid">
+      <label class="admin-field admin-field--full">
+        <span>서비스 ID</span>
+        <input class="admin-input" name="service_id" value="<?= e($smsServiceId) ?>" maxlength="100" placeholder="ncp:sms:kr:123456789012:labelup" autocomplete="off">
+      </label>
+      <label class="admin-field">
+        <span>Access Key</span>
+        <input class="admin-input" name="access_key" value="<?= e($smsAccessKey) ?>" maxlength="120" autocomplete="off">
+      </label>
+      <label class="admin-field">
+        <span>Secret Key</span>
+        <input class="admin-input" type="password" name="secret_key" value="" maxlength="200" autocomplete="new-password" placeholder="<?= $smsSecretReady ? '저장됨 · 바꿀 때만 입력' : 'Secret Key' ?>">
+      </label>
+      <label class="admin-field">
+        <span>발신번호</span>
+        <input class="admin-input" name="sender" value="<?= e($smsSender) ?>" maxlength="12" inputmode="numeric" placeholder="01012345678">
+      </label>
+    </div>
+    <div class="admin-ai-status" style="margin-top:16px">
+      <div class="admin-ai-status-item<?= $smsReady ? ' is-ready' : ' is-missing' ?>" id="smsReadyBox">
+        <strong>발송 준비</strong>
+        <span id="smsReadyText"><?= $smsReady ? '서비스 ID, 키, 발신번호가 저장되어 있습니다.' : '필수 항목이 비어 있어 인증번호를 보낼 수 없습니다.' ?></span>
+        <small>Secret Key는 저장 후 화면에 다시 보이지 않습니다.</small>
+      </div>
+    </div>
+  </form>
+</section>
+
 <style>
 .admin-env-tabs{display:flex;gap:8px;margin:0 0 16px}
 .admin-env-tab{appearance:none;border:1px solid #e5e7eb;background:#fff;color:#374151;border-radius:999px;padding:8px 16px;font-size:14px;font-weight:700;cursor:pointer}
@@ -139,16 +195,20 @@ $aiLabels = [
 (function () {
   var siteForm = document.getElementById('siteModeForm');
   var aiForm = document.getElementById('aiSettingsForm');
+  var smsForm = document.getElementById('naverSmsForm');
   var alertEl = document.getElementById('adminAlert');
   var saveBtn = document.getElementById('envSaveBtn');
   var currentEl = document.getElementById('envCurrent');
   var headDesc = document.getElementById('envHeadDesc');
   var saveUrl = <?= json_encode($saveUrl, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
   var aiSaveUrl = <?= json_encode($aiSaveUrl, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+  var smsSaveUrl = <?= json_encode($smsSaveUrl, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
   var modeLabels = <?= json_encode($modeLabels, JSON_UNESCAPED_UNICODE) ?>;
   var aiLabels = <?= json_encode($aiLabels, JSON_UNESCAPED_UNICODE) ?>;
   var currentMode = <?= json_encode($mode, JSON_UNESCAPED_UNICODE) ?>;
   var currentProvider = <?= json_encode($aiProvider, JSON_UNESCAPED_UNICODE) ?>;
+  var smsReady = <?= $smsReady ? 'true' : 'false' ?>;
+  var smsSignupEnabled = <?= $smsSignupEnabled ? 'true' : 'false' ?>;
   var activeTab = 'site';
 
   function showAlert(msg, ok) {
@@ -185,7 +245,7 @@ $aiLabels = [
   }
 
   function setTab(tab) {
-    activeTab = tab === 'ai' ? 'ai' : 'site';
+    activeTab = (tab === 'ai' || tab === 'sms') ? tab : 'site';
     document.querySelectorAll('.admin-env-tab').forEach(function (btn) {
       var on = btn.getAttribute('data-tab') === activeTab;
       btn.classList.toggle('is-active', on);
@@ -199,11 +259,13 @@ $aiLabels = [
     if (headDesc) {
       headDesc.textContent = activeTab === 'ai'
         ? '사용자 페이지 라비가 사용할 AI를 고릅니다. Chat GPT 또는 Claude를 선택하면 같은 생성 흐름에 해당 API가 쓰입니다.'
-        : '사이트 운영 모드를 전환합니다. 개발 모드에서만 AI 토큰·비용·디버그 정보가 사용자에게 보입니다.';
+        : (activeTab === 'sms'
+          ? '회원가입 문자인증 사용 여부와 네이버 클라우드 SENS API를 저장합니다.'
+          : '사이트 운영 모드를 전환합니다. 개발 모드에서만 AI 토큰·비용·디버그 정보가 사용자에게 보입니다.');
     }
     updateCurrent();
     if (history.replaceState) {
-      history.replaceState(null, '', activeTab === 'ai' ? '#ai' : '#site');
+      history.replaceState(null, '', '#' + activeTab);
     }
   }
 
@@ -213,11 +275,17 @@ $aiLabels = [
       currentEl.innerHTML = '현재: <strong>' + (aiLabels[currentProvider] || currentProvider) + '</strong>';
       return;
     }
+    if (activeTab === 'sms') {
+      currentEl.innerHTML = '현재: <strong>' + (smsSignupEnabled ? '문자인증 사용함' : '문자인증 사용하지 않음') + '</strong>'
+        + (smsSignupEnabled ? ' · ' + (smsReady ? '발송 가능' : 'API 입력 필요') : '');
+      return;
+    }
     currentEl.innerHTML = '현재: <strong>' + (modeLabels[currentMode] || currentMode) + '</strong>';
   }
 
   bindCards(siteForm, 'mode');
   bindCards(aiForm, 'provider');
+  bindCards(smsForm, 'signup_enabled');
 
   document.querySelectorAll('.admin-env-tab').forEach(function (btn) {
     btn.addEventListener('click', function () {
@@ -279,11 +347,59 @@ $aiLabels = [
     showAlert((data.message || '저장되었습니다.') + ' → ' + (aiLabels[currentProvider] || currentProvider) + '. 사용자 페이지 라비에 바로 적용됩니다.', true);
   }
 
+  function paintSmsReady(ready) {
+    smsReady = !!ready;
+    var box = document.getElementById('smsReadyBox');
+    var text = document.getElementById('smsReadyText');
+    if (box) {
+      box.classList.toggle('is-ready', smsReady);
+      box.classList.toggle('is-missing', !smsReady);
+    }
+    if (text) {
+      text.textContent = smsReady
+        ? '서비스 ID, 키, 발신번호가 저장되어 있습니다.'
+        : '필수 항목이 비어 있어 인증번호를 보낼 수 없습니다.';
+    }
+    var secret = smsForm ? smsForm.querySelector('input[name="secret_key"]') : null;
+    if (secret && smsReady) {
+      secret.value = '';
+      secret.placeholder = '저장됨 · 바꿀 때만 입력';
+    }
+  }
+
+  async function saveSms() {
+    if (!smsForm) return;
+    var fd = new FormData(smsForm);
+    var res = await fetch(smsSaveUrl, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({
+        signup_enabled: selectedValue(smsForm, 'signup_enabled') || '1',
+        service_id: String(fd.get('service_id') || ''),
+        access_key: String(fd.get('access_key') || ''),
+        secret_key: String(fd.get('secret_key') || ''),
+        sender: String(fd.get('sender') || '')
+      })
+    });
+    var data = await res.json().catch(function () { return {}; });
+    if (!res.ok || data.success === false) {
+      throw new Error(data.message || '저장에 실패했습니다.');
+    }
+    var saved = ((data.data || {}).naverSms) || {};
+    smsSignupEnabled = !!saved.signup_enabled;
+    paintSmsReady(saved.ready);
+    updateCurrent();
+    showAlert(data.message || '문자인증 설정을 저장했습니다.', true);
+  }
+
   saveBtn.addEventListener('click', async function () {
     saveBtn.disabled = true;
     try {
       if (activeTab === 'ai') {
         await saveAi();
+      } else if (activeTab === 'sms') {
+        await saveSms();
       } else {
         await saveSite();
       }
@@ -295,6 +411,6 @@ $aiLabels = [
   });
 
   var hash = String(location.hash || '').replace('#', '');
-  setTab(hash === 'ai' ? 'ai' : 'site');
+  setTab(hash === 'ai' || hash === 'sms' ? hash : 'site');
 })();
 </script>

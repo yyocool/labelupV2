@@ -273,55 +273,78 @@ function initCreditGrantUi() {
     });
   });
 
+  async function loadMemberGrantHistory(userId, page) {
+    const body = document.getElementById('creditGrantHistoryBody');
+    if (body) body.innerHTML = '<p class="admin-muted">이력을 불러오는 중…</p>';
+    openNamedModal('creditGrantHistoryModal');
+    try {
+      const res = await CreditAPI.get(`/api/admin/credit/grants?user_id=${userId}&page=${page}&per_page=30`);
+      const data = res?.data || {};
+      const items = data.items || [];
+      const total = Number(data.total || 0);
+      const pages = Number(data.pages || 1);
+      const current = Number(data.page || page);
+      if (!body) return;
+      if (!items.length) {
+        body.innerHTML = '<p class="admin-muted">지급 이력이 없습니다.</p>';
+        return;
+      }
+      const pager = pages > 1
+        ? `<div class="admin-row-actions" style="margin-top:12px">
+            <button type="button" class="admin-btn admin-btn--sm js-grant-history-page" data-page="${current - 1}" ${current <= 1 ? 'disabled' : ''}>이전</button>
+            <span class="admin-muted">${current} / ${pages}</span>
+            <button type="button" class="admin-btn admin-btn--sm js-grant-history-page" data-page="${current + 1}" ${current >= pages ? 'disabled' : ''}>다음</button>
+          </div>`
+        : '';
+      body.innerHTML = `
+        <p class="admin-muted">이 회원의 지급 ${total.toLocaleString()}건</p>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>일시</th>
+                <th>구분</th>
+                <th>지급</th>
+                <th>지급 후 잔액</th>
+                <th>지급 사유</th>
+                <th>처리자</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items.map((row) => `
+                <tr>
+                  <td>${escapeHtml(String(row.created_at || '').slice(0, 16))}</td>
+                  <td>${escapeHtml(row.source_label || '')}</td>
+                  <td class="is-plus">+${Number(row.amount || 0).toLocaleString()} C</td>
+                  <td>${Number(row.balance_after || 0).toLocaleString()} C</td>
+                  <td>${escapeHtml(row.description || '')}</td>
+                  <td><small>${escapeHtml(row.actor_label || '-')}</small></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        ${pager}`;
+      body.querySelectorAll('.js-grant-history-page').forEach((el) => {
+        el.addEventListener('click', () => {
+          const next = Number(el.dataset.page || 1);
+          if (next >= 1 && next <= pages) loadMemberGrantHistory(userId, next);
+        });
+      });
+    } catch (err) {
+      if (body) body.innerHTML = `<p class="admin-muted">${escapeHtml(err.message)}</p>`;
+    }
+  }
+
   document.querySelectorAll('.js-credit-grant-history').forEach((btn) => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', () => {
       if (!historyModal) return;
       const userId = Number(btn.dataset.userId || 0);
       const email = btn.dataset.userEmail || '';
       const name = btn.dataset.userName || '';
       const title = document.getElementById('creditGrantHistoryTitle');
       if (title) title.textContent = `${name || email || '회원'} 지급 이력`;
-      const body = document.getElementById('creditGrantHistoryBody');
-      if (body) body.innerHTML = '<p class="admin-muted">이력을 불러오는 중…</p>';
-      openNamedModal('creditGrantHistoryModal');
-      try {
-        const res = await CreditAPI.get(`/api/admin/credit/grants?user_id=${userId}`);
-        const items = res?.data?.items || [];
-        if (!body) return;
-        if (!items.length) {
-          body.innerHTML = '<p class="admin-muted">지급 이력이 없습니다.</p>';
-          return;
-        }
-        body.innerHTML = `
-          <div class="admin-table-wrap">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>일시</th>
-                  <th>구분</th>
-                  <th>지급</th>
-                  <th>지급 후 잔액</th>
-                  <th>지급 사유</th>
-                  <th>처리자</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${items.map((row) => `
-                  <tr>
-                    <td>${escapeHtml(String(row.created_at || '').slice(0, 16))}</td>
-                    <td>${escapeHtml(row.source_label || '')}</td>
-                    <td class="is-plus">+${Number(row.amount || 0).toLocaleString()} C</td>
-                    <td>${Number(row.balance_after || 0).toLocaleString()} C</td>
-                    <td>${escapeHtml(row.description || '')}</td>
-                    <td><small>${escapeHtml(row.actor_label || row.admin_email || row.admin_name || '-')}</small></td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>`;
-      } catch (err) {
-        if (body) body.innerHTML = `<p class="admin-muted">${escapeHtml(err.message)}</p>`;
-      }
+      loadMemberGrantHistory(userId, 1);
     });
   });
 }

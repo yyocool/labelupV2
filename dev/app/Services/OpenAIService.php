@@ -10,6 +10,9 @@ class OpenAIService
 {
     private const CHAT_URL = 'https://api.openai.com/v1/chat/completions';
     private const IMAGE_URL = 'https://api.openai.com/v1/images/generations';
+    private const DEFAULT_IMAGE_MODEL = 'gpt-image-1.5';
+    /** gpt-image-2 rejects background=transparent, so it is not a fallback. */
+    private const FALLBACK_IMAGE_MODELS = ['gpt-image-1.5', 'gpt-image-1-mini'];
 
     /** @var array{model:?string,prompt_tokens:?int,completion_tokens:?int,total_tokens:?int,image_count:int,image_model:?string,image_quality:?string,models:array<int,string>,steps:array<int,array<string,mixed>>}|null */
     private ?array $lastUsage = null;
@@ -820,9 +823,9 @@ PROMPT;
     public function generateClipart(string $prompt, bool $knockoutBackdrop = true): array
     {
         $apiKey = $this->apiKey();
-        $model = trim((string) env('OPENAI_IMAGE_MODEL', 'gpt-image-1'));
+        $model = trim((string) env('OPENAI_IMAGE_MODEL', self::DEFAULT_IMAGE_MODEL));
         if ($model === '') {
-            $model = 'gpt-image-1';
+            $model = self::DEFAULT_IMAGE_MODEL;
         }
 
         $cleanPrompt = $this->withTransparentBackgroundPrompt($prompt, $knockoutBackdrop);
@@ -847,11 +850,29 @@ PROMPT;
                 unset($payload['response_format'], $payload['style'], $payload['background'], $payload['output_format']);
                 $response = $this->request($apiKey, self::IMAGE_URL, $payload, 180);
             } elseif (
-                (str_contains($msg, 'does not exist') || str_contains($msg, 'not have access') || str_contains($msg, 'invalid_model'))
-                && $model !== 'gpt-image-1'
+                str_contains($msg, 'does not exist')
+                || str_contains($msg, 'not have access')
+                || str_contains($msg, 'invalid_model')
+                || str_contains($msg, 'deprecated')
+                || str_contains($msg, 'must be verified')
             ) {
-                $model = 'gpt-image-1';
-                $response = $this->request($apiKey, self::IMAGE_URL, $this->imagePayload($model, $cleanPrompt, $transparent), 180);
+                $response = null;
+                $lastError = $e;
+                foreach (self::FALLBACK_IMAGE_MODELS as $candidate) {
+                    if ($candidate === $model) {
+                        continue;
+                    }
+                    try {
+                        $response = $this->request($apiKey, self::IMAGE_URL, $this->imagePayload($candidate, $cleanPrompt, $transparent), 180);
+                        $model = $candidate;
+                        break;
+                    } catch (RuntimeException $fallbackError) {
+                        $lastError = $fallbackError;
+                    }
+                }
+                if ($response === null) {
+                    throw $lastError;
+                }
             } else {
                 throw $e;
             }

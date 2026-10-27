@@ -247,6 +247,21 @@
 .admin-table th{background:#faf7f3;color:var(--muted);font-weight:700}
 .admin-table tr:last-child td{border-bottom:0}
 .admin-table .empty{text-align:center;color:var(--muted);padding:28px}
+.admin-table a:not(.admin-btn){
+  color:var(--charcoal);
+  font-weight:700;
+  text-decoration:none;
+}
+.admin-table a:not(.admin-btn):hover{color:var(--accent)}
+.admin-pii{
+  appearance:none;-webkit-appearance:none;
+  border:0;background:transparent;padding:0;margin:0;
+  color:var(--charcoal);font:inherit;font-weight:600;
+  cursor:pointer;text-decoration:none;
+}
+.admin-pii:hover{color:var(--accent)}
+.admin-pii.is-revealed{cursor:default;font-weight:inherit;color:inherit}
+.admin-pii.is-revealed:hover{color:inherit}
 .admin-cat-row--child td{background:#fcfaf7}
 .admin-cat-name--child{color:#4a4450}
 .admin-cat-indent{display:inline-block;margin-right:6px;color:var(--muted);font-weight:700}
@@ -290,6 +305,16 @@
 .admin-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;height:38px;padding:0 14px;border-radius:10px;font-size:14px;font-weight:700;border:1px solid var(--line);background:#fff;color:var(--charcoal);cursor:pointer;text-decoration:none}
 .admin-btn--primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));border-color:transparent;color:#fff}
 .admin-btn--sm{height:32px;padding:0 10px;font-size:14px}
+.admin-btn.admin-ink-btn{
+  min-width:92px;
+  font-weight:800;
+  color:#176b3a;
+  background:#eaf8ef;
+  border-color:#b7e0c4;
+}
+.admin-btn.admin-ink-btn:hover{border-color:#176b3a;background:#dff3e6}
+.admin-btn.admin-ink-btn.is-minus{color:#9b1c1c;background:#fdecec;border-color:#f5c2c2}
+.admin-btn.admin-ink-btn.is-minus:hover{border-color:#9b1c1c;background:#fbe0e0}
 .admin-btn:disabled{opacity:.5;cursor:not-allowed}
 .admin-muted{color:var(--muted)}
 .admin-alert{margin-bottom:14px;padding:10px 12px;border-radius:10px;font-size:14px;display:none}
@@ -635,6 +660,17 @@
 .admin-modal-head h2,.admin-modal-head h3{margin:0;font-size:16px;font-weight:800}
 .admin-modal-close{width:34px;height:34px;border:0;border-radius:8px;background:var(--ivory);font-size:20px;cursor:pointer;color:var(--muted)}
 .admin-modal-body{padding:18px;overflow:auto}
+#piiRevealForm .admin-field{margin-bottom:0}
+#piiRevealForm .admin-input{
+  box-sizing:border-box;
+  width:100%;
+  height:40px;
+  min-height:40px;
+  max-height:40px;
+  padding:0 12px;
+  line-height:40px;
+  flex:0 0 auto;
+}
 .admin-modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:14px 18px;border-top:1px solid var(--line)}
 .admin-field--check{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600}
 .admin-field--check input{width:auto;height:auto}
@@ -839,6 +875,10 @@
 .admin-modal-panel--wide .admin-field--editor .note-editor{width:100%}
 .admin-modal-panel--wide{overflow:visible}
 .admin-modal-panel--wide .admin-modal-body{max-height:min(78vh,720px);overflow:auto}
+#creditGrantHistoryModal .admin-modal-panel{width:min(1120px,96vw)}
+#creditGrantHistoryModal .admin-table th,
+#creditGrantHistoryModal .admin-table td{white-space:nowrap}
+#creditGrantHistoryModal .admin-table-wrap{overflow:auto}
 .admin-modal-panel--xl{
   width:min(1280px,96vw);height:fit-content;max-height:min(92vh,980px);
   overflow:hidden;align-self:center

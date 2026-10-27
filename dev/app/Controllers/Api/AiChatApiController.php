@@ -36,6 +36,8 @@ final class AiChatApiController extends BaseController
         $surface = $this->normalizeSurface((string) ($data['surface'] ?? ''));
         $forceIntent = trim((string) ($data['force_intent'] ?? $data['forceIntent'] ?? ''));
         $userId = $this->auth->id();
+        $aiCredits = null;
+        $creditInfo = null;
 
         try {
             $messages = $this->normalizeMessages($rawMessages);
@@ -45,7 +47,6 @@ final class AiChatApiController extends BaseController
                 $aiCredits->assertCanStart($userId);
             }
             $result = (new LabiDesignService())->handle($messages, $userId, $surface, $forceIntent);
-            $creditInfo = null;
             if ($userId > 0 && $aiCredits->isEnabled()) {
                 $intent = (string) ($result['intent'] ?? 'chat');
                 // 작업은 이미 끝났으므로 잔액이 부족해도 차감(마이너스 허용) 후 결과 제공
@@ -85,8 +86,12 @@ final class AiChatApiController extends BaseController
                 'show_ai_usage' => $siteMode->showAiUsage(),
                 'show_ai_debug' => $siteMode->showAiDebug(),
             ]);
-        } catch (RuntimeException $e) {
-            $status = str_contains($e->getMessage(), '잉크') ? 402 : 502;
+        } catch (\Throwable $caught) {
+            $e = $caught instanceof RuntimeException
+                ? $caught
+                : new RuntimeException($caught->getMessage(), 0, $caught);
+            $refund = $this->refundOnError($aiCredits, (int) ($userId ?? 0), $creditInfo);
+            $status = $refund === null && str_contains($e->getMessage(), '잉크') ? 402 : 502;
             if ($status === 402) {
                 $this->jsonError($e->getMessage(), ['code' => 'insufficient_credit'], $status);
             }
@@ -99,11 +104,39 @@ final class AiChatApiController extends BaseController
                 'has_image' => $this->rawHasImage($rawMessages),
             ]);
             $public = $this->classifyPublicError($e);
-            $this->jsonError($public['message'], [
+            $message = $public['message'];
+            if ($refund !== null) {
+                $message .= sprintf(
+                    "\n차감된 잉크 %s은(는) 오류로 인한 환불로 돌려드렸어요.",
+                    \App\Services\CreditService::format($refund['refunded'])
+                );
+            }
+            $this->jsonError($message, [
                 'code' => $public['code'],
                 'reason' => $public['reason'],
+                'refund' => $refund,
             ], 502);
         }
+    }
+
+    /**
+     * @param array<string, mixed>|null $creditInfo
+     * @return array{refunded:int,balance:int}|null
+     */
+    private function refundOnError(?AiCreditService $aiCredits, int $userId, ?array $creditInfo): ?array
+    {
+        if ($aiCredits === null || $userId <= 0 || (int) ($creditInfo['charged'] ?? 0) <= 0) {
+            return null;
+        }
+        try {
+            $balance = $aiCredits->refundCharge($userId, $creditInfo);
+        } catch (\Throwable) {
+            return null;
+        }
+        if ($balance === null) {
+            return null;
+        }
+        return ['refunded' => (int) $creditInfo['charged'], 'balance' => $balance];
     }
 
     /**
@@ -194,6 +227,12 @@ final class AiChatApiController extends BaseController
             return ['code' => '094', 'reason' => 'AI 응답을 받지 못했거나 응답 형식이 올바르지 않습니다.'];
         }
         if (
+            str_contains($t, 'model')
+            && (str_contains($t, 'does not exist') || str_contains($t, 'not found') || str_contains($t, 'invalid'))
+        ) {
+            return ['code' => '097', 'reason' => '설정된 AI 모델을 사용할 수 없습니다.'];
+        }
+        if (
             str_contains($msg, '이미지 생성')
             || str_contains($msg, '생성된 이미지')
             || str_contains($msg, '이미지 디코딩')
@@ -217,12 +256,6 @@ final class AiChatApiController extends BaseController
             || str_contains($t, 'permission')
         ) {
             return ['code' => '096', 'reason' => '서버 저장(파일 권한)에 문제가 있습니다.'];
-        }
-        if (
-            str_contains($t, 'model')
-            && (str_contains($t, 'does not exist') || str_contains($t, 'not found') || str_contains($t, 'invalid'))
-        ) {
-            return ['code' => '097', 'reason' => '설정된 AI 모델을 사용할 수 없습니다.'];
         }
         if (
             str_contains($t, 'content_policy')

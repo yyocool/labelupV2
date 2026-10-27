@@ -277,6 +277,7 @@ final class Router
 
         $router->get('/login', [$auth, 'loginForm']);
         $router->get('/register', [$auth, 'registerForm']);
+        $router->get('/register/phone', [$auth, 'socialPhoneForm']);
         $router->get('/reset-password', [$auth, 'resetPasswordForm']);
         $router->get('/account', [$auth, 'account']);
         $router->get('/account/orders', [$auth, 'accountOrders']);
@@ -321,6 +322,7 @@ final class Router
         $router->get('/ads.txt', [$seoPublic, 'adsTxt']);
         $router->get('/app-ads.txt', [$seoPublic, 'appAdsTxt']);
 
+        $router->get('/admin/ops/credit-grants', [$creditAdmin, 'creditGrants']);
         $router->get('/admin/ops/credit-rewards', [$creditAdmin, 'rewardRules']);
         $router->get('/admin/ops/credit-usage', [$creditAdmin, 'creditUsage']);
         $router->get('/admin/ops/purchase-credits', [$creditAdmin, 'purchaseCredits']);
@@ -370,6 +372,9 @@ final class Router
         $router->get('/api/legal/{key}', [$legalApi, 'show']);
 
         $router->post('/api/auth/register', [$auth, 'apiRegister']);
+        $router->post('/api/auth/phone/send', [$auth, 'apiSendPhoneCode']);
+        $router->post('/api/auth/phone/verify', [$auth, 'apiVerifyPhoneCode']);
+        $router->post('/api/auth/oauth/complete', [$auth, 'apiCompleteSocialSignup']);
         $router->post('/api/auth/login', [$auth, 'apiLogin']);
         $router->post('/api/auth/logout', [$auth, 'apiLogout']);
         $router->get('/api/auth/me', [$auth, 'apiMe']);
@@ -436,12 +441,14 @@ final class Router
         $router->post('/api/admin/intro/upload', [$introAdminApi, 'upload']);
         $router->post('/api/admin/site-mode/save', [$siteModeAdminApi, 'save']);
         $router->post('/api/admin/ai-settings/save', [$siteModeAdminApi, 'saveAi']);
+        $router->post('/api/admin/naver-sms/save', [$siteModeAdminApi, 'saveNaverSms']);
         $router->get('/api/site/runtime', [$siteRuntimeApi, 'runtime']);
 
         $router->post('/api/admin/login', [$adminApi, 'login']);
         $router->post('/api/admin/password', [$adminApi, 'changePassword']);
         $router->post('/api/admin/users/create', [$adminApi, 'createUser']);
         $router->post('/api/admin/users/update', [$adminApi, 'updateUser']);
+        $router->post('/api/admin/users/reveal', [$adminApi, 'revealUser']);
         $router->post('/api/admin/legal/update', [$adminApi, 'updateLegal']);
 
         $router->post('/api/admin/credit/reward/save', [$creditAdminApi, 'saveRewardRule']);

@@ -18,6 +18,7 @@ final class OAuthService
     private UserProfileRepository $profiles;
     private UserOauthAccountRepository $oauth;
     private UserLoginLogRepository $loginLogs;
+    private string $afterLoginPath = '/account';
 
     public function __construct()
     {
@@ -86,17 +87,19 @@ final class OAuthService
     }
 
     /**
-     * @return array{id:int,email:string,name:?string,role:string,status:string}
+     * 문자인증이 켜져 있으면 신규 SNS 가입은 계정을 만들지 않고 null 을 반환한다.
+     *
+     * @return array{id:int,email:string,name:?string,role:string,status:string}|null
      */
-    public function handleCallback(string $provider, string $code): array
+    public function handleCallback(string $provider, string $code): ?array
     {
         return $this->completeWithToken($provider, $this->exchangeCode($provider, $code));
     }
 
     /**
-     * @return array{id:int,email:string,name:?string,role:string,status:string}
+     * @return array{id:int,email:string,name:?string,role:string,status:string}|null
      */
-    public function loginWithAccessToken(string $provider, string $accessToken, ?int $expiresIn = null): array
+    public function loginWithAccessToken(string $provider, string $accessToken, ?int $expiresIn = null): ?array
     {
         $token = ['access_token' => $accessToken];
         if ($expiresIn !== null && $expiresIn > 0) {
@@ -105,11 +108,47 @@ final class OAuthService
         return $this->completeWithToken($provider, $token);
     }
 
+    public function setAfterLoginPath(string $path): void
+    {
+        $this->afterLoginPath = $path !== '' ? $path : '/account';
+    }
+
+    /**
+     * @return array{provider:string,provider_label:string,email:string,name:string}
+     */
+    public function pendingSignupSummary(): array
+    {
+        $pending = $this->requirePendingSignup();
+        return [
+            'provider' => (string) $pending['provider'],
+            'provider_label' => $this->providerLabel((string) $pending['provider']),
+            'email' => (string) $pending['email'],
+            'name' => (string) $pending['name'],
+        ];
+    }
+
+    /**
+     * @return array{id:int,email:string,name:?string,role:string,status:string,redirect:string}
+     */
+    public function completePendingSignup(string $phone, string $verifyToken): array
+    {
+        $verifiedPhone = (new SmsVerificationService())->consumeSignupToken($phone, $verifyToken);
+        return $this->finishPendingSignup($verifiedPhone);
+    }
+
+    /**
+     * @return array{id:int,email:string,name:?string,role:string,status:string,redirect:string}
+     */
+    public function completePendingSignupWithoutPhone(): array
+    {
+        return $this->finishPendingSignup(null);
+    }
+
     /**
      * @param array<string, mixed> $token
-     * @return array{id:int,email:string,name:?string,role:string,status:string}
+     * @return array{id:int,email:string,name:?string,role:string,status:string}|null
      */
-    private function completeWithToken(string $provider, array $token): array
+    private function completeWithToken(string $provider, array $token): ?array
     {
         $profile = $this->fetchProfile($provider, (string) ($token['access_token'] ?? ''));
 
@@ -159,14 +198,117 @@ final class OAuthService
             return $this->users->findById($userId) ?? $existingByEmail;
         }
 
+        $safeName = mb_substr($name, 0, 100);
+        if (NaverSmsSettings::isSignupRequired()) {
+            $this->beginPendingSignup(
+                $provider,
+                $providerUserId,
+                $email,
+                $safeName,
+                $accessToken,
+                $refreshToken,
+                $expiresAt
+            );
+            return null;
+        }
+
+        return $this->createOauthUser(
+            $provider,
+            $providerUserId,
+            $email,
+            $safeName,
+            $accessToken,
+            $refreshToken,
+            $expiresAt,
+            null
+        );
+    }
+
+    /**
+     * @return array{id:int,email:string,name:?string,role:string,status:string,redirect:string}
+     */
+    private function finishPendingSignup(?string $phone): array
+    {
+        $pending = $this->requirePendingSignup();
+        $provider = (string) $pending['provider'];
+        $providerUserId = (string) $pending['provider_user_id'];
+        $email = (string) $pending['email'];
+        $name = (string) $pending['name'];
+        $accessToken = (string) ($pending['access_token'] ?? '');
+        $refreshToken = isset($pending['refresh_token']) && (string) $pending['refresh_token'] !== ''
+            ? (string) $pending['refresh_token']
+            : null;
+        $expiresAt = isset($pending['expires_at']) && (string) $pending['expires_at'] !== ''
+            ? (string) $pending['expires_at']
+            : null;
+        $redirect = (string) ($pending['redirect'] ?? '/account');
+
+        $link = $this->oauth->findByProvider($provider, $providerUserId);
+        if ($link) {
+            $user = $this->users->findById((int) $link['user_id']);
+            if (!$user || ($user['status'] ?? '') !== 'active') {
+                throw new RuntimeException('연결된 계정을 사용할 수 없습니다. 고객센터로 문의해 주세요.');
+            }
+            $this->clearPendingSignup();
+            $this->users->updateLastLogin((int) $user['id']);
+            $user['redirect'] = $redirect;
+            return $user;
+        }
+
+        $existing = $this->users->findByEmail($email);
+        if ($existing && !str_ends_with($email, '@oauth.labelup.local')) {
+            if (($existing['status'] ?? '') !== 'active') {
+                throw new RuntimeException('해당 이메일 계정을 사용할 수 없습니다.');
+            }
+            $userId = (int) $existing['id'];
+            $this->oauth->upsert($userId, $provider, $providerUserId, $email, $accessToken !== '' ? $accessToken : null, $refreshToken, $expiresAt);
+            $this->users->updateLastLogin($userId);
+            $this->loginLogs->log($userId, $email, true, 'oauth_link_' . $provider);
+            $this->clearPendingSignup();
+            $user = $this->users->findById($userId) ?? $existing;
+            $user['redirect'] = $redirect;
+            return $user;
+        }
+
+        $user = $this->createOauthUser(
+            $provider,
+            $providerUserId,
+            $email,
+            $name,
+            $accessToken,
+            $refreshToken,
+            $expiresAt,
+            $phone
+        );
+        $this->clearPendingSignup();
+        $user['redirect'] = $redirect;
+        return $user;
+    }
+
+    /**
+     * @return array{id:int,email:string,name:?string,role:string,status:string}
+     */
+    private function createOauthUser(
+        string $provider,
+        string $providerUserId,
+        string $email,
+        string $name,
+        string $accessToken,
+        ?string $refreshToken,
+        ?string $expiresAt,
+        ?string $phone
+    ): array {
         $hash = password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT);
         $userId = $this->users->create($email, $hash);
-        $this->profiles->create($userId, mb_substr($name, 0, 100));
+        $this->profiles->create($userId, $name);
+        if ($phone !== null && $phone !== '') {
+            $this->profiles->update($userId, ['phone' => $phone]);
+        }
         (new MemberGradeService())->assignDefault($userId);
-        $this->oauth->upsert($userId, $provider, $providerUserId, $email, $accessToken ?: null, $refreshToken, $expiresAt);
+        $this->oauth->upsert($userId, $provider, $providerUserId, $email, $accessToken !== '' ? $accessToken : null, $refreshToken, $expiresAt);
         $this->users->updateLastLogin($userId);
         $this->loginLogs->log($userId, $email, true, 'oauth_register_' . $provider);
-        (new NotificationService())->notifyWelcome($userId, mb_substr($name, 0, 100));
+        (new NotificationService())->notifyWelcome($userId, $name);
         (new CreditService())->grantByTrigger($userId, 'signup');
 
         $user = $this->users->findById($userId);
@@ -174,6 +316,55 @@ final class OAuthService
             throw new RuntimeException('회원 생성에 실패했습니다.');
         }
         return $user;
+    }
+
+    private function beginPendingSignup(
+        string $provider,
+        string $providerUserId,
+        string $email,
+        string $name,
+        string $accessToken,
+        ?string $refreshToken,
+        ?string $expiresAt
+    ): void {
+        $_SESSION['oauth_pending_signup'] = [
+            'provider' => $provider,
+            'provider_user_id' => $providerUserId,
+            'email' => $email,
+            'name' => $name,
+            'access_token' => $accessToken,
+            'refresh_token' => $refreshToken,
+            'expires_at' => $expiresAt,
+            'redirect' => $this->afterLoginPath,
+            'created_at' => time(),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function requirePendingSignup(): array
+    {
+        $pending = $_SESSION['oauth_pending_signup'] ?? null;
+        if (!is_array($pending)) {
+            throw new RuntimeException('소셜 가입 정보가 없습니다. 소셜 로그인을 다시 진행해 주세요.');
+        }
+        $createdAt = (int) ($pending['created_at'] ?? 0);
+        if ($createdAt < 1 || (time() - $createdAt) > 1800) {
+            $this->clearPendingSignup();
+            throw new RuntimeException('소셜 가입 시간이 만료되었습니다. 다시 시도해 주세요.');
+        }
+        $provider = (string) ($pending['provider'] ?? '');
+        $providerUserId = (string) ($pending['provider_user_id'] ?? '');
+        $email = (string) ($pending['email'] ?? '');
+        if (!$this->isSupported($provider) || $providerUserId === '' || $email === '') {
+            $this->clearPendingSignup();
+            throw new RuntimeException('소셜 가입 정보가 올바르지 않습니다. 다시 시도해 주세요.');
+        }
+        return $pending;
+    }
+
+    private function clearPendingSignup(): void
+    {
+        unset($_SESSION['oauth_pending_signup']);
     }
 
     public function callbackUrl(string $provider): string

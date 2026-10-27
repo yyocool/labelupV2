@@ -33,7 +33,9 @@ final class AuthApiController extends BaseController
             $user = $this->users->register(
                 (string) ($data['email'] ?? ''),
                 (string) ($data['password'] ?? ''),
-                (string) ($data['name'] ?? '')
+                (string) ($data['name'] ?? ''),
+                (string) ($data['phone'] ?? ''),
+                (string) ($data['phone_verify_token'] ?? '')
             );
             $this->auth->loginUser($user, !empty($data['remember']));
             $this->jsonSuccess($this->users->sanitizeUser($user), '회원가입이 완료되었습니다.');

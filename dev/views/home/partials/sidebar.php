@@ -39,7 +39,7 @@ $loginFor = static function (string $dest): string {
     <nav class="menu">
       <a class="<?= $isShopBuyActive ? 'is-active' : '' ?>" href="<?= url('shop') ?>"><span class="ico">🛒</span>라벨 구매</a>
       <a class="<?= $isCartActive ? 'is-active' : '' ?>" href="<?= url('shop/cart') ?>"><span class="ico">▧</span>장바구니</a>
-      <a href="<?= url('account') ?>#orders"><span class="ico">◎</span>간편주문</a>
+      <a class="<?= $isOrdersActive ? 'is-active' : '' ?>" href="<?= url('account/orders') ?>"><span class="ico">◎</span>주문내역</a>
     </nav>
   </div>
 

@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\Middleware\AuthMiddleware;
 use App\Services\AiProviderSettings;
 use App\Services\AuthService;
+use App\Services\NaverSmsSettings;
 use App\Services\SiteModeService;
 
 final class SiteModeAdminController extends BaseController
@@ -32,6 +33,7 @@ final class SiteModeAdminController extends BaseController
             'contentTemplate' => 'admin/environment',
             'siteMode' => $this->siteMode->adminPayload(),
             'aiSettings' => AiProviderSettings::adminPayload(),
+            'naverSms' => NaverSmsSettings::adminPayload(),
         ]);
     }
 

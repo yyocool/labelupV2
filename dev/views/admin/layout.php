@@ -84,6 +84,7 @@
         <?php
           $crumb = $crumbTitle ?? match ($activeMenu ?? '') {
               'users' => '운영관리 › 회원 관리',
+              'ops-credit-grants' => '운영관리 › 잉크지급이력',
               'settings' => '운영관리 › 운영설정',
               'shop-categories' => '쇼핑몰운영 › 카테고리',
               'shop-specs' => '쇼핑몰운영 › 용지 규격',
@@ -196,6 +197,27 @@
 <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/lang/summernote-ko-KR.min.js"></script>
 <?php endif; ?>
+<div class="admin-modal" id="piiRevealModal" hidden>
+  <div class="admin-modal-backdrop" data-close="piiRevealModal"></div>
+  <div class="admin-modal-panel" role="dialog" aria-modal="true" aria-labelledby="piiRevealTitle">
+    <div class="admin-modal-head">
+      <h2 id="piiRevealTitle">회원 정보 확인</h2>
+      <button type="button" class="admin-modal-close" data-close="piiRevealModal" aria-label="닫기">×</button>
+    </div>
+    <form id="piiRevealForm" class="admin-modal-body">
+      <p class="admin-muted" id="piiRevealHint">가려진 내용을 보려면 로그인 비밀번호를 입력하세요.</p>
+      <label class="admin-field">
+        <span>로그인 비밀번호</span>
+        <input class="admin-input" type="password" name="password" required autocomplete="current-password">
+      </label>
+      <div id="piiRevealError" class="admin-alert"></div>
+    </form>
+    <div class="admin-modal-foot">
+      <button type="button" class="admin-btn" data-close="piiRevealModal">취소</button>
+      <button type="submit" form="piiRevealForm" class="admin-btn admin-btn--primary">확인</button>
+    </div>
+  </div>
+</div>
 <div class="admin-modal" id="adminPasswordModal" hidden>
   <div class="admin-modal-backdrop" data-close="adminPasswordModal"></div>
   <div class="admin-modal-panel" role="dialog" aria-modal="true" aria-labelledby="adminPasswordTitle">

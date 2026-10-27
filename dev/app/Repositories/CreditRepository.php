@@ -288,12 +288,15 @@ final class CreditRepository extends BaseModel
     public function sumSpendBySourceSince(int $userId, string $source, string $since): int
     {
         $row = $this->fetchOne(
-            "SELECT COALESCE(SUM(ABS(amount)), 0) AS spent
+            "SELECT COALESCE(SUM(CASE
+                    WHEN tx_type = 'spend' AND amount < 0 THEN -amount
+                    WHEN tx_type = 'refund' AND amount > 0 THEN -amount
+                    ELSE 0
+                END), 0) AS spent
              FROM credit_transactions
              WHERE user_id = :user_id
                AND source = :source
-               AND tx_type = 'spend'
-               AND amount < 0
+               AND tx_type IN ('spend', 'refund')
                AND created_at >= :since",
             [
                 'user_id' => $userId,
@@ -301,7 +304,7 @@ final class CreditRepository extends BaseModel
                 'since' => $since,
             ]
         );
-        return (int) ($row['spent'] ?? 0);
+        return max(0, (int) ($row['spent'] ?? 0));
     }
 
     /**
@@ -392,34 +395,59 @@ final class CreditRepository extends BaseModel
         );
     }
 
-    /** @return array{items: array, total: int, page: int, pages: int, per_page: int} */
-    public function adminGrants(?int $userId = null, int $page = 1, int $perPage = 20): array
+    /**
+     * @param array{q?:string,source?:string,date_from?:string,date_to?:string} $filters
+     * @return array{grant_count:int,grant_amount:int,admin_count:int,admin_amount:int,reward_count:int,reward_amount:int,user_count:int}
+     */
+    public function adminGrantStats(?int $userId = null, array $filters = []): array
+    {
+        [$where, $params, $from] = $this->adminGrantScope($userId, $filters);
+        $row = $this->fetchOne(
+            "SELECT COUNT(*) AS grant_count,
+                    COALESCE(SUM(t.amount), 0) AS grant_amount,
+                    COALESCE(SUM(CASE WHEN t.source = 'admin' THEN 1 ELSE 0 END), 0) AS admin_count,
+                    COALESCE(SUM(CASE WHEN t.source = 'admin' THEN t.amount ELSE 0 END), 0) AS admin_amount,
+                    COALESCE(SUM(CASE WHEN t.source = 'reward' THEN 1 ELSE 0 END), 0) AS reward_count,
+                    COALESCE(SUM(CASE WHEN t.source = 'reward' THEN t.amount ELSE 0 END), 0) AS reward_amount,
+                    COUNT(DISTINCT t.user_id) AS user_count
+             {$from}
+             WHERE {$where}",
+            $params
+        ) ?? [];
+
+        return [
+            'grant_count' => (int) ($row['grant_count'] ?? 0),
+            'grant_amount' => (int) ($row['grant_amount'] ?? 0),
+            'admin_count' => (int) ($row['admin_count'] ?? 0),
+            'admin_amount' => (int) ($row['admin_amount'] ?? 0),
+            'reward_count' => (int) ($row['reward_count'] ?? 0),
+            'reward_amount' => (int) ($row['reward_amount'] ?? 0),
+            'user_count' => (int) ($row['user_count'] ?? 0),
+        ];
+    }
+
+    /**
+     * @param array{q?:string,source?:string,date_from?:string,date_to?:string} $filters
+     * @return array{items: array, total: int, page: int, pages: int, per_page: int}
+     */
+    public function adminGrants(?int $userId = null, int $page = 1, int $perPage = 20, array $filters = []): array
     {
         $page = max(1, $page);
         $perPage = max(1, min(100, $perPage));
         $offset = ($page - 1) * $perPage;
-        $where = 't.amount > 0 AND t.tx_type = \'earn\' AND t.source IN (\'admin\', \'reward\')';
-        $params = [];
-        if ($userId !== null && $userId > 0) {
-            $where .= ' AND t.user_id = :user_id';
-            $params['user_id'] = $userId;
-        }
+        [$where, $params, $from] = $this->adminGrantScope($userId, $filters);
         $items = $this->fetchAll(
             "SELECT t.id, t.user_id, t.amount, t.balance_after, t.tx_type, t.source, t.description, t.admin_id, t.created_at,
-                    u.email AS user_email, p.name AS user_name,
+                    u.email AS user_email, p.name AS user_name, p.phone AS user_phone,
                     a.email AS admin_email, ap.name AS admin_name
-             FROM credit_transactions t
-             INNER JOIN users u ON u.id = t.user_id
-             LEFT JOIN user_profiles p ON p.user_id = u.id AND p.deleted_at IS NULL
-             LEFT JOIN users a ON a.id = t.admin_id
-             LEFT JOIN user_profiles ap ON ap.user_id = a.id AND ap.deleted_at IS NULL
+             {$from}
              WHERE {$where}
              ORDER BY t.id DESC
              LIMIT {$perPage} OFFSET {$offset}",
             $params
         );
         $total = (int) ($this->fetchOne(
-            "SELECT COUNT(*) AS cnt FROM credit_transactions t WHERE {$where}",
+            "SELECT COUNT(*) AS cnt {$from} WHERE {$where}",
             $params
         )['cnt'] ?? 0);
         return [
@@ -429,6 +457,53 @@ final class CreditRepository extends BaseModel
             'pages' => max(1, (int) ceil($total / $perPage)),
             'per_page' => $perPage,
         ];
+    }
+
+    /**
+     * @param array{q?:string,source?:string,date_from?:string,date_to?:string} $filters
+     * @return array{0:string,1:array<string,mixed>,2:string}
+     */
+    private function adminGrantScope(?int $userId, array $filters): array
+    {
+        $where = 't.amount > 0 AND t.tx_type = \'earn\' AND t.source IN (\'admin\', \'reward\', \'qr_coupon\')';
+        $params = [];
+        if ($userId !== null && $userId > 0) {
+            $where .= ' AND t.user_id = :user_id';
+            $params['user_id'] = $userId;
+        }
+        $source = (string) ($filters['source'] ?? '');
+        if (in_array($source, ['admin', 'reward', 'qr_coupon'], true)) {
+            $where .= ' AND t.source = :source';
+            $params['source'] = $source;
+        }
+        $dateFrom = (string) ($filters['date_from'] ?? '');
+        if ($dateFrom !== '') {
+            $where .= ' AND t.created_at >= :date_from';
+            $params['date_from'] = $dateFrom . ' 00:00:00';
+        }
+        $dateTo = (string) ($filters['date_to'] ?? '');
+        if ($dateTo !== '') {
+            $where .= ' AND t.created_at <= :date_to';
+            $params['date_to'] = $dateTo . ' 23:59:59';
+        }
+        $keyword = trim((string) ($filters['q'] ?? ''));
+        if ($keyword !== '') {
+            $where .= " AND (u.email LIKE :q ESCAPE '\\\\' OR p.name LIKE :q ESCAPE '\\\\' OR p.phone LIKE :q ESCAPE '\\\\' OR t.description LIKE :q ESCAPE '\\\\' OR a.email LIKE :q ESCAPE '\\\\' OR ap.name LIKE :q ESCAPE '\\\\'";
+            $params['q'] = '%' . addcslashes($keyword, '%_\\') . '%';
+            $phoneDigits = preg_replace('/\D+/', '', $keyword) ?? '';
+            if ($phoneDigits !== '') {
+                $where .= " OR REPLACE(REPLACE(REPLACE(REPLACE(IFNULL(p.phone, ''), '-', ''), ' ', ''), '.', ''), '+', '') LIKE :q_phone ESCAPE '\\\\'";
+                $params['q_phone'] = '%' . addcslashes($phoneDigits, '%_\\') . '%';
+            }
+            $where .= ')';
+        }
+        $from = 'FROM credit_transactions t
+             INNER JOIN users u ON u.id = t.user_id
+             LEFT JOIN user_profiles p ON p.user_id = u.id AND p.deleted_at IS NULL
+             LEFT JOIN users a ON a.id = t.admin_id
+             LEFT JOIN user_profiles ap ON ap.user_id = a.id AND ap.deleted_at IS NULL';
+
+        return [$where, $params, $from];
     }
 
     /** @return array<int, array<string, mixed>> */

@@ -175,7 +175,7 @@ $stepIcons = [
       </div>
       <img src="<?= asset('login-hero-mockup.png') ?>" alt="">
     </a>
-    <a class="shop-oc-more__card shop-oc-more__card--orders" href="<?= url('account') ?>#orders">
+    <a class="shop-oc-more__card shop-oc-more__card--orders" href="<?= url('account/orders') ?>">
       <div>
         <h3>최근 주문 내역</h3>
         <p>이전에 주문한 상품을 다시 간편하게 주문하세요.</p>

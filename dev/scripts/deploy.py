@@ -150,7 +150,9 @@ def main():
     openai_key = pick_env(existing_env, 'OPENAI_API_KEY')
     openai_model = pick_env(existing_env, 'OPENAI_MODEL', 'gpt-4o-mini')
     openai_max = pick_env(existing_env, 'OPENAI_MAX_TOKENS', '1800')
-    openai_image = pick_env(existing_env, 'OPENAI_IMAGE_MODEL', 'gpt-image-1')
+    openai_image = pick_env(existing_env, 'OPENAI_IMAGE_MODEL', 'gpt-image-1.5')
+    if openai_image == 'gpt-image-1':
+        openai_image = 'gpt-image-1.5'
     openai_image_quality = pick_env(existing_env, 'OPENAI_IMAGE_QUALITY', 'low')
     naver_id = pick_env(existing_env, 'NAVER_CLIENT_ID')
     naver_secret = pick_env(existing_env, 'NAVER_CLIENT_SECRET')

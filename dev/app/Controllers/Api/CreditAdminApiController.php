@@ -114,8 +114,18 @@ final class CreditAdminApiController extends BaseController
     {
         $this->guard();
         $userId = (int) ($_GET['user_id'] ?? 0);
+        if ($userId <= 0) {
+            $this->jsonError('회원을 지정해 주세요.', null, 422);
+        }
         $page = max(1, (int) ($_GET['page'] ?? 1));
-        $this->jsonSuccess($this->credits->grantHistory($userId > 0 ? $userId : null, $page, 20));
+        $perPage = max(1, min(50, (int) ($_GET['per_page'] ?? 30)));
+        $history = $this->credits->grantHistory($userId, $page, $perPage);
+        foreach ($history['items'] as &$row) {
+            $row['user_name'] = \mask_person_name((string) ($row['user_name'] ?? ''));
+            $row['user_email'] = \mask_email_id((string) ($row['user_email'] ?? ''));
+        }
+        unset($row);
+        $this->jsonSuccess($history);
     }
 
     public function saveCsLog(): never

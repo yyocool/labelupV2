@@ -103,10 +103,13 @@ final class CreditAdminService
         return $this->creditService->grant($userId, $amount, $reason, $adminId);
     }
 
-    /** @return array{items: array, total: int, page: int, pages: int, per_page: int} */
-    public function grantHistory(?int $userId = null, int $page = 1, int $perPage = 20): array
+    /**
+     * @param array{q?:string,source?:string,date_from?:string,date_to?:string} $filters
+     * @return array{items: array, total: int, page: int, pages: int, per_page: int}
+     */
+    public function grantHistory(?int $userId = null, int $page = 1, int $perPage = 20, array $filters = []): array
     {
-        $history = $this->credits->adminGrants($userId, $page, $perPage);
+        $history = $this->credits->adminGrants($userId, $page, $perPage, $this->normalizeGrantFilters($filters));
         $history['items'] = array_map(static function (array $row): array {
             $row['description'] = CreditService::repairUtf8((string) ($row['description'] ?? ''));
             $row['source_label'] = CreditService::sourceLabel((string) ($row['source'] ?? ''));
@@ -118,6 +121,44 @@ final class CreditAdminService
             return $row;
         }, $history['items'] ?? []);
         return $history;
+    }
+
+    /**
+     * @param array{q?:string,source?:string,date_from?:string,date_to?:string} $filters
+     * @return array{grant_count:int,grant_amount:int,admin_count:int,admin_amount:int,reward_count:int,reward_amount:int,user_count:int}
+     */
+    public function grantStats(array $filters = []): array
+    {
+        return $this->credits->adminGrantStats(null, $this->normalizeGrantFilters($filters));
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     * @return array{q:string,source:string,date_from:string,date_to:string}
+     */
+    public function normalizeGrantFilters(array $filters): array
+    {
+        $q = trim((string) ($filters['q'] ?? ''));
+        $q = mb_substr($q, 0, 80);
+        $source = (string) ($filters['source'] ?? '');
+        if (!in_array($source, ['admin', 'reward', 'qr_coupon'], true)) {
+            $source = '';
+        }
+        $from = (string) ($filters['date_from'] ?? '');
+        $to = (string) ($filters['date_to'] ?? '');
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) !== 1) {
+            $from = '';
+        }
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $to) !== 1) {
+            $to = '';
+        }
+
+        return [
+            'q' => $q,
+            'source' => $source,
+            'date_from' => $from,
+            'date_to' => $to,
+        ];
     }
 
     /** @return array<string, mixed> */

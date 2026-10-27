@@ -85,6 +85,27 @@
             </div>
           </div>
 
+          <?php if (!empty($smsRequired)): ?>
+          <div class="login-field">
+            <label for="registerPhone">휴대폰 번호 <em class="register-req">(필수)</em></label>
+            <div class="register-phone-row">
+              <input id="registerPhone" type="tel" name="phone" required inputmode="tel" autocomplete="tel" maxlength="20" placeholder="010-1234-5678">
+              <button type="button" class="register-sms-btn" id="sendSmsBtn">인증번호 받기</button>
+            </div>
+            <div id="phoneHint" class="register-hint">문자로 받은 인증번호를 확인해야 가입할 수 있습니다.</div>
+          </div>
+
+          <div class="login-field" id="smsCodeField" hidden>
+            <label for="registerSmsCode">인증번호</label>
+            <div class="register-phone-row">
+              <input id="registerSmsCode" type="text" name="sms_code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="6자리 숫자">
+              <button type="button" class="register-sms-btn" id="verifySmsBtn">확인</button>
+            </div>
+            <div id="smsHint" class="register-hint"></div>
+            <input type="hidden" name="phone_verify_token" id="phoneVerifyToken" value="">
+          </div>
+          <?php endif; ?>
+
           <div class="register-agreements">
             <div class="register-agreement-row">
               <label class="register-check">

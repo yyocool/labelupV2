@@ -13,7 +13,12 @@ $creditLabel = ($group && isset($group['credit_amount']) && $group['credit_amoun
     : null;
 $accent = (string) ($group['color_hex'] ?? '#e23d2e');
 $codeStatus = (string) ($codeRow['status'] ?? '');
-$warnMessage = (string) ($page['error'] ?? '쿠폰번호가 링크에 포함되지 않았습니다. 상품에 인쇄된 고유 QR코드로 접속해 주세요.');
+$redeem = is_array($page['redeem'] ?? null) ? $page['redeem'] : null;
+$redeemStatus = (string) ($redeem['status'] ?? '');
+$grantedAmount = (int) ($redeem['amount'] ?? 0);
+$grantedBalance = (int) ($redeem['balance'] ?? 0);
+$redeemMessage = (string) ($redeem['message'] ?? '');
+$warnMessage = (string) ($page['error'] ?? '쿠폰번호가 링크에 포함되지 않았습니다. 상품에 인쇄된 고유 QR코드로 다시 접속해 주세요.');
 $homeUrl = (string) ($homeUrl ?? url('/'));
 ?>
 <!doctype html>
@@ -105,14 +110,22 @@ $homeUrl = (string) ($homeUrl ?? url('/'));
     <section class="qr-panel qr-coupon-box">
       <div class="qr-section-head">
         <h2>고객님의 QR 쿠폰번호</h2>
-        <p>로그인하시면 이 쿠폰번호로 잉크가 지급됩니다.</p>
+        <?php if ($redeemStatus === 'granted'): ?>
+        <p>이 쿠폰번호로 잉크가 지급되었습니다.</p>
+        <?php elseif ($redeemStatus === 'already'): ?>
+        <p>이미 사용된 쿠폰입니다. 지급된 잉크는 마이페이지에서 확인할 수 있습니다.</p>
+        <?php else: ?>
+        <p>로그인하시면 이 쿠폰번호로 잉크가 바로 지급됩니다. 쇼핑 쿠폰함이 아닙니다.</p>
+        <?php endif; ?>
       </div>
 
       <?php if ($hasCouponCode): ?>
       <div class="qr-coupon-number" aria-label="쿠폰번호">
         <span>쿠폰번호</span>
         <strong><?= e($couponCode) ?></strong>
-        <?php if ($codeStatus === 'used'): ?>
+        <?php if ($redeemStatus === 'granted'): ?>
+        <em class="is-ready">지급 완료</em>
+        <?php elseif ($codeStatus === 'used' || $redeemStatus === 'already'): ?>
         <em class="is-used">사용됨</em>
         <?php elseif ($codeStatus === 'unused'): ?>
         <em class="is-ready">사용 가능</em>
@@ -132,16 +145,26 @@ $homeUrl = (string) ($homeUrl ?? url('/'));
           <strong><?= number_format((int) ($group['sheets_per_pack'] ?? 0)) ?>매</strong>
         </li>
         <li>
-          <span>지급 예정 잉크</span>
+          <span><?= $redeemStatus === 'granted' ? '지급된 잉크' : '지급 예정 잉크' ?></span>
           <strong><?= $creditLabel ? e($creditLabel) : '미정' ?></strong>
         </li>
       </ul>
+      <?php if ($redeemStatus === 'granted'): ?>
+      <div class="qr-redeem-banner is-ok" role="status">
+        <strong><?= e($redeemMessage !== '' ? $redeemMessage : '잉크가 지급되었습니다.') ?></strong>
+        <span>현재 보유 잉크 <?= number_format($grantedBalance) ?> C</span>
+      </div>
+      <?php elseif (in_array($redeemStatus, ['already', 'no_credit', 'disabled', 'invalid'], true)): ?>
+      <div class="qr-redeem-banner<?= $redeemStatus === 'already' ? '' : ' is-warn' ?>" role="status">
+        <strong><?= e($redeemMessage !== '' ? $redeemMessage : '이 쿠폰은 사용할 수 없습니다.') ?></strong>
+      </div>
+      <?php endif; ?>
     </section>
 
     <section class="qr-panel qr-howto">
       <div class="qr-section-head">
         <h2>잉크 받는 방법</h2>
-        <p>로그인만 하시면 쿠폰번호 기준으로 잉크가 지급됩니다.</p>
+        <p>로그인만 하시면 쿠폰번호 기준으로 잉크가 바로 지급됩니다.</p>
       </div>
       <div class="qr-howto-grid">
         <div class="qr-howto-copy">
@@ -161,15 +184,23 @@ $homeUrl = (string) ($homeUrl ?? url('/'));
             <li>
               <div class="qr-step-body">
                 <strong>잉크 지급</strong>
-                <span>로그인 후 이 페이지로 돌아오면 쿠폰이 적용되어 잉크가 지급됩니다.</span>
+                <span>로그인 후 이 페이지로 돌아오면 잉크가 즉시 지급됩니다. 장바구니 쿠폰함이 아닙니다.</span>
               </div>
             </li>
           </ol>
           <?php if (!$isPreview): ?>
           <div class="qr-cta-actions">
             <?php if ($authUser): ?>
-            <p class="qr-howto-note">이미 로그인되어 있습니다. 쿠폰 사용(잉크 지급) 기능은 곧 제공됩니다.</p>
-            <a class="qr-btn qr-btn--primary" href="<?= url('account') ?>">마이페이지에서 잉크 확인</a>
+              <?php if ($redeemStatus === 'granted'): ?>
+              <p class="qr-howto-note">잉크 <?= number_format($grantedAmount) ?> C가 계정에 지급되었습니다.</p>
+              <?php elseif ($redeemStatus === 'already'): ?>
+              <p class="qr-howto-note">이미 지급된 쿠폰입니다. 아래 버튼에서 잔액을 확인해 주세요.</p>
+              <?php elseif ($redeemStatus === 'no_credit'): ?>
+              <p class="qr-howto-note">지급 잉크가 아직 설정되지 않았습니다. 관리자에게 문의해 주세요.</p>
+              <?php else: ?>
+              <p class="qr-howto-note">로그인되어 있습니다. 쿠폰이 유효하면 이 페이지에서 잉크가 지급됩니다.</p>
+              <?php endif; ?>
+            <a class="qr-btn qr-btn--primary" href="<?= url('account') ?>#credits">마이페이지에서 잉크 확인</a>
             <?php else: ?>
             <a class="qr-btn" href="<?= e($loginUrl ?? url('login')) ?>">로그인하고 잉크 받기</a>
             <a class="qr-btn qr-btn--primary" href="<?= e($registerUrl ?? url('register')) ?>">회원가입 하고 혜택 받기</a>

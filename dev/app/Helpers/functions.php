@@ -335,6 +335,7 @@ function admin_menu_catalog(): array
         ['key' => 'ai-member-usage', 'label' => '회원별 사용', 'href' => 'admin/ai/member-usage', 'group' => 'AI 관리', 'ic' => '◇'],
         ['key' => 'ai-usage', 'label' => '사용량 통계', 'href' => 'admin/ai/usage', 'group' => 'AI 관리', 'ic' => '▣'],
         ['key' => 'users', 'label' => '회원 관리', 'href' => 'admin/users', 'group' => '운영관리', 'ic' => '◎'],
+        ['key' => 'ops-credit-grants', 'label' => '잉크지급이력', 'href' => 'admin/ops/credit-grants', 'group' => '운영관리', 'ic' => '◈'],
         ['key' => 'settings', 'label' => '운영설정', 'href' => 'admin/settings', 'group' => '운영관리', 'ic' => '⚙'],
         ['key' => 'ops-hero-slides', 'label' => '히어로 이미지 관리', 'href' => 'admin/ops/hero-slides', 'group' => '운영관리', 'ic' => '▦'],
         ['key' => 'ops-mid-banners', 'label' => '중간배너 관리', 'href' => 'admin/ops/mid-banners', 'group' => '운영관리', 'ic' => '▣'],
@@ -503,4 +504,104 @@ function render_site_footer(array $opts = []): void
     $year = (int) ($opts['year'] ?? date('Y'));
     $links = $opts['links'] ?? null;
     require view_path('partials/site-footer.php');
+}
+
+/** 이름 가운데 글자를 가린다. 두 글자는 뒤 글자, 세 글자 이상은 첫·끝만 남긴다. */
+function mask_person_name(?string $name): string
+{
+    $name = trim((string) $name);
+    if ($name === '') {
+        return '-';
+    }
+    $len = mb_strlen($name);
+    if ($len <= 1) {
+        return '*';
+    }
+    if ($len === 2) {
+        return mb_substr($name, 0, 1) . '*';
+    }
+
+    return mb_substr($name, 0, 1) . str_repeat('*', $len - 2) . mb_substr($name, -1);
+}
+
+/** 전화번호 숫자 중 가운데 네 자리를 가린다. 구분자(하이픈 등)는 그대로 둔다. */
+function mask_phone_middle(?string $phone): string
+{
+    $raw = trim((string) $phone);
+    if ($raw === '') {
+        return '-';
+    }
+    $chars = preg_split('//u', $raw, -1, PREG_SPLIT_NO_EMPTY);
+    if ($chars === false || $chars === []) {
+        return '-';
+    }
+    $digitPos = [];
+    foreach ($chars as $i => $ch) {
+        if (preg_match('/\d/', $ch) === 1) {
+            $digitPos[] = $i;
+        }
+    }
+    $len = count($digitPos);
+    if ($len === 0) {
+        return '-';
+    }
+    $maskCount = min(4, $len);
+    $start = intdiv($len - $maskCount, 2);
+    for ($k = $start; $k < $start + $maskCount; $k++) {
+        $chars[$digitPos[$k]] = '*';
+    }
+
+    return implode('', $chars);
+}
+
+/** 이메일 아이디(골뱅이 앞)만 일부를 가린다. 앞 두 글자를 남기고 나머지는 * 처리하며, 도메인은 그대로 둔다. */
+function mask_email_id(?string $email): string
+{
+    $email = trim((string) $email);
+    if ($email === '') {
+        return '-';
+    }
+    $at = mb_strpos($email, '@');
+    $local = $at === false ? $email : mb_substr($email, 0, $at);
+    $domain = $at === false ? '' : mb_substr($email, $at);
+    $len = mb_strlen($local);
+    if ($len <= 1) {
+        $maskedLocal = '*';
+    } elseif ($len === 2) {
+        $maskedLocal = mb_substr($local, 0, 1) . '*';
+    } else {
+        $maskedLocal = mb_substr($local, 0, 2) . str_repeat('*', $len - 2);
+    }
+
+    return $maskedLocal . $domain;
+}
+
+/** 회원 목록용. 원문은 출력하지 않고, 클릭 시 비밀번호 확인 후에만 조회한다. */
+function admin_masked_contact(int $userId, string $field, ?string $value): string
+{
+    if (!in_array($field, ['name', 'phone', 'email'], true)) {
+        $field = 'name';
+    }
+    $raw = trim((string) $value);
+    if ($userId <= 0 || $raw === '') {
+        return e('-');
+    }
+    if ($field === 'phone') {
+        $masked = mask_phone_middle($raw);
+        $label = '휴대폰';
+    } elseif ($field === 'email') {
+        $masked = mask_email_id($raw);
+        $label = '이메일';
+    } else {
+        $masked = mask_person_name($raw);
+        $label = '이름';
+    }
+
+    return '<button type="button" class="admin-pii js-pii-reveal"'
+        . ' data-user-id="' . $userId . '"'
+        . ' data-field="' . $field . '"'
+        . ' data-label="' . e($label) . '"'
+        . ' title="클릭 후 로그인 비밀번호를 입력하면 확인할 수 있습니다">'
+        . e($masked)
+        . '</button>';
 }

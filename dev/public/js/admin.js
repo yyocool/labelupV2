@@ -56,27 +56,31 @@ function showAdminAlert(message, type = 'success') {
   }, 4000);
 }
 
-document.querySelectorAll('.js-save-user').forEach((btn) => {
-  btn.addEventListener('click', async () => {
-    const userId = Number(btn.dataset.userId);
-    const row = btn.closest('[data-user-row]');
-    if (!row || !userId) return;
+document.querySelectorAll('[data-user-row] .js-grade, [data-user-row] .js-status').forEach((el) => {
+  el.dataset.prev = el.value;
+  el.addEventListener('change', async () => {
+    const row = el.closest('[data-user-row]');
+    const userId = Number(row?.dataset.userRow || 0);
+    if (!row || !userId || el.disabled) return;
 
-    const gradeId = row.querySelector('.js-grade')?.value;
-    const statusEl = row.querySelector('.js-status');
-    const payload = { user_id: userId, grade_id: Number(gradeId || 0) };
-    if (statusEl && !statusEl.disabled) {
-      payload.status = statusEl.value;
+    const previous = el.dataset.prev ?? el.value;
+    const payload = { user_id: userId };
+    if (el.classList.contains('js-grade')) {
+      payload.grade_id = Number(el.value || 0);
+    } else {
+      payload.status = el.value;
     }
-    btn.disabled = true;
 
+    el.disabled = true;
     try {
       await AdminAPI.post('/api/admin/users/update', payload);
-      showAdminAlert('회원 정보가 저장되었습니다.', 'success');
+      el.dataset.prev = el.value;
+      showAdminAlert('저장되었습니다.', 'success');
     } catch (err) {
+      el.value = previous;
       showAdminAlert(err.message, 'error');
     } finally {
-      btn.disabled = false;
+      el.disabled = false;
     }
   });
 });
@@ -920,3 +924,85 @@ function initAdminCreditOverview() {
 }
 
 initAdminCreditOverview();
+
+function initPiiReveal() {
+  const modal = document.getElementById('piiRevealModal');
+  const form = document.getElementById('piiRevealForm');
+  if (!modal || !form) return;
+
+  const hint = document.getElementById('piiRevealHint');
+  const errorEl = document.getElementById('piiRevealError');
+  const input = form.querySelector('[name=password]');
+  const submitBtn = document.querySelector('[form="piiRevealForm"][type=submit]');
+  let target = null;
+
+  const clearError = () => {
+    if (!errorEl) return;
+    errorEl.textContent = '';
+    errorEl.className = 'admin-alert';
+  };
+
+  const close = () => {
+    modal.hidden = true;
+    form.reset();
+    target = null;
+    clearError();
+  };
+
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.js-pii-reveal');
+    if (!btn || btn.classList.contains('is-revealed')) return;
+    target = btn;
+    const label = btn.dataset.label || '정보';
+    if (hint) hint.textContent = `가려진 ${label}을 보려면 로그인 비밀번호를 입력하세요.`;
+    clearError();
+    form.reset();
+    modal.hidden = false;
+    input?.focus();
+  });
+
+  modal.querySelectorAll('[data-close="piiRevealModal"]').forEach((el) => {
+    el.addEventListener('click', close);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.hidden) close();
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!target) return;
+    clearError();
+    if (submitBtn) submitBtn.disabled = true;
+    const btn = target;
+    try {
+      const res = await AdminAPI.post('/api/admin/users/reveal', {
+        user_id: Number(btn.dataset.userId || 0),
+        field: btn.dataset.field || '',
+        password: input?.value || '',
+      });
+      const value = String(res.data?.value || '-');
+      btn.textContent = value;
+      btn.classList.add('is-revealed');
+      btn.removeAttribute('title');
+      if (btn.dataset.field === 'name' || btn.dataset.field === 'email') {
+        const row = btn.closest('[data-user-row]');
+        const attr = btn.dataset.field === 'email' ? 'userEmail' : 'userName';
+        row?.querySelectorAll(`[data-${btn.dataset.field === 'email' ? 'user-email' : 'user-name'}]`).forEach((el) => {
+          el.dataset[attr] = value === '-' ? '' : value;
+        });
+      }
+      close();
+    } catch (err) {
+      if (errorEl) {
+        errorEl.textContent = err.message || '확인할 수 없습니다.';
+        errorEl.className = 'admin-alert error show';
+      }
+      input?.focus();
+      input?.select();
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  });
+}
+
+initPiiReveal();

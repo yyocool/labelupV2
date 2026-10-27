@@ -199,6 +199,67 @@ final class CreditService
         return $next;
     }
 
+    /** 호출 측(QrCouponPublicService::redeem)의 트랜잭션 안에서 실행된다. */
+    public function grantQrCoupon(int $userId, int $amount, string $code): int
+    {
+        $code = trim($code);
+        if ($userId <= 0 || $amount <= 0 || $code === '') {
+            return $this->balance($userId);
+        }
+        $sourceRef = 'qr:' . $code;
+        if ($this->repo->hasSourceRef('qr_coupon', $sourceRef)) {
+            return $this->balance($userId);
+        }
+        $description = 'QR 쿠폰 잉크 적립 · ' . $code;
+        $this->repo->ensureBalanceRow($userId);
+        $current = $this->repo->getBalance($userId);
+        $next = $current + $amount;
+        $this->repo->setBalance($userId, $next);
+        $this->repo->addTransaction([
+            'user_id' => $userId,
+            'amount' => $amount,
+            'balance_after' => $next,
+            'tx_type' => 'earn',
+            'source' => 'qr_coupon',
+            'source_ref' => $sourceRef,
+            'description' => $description,
+            'admin_id' => null,
+        ]);
+        try {
+            (new NotificationService())->notifyCreditChange($userId, $amount, $next, $description);
+        } catch (\Throwable) {
+        }
+        return $next;
+    }
+
+    /** 부채(마이너스) 잔액이어도 그대로 되돌린다. */
+    public function refundAi(int $userId, int $amount, string $description, ?string $sourceRef = null): int
+    {
+        if ($userId <= 0 || $amount <= 0) {
+            return $this->balance($userId);
+        }
+        $description = trim($description) !== '' ? trim($description) : '오류로 인한 환불';
+        if (mb_strlen($description) > 255) {
+            $description = mb_substr($description, 0, 252) . '...';
+        }
+        $this->repo->ensureBalanceRow($userId);
+        $current = $this->repo->getBalance($userId);
+        $next = $current + $amount;
+        $this->repo->setBalance($userId, $next);
+        $this->repo->addTransaction([
+            'user_id' => $userId,
+            'amount' => $amount,
+            'balance_after' => $next,
+            'tx_type' => 'refund',
+            'source' => 'ai',
+            'source_ref' => $sourceRef,
+            'description' => $description,
+            'admin_id' => null,
+        ]);
+        (new NotificationService())->notifyCreditChange($userId, $amount, $next, $description);
+        return $next;
+    }
+
     public function grantPurchase(int $userId, int $amount, string $description, string $sourceRef): int
     {
         if ($userId <= 0 || $amount <= 0) {
@@ -314,6 +375,7 @@ final class CreditService
             'admin' => '관리자',
             'order' => '주문/사용',
             'ai' => 'AI 사용',
+            'qr_coupon' => 'QR 쿠폰',
             default => '시스템',
         };
     }

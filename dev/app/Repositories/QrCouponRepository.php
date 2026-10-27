@@ -129,6 +129,59 @@ final class QrCouponRepository
         return $row ?: null;
     }
 
+    public function begin(): void
+    {
+        if (!$this->db->inTransaction()) {
+            $this->db->beginTransaction();
+        }
+    }
+
+    public function commit(): void
+    {
+        if ($this->db->inTransaction()) {
+            $this->db->commit();
+        }
+    }
+
+    public function rollback(): void
+    {
+        if ($this->db->inTransaction()) {
+            $this->db->rollBack();
+        }
+    }
+
+    public function lockCode(string $code): ?array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT qc.*, g.category_name, g.list_price, g.credit_amount, g.color_hex, g.category_no
+             FROM qr_coupon_codes qc
+             LEFT JOIN qr_coupon_groups g ON g.group_no = qc.group_no
+             WHERE qc.code = :code
+             LIMIT 1
+             FOR UPDATE'
+        );
+        $stmt->execute(['code' => $code]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    public function markUsed(int $id, int $userId): bool
+    {
+        if ($id <= 0 || $userId <= 0) {
+            return false;
+        }
+        $stmt = $this->db->prepare(
+            "UPDATE qr_coupon_codes
+             SET status = 'used', used_at = NOW(), used_by = :user_id
+             WHERE id = :id AND status = 'unused'"
+        );
+        $stmt->execute([
+            'id' => $id,
+            'user_id' => $userId,
+        ]);
+        return $stmt->rowCount() === 1;
+    }
+
     /** @return list<array<string, mixed>> */
     public function productsForGroup(string $categorySlug, int $sheetsPerPack, int $limit = 24): array
     {

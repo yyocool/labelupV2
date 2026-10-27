@@ -9,9 +9,11 @@ use App\Services\AccountRecoveryService;
 use App\Services\AccountService;
 use App\Services\AuthService;
 use App\Services\EventPopupService;
+use App\Services\NaverSmsSettings;
 use App\Services\OAuthService;
 use App\Services\ShopService;
 use App\Services\SiteModeService;
+use App\Services\SmsVerificationService;
 use App\Services\UserService;
 use RuntimeException;
 
@@ -56,6 +58,7 @@ final class AuthController extends BaseController
             'pageTitle' => '회원가입 — 라벨업',
             'oauthEnabled' => $oauth->configuredMap(),
             'snsHold' => $siteMode->isTempOpen(),
+            'smsRequired' => NaverSmsSettings::isSignupRequired(),
             'authFlash' => $flash,
         ]);
     }
@@ -137,9 +140,14 @@ final class AuthController extends BaseController
         }
 
         try {
+            $next = $redirectPath === '/' ? '/account' : $redirectPath;
+            $oauth->setAfterLoginPath($next);
             $user = $oauth->handleCallback($provider, $code);
+            if ($user === null) {
+                redirect('/register/phone');
+            }
             $this->auth->loginUser($user, true);
-            redirect($redirectPath === '/' ? '/account' : $redirectPath);
+            redirect($next);
         } catch (RuntimeException $e) {
             $_SESSION['auth_flash'] = $e->getMessage();
             redirect('/login');
@@ -265,7 +273,9 @@ final class AuthController extends BaseController
             $user = $users->register(
                 (string) ($data['email'] ?? ''),
                 (string) ($data['password'] ?? ''),
-                (string) ($data['name'] ?? '')
+                (string) ($data['name'] ?? ''),
+                (string) ($data['phone'] ?? ''),
+                (string) ($data['phone_verify_token'] ?? '')
             );
             $this->auth->loginUser($user, !empty($data['remember']));
             $this->jsonSuccess($users->sanitizeUser($user), '회원가입이 완료되었습니다.');
@@ -303,6 +313,86 @@ final class AuthController extends BaseController
             (new \App\Repositories\UserRepository())->findById($this->auth->id()) ?? []
         );
         $this->jsonSuccess($user);
+    }
+
+    public function socialPhoneForm(): void
+    {
+        if ($this->auth->checkUser()) {
+            redirect('/account');
+        }
+        $oauth = new OAuthService();
+        if (!NaverSmsSettings::isSignupRequired()) {
+            try {
+                $user = $oauth->completePendingSignupWithoutPhone();
+                $redirect = safe_redirect_path((string) ($user['redirect'] ?? '/account'));
+                unset($user['redirect']);
+                $this->auth->loginUser($user, true);
+                redirect($redirect === '/' ? '/account' : $redirect);
+            } catch (RuntimeException $e) {
+                $_SESSION['auth_flash'] = $e->getMessage();
+                redirect('/register');
+            }
+        }
+        try {
+            $pending = $oauth->pendingSignupSummary();
+        } catch (RuntimeException $e) {
+            $_SESSION['auth_flash'] = $e->getMessage();
+            redirect('/register');
+        }
+        $flash = (string) ($_SESSION['auth_flash'] ?? '');
+        unset($_SESSION['auth_flash']);
+        $this->render('auth/social-phone', [
+            'pageTitle' => '휴대폰 인증 — 라벨업',
+            'pending' => $pending,
+            'authFlash' => $flash,
+        ]);
+    }
+
+    public function apiCompleteSocialSignup(): never
+    {
+        $data = request_json();
+        try {
+            $oauth = new OAuthService();
+            $user = NaverSmsSettings::isSignupRequired()
+                ? $oauth->completePendingSignup(
+                    (string) ($data['phone'] ?? ''),
+                    (string) ($data['phone_verify_token'] ?? '')
+                )
+                : $oauth->completePendingSignupWithoutPhone();
+            $redirect = safe_redirect_path((string) ($user['redirect'] ?? '/account'));
+            unset($user['redirect']);
+            $this->auth->loginUser($user, true);
+            $this->jsonSuccess([
+                'redirect' => $redirect === '/' ? '/account' : $redirect,
+            ], '회원가입이 완료되었습니다.');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
+        }
+    }
+
+    public function apiSendPhoneCode(): never
+    {
+        $data = request_json();
+        try {
+            $result = (new SmsVerificationService())->sendSignupCode((string) ($data['phone'] ?? ''));
+            $this->jsonSuccess($result, '인증번호를 보냈습니다.');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
+        }
+    }
+
+    public function apiVerifyPhoneCode(): never
+    {
+        $data = request_json();
+        try {
+            $token = (new SmsVerificationService())->verifySignupCode(
+                (string) ($data['phone'] ?? ''),
+                (string) ($data['code'] ?? '')
+            );
+            $this->jsonSuccess(['token' => $token], '휴대폰 인증이 완료되었습니다.');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
+        }
     }
 
     public function apiCheckEmail(): never
@@ -441,10 +531,18 @@ final class AuthController extends BaseController
         unset($_SESSION['oauth_state'], $_SESSION['oauth_provider'], $_SESSION['oauth_redirect']);
 
         try {
-            $user = (new OAuthService())->loginWithAccessToken('google', $accessToken, $expiresIn);
+            $next = $redirectPath === '/' ? '/account' : $redirectPath;
+            $oauth = new OAuthService();
+            $oauth->setAfterLoginPath($next);
+            $user = $oauth->loginWithAccessToken('google', $accessToken, $expiresIn);
+            if ($user === null) {
+                $this->jsonSuccess([
+                    'redirect' => '/register/phone',
+                ], '휴대폰 인증 후 가입이 완료됩니다.');
+            }
             $this->auth->loginUser($user, true);
             $this->jsonSuccess([
-                'redirect' => $redirectPath === '/' ? '/account' : $redirectPath,
+                'redirect' => $next,
             ], '로그인되었습니다.');
         } catch (RuntimeException $e) {
             $_SESSION['auth_flash'] = $e->getMessage();

@@ -49,6 +49,9 @@ final class AdminAccessService
         if (!in_array('dashboard', $keys, true)) {
             $keys[] = 'dashboard';
         }
+        if (in_array('users', $keys, true)) {
+            $keys[] = 'ops-credit-grants';
+        }
         return array_values(array_unique($keys));
     }
 
@@ -108,10 +111,12 @@ final class AdminAccessService
             '/admin/settings/environment' => 'settings-environment',
             '/api/admin/site-mode' => 'settings-environment',
             '/api/admin/ai-settings' => 'settings-environment',
+            '/api/admin/naver-sms' => 'settings-environment',
             '/admin/settings/tracking' => 'settings-tracking',
             '/api/admin/marketing' => 'settings-tracking',
             '/admin/partners' => 'partners',
             '/api/admin/partners' => 'partners',
+            '/admin/ops/credit-grants' => 'ops-credit-grants',
             '/admin/users' => 'users',
             '/api/admin/users' => 'users',
             '/api/admin/credit/adjust' => 'users',

@@ -19,6 +19,104 @@ const API = {
   },
 };
 
+function bindPhoneVerification(form) {
+  const phoneInput = document.getElementById('registerPhone');
+  const sendBtn = document.getElementById('sendSmsBtn');
+  const codeField = document.getElementById('smsCodeField');
+  const codeInput = document.getElementById('registerSmsCode');
+  const verifyBtn = document.getElementById('verifySmsBtn');
+  const tokenInput = document.getElementById('phoneVerifyToken');
+  const phoneHint = document.getElementById('phoneHint');
+  const smsHint = document.getElementById('smsHint');
+  if (!form || !phoneInput || !sendBtn || !codeField || !codeInput || !verifyBtn || !tokenInput) return;
+
+  let cooldownTimer = null;
+  let verifiedPhone = '';
+
+  function setHint(el, message, ok) {
+    if (!el) return;
+    el.textContent = message;
+    el.className = 'register-hint' + (ok === true ? ' ok' : ok === false ? ' err' : '');
+  }
+
+  function clearVerification() {
+    verifiedPhone = '';
+    tokenInput.value = '';
+    sendBtn.classList.remove('is-done');
+    if (!sendBtn.disabled) sendBtn.textContent = '인증번호 받기';
+    phoneInput.readOnly = false;
+  }
+
+  phoneInput.addEventListener('input', () => {
+    if (verifiedPhone && phoneInput.value.trim() !== verifiedPhone) {
+      clearVerification();
+      setHint(phoneHint, '번호가 바뀌었습니다. 인증번호를 다시 받아 주세요.', false);
+    }
+  });
+
+  function startCooldown(seconds) {
+    let left = Math.max(1, Number(seconds) || 60);
+    sendBtn.disabled = true;
+    sendBtn.textContent = left + '초';
+    clearInterval(cooldownTimer);
+    cooldownTimer = setInterval(() => {
+      left -= 1;
+      if (left <= 0) {
+        clearInterval(cooldownTimer);
+        sendBtn.disabled = false;
+        sendBtn.textContent = tokenInput.value ? '다시 받기' : '인증번호 받기';
+        return;
+      }
+      sendBtn.textContent = left + '초';
+    }, 1000);
+  }
+
+  sendBtn.addEventListener('click', async () => {
+    setHint(phoneHint, '', null);
+    setHint(smsHint, '', null);
+    sendBtn.disabled = true;
+    try {
+      const res = await API.post('/api/auth/phone/send', { phone: phoneInput.value.trim() });
+      clearVerification();
+      codeField.hidden = false;
+      codeInput.value = '';
+      codeInput.focus();
+      const mask = (res.data && res.data.phone_mask) || '';
+      setHint(phoneHint, (mask ? mask + ' 으로 ' : '') + '인증번호를 보냈습니다. 3분 안에 입력해 주세요.', true);
+      startCooldown((res.data && res.data.cooldown) || 60);
+    } catch (err) {
+      sendBtn.disabled = false;
+      setHint(phoneHint, err.message, false);
+    }
+  });
+
+  verifyBtn.addEventListener('click', async () => {
+    setHint(smsHint, '', null);
+    verifyBtn.disabled = true;
+    try {
+      const phone = phoneInput.value.trim();
+      const res = await API.post('/api/auth/phone/verify', {
+        phone: phone,
+        code: codeInput.value.trim(),
+      });
+      tokenInput.value = (res.data && res.data.token) || '';
+      if (!tokenInput.value) throw new Error('인증 정보를 받지 못했습니다. 다시 시도해 주세요.');
+      verifiedPhone = phone;
+      phoneInput.readOnly = true;
+      sendBtn.classList.add('is-done');
+      setHint(smsHint, '인증되었습니다.', true);
+      setHint(phoneHint, '휴대폰 인증이 완료되었습니다.', true);
+    } catch (err) {
+      if (!/이미 (인증|확인)/.test(err.message || '')) tokenInput.value = '';
+      setHint(smsHint, err.message, false);
+    } finally {
+      const done = !!tokenInput.value;
+      verifyBtn.disabled = done;
+      codeInput.readOnly = done;
+    }
+  });
+}
+
 function showAlert(el, message, type = 'error') {
   if (!el) return;
   el.textContent = message;
@@ -379,10 +477,41 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  const socialPhoneForm = document.getElementById('socialPhoneForm');
+  if (socialPhoneForm) {
+    const alert = document.getElementById('authAlert');
+    bindPhoneVerification(socialPhoneForm);
+    socialPhoneForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = socialPhoneForm.querySelector('button[type=submit]');
+      btn.disabled = true;
+      try {
+        const fd = new FormData(socialPhoneForm);
+        if (!fd.get('terms') || !fd.get('privacy')) {
+          throw new Error('필수 약관에 동의해주세요.');
+        }
+        const phoneToken = String(fd.get('phone_verify_token') || '');
+        if (!phoneToken) {
+          throw new Error('휴대폰 인증을 완료해 주세요.');
+        }
+        const res = await API.post('/api/auth/oauth/complete', {
+          phone: fd.get('phone'),
+          phone_verify_token: phoneToken,
+        });
+        location.href = (res.data && res.data.redirect) || '/account';
+      } catch (err) {
+        showAlert(alert, err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  }
+
   const registerForm = document.getElementById('registerForm');
   if (registerForm) {
     const alert = document.getElementById('authAlert');
     bindRegisterExtras(registerForm);
+    bindPhoneVerification(registerForm);
     bindEmailCheck(
       registerForm.querySelector('input[name=email]'),
       document.getElementById('emailHint')
@@ -402,10 +531,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (fd.get('password') !== fd.get('password_confirm')) {
           throw new Error('비밀번호 확인이 일치하지 않습니다.');
         }
+        const needsSms = !!document.getElementById('phoneVerifyToken');
+        const phoneToken = String(fd.get('phone_verify_token') || '');
+        if (needsSms && !phoneToken) {
+          throw new Error('휴대폰 인증을 완료해 주세요.');
+        }
         await API.post('/api/auth/register', {
           email: fd.get('email'),
           password: fd.get('password'),
           name: fd.get('name'),
+          phone: fd.get('phone') || '',
+          phone_verify_token: phoneToken,
         });
         location.href = '/account';
       } catch (err) {
