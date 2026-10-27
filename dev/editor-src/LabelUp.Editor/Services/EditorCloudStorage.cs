@@ -11,7 +11,10 @@ public sealed class EditorCloudStorage(IJSRuntime js)
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
         PropertyNameCaseInsensitive = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        // 라비·데이터 템플릿이 서버에서 바로 저장한 작업은 종류를 "text" 같은 글자로 적는다.
+        // 편집기가 저장한 작업은 숫자로 적으므로 둘 다 읽어야 한다.
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
     };
 
     public async Task<bool> IsLoggedInAsync()

@@ -172,6 +172,8 @@
                     if (pendingDocApplied && TryReadProjectId(pageQuery, out var labiProjectId) && labiProjectId > 0)
                         Session.WorkspaceId = labiProjectId;
                 }
+                if (wantLabiDoc && (projectLoaded || pendingDocApplied) && Session.Document.Data is { RowCount: > 0 })
+                    Session.DataGuidePending = true;
 
                 themeApplied = !projectLoaded && !pendingDocApplied && await TryApplyTemplateFromQueryAsync(pageQuery);
                 bootFromQuery = !projectLoaded && !themeApplied && !pendingDocApplied && !wantVendor && TryApplyPaperFromQuery(pageQuery);
@@ -1295,6 +1297,7 @@
         {
             Session.Document.Data = incoming.Data.Clone();
             Session.ShowDataPanelIfPresent();
+            Session.DataGuidePending = true;
             return;
         }
 

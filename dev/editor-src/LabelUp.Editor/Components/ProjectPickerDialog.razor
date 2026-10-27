@@ -42,8 +42,8 @@
           @foreach (var item in Filtered)
           {
             var active = Session.WorkspaceId == item.Id;
-            <button type="button" class="ed-paper-card ed-project-card @(active ? "is-active" : null)" data-workspace-id="@item.Id" @onclick="() => OpenAsync(item)">
-              <div class="ed-project-card__preview">
+            <div class="ed-paper-card ed-project-card @(active ? "is-active" : null)" data-workspace-id="@item.Id">
+              <div class="ed-project-card__preview" @onclick="() => OpenAsync(item)">
                 @if (!string.IsNullOrWhiteSpace(item.PreviewUrl))
                 {
                   <img src="@item.PreviewUrl" alt="@item.Title" />
@@ -57,7 +57,11 @@
                 <strong>@item.Title</strong>
                 <span>@(string.IsNullOrWhiteSpace(item.UpdatedLabel) ? item.UpdatedAt : item.UpdatedLabel)</span>
               </div>
-            </button>
+              <div class="ed-project-card__acts">
+                <button type="button" class="ed-btn ed-btn--primary" disabled="@_opening" @onclick="() => OpenAsync(item)">불러오기</button>
+                <button type="button" class="ed-btn" disabled="@_opening" @onclick="() => CopyAsync(item)">복사하기</button>
+              </div>
+            </div>
           }
         }
       </div>
@@ -119,33 +123,47 @@
         }
     }
 
+    private const string CopySuffix = "-복사";
+
+    private async Task<bool> ConfirmLeaveAsync(string question)
+    {
+        if (!Session.Dirty) return true;
+        try
+        {
+            return await Js.InvokeAsync<bool>("confirm", "저장하지 않은 내용이 있습니다. " + question);
+        }
+        catch
+        {
+            return true;
+        }
+    }
+
+    private async Task<EditorWorkspacePayload?> FetchAsync(EditorWorkspaceListItem item)
+    {
+        var workspace = await Cloud.LoadWorkspaceAsync(item.Id);
+        if (workspace?.Document is null)
+        {
+            Session.Status = "저장된 작업을 찾지 못했습니다";
+            Session.ShowError("불러오기 실패", $"「{item.Title}」 작업 내용을 읽지 못했습니다.");
+            return null;
+        }
+        if (workspace.Id <= 0)
+            workspace.Id = item.Id;
+        if (string.IsNullOrWhiteSpace(workspace.Title))
+            workspace.Title = item.Title;
+        return workspace;
+    }
+
     private async Task OpenAsync(EditorWorkspaceListItem item)
     {
         if (_opening || item.Id <= 0) return;
-        if (Session.Dirty)
-        {
-            try
-            {
-                var ok = await Js.InvokeAsync<bool>("confirm", "저장하지 않은 내용이 있습니다. 이 프로젝트를 불러올까요?");
-                if (!ok) return;
-            }
-            catch { }
-        }
+        if (!await ConfirmLeaveAsync("이 프로젝트를 불러올까요?")) return;
 
         _opening = true;
         try
         {
-            var workspace = await Cloud.LoadWorkspaceAsync(item.Id);
-            if (workspace?.Document is null)
-            {
-                Session.Status = "저장된 작업을 찾지 못했습니다";
-                Session.Notify();
-                return;
-            }
-            if (workspace.Id <= 0)
-                workspace.Id = item.Id;
-            if (string.IsNullOrWhiteSpace(workspace.Title))
-                workspace.Title = item.Title;
+            var workspace = await FetchAsync(item);
+            if (workspace is null) return;
             History.Push(Session.Document);
             await Cloud.ApplyLoadedWorkspaceAsync(Session, workspace);
             Session.CloseDialog();
@@ -155,6 +173,50 @@
             EditorLog.Warn("프로젝트 불러오기 실패: " + ex.Message);
             Session.Status = "프로젝트를 불러오지 못했습니다";
             Session.Notify();
+        }
+        finally
+        {
+            _opening = false;
+        }
+    }
+
+    /// <summary>원본은 그대로 두고, 같은 내용을 「이름-복사」라는 새 프로젝트로 저장한 뒤 그것을 연다.</summary>
+    private async Task CopyAsync(EditorWorkspaceListItem item)
+    {
+        if (_opening || item.Id <= 0) return;
+        if (!await ConfirmLeaveAsync("이 프로젝트를 복사해서 열까요?")) return;
+
+        _opening = true;
+        try
+        {
+            var workspace = await FetchAsync(item);
+            if (workspace?.Document is null) return;
+            var baseTitle = (string.IsNullOrWhiteSpace(workspace.Title) ? workspace.Document.Name : workspace.Title).Trim();
+            if (baseTitle.Length > 200 - CopySuffix.Length)
+                baseTitle = baseTitle[..(200 - CopySuffix.Length)];
+            var title = baseTitle + CopySuffix;
+            workspace.Document.Name = title;
+            workspace.Title = title;
+            workspace.Id = 0;
+
+            History.Push(Session.Document);
+            await Cloud.ApplyLoadedWorkspaceAsync(Session, workspace);
+            object? ui = workspace.Ui is { ValueKind: System.Text.Json.JsonValueKind.Object } u ? u : null;
+            var newId = await Cloud.SaveWorkspaceAsync(
+                Session.Document, ui, DesignSaveService.CapturePreview(Session), null);
+            if (newId <= 0)
+                throw new InvalidOperationException("새 프로젝트 번호를 받지 못했습니다.");
+            Session.WorkspaceId = newId;
+            Session.Dirty = false;
+            Session.Status = $"「{title}」(으)로 복사해서 불러왔습니다";
+            Session.CloseDialog();
+            Session.Notify();
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Warn("프로젝트 복사 실패: " + ex.Message);
+            Session.Dirty = true;
+            Session.ShowError("복사 실패", "프로젝트를 복사하지 못했습니다.\n" + EditorSession.FriendlyError(ex));
         }
         finally
         {

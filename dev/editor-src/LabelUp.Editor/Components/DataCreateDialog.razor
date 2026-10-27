@@ -108,6 +108,7 @@
         Session.Document.Data = _sheet.Clone();
         Session.SyncDataLabels();
         Session.ShowDataPanelIfPresent(expand: false);
+        Session.DataGuidePending = true;
         Session.Dirty = true;
         Session.Status = $"데이터 {_sheet.RowCount}행을 적용했습니다";
         Session.CloseDialog();

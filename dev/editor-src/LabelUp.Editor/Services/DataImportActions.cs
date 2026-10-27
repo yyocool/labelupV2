@@ -55,6 +55,7 @@ internal static class DataImportActions
             session.Document.Data = sheet;
             session.SyncDataLabels();
             session.ShowDataPanelIfPresent(expand: false);
+            session.DataGuidePending = true;
             session.Dirty = true;
 
             session.EndConversion();

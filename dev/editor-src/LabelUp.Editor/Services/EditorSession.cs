@@ -45,6 +45,9 @@ public sealed class EditorSession
     public bool DataPanelVisible { get; set; }
     public bool DataPanelExpanded { get; set; }
 
+    /// <summary>자료를 막 들여왔다. 데이터 판넬이 그려지면 「다음에 할 일」 안내를 한 번 띄운다.</summary>
+    public bool DataGuidePending { get; set; }
+
     /// <summary>
     /// 끌어서 정한 자료 판넬 높이(px). 0이면 아직 정하지 않은 것이고, 그때는 CSS 기본 높이를 쓴다.
     /// 판넬에 걸린 화면 배율(--ed-ui-scale) 안쪽 자로 잰 값이다.

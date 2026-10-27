@@ -33,6 +33,9 @@
         <button type="button" class="ed-btn" @onclick="AddColumn">열 추가</button>
         <button type="button" class="ed-btn ed-btn--primary" @onclick="Minimize">최소화</button>
       }
+      <button type="button" class="ed-data-panel__help" data-tut="data-guide-help"
+              title="데이터를 가져온 뒤 할 수 있는 일 보기" aria-label="데이터 사용 안내 보기"
+              @onclick="ShowGuide">?</button>
     </div>
 
     <div class="ed-data-panel__table-wrap">
@@ -171,6 +174,12 @@
             try { await Js.InvokeVoidAsync("labelUpEditor.bindDataRowDrag", _self); }
             catch (Exception ex) { EditorLog.Warn("자료 행 드래그 연결 실패: " + ex.Message); }
         }
+        if (Session.DataGuidePending && Session.DataPanelVisible && Session.Document.Data is not null)
+        {
+            Session.DataGuidePending = false;
+            try { await Js.InvokeVoidAsync("labelUpDataGuide.show", false); }
+            catch (Exception ex) { EditorLog.Warn("데이터 안내를 띄우지 못함: " + ex.Message); }
+        }
         if (Session.FocusDataCell is not { } at) return;
         Session.FocusDataCell = null;
         if (!Session.DataPanelVisible || !Session.DataPanelExpanded) return;
@@ -191,6 +200,13 @@
     private string? HeightStyle => Session.DataPanelHeight > 0
         ? $"height:{Session.DataPanelHeight}px;max-height:none"
         : null;
+
+    /// <summary>「다시 보지 않기」를 골랐어도 물음표를 누르면 보여 준다.</summary>
+    private async Task ShowGuide()
+    {
+        try { await Js.InvokeVoidAsync("labelUpDataGuide.show", true); }
+        catch (Exception ex) { EditorLog.Warn("데이터 안내를 띄우지 못함: " + ex.Message); }
+    }
 
     /// <summary>높이를 기본값으로 되돌려 한 번에 접는다. 선을 끝까지 끌어내리는 수고를 던다.</summary>
     private void Minimize()

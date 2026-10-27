@@ -3877,6 +3877,24 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
 }
 .ed-project-card {
   position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.ed-project-card__preview {
+  cursor: pointer;
+}
+.ed-project-card__acts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 10px;
+}
+.ed-project-card__acts .ed-btn {
+  justify-content: center;
+  min-height: 34px;
+  padding: 6px 8px;
+  font-size: 13px;
 }
 .ed-project-card__trash {
   position: absolute;
@@ -4074,6 +4092,21 @@ html.lu-layer-applying [data-ed-props-panel] .ed-props__inner {
   flex-shrink: 0;
 }
 .ed-data-panel__bar strong { color: var(--burgundy); }
+.ed-data-panel__help {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border: 1px solid #e8d4db;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--burgundy);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+.ed-data-panel__help:hover { background: var(--ed-primary-soft, #fbeff3); }
 .ed-data-panel__bar span { color: var(--muted); flex: 1; }
 /* 표는 제목줄을 뺀 나머지를 다 쓴다. 판넬 높이가 자라면 보이는 행도 같이 늘어난다. */
 .ed-data-panel__table-wrap { overflow: auto; flex: 1; min-height: 0; }

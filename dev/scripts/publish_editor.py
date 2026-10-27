@@ -22,6 +22,7 @@ LOCAL_ASSETS = (
     "js/editor.js",
     "js/panel-dock.js",
     "js/tutorial.js",
+    "js/data-guide.js",
     "img/labi-wink.png",
 )
 
