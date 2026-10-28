@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "LabelUp.Editor",
   "resources": {
-    "hash": "sha256-mkOTn1zidPVfVpOxfj+hlMTbsxRJQtEDQEzwRclrxJ0=",
+    "hash": "sha256-KrsIrWwPIC/9oQKTG4pvvsDnkIp21RoxM2dWVFtDRgo=",
     "jsModuleNative": {
       "dotnet.native.js": "sha256-L2tOugdwl8KqBLlVzV/lFFQnCT7yopLrsa8YEhB+zb8="
     },
@@ -76,7 +76,7 @@
       "System.wasm": "sha256-T4iprIGorUAo1X44AS78i81rjTVY995cbd5O+yc1VDY=",
       "netstandard.wasm": "sha256-qEnrfRlCpRvCmSKLiBxRb6y6lUSw5nSndII0++m8pyE=",
       "System.Private.CoreLib.wasm": "sha256-tn8vV3FTbbeVIkMZ4FuKg2Uc45TtWUFtbEaYuq9GxMk=",
-      "LabelUp.Editor.wasm": "sha256-vP3bDVtQUeYbDS3a7GDtPE4gMsxnoCG5rAZNGIw3Nuw="
+      "LabelUp.Editor.wasm": "sha256-O/UrSLZkcXyISk8R3C2cPkPc3N8TfgNW9LM/auhV54A="
     }
   },
   "cacheBootResources": true,

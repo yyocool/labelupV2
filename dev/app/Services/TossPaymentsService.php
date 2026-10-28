@@ -36,6 +36,32 @@ final class TossPaymentsService
         return trim((string) env('TOSS_SECRET_KEY', ''));
     }
 
+    /** 결제창(API 개별 연동) 클라이언트 키. 위젯 키(gck)로는 결제창 SDK를 열 수 없다. */
+    public function apiClientKey(): string
+    {
+        return trim((string) env('TOSS_API_CLIENT_KEY', ''));
+    }
+
+    public function apiSecretKey(): string
+    {
+        return trim((string) env('TOSS_API_SECRET_KEY', ''));
+    }
+
+    /**
+     * 결제 어드민에 '직연동'으로 넣은 간편결제 중, 우리 토스 계약(결제창)으로 실제 결제되는 것.
+     * 네이버페이는 이 계약에서 막혀 있어 결제창이 「지원되지 않는 간편결제 수단」을 낸다.
+     * @return list<string>
+     */
+    public function directEasyPays(): array
+    {
+        $raw = (string) env('TOSS_DIRECT_EASY_PAYS', 'KAKAOPAY,TOSSPAY');
+        $list = array_values(array_filter(array_map(
+            static fn (string $v): string => strtoupper(trim($v)),
+            explode(',', $raw)
+        )));
+        return $this->apiClientKey() !== '' && $this->apiSecretKey() !== '' ? $list : [];
+    }
+
     public function variantKey(): string
     {
         $key = trim((string) env('TOSS_VARIANT_KEY', 'DEFAULT'));
@@ -120,6 +146,8 @@ final class TossPaymentsService
             'enabled' => true,
             'provider' => 'toss',
             'client_key' => $this->clientKey(),
+            'api_client_key' => $this->apiClientKey(),
+            'direct_easy_pays' => $this->directEasyPays(),
             'customer_key' => $this->customerKey(isset($order['user_id']) ? (int) $order['user_id'] : null),
             'variant_key' => $this->variantKey(),
             'agreement_variant_key' => $this->agreementVariantKey(),
@@ -139,7 +167,12 @@ final class TossPaymentsService
     /**
      * @return array<string, mixed>
      */
-    public function confirmPayment(string $paymentKey, string $orderId, int $amount): array
+    /**
+     * 위젯으로 연 결제는 위젯 시크릿(gsk), 결제창으로 연 직연동 간편결제는 API 시크릿(sk)으로만 승인된다.
+     * $viaApi 는 결제창으로 열었다는 표시이고, 표시가 틀렸을 때를 위해 다른 키로 한 번 더 시도한다.
+     * @return array<string, mixed>
+     */
+    public function confirmPayment(string $paymentKey, string $orderId, int $amount, bool $viaApi = false): array
     {
         if (!$this->isConfigured()) {
             throw new RuntimeException('토스페이먼츠 시크릿 키가 설정되지 않았습니다.');
@@ -150,11 +183,25 @@ final class TossPaymentsService
             throw new RuntimeException('결제 승인 파라미터가 올바르지 않습니다.');
         }
 
-        return $this->request('POST', '/v1/payments/confirm', [
+        $body = [
             'paymentKey' => $paymentKey,
             'orderId' => $orderId,
             'amount' => $amount,
-        ]);
+        ];
+        $keys = $viaApi
+            ? [$this->apiSecretKey(), $this->secretKey()]
+            : [$this->secretKey(), $this->apiSecretKey()];
+        $keys = array_values(array_unique(array_filter($keys)));
+
+        $first = null;
+        foreach ($keys as $key) {
+            try {
+                return $this->request('POST', '/v1/payments/confirm', $body, $key);
+            } catch (RuntimeException $e) {
+                $first ??= $e;
+            }
+        }
+        throw $first ?? new RuntimeException('결제 승인에 실패했습니다.');
     }
 
     /**
@@ -198,11 +245,11 @@ final class TossPaymentsService
      * @param array<string, mixed>|null $body
      * @return array<string, mixed>
      */
-    private function request(string $method, string $path, ?array $body = null): array
+    private function request(string $method, string $path, ?array $body = null, ?string $secretKey = null): array
     {
         $url = 'https://api.tosspayments.com' . $path;
         $headers = [
-            'Authorization: Basic ' . base64_encode($this->secretKey() . ':'),
+            'Authorization: Basic ' . base64_encode(($secretKey ?? $this->secretKey()) . ':'),
             'Content-Type: application/json',
         ];
         $ch = curl_init($url);

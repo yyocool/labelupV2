@@ -4,6 +4,7 @@
  * 상점관리자에서 네이버페이·카카오페이·토스페이를 '커스텀/직연동'으로 넣으면
  * widgets.requestPayment()가 CUSTOM_PAYMENT_METHOD_UNABLE_TO_PAY를 낸다.
  * 그 경우는 결제창 API(payment)의 CARD + DIRECT + easyPay로 연다.
+ * 결제창은 API 개별 연동 키(api_client_key)로만 열리고, 승인 시 서버가 API 시크릿 키를 쓰도록 successUrl에 via=api를 붙인다.
  */
 window.LabelUpTossPay = (function () {
   let sdkPromise = null;
@@ -99,25 +100,42 @@ window.LabelUpTossPay = (function () {
     return EASY_PAY_ALIASES[key] || EASY_PAY_ALIASES[String(raw || '').trim()] || '';
   }
 
+  function collectStrings(value, out, depth) {
+    if (depth > 3 || value == null) return out;
+    if (typeof value === 'string') {
+      out.push(value);
+    } else if (typeof value === 'object') {
+      Object.keys(value).forEach((k) => collectStrings(value[k], out, depth + 1));
+    }
+    return out;
+  }
+
+  /** 상점관리자 직연동 항목의 키·이름은 정해진 형식이 없어, 선택 정보 안의 문자열을 모두 훑는다. */
   function resolveEasyPay(selected) {
     if (!selected || typeof selected !== 'object') return '';
-    const candidates = [
-      selected.custom && selected.custom.key,
-      selected.card && selected.card.easyPay,
-      selected.easyPay && selected.easyPay.provider,
-      selected.easyPay,
-      selected.code,
-    ];
-    for (let i = 0; i < candidates.length; i++) {
-      const mapped = normalizeEasyPay(candidates[i]);
+    const strings = collectStrings(selected, [], 0);
+    for (let i = 0; i < strings.length; i++) {
+      const mapped = normalizeEasyPay(strings[i]);
       if (mapped) return mapped;
     }
+    const joined = strings.join(' ').toUpperCase();
+    if (/NAVER|네이버/.test(joined)) return 'NAVERPAY';
+    if (/KAKAO|카카오/.test(joined)) return 'KAKAOPAY';
+    if (/TOSS\s*PAY|토스페이/.test(joined)) return 'TOSSPAY';
     return '';
   }
 
   function isCustomMethod(selected) {
     return String(selected && selected.method ? selected.method : '').toUpperCase() === 'CUSTOM';
   }
+
+  function isCustomUnableError(err) {
+    const code = String(err && err.code ? err.code : '');
+    const msg = String(err && err.message ? err.message : '');
+    return code.indexOf('CUSTOM') === 0 || /커스텀 결제수단/.test(msg);
+  }
+
+  const EASY_PAY_LABELS = { NAVERPAY: '네이버페이', KAKAOPAY: '카카오페이', TOSSPAY: '토스페이' };
 
   function isUserCancel(err) {
     const code = String(err && err.code ? err.code : '');
@@ -161,9 +179,22 @@ window.LabelUpTossPay = (function () {
     };
   }
 
-  async function requestDirectEasyPay(tossPayments, payment, easyPay) {
-    const paymentWindow = tossPayments.payment({ customerKey: payment.customer_key });
-    await paymentWindow.requestPayment(Object.assign(paymentRequestBase(payment), {
+  function withApiMarker(url) {
+    if (!url) return url;
+    return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'via=api';
+  }
+
+  /** 위젯 키(gck)로는 결제창을 열 수 없어(NOT_SUPPORTED_WIDGET_KEY) API 개별 연동 키로 따로 연다. */
+  async function requestDirectEasyPay(TossPayments, payment, easyPay) {
+    const allowed = Array.isArray(payment.direct_easy_pays) ? payment.direct_easy_pays : [];
+    const label = EASY_PAY_LABELS[easyPay] || '선택한 간편결제';
+    if (!payment.api_client_key || allowed.indexOf(easyPay) < 0) {
+      throw new Error(label + '는 현재 결제할 수 없습니다. 다른 결제수단(카드·카카오페이·토스페이 등)을 선택해 주세요.');
+    }
+    const paymentWindow = TossPayments(payment.api_client_key).payment({ customerKey: payment.customer_key });
+    const base = paymentRequestBase(payment);
+    base.successUrl = withApiMarker(base.successUrl);
+    await paymentWindow.requestPayment(Object.assign(base, {
       method: 'CARD',
       amount: {
         currency: payment.currency || 'KRW',
@@ -218,21 +249,18 @@ window.LabelUpTossPay = (function () {
         await ensureAgreed(agreementWidget);
         const selected = await readSelectedMethod(paymentMethodWidget);
         const easyPay = resolveEasyPay(selected);
-        if (isCustomMethod(selected)) {
-          if (!easyPay) {
-            throw new Error('선택한 결제수단은 상점관리자의 커스텀(직연동) 항목이라 바로 결제할 수 없습니다. 네이버페이·카카오페이·토스페이는 결제 어드민에서 일반 간편결제로 켜거나, 직연동 키를 NAVERPAY / KAKAOPAY / TOSSPAY로 맞춰 주세요.');
-          }
-          await requestDirectEasyPay(tossPayments, payment, easyPay);
+        if (isCustomMethod(selected) && easyPay) {
+          await requestDirectEasyPay(TossPayments, payment, easyPay);
           return;
         }
         try {
           await widgets.requestPayment(paymentRequestBase(payment));
         } catch (err) {
-          if (String(err && err.code ? err.code : '') === 'CUSTOM_PAYMENT_METHOD_UNABLE_TO_PAY' && easyPay) {
-            await requestDirectEasyPay(tossPayments, payment, easyPay);
-            return;
+          if (!isCustomUnableError(err)) throw err;
+          if (!easyPay) {
+            throw new Error('선택한 결제수단으로는 바로 결제할 수 없습니다. 카드·카카오페이·토스페이 등 다른 결제수단을 선택해 주세요.');
           }
-          throw err;
+          await requestDirectEasyPay(TossPayments, payment, easyPay);
         }
       } catch (err) {
         if (isUserCancel(err)) {

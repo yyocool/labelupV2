@@ -680,7 +680,7 @@ final class ShopService
     /**
      * @return array{order_no:string,complete_url:string,payment:array<string,mixed>}
      */
-    public function confirmTossPayment(string $paymentKey, string $orderId, int $amount, string $source = 'shop'): array
+    public function confirmTossPayment(string $paymentKey, string $orderId, int $amount, string $source = 'shop', bool $viaApi = false): array
     {
         $order = $this->repo->findOrderByNo($orderId);
         if (!$order) {
@@ -698,7 +698,7 @@ final class ShopService
         }
 
         $toss = new TossPaymentsService();
-        $confirmed = $toss->confirmPayment($paymentKey, $orderId, $amount);
+        $confirmed = $toss->confirmPayment($paymentKey, $orderId, $amount, $viaApi);
         $this->repo->markOrderPaid((int) $order['id'], [
             'payment_key' => (string) ($confirmed['paymentKey'] ?? $paymentKey),
             'payment_method' => TossPaymentsService::methodLabel($confirmed),

@@ -28,12 +28,13 @@ final class ShopPaymentController extends BaseController
         $orderId = trim((string) ($_GET['orderId'] ?? ''));
         $amount = (int) ($_GET['amount'] ?? 0);
         $source = trim((string) ($_GET['source'] ?? 'shop'));
+        $viaApi = (string) ($_GET['via'] ?? '') === 'api';
 
         try {
             if ($paymentKey === '' || $orderId === '' || $amount < 1) {
                 throw new RuntimeException('결제 승인 정보가 올바르지 않습니다.');
             }
-            $result = $this->shop->confirmTossPayment($paymentKey, $orderId, $amount, $source);
+            $result = $this->shop->confirmTossPayment($paymentKey, $orderId, $amount, $source, $viaApi);
             redirect('shop/complete?order=' . rawurlencode((string) $result['order_no']));
         } catch (Throwable $e) {
             if ($orderId !== '') {
