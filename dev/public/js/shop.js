@@ -448,7 +448,23 @@ function bindShareButtons() {
   });
 }
 
+function bindCategoryToggles() {
+  document.querySelectorAll('[data-shop-cat-toggle]').forEach((toggle) => {
+    toggle.addEventListener('click', (e) => {
+      const panel = toggle.nextElementSibling;
+      if (!panel || !panel.classList.contains('shop-cat-children')) return;
+      e.preventDefault();
+      const open = panel.hidden;
+      panel.hidden = !open;
+      panel.classList.toggle('is-open', open);
+      toggle.classList.toggle('is-open', open);
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  bindCategoryToggles();
   bindQtyControls();
   bindDetailGallery();
   bindWishlistButtons();

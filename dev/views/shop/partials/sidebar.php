@@ -38,16 +38,19 @@ $isActive = static fn (string ...$keys): string => in_array($shopSubNav, $keys, 
             || $currentSlug === (string) $parent['slug']
             || $currentParentId === $parentId;
       ?>
-      <a class="shop-cat-parent<?= $isParentActive ? ' is-active' : '' ?>" href="<?= url('shop/products') ?>?category=<?= e($parent['slug']) ?>">
+      <?php $hasChildren = $children !== []; ?>
+      <a class="shop-cat-parent<?= $isParentActive ? ' is-active' : '' ?><?= $hasChildren ? ' has-children' . ($isParentActive ? ' is-open' : '') : '' ?>" href="<?= url('shop/products') ?>?category=<?= e($parent['slug']) ?>"<?= $hasChildren ? ' data-shop-cat-toggle role="button" aria-expanded="' . ($isParentActive ? 'true' : 'false') . '"' : '' ?>>
         <?php if (!empty($parent['image_path'])): ?>
         <span class="ico ico--img"><img src="<?= e(\App\Services\ShopProductImageService::resolveUrl((string) $parent['image_path'])) ?>" alt=""></span>
         <?php else: ?>
         <span class="ico">▧</span>
         <?php endif; ?>
         <?= e(shop_category_display_name($parent['name'] ?? '', $parent['slug'] ?? '')) ?>
+        <?php if ($hasChildren): ?><span class="shop-cat-caret" aria-hidden="true"></span><?php endif; ?>
       </a>
-      <?php if ($children !== []): ?>
-      <div class="shop-cat-children<?= $isParentActive ? ' is-open' : '' ?>">
+      <?php if ($hasChildren): ?>
+      <div class="shop-cat-children<?= $isParentActive ? ' is-open' : '' ?>"<?= $isParentActive ? '' : ' hidden' ?>>
+        <a class="shop-cat-child<?= $currentSlug === (string) $parent['slug'] ? ' is-active' : '' ?>" href="<?= url('shop/products') ?>?category=<?= e($parent['slug']) ?>">전체</a>
         <?php foreach ($children as $child): ?>
         <a class="shop-cat-child<?= $currentSlug === (string) $child['slug'] ? ' is-active' : '' ?>" href="<?= url('shop/products') ?>?category=<?= e($child['slug']) ?>">
           <?= e(shop_category_display_name($child['name'] ?? '', $child['slug'] ?? '')) ?>
