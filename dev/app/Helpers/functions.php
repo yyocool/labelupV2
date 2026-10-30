@@ -341,6 +341,7 @@ function admin_menu_catalog(): array
         ['key' => 'ops-mid-banners', 'label' => '중간배너 관리', 'href' => 'admin/ops/mid-banners', 'group' => '운영관리', 'ic' => '▣'],
         ['key' => 'ops-event-popups', 'label' => '이벤트 팝업관리', 'href' => 'admin/ops/event-popups', 'group' => '운영관리', 'ic' => '◎'],
         ['key' => 'ops-faq', 'label' => 'FAQ 관리', 'href' => 'admin/ops/faq', 'group' => '운영관리', 'ic' => '?'],
+        ['key' => 'ops-reviews', 'label' => '리뷰관리', 'href' => 'admin/ops/reviews', 'group' => '운영관리', 'ic' => '★'],
         ['key' => 'ops-inquiries', 'label' => '1:1 문의', 'href' => 'admin/ops/inquiries', 'group' => '운영관리', 'ic' => '✉'],
         ['key' => 'ops-error-reports', 'label' => '오류&제안관리', 'href' => 'admin/ops/error-reports', 'group' => '운영관리', 'ic' => '!'],
         ['key' => 'ops-credit-rewards', 'label' => '잉크보상 관리', 'href' => 'admin/ops/credit-rewards', 'group' => '운영관리', 'ic' => '◈'],

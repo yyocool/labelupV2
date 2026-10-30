@@ -14,6 +14,8 @@ $isProjectsActive = $path === '/projects';
 $isLockerActive = $path === '/locker';
 $isTrashActive = $path === '/trash';
 $sidebarLoggedIn = !empty($authUser);
+$navIcons = require view_path('home/partials/menu-icons.php');
+$navIcon = static fn (string $key): string => '<span class="ico ico--svg" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20">' . $navIcons[$key] . '</svg></span>';
 $loginFor = static function (string $dest): string {
     return url('login') . '?redirect=' . rawurlencode(url($dest));
 };
@@ -29,28 +31,28 @@ $loginFor = static function (string $dest): string {
 
   <div class="group">
     <nav class="menu">
-      <a class="<?= $isHomeActive ? 'is-active' : '' ?>" href="<?= url('/') ?>"><span class="ico">⌂</span>홈</a>
-      <a class="<?= $isDesignActive ? 'is-active' : '' ?>" href="<?= url('editor/') ?>"><span class="ico">▧</span>라벨디자인</a>
+      <a class="<?= $isHomeActive ? 'is-active' : '' ?>" href="<?= url('/') ?>"><?= $navIcon('home') ?>홈</a>
+      <a class="<?= $isDesignActive ? 'is-active' : '' ?>" href="<?= url('editor/') ?>"><?= $navIcon('design') ?>라벨디자인</a>
     </nav>
   </div>
 
   <div class="group">
     <div class="group-title">쇼핑 &amp; 주문</div>
     <nav class="menu">
-      <a class="<?= $isShopBuyActive ? 'is-active' : '' ?>" href="<?= url('shop') ?>"><span class="ico">🛒</span>라벨 구매</a>
-      <a class="<?= $isCartActive ? 'is-active' : '' ?>" href="<?= url('shop/cart') ?>"><span class="ico">▧</span>장바구니</a>
-      <a class="<?= $isOrdersActive ? 'is-active' : '' ?>" href="<?= url('account/orders') ?>"><span class="ico">◎</span>주문내역</a>
+      <a class="<?= $isShopBuyActive ? 'is-active' : '' ?>" href="<?= url('shop') ?>"><?= $navIcon('shop') ?>라벨 구매</a>
+      <a class="<?= $isCartActive ? 'is-active' : '' ?>" href="<?= url('shop/cart') ?>"><?= $navIcon('cart') ?>장바구니</a>
+      <a class="<?= $isOrdersActive ? 'is-active' : '' ?>" href="<?= url('account/orders') ?>"><?= $navIcon('orders') ?>주문내역</a>
     </nav>
   </div>
 
   <div class="group">
     <div class="group-title">마이라벨업</div>
     <nav class="menu">
-      <a class="<?= $isAccountActive ? 'is-account-active' : '' ?>" href="<?= url('account') ?>"><span class="ico">◎</span>마이페이지</a>
-      <a class="<?= $isFaqActive ? 'is-account-active' : '' ?>" href="<?= url('faq') ?>"><span class="ico">?</span>FAQ</a>
-      <a class="<?= $isProjectsActive ? 'is-account-active' : '' ?>" href="<?= $sidebarLoggedIn ? url('projects') : e($loginFor('projects')) ?>"<?= $sidebarLoggedIn ? '' : ' title="로그인 후 이용할 수 있습니다"' ?>><span class="ico">▱</span>프로젝트</a>
-      <a class="<?= $isLockerActive ? 'is-account-active' : '' ?>" href="<?= $sidebarLoggedIn ? url('locker') : e($loginFor('locker')) ?>"<?= $sidebarLoggedIn ? '' : ' title="로그인 후 이용할 수 있습니다"' ?>><span class="ico">▱</span>내 보관함</a>
-      <a class="<?= $isTrashActive ? 'is-account-active' : '' ?>" href="<?= $sidebarLoggedIn ? url('trash') : e($loginFor('trash')) ?>"<?= $sidebarLoggedIn ? '' : ' title="로그인 후 이용할 수 있습니다"' ?>><span class="ico">♲</span>휴지통</a>
+      <a class="<?= $isAccountActive ? 'is-account-active' : '' ?>" href="<?= url('account') ?>"><?= $navIcon('mypage') ?>마이페이지</a>
+      <a class="<?= $isFaqActive ? 'is-account-active' : '' ?>" href="<?= url('faq') ?>"><?= $navIcon('faq') ?>FAQ</a>
+      <a class="<?= $isProjectsActive ? 'is-account-active' : '' ?>" href="<?= $sidebarLoggedIn ? url('projects') : e($loginFor('projects')) ?>"<?= $sidebarLoggedIn ? '' : ' title="로그인 후 이용할 수 있습니다"' ?>><?= $navIcon('project') ?>프로젝트</a>
+      <a class="<?= $isLockerActive ? 'is-account-active' : '' ?>" href="<?= $sidebarLoggedIn ? url('locker') : e($loginFor('locker')) ?>"<?= $sidebarLoggedIn ? '' : ' title="로그인 후 이용할 수 있습니다"' ?>><?= $navIcon('locker') ?>내 보관함</a>
+      <a class="<?= $isTrashActive ? 'is-account-active' : '' ?>" href="<?= $sidebarLoggedIn ? url('trash') : e($loginFor('trash')) ?>"<?= $sidebarLoggedIn ? '' : ' title="로그인 후 이용할 수 있습니다"' ?>><?= $navIcon('trash') ?>휴지통</a>
     </nav>
     <a class="menu-labi" href="<?= url('guide/') ?>" target="_blank" rel="noopener noreferrer">
       <span class="menu-labi__ico" aria-hidden="true">★</span>

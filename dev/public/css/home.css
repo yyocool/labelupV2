@@ -43,6 +43,9 @@ img{display:block;max-width:100%}
 .group{margin-top:24px}.group-title{font-size:14px;color:#a0a2ad;margin-bottom:8px}
 .menu{display:flex;flex-direction:column;gap:3px}.menu a{height:40px;display:flex;align-items:center;gap:12px;padding:0 8px;border-radius:8px;font-size:15px;color:#262833}
 .menu a:hover{background:#f7f7fa}.ico{width:22px;display:grid;place-items:center;color:#333642}
+.ico--svg{width:30px;height:30px;flex-shrink:0;border-radius:50%;background:#fff;box-shadow:0 2px 7px rgba(36,34,65,.12);transition:transform .12s,box-shadow .12s}
+.ico--svg svg{display:block}
+.menu a:hover .ico--svg{transform:scale(1.06);box-shadow:0 3px 10px rgba(36,34,65,.18)}
 .menu-labi{
   margin-top:12px;min-height:46px;display:flex;align-items:center;gap:8px;
   padding:0 10px 0 8px;border-radius:12px;position:relative;overflow:hidden;
@@ -241,8 +244,8 @@ a.login{text-decoration:none}
 }
 .profile-dropdown-nav{display:flex;flex-direction:column;padding:6px 0}
 .profile-dropdown-item{
-  display:flex;align-items:center;gap:10px;
-  min-height:40px;padding:0 16px;
+  display:flex;align-items:center;gap:12px;
+  min-height:44px;padding:0 16px;
   font-size:15px;font-weight:600;color:#262833;
   text-decoration:none;
   transition:background .12s,color .12s;
@@ -256,11 +259,23 @@ a.login{text-decoration:none}
   color:#b4b6c2;
 }
 .profile-dropdown-ic{
-  width:20px;text-align:center;font-size:14px;color:#646779;flex-shrink:0;
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;
+  display:grid;place-items:center;background:#fff;
+  box-shadow:0 2px 8px rgba(36,34,65,.12);
+  transition:transform .12s,box-shadow .12s;
 }
-.profile-dropdown-item:hover .profile-dropdown-ic{color:var(--accent)}
+.profile-dropdown-ic svg{display:block}
+.profile-dropdown-item:hover .profile-dropdown-ic{transform:scale(1.06);box-shadow:0 3px 10px rgba(36,34,65,.18)}
 .profile-dropdown-item--admin{color:var(--accent)}
 .profile-dropdown-item--logout{color:#9b1c1c}
+button.profile-dropdown-item{width:100%;border:0;background:transparent;font:inherit;font-size:15px;font-weight:600;text-align:left;cursor:pointer}
+.profile-dropdown-mobile{display:none}
+.profile-dropdown-credit strong{margin-left:auto;color:var(--accent);font-size:15px;font-weight:800}
+.profile-dropdown-credit.is-debt,.profile-dropdown-credit.is-debt strong{color:#b42318}
+@media(max-width:768px){
+ .topbar .credit-pill,.topbar .bug-report-btn{display:none}
+ .profile-dropdown-mobile{display:block}
+}
 .profile-dropdown-item--logout:hover{background:#fdecec;color:#9b1c1c}
 .profile-dropdown-divider{height:1px;margin:6px 12px;background:#f0f0f5}
 .content{padding:0 31px 38px 39px}
@@ -282,6 +297,24 @@ a.login{text-decoration:none}
 .hero-dots{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:5;display:flex;gap:7px;padding:5px 8px;border-radius:12px;background:rgba(255,255,255,.75);backdrop-filter:blur(8px)}
 .hero-dots button{border:0;padding:0;width:7px;height:7px;border-radius:50%;background:#cac9d6}
 .hero-dots button.active{width:20px;border-radius:5px;background:var(--accent)}
+.hero-slide picture{display:block;width:100%;height:100%}
+/* 아래 60px은 AI 입력창(.prompt margin-top:-60px)이 덮고, 오른쪽 위에는 페이저가 있다. */
+.hero-copy{
+  position:absolute;z-index:4;pointer-events:none;display:flex;flex-direction:column;gap:10px;
+  max-width:min(58%,760px);text-shadow:0 2px 18px rgba(20,16,18,.28)
+}
+.hero-copy--h-left{left:64px;text-align:left;align-items:flex-start}
+.hero-copy--h-center{left:50%;text-align:center;align-items:center}
+.hero-copy--h-right{right:64px;text-align:right;align-items:flex-end}
+.hero-copy--v-top{top:80px}
+.hero-copy--v-middle{top:calc(50% - 30px)}
+.hero-copy--v-bottom{bottom:100px}
+.hero-copy--h-left.hero-copy--v-middle,.hero-copy--h-right.hero-copy--v-middle{transform:translateY(-50%)}
+.hero-copy--h-center.hero-copy--v-top,.hero-copy--h-center.hero-copy--v-bottom{transform:translateX(-50%)}
+.hero-copy--h-center.hero-copy--v-middle{transform:translate(-50%,-50%)}
+.hero-copy-main,.hero-copy-sub{margin:0;line-height:1.25;letter-spacing:-.03em;white-space:pre-line;word-break:keep-all}
+.hero-copy-main{font-size:var(--hero-size,44px)}
+.hero-copy-sub{font-size:var(--hero-size,20px);opacity:.95}
 
 .prompt{position:relative;z-index:8;width:auto;margin:-60px 40px 0;display:flex;flex-direction:column;gap:14px;overflow:visible;max-height:none;background:#fff;border:1px solid #EFE4E0;border-radius:22px;padding:22px 24px 20px;box-shadow:0 1px 2px rgba(60,20,35,.06),0 16px 40px rgba(60,20,35,.14);scroll-margin:24px}
 .prompt:focus-within{border-color:#E6DAD5;box-shadow:0 1px 2px rgba(60,20,35,.06),0 18px 44px rgba(60,20,35,.16)}
@@ -834,7 +867,7 @@ body.ai-lb-open{overflow:hidden}
  .app .sidebar-toggle-icon{font-size:0;transform:none}
  .app .sidebar-toggle-icon:before{content:"☰";font-size:22px;font-weight:800;line-height:1}
  .app:not(.is-sidebar-collapsed) .sidebar-toggle-icon:before{content:"×"}
- .main{margin-left:0;padding-top:62px}.topbar{height:64px;padding:0 12px;gap:7px}.search{flex:1;width:auto;height:40px}.bell{width:40px;flex:0 0 40px}.login{height:40px;padding:0 11px;font-size:14px}.bug-report-btn{height:40px;padding:0 10px;font-size:14px}.profile-trigger{height:40px;padding:0 10px 0 5px;font-size:14px}.profile-name{max-width:64px}.profile-dropdown{right:0}
+ .main{margin-left:0;padding-top:62px}.topbar{height:64px;padding:0 12px;gap:7px}.search{flex:1 1 auto;width:auto;min-width:0;height:40px;padding:0 6px 0 12px}.search input{width:0}.bell{width:40px;flex:0 0 40px}.profile-trigger,.login{flex:0 0 auto}.login{height:40px;padding:0 11px;font-size:14px}.bug-report-btn{height:40px;padding:0 10px;font-size:14px}.profile-trigger{height:40px;padding:0 10px 0 5px;font-size:14px}.profile-name{max-width:64px}.profile-dropdown{right:0}
  .content{padding:0 12px 28px}
  .hero{height:380px;min-height:320px;border-radius:18px}
  .hero:before{height:80px}
@@ -971,4 +1004,23 @@ body.event-popup-open{overflow:hidden}
 @media(max-width:480px){
  .event-popup-root{padding:12px;align-items:flex-end}
  .event-popup-dialog{width:100%;border-radius:18px 18px 12px 12px}
+}
+/* hero 모바일: 560px 이하는 모바일 전용 이미지(1080×1240 비율)와 모바일 글자 크기를 쓴다. 아래 36px은 AI 입력창이 덮는다. */
+@media(max-width:768px){
+ .hero-copy-main,.hero-copy-sub{font-size:calc(var(--hero-size, 44px) * .7)}
+ .hero-copy--h-left{left:36px}
+ .hero-copy--h-right{right:36px}
+ .hero-copy--v-top{top:64px}
+ .hero-copy--v-bottom{bottom:72px}
+}
+@media(max-width:560px){
+ .hero{height:auto;min-height:0;aspect-ratio:1080/1240}
+ .hero-slide--has-mobile img{object-position:center}
+ .hero-copy{max-width:calc(100% - 40px);gap:6px}
+ .hero-copy--h-left{left:20px}
+ .hero-copy--h-right{right:20px}
+ .hero-copy--v-top{top:60px}
+ .hero-copy--v-middle{top:calc(50% - 18px)}
+ .hero-copy--v-bottom{bottom:60px}
+ .hero-copy-main,.hero-copy-sub{font-size:var(--hero-size-m, 24px)}
 }

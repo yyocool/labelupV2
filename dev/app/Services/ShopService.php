@@ -14,12 +14,45 @@ final class ShopService
 {
     public const SESSION_CART = 'shop_cart';
     public const SESSION_COUPON = 'shop_coupon_code';
+    /** 바로구매 한 줄. 장바구니와 따로 두어 담아둔 상품이 함께 결제되지 않게 한다. */
+    public const SESSION_BUY_NOW = 'shop_buy_now';
 
     private ShopRepository $repo;
+    private bool $buyNow = false;
 
     public function __construct()
     {
         $this->repo = new ShopRepository();
+    }
+
+    /** 켜 두면 장바구니 대신 바로구매 줄을 읽고 쓴다. */
+    public function useBuyNow(bool $on = true): self
+    {
+        $this->buyNow = $on;
+        return $this;
+    }
+
+    public function isBuyNow(): bool
+    {
+        return $this->buyNow;
+    }
+
+    /** 이전 바로구매 줄을 버리고 이 상품 한 줄만 담는다. */
+    public function startBuyNow(int $productId, int $qty = 1, int $optionId = 0): void
+    {
+        $this->useBuyNow();
+        unset($_SESSION[self::SESSION_BUY_NOW]);
+        $this->addToCart($productId, $qty, $optionId);
+    }
+
+    public function hasBuyNow(): bool
+    {
+        return !empty($_SESSION[self::SESSION_BUY_NOW]);
+    }
+
+    private function cartKey(): string
+    {
+        return $this->buyNow ? self::SESSION_BUY_NOW : self::SESSION_CART;
     }
 
     public function homeData(): array
@@ -178,7 +211,7 @@ final class ShopService
     public function rawCart(): array
     {
         $out = [];
-        foreach ($_SESSION[self::SESSION_CART] ?? [] as $row) {
+        foreach ($_SESSION[$this->cartKey()] ?? [] as $row) {
             if (!is_array($row)) {
                 continue;
             }
@@ -202,12 +235,16 @@ final class ShopService
         return $productId . '-' . max(0, $optionId);
     }
 
+    /** 상단·하단 장바구니 숫자. 바로구매 중에도 장바구니 기준이다. */
     public function cartCount(): int
     {
+        $was = $this->buyNow;
+        $this->buyNow = false;
         $count = 0;
         foreach ($this->rawCart() as $row) {
             $count += (int) ($row['qty'] ?? 0);
         }
+        $this->buyNow = $was;
         return $count;
     }
 
@@ -294,6 +331,7 @@ final class ShopService
             'total_label' => $this->formatPrice($total),
             'count' => $this->cartCount(),
             'ink_only' => $inkOnly,
+            'buy_now' => $this->buyNow,
         ];
     }
 
@@ -822,7 +860,7 @@ final class ShopService
         if (!$found) {
             $cart[] = ['product_id' => $productId, 'option_id' => $optionId, 'qty' => $qty];
         }
-        $_SESSION[self::SESSION_CART] = $cart;
+        $_SESSION[$this->cartKey()] = $cart;
     }
 
     public function updateCartItem(int $productId, int $qty, int $optionId = 0): void
@@ -857,7 +895,7 @@ final class ShopService
         if (!$updated) {
             throw new RuntimeException('장바구니에 해당 상품이 없습니다.');
         }
-        $_SESSION[self::SESSION_CART] = $cart;
+        $_SESSION[$this->cartKey()] = $cart;
     }
 
     public function removeFromCart(int $productId, int $optionId = 0): void
@@ -868,7 +906,7 @@ final class ShopService
                 (int) $row['product_id'] === $productId && (int) $row['option_id'] === $optionId
             )
         ));
-        $_SESSION[self::SESSION_CART] = $cart;
+        $_SESSION[$this->cartKey()] = $cart;
     }
 
     /**
@@ -929,7 +967,7 @@ final class ShopService
 
     public function clearCart(): void
     {
-        unset($_SESSION[self::SESSION_CART], $_SESSION[self::SESSION_COUPON]);
+        unset($_SESSION[$this->cartKey()], $_SESSION[self::SESSION_COUPON]);
     }
 
     public function formatPrice(int $amount): string

@@ -104,6 +104,7 @@
               'ops-mid-banners' => '운영관리 › 중간배너 관리',
               'ops-event-popups' => '운영관리 › 이벤트 팝업관리',
               'ops-faq' => '운영관리 › FAQ 관리',
+              'ops-reviews' => '운영관리 › 리뷰관리',
               'ops-inquiries' => '운영관리 › 1:1 문의',
               'ops-error-reports' => '운영관리 › 오류&제안관리',
               'ai-example-prompts' => 'AI 관리 › 예시프롬프트 관리',

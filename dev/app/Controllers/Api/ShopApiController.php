@@ -74,8 +74,9 @@ final class ShopApiController extends BaseController
         if (!$user) {
             $this->jsonError('로그인이 필요합니다.', null, 401);
         }
+        $data = $this->withCartMode(request_json());
         try {
-            $order = $this->shop->checkout(request_json(), $user);
+            $order = $this->shop->checkout($data, $user);
             $this->jsonSuccess($order, '주문이 접수되었습니다.');
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage(), null, 422);
@@ -84,7 +85,36 @@ final class ShopApiController extends BaseController
 
     public function cart(): never
     {
+        $this->withCartMode([]);
         $this->jsonSuccess($this->shop->cartSummary());
+    }
+
+    /**
+     * 요청에 mode=buy 가 있으면 장바구니 대신 바로구매 줄을 다룬다.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function withCartMode(array $data): array
+    {
+        $mode = (string) ($data['mode'] ?? $_GET['mode'] ?? '');
+        $this->shop->useBuyNow($mode === 'buy');
+        return $data;
+    }
+
+    public function buyNow(): never
+    {
+        $data = request_json();
+        try {
+            $this->shop->startBuyNow(
+                (int) ($data['product_id'] ?? 0),
+                (int) ($data['qty'] ?? 1),
+                (int) ($data['option_id'] ?? 0)
+            );
+            $this->jsonSuccess(['redirect' => url('shop/cart') . '?mode=buy']);
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
+        }
     }
 
     public function wishlist(): never
@@ -147,7 +177,7 @@ final class ShopApiController extends BaseController
 
     public function updateCart(): never
     {
-        $data = request_json();
+        $data = $this->withCartMode(request_json());
         try {
             $this->shop->updateCartItem(
                 (int) ($data['product_id'] ?? 0),
@@ -162,7 +192,7 @@ final class ShopApiController extends BaseController
 
     public function removeCart(): never
     {
-        $data = request_json();
+        $data = $this->withCartMode(request_json());
         $this->shop->removeFromCart(
             (int) ($data['product_id'] ?? 0),
             (int) ($data['option_id'] ?? 0)
@@ -172,7 +202,7 @@ final class ShopApiController extends BaseController
 
     public function applyCoupon(): never
     {
-        $data = request_json();
+        $data = $this->withCartMode(request_json());
         try {
             $this->jsonSuccess(
                 $this->shop->applyCoupon((string) ($data['code'] ?? '')),
@@ -196,6 +226,7 @@ final class ShopApiController extends BaseController
 
     public function removeCoupon(): never
     {
+        $this->withCartMode(request_json());
         $this->jsonSuccess($this->shop->removeCoupon(), '쿠폰이 해제되었습니다.');
     }
 

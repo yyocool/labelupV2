@@ -18,6 +18,9 @@ use App\Controllers\Api\EventPopupAdminApiController;
 use App\Controllers\FaqAdminController;
 use App\Controllers\Api\FaqAdminApiController;
 use App\Controllers\FaqController;
+use App\Controllers\ReviewAdminController;
+use App\Controllers\Api\ReviewAdminApiController;
+use App\Controllers\Api\ShopReviewApiController;
 use App\Controllers\HeroAdminController;
 use App\Controllers\Api\HeroAdminApiController;
 use App\Controllers\MidBannerAdminController;
@@ -214,6 +217,9 @@ final class Router
         $faqAdmin = new FaqAdminController();
         $faqAdminApi = new FaqAdminApiController();
         $faqPublic = new FaqController();
+        $reviewAdmin = new ReviewAdminController();
+        $reviewAdminApi = new ReviewAdminApiController();
+        $reviewPublicApi = new ShopReviewApiController();
         $contentAdmin = new ContentAdminController();
         $contentAdminApi = new ContentAdminApiController();
         $editorTemplateApi = new EditorTemplateApiController();
@@ -330,6 +336,7 @@ final class Router
         $router->get('/admin/ops/mid-banners', [$midBannerAdmin, 'index']);
         $router->get('/admin/ops/event-popups', [$eventPopupAdmin, 'index']);
         $router->get('/admin/ops/faq', [$faqAdmin, 'index']);
+        $router->get('/admin/ops/reviews', [$reviewAdmin, 'index']);
         $router->get('/admin/ops/inquiries', [$inquiryAdmin, 'index']);
         $router->get('/admin/ops/error-reports', [$errorReportAdmin, 'index']);
         $router->get('/admin/qr-coupons', [$qrCouponAdmin, 'index']);
@@ -477,6 +484,11 @@ final class Router
         $router->post('/api/admin/event-popup/delete', [$eventPopupAdminApi, 'delete']);
 
         $router->post('/api/admin/faq/save', [$faqAdminApi, 'save']);
+        $router->post('/api/admin/reviews/save', [$reviewAdminApi, 'save']);
+        $router->post('/api/admin/reviews/status', [$reviewAdminApi, 'status']);
+        $router->post('/api/admin/reviews/delete', [$reviewAdminApi, 'delete']);
+        $router->post('/api/admin/reviews/settings', [$reviewAdminApi, 'settings']);
+        $router->post('/api/admin/reviews/upload', [$reviewAdminApi, 'upload']);
         $router->post('/api/admin/faq/delete', [$faqAdminApi, 'delete']);
         $router->post('/api/admin/faq/category/save', [$faqAdminApi, 'saveCategory']);
         $router->post('/api/admin/faq/category/delete', [$faqAdminApi, 'deleteCategory']);
@@ -528,6 +540,11 @@ final class Router
         $router->post('/api/shop/cart/add', [$shopPublicApi, 'addCart']);
         $router->post('/api/shop/cart/update', [$shopPublicApi, 'updateCart']);
         $router->post('/api/shop/cart/remove', [$shopPublicApi, 'removeCart']);
+        $router->post('/api/shop/buy-now', [$shopPublicApi, 'buyNow']);
+        $router->get('/api/shop/reviews', [$reviewPublicApi, 'index']);
+        $router->post('/api/shop/reviews/save', [$reviewPublicApi, 'save']);
+        $router->post('/api/shop/reviews/delete', [$reviewPublicApi, 'delete']);
+        $router->post('/api/shop/reviews/upload', [$reviewPublicApi, 'upload']);
         $router->post('/api/shop/coupon/apply', [$shopPublicApi, 'applyCoupon']);
         $router->post('/api/shop/coupon/select', [$shopPublicApi, 'selectCoupon']);
         $router->post('/api/shop/coupon/remove', [$shopPublicApi, 'removeCoupon']);

@@ -6,6 +6,9 @@ $userEmail = (string) ($authUser['email'] ?? '');
 $userInitial = mb_substr($userName, 0, 1) ?: '회';
 $isAdmin = ($authUser['role'] ?? '') === 'admin';
 $memberGrade = $isLoggedIn ? member_grade_for_user($authUser) : null;
+$menuBalance = $isLoggedIn ? credit_balance_for_user($authUser) : 0;
+$menuIcons = require view_path('home/partials/menu-icons.php');
+$menuIcon = static fn (string $key): string => '<span class="profile-dropdown-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22">' . $menuIcons[$key] . '</svg></span>';
 ?>
 <?php if ($isLoggedIn): ?>
 <div class="profile-menu" id="profileMenu">
@@ -30,40 +33,52 @@ $memberGrade = $isLoggedIn ? member_grade_for_user($authUser) : null;
       <?php endif; ?>
     </div>
     <nav class="profile-dropdown-nav" aria-label="사용자 메뉴">
+      <div class="profile-dropdown-mobile">
+        <a class="profile-dropdown-item profile-dropdown-credit<?= $menuBalance < 0 ? ' is-debt' : '' ?>" href="<?= url('account') ?>#credits">
+          <?= $menuIcon('ink') ?>
+          <span><?= $menuBalance < 0 ? '미정산' : '내 잉크' ?></span>
+          <strong><?= e(number_format($menuBalance)) ?> C</strong>
+        </a>
+        <button type="button" class="profile-dropdown-item" data-bug-report-open>
+          <?= $menuIcon('bug') ?>
+          <span>오류&amp;제안</span>
+        </button>
+        <div class="profile-dropdown-divider" role="separator"></div>
+      </div>
       <a class="profile-dropdown-item" href="<?= url('account') ?>">
-        <span class="profile-dropdown-ic">◎</span>
+        <?= $menuIcon('mypage') ?>
         <span>마이페이지</span>
       </a>
       <a class="profile-dropdown-item" href="<?= url('account') ?>#profile">
-        <span class="profile-dropdown-ic">✎</span>
+        <?= $menuIcon('profile') ?>
         <span>회원정보 수정</span>
       </a>
       <a class="profile-dropdown-item" href="<?= url('projects') ?>">
-        <span class="profile-dropdown-ic">▣</span>
+        <?= $menuIcon('project') ?>
         <span>내 프로젝트</span>
       </a>
       <a class="profile-dropdown-item" href="<?= url('locker') ?>">
-        <span class="profile-dropdown-ic">★</span>
+        <?= $menuIcon('locker') ?>
         <span>내 보관함</span>
       </a>
       <a class="profile-dropdown-item" href="<?= url('account/orders') ?>">
-        <span class="profile-dropdown-ic">▧</span>
+        <?= $menuIcon('order') ?>
         <span>주문·배송 내역</span>
       </a>
       <a class="profile-dropdown-item" href="<?= url('account') ?>#notifications">
-        <span class="profile-dropdown-ic">♧</span>
+        <?= $menuIcon('notify') ?>
         <span>알림 설정</span>
       </a>
       <?php if ($isAdmin): ?>
       <div class="profile-dropdown-divider" role="separator"></div>
       <a class="profile-dropdown-item profile-dropdown-item--admin" href="<?= url('admin') ?>">
-        <span class="profile-dropdown-ic">⚙</span>
+        <?= $menuIcon('admin') ?>
         <span>관리자 콘솔</span>
       </a>
       <?php endif; ?>
       <div class="profile-dropdown-divider" role="separator"></div>
       <a class="profile-dropdown-item profile-dropdown-item--logout" href="<?= url('logout') ?>">
-        <span class="profile-dropdown-ic">↪</span>
+        <?= $menuIcon('logout') ?>
         <span>로그아웃</span>
       </a>
     </nav>

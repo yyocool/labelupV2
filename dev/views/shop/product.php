@@ -55,6 +55,8 @@ $descSpecRows = \App\Helpers\ShopProductDescriptionHelper::pairRows($descSpecs);
 $hideAutoDescription = (int) ($product['id'] ?? 0) === 146;
 $hasDetailBody = $detailHtml !== '' || (!$hideAutoDescription && $description !== '');
 $hashtags = is_array($pageLayout['hashtags'] ?? null) ? $pageLayout['hashtags'] : [];
+$reviewSummary = $reviewSummary ?? ['count' => 0, 'photo' => 0, 'text' => 0, 'avg' => 0.0, 'dist' => []];
+$reviewCount = (int) ($reviewSummary['count'] ?? 0);
 ?>
 <article class="shop-detail<?= $isInk ? ' shop-detail--ink' : '' ?>">
   <div class="shop-detail-gallery">
@@ -69,18 +71,6 @@ $hashtags = is_array($pageLayout['hashtags'] ?? null) ? $pageLayout['hashtags'] 
       <img id="shopDetailMainImage" src="<?= e($gallery[0]['url']) ?>" alt="<?= e((string) $product['name']) ?>">
       <?php endif; ?>
       <div class="shop-detail-social">
-        <button type="button"
-                class="shop-social-btn js-wishlist-toggle<?= !empty($wished) ? ' is-on' : '' ?>"
-                data-product-id="<?= (int) $product['id'] ?>"
-                aria-pressed="<?= !empty($wished) ? 'true' : 'false' ?>"
-                title="<?= !empty($wished) ? '찜 해제' : '찜하기' ?>">
-          <span class="shop-social-btn__ic" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 20.3 3.9 12.2a5 5 0 0 1 7.1-7.1l1 1 1-1a5 5 0 0 1 7.1 7.1Z"/>
-            </svg>
-          </span>
-          <span class="shop-social-btn__lab"><?= !empty($wished) ? '찜 해제' : '찜하기' ?></span>
-        </button>
         <button type="button"
                 class="shop-social-btn js-share-product"
                 data-share-title="<?= e((string) $product['name']) ?>"
@@ -127,6 +117,18 @@ $hashtags = is_array($pageLayout['hashtags'] ?? null) ? $pageLayout['hashtags'] 
     </div>
 
     <h1><?= e((string) $product['name']) ?></h1>
+    <?php if (!$isInk): ?>
+    <a class="shop-detail-rating" href="#reviews">
+      <?php if ($reviewCount > 0): ?>
+      <span class="shop-stars" style="--rate:<?= e((string) $reviewSummary['avg']) ?>" aria-hidden="true"></span>
+      <b><?= e(number_format((float) $reviewSummary['avg'], 1)) ?></b>
+      <span>리뷰 <?= number_format($reviewCount) ?>개</span>
+      <?php else: ?>
+      <span class="shop-stars" style="--rate:0" aria-hidden="true"></span>
+      <span>첫 리뷰를 남겨 주세요</span>
+      <?php endif; ?>
+    </a>
+    <?php endif; ?>
     <?php if ($hashtags !== []): ?>
     <ul class="shop-detail-hashtags" aria-label="해시태그">
       <?php foreach ($hashtags as $tag): ?>
@@ -144,6 +146,12 @@ $hashtags = is_array($pageLayout['hashtags'] ?? null) ? $pageLayout['hashtags'] 
       <em class="shop-detail-stock <?= $isSoldout ? 'is-soldout' : '' ?>">
         <?php if ($isSoldout): ?>품절<?php elseif ($isInk): ?>결제 후 바로 지급<?php else: ?>재고 <?= number_format((int) $product['stock_qty']) ?>개<?php endif; ?>
       </em>
+      <?php if ($hasEditable): ?>
+      <a class="shop-detail-edit" href="<?= e($shopService->editorUrlForProduct($product)) ?>">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>
+        <span>이 규격으로 편집</span>
+      </a>
+      <?php endif; ?>
     </div>
 
     <?php if ($isInk): ?>
@@ -191,7 +199,6 @@ $hashtags = is_array($pageLayout['hashtags'] ?? null) ? $pageLayout['hashtags'] 
         <span class="shop-detail-compat-chip">애니라벨 <?= e($code) ?></span>
         <?php endforeach; ?>
       </div>
-      <p class="shop-detail-compat-tm" role="note">폼텍,애니라벨,아이라벨은 각 해당 회사의 등록 상표입니다.</p>
     </div>
     <?php endif; ?>
 
@@ -229,26 +236,33 @@ $hashtags = is_array($pageLayout['hashtags'] ?? null) ? $pageLayout['hashtags'] 
         <p class="shop-detail-option__live">선택 금액 <strong id="productPriceLive"><?= e($shopService->formatPrice($selectedUnit)) ?></strong></p>
       </div>
       <?php endif; ?>
-      <div class="shop-detail-buy">
+      <?php endif; ?>
+      <?php $cartAttrs = 'data-add-cart="' . (int) $product['id'] . '" data-qty-input="#productQty"' . ($hasOptions ? ' data-option-select="#productOption"' : ''); ?>
+      <div class="shop-detail-buy<?= $isSoldout ? ' is-soldout' : '' ?>">
+        <button type="button"
+                class="shop-detail-wish js-wishlist-toggle<?= !empty($wished) ? ' is-on' : '' ?>"
+                data-product-id="<?= (int) $product['id'] ?>"
+                aria-pressed="<?= !empty($wished) ? 'true' : 'false' ?>"
+                title="<?= !empty($wished) ? '찜 해제' : '찜하기' ?>">
+          <span class="shop-social-btn__ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 20.3 3.9 12.2a5 5 0 0 1 7.1-7.1l1 1 1-1a5 5 0 0 1 7.1 7.1Z"/>
+            </svg>
+          </span>
+          <span class="shop-social-btn__lab"><?= !empty($wished) ? '찜 해제' : '찜하기' ?></span>
+        </button>
+        <?php if ($isSoldout): ?>
+        <button type="button" class="shop-btn shop-detail-buy__soldout" disabled>품절된 상품입니다</button>
+        <?php else: ?>
         <div class="shop-qty" aria-label="수량">
           <button type="button" class="shop-qty-btn" data-qty-minus aria-label="수량 감소">−</button>
           <input type="number" id="productQty" value="1" min="1" max="<?= $isInk ? 20 : (int) $product['stock_qty'] ?>" aria-label="수량 입력">
           <button type="button" class="shop-qty-btn" data-qty-plus aria-label="수량 증가">+</button>
         </div>
-        <button type="button" class="shop-btn shop-btn--primary shop-detail-buy__cart" data-add-cart="<?= (int) $product['id'] ?>" data-qty-input="#productQty"<?= $hasOptions ? ' data-option-select="#productOption"' : '' ?>>장바구니 담기</button>
-      </div>
-      <?php endif; ?>
-
-      <?php if ($hasEditable || !$isSoldout): ?>
-      <div class="shop-detail-secondary">
-        <?php if ($hasEditable): ?>
-        <a class="shop-btn shop-btn--outline" href="<?= e($shopService->editorUrlForProduct($product)) ?>">이 규격으로 편집</a>
-        <?php endif; ?>
-        <?php if (!$isSoldout): ?>
-        <a class="shop-btn shop-btn--ghost" href="<?= url('shop/cart') ?>">장바구니 보기</a>
+        <button type="button" class="shop-btn shop-detail-buy__cart" <?= $cartAttrs ?> data-cart-confirm>장바구니 담기</button>
+        <button type="button" class="shop-btn shop-detail-buy__now" <?= $cartAttrs ?> data-buy-now>바로구매</button>
         <?php endif; ?>
       </div>
-      <?php endif; ?>
     </div>
   </div>
 </article>
@@ -307,6 +321,12 @@ $hashtags = is_array($pageLayout['hashtags'] ?? null) ? $pageLayout['hashtags'] 
   <?php endif; ?>
 </section>
 <?php endif; ?>
+
+<?php if ($hasCompat): ?>
+<p class="shop-detail-compat-tm" role="note">※ 폼텍,애니라벨,아이라벨은 각 해당 회사의 등록 상표입니다.</p>
+<?php endif; ?>
+
+<?php if (!$isInk) { require view_path('shop/partials/reviews.php'); } ?>
 
 <?php if ($related): ?>
 <section class="shop-section">

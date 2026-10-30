@@ -19,6 +19,9 @@ const ShopAPI = {
   },
 };
 
+/** 바로구매 주문서(/shop/cart?mode=buy)에서는 장바구니 대신 바로구매 줄을 다룬다. */
+const CART_MODE = new URLSearchParams(window.location.search).get('mode') === 'buy' ? 'buy' : '';
+
 function updateCartBadges(count) {
   ['shopCartBadge', 'shopFloatBadge', 'shopFabBadge'].forEach((id) => {
     const el = document.getElementById(id);
@@ -46,20 +49,20 @@ function showShopToast(message) {
   showShopToast._timer = setTimeout(() => toast.classList.remove('is-show'), 2200);
 }
 
-async function addToCart(productId, qty = 1, optionId = 0) {
+async function addToCart(productId, qty = 1, optionId = 0, toast = true) {
   const res = await ShopAPI.post('/api/shop/cart/add', { product_id: productId, qty, option_id: optionId });
   updateCartBadges(res.data?.count ?? 0);
-  showShopToast(res.message || '장바구니에 담았습니다.');
+  if (toast) showShopToast(res.message || '장바구니에 담았습니다.');
   return res;
 }
 
 async function updateCartQty(productId, qty, optionId = 0) {
-  const res = await ShopAPI.post('/api/shop/cart/update', { product_id: productId, qty, option_id: optionId });
+  const res = await ShopAPI.post('/api/shop/cart/update', { product_id: productId, qty, option_id: optionId, mode: CART_MODE });
   return res;
 }
 
 async function removeFromCart(productId, optionId = 0) {
-  const res = await ShopAPI.post('/api/shop/cart/remove', { product_id: productId, option_id: optionId });
+  const res = await ShopAPI.post('/api/shop/cart/remove', { product_id: productId, option_id: optionId, mode: CART_MODE });
   return res;
 }
 
@@ -144,14 +147,71 @@ function bindAddCartButtons() {
       }
       btn.disabled = true;
       try {
-        await addToCart(id, qty, optionId);
+        if ('buyNow' in btn.dataset) {
+          const res = await ShopAPI.post('/api/shop/buy-now', { product_id: id, qty, option_id: optionId });
+          window.location.href = res.data?.redirect || '/shop/cart?mode=buy';
+          return;
+        }
+        const confirmAfter = 'cartConfirm' in btn.dataset;
+        await addToCart(id, qty, optionId, !confirmAfter);
+        if (confirmAfter) openCartConfirm();
       } catch (err) {
         showShopToast(err.message);
+        if (err.status === 401) setTimeout(goLogin, 900);
       } finally {
         btn.disabled = false;
       }
     });
   });
+}
+
+/** 장바구니에 담은 뒤 바로 갈지, 계속 둘러볼지 묻는다. */
+function openCartConfirm() {
+  let modal = document.getElementById('shopCartConfirm');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'shopCartConfirm';
+    modal.className = 'shop-cart-confirm';
+    modal.hidden = true;
+    modal.innerHTML = `
+      <div class="shop-cart-confirm__dim" data-cart-confirm-close></div>
+      <div class="shop-cart-confirm__box" role="dialog" aria-modal="true" aria-labelledby="shopCartConfirmTitle">
+        <button type="button" class="shop-cart-confirm__x" data-cart-confirm-close aria-label="닫기">×</button>
+        <div class="shop-cart-confirm__ic" aria-hidden="true">
+          <svg viewBox="0 0 48 48" width="44" height="44">
+            <circle cx="24" cy="24" r="22" fill="#fdf0f3"/>
+            <path d="M12 15h4l3.2 14.2a2 2 0 0 0 2 1.6h11.4a2 2 0 0 0 2-1.5L37 20H18" fill="none" stroke="#7b2d3e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="22" cy="35.5" r="2" fill="#7b2d3e"/><circle cx="32" cy="35.5" r="2" fill="#7b2d3e"/>
+            <circle cx="36" cy="13" r="6" fill="#26a960"/>
+            <path d="M33.3 13l1.9 1.9 3.6-3.7" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <strong id="shopCartConfirmTitle">장바구니에 담았어요</strong>
+        <p data-cart-confirm-msg></p>
+        <div class="shop-cart-confirm__actions">
+          <button type="button" class="shop-btn shop-btn--ghost" data-cart-confirm-close>계속 쇼핑하기</button>
+          <a class="shop-btn shop-btn--primary" href="/shop/cart">장바구니로 이동</a>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => {
+      if (e.target.closest('[data-cart-confirm-close]')) closeCartConfirm();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.hidden) closeCartConfirm();
+    });
+  }
+  modal.querySelector('[data-cart-confirm-msg]').textContent = '장바구니로 이동해 주문을 계속하시겠어요?';
+  modal.hidden = false;
+  requestAnimationFrame(() => modal.classList.add('is-open'));
+  modal.querySelector('.shop-btn--primary')?.focus();
+}
+
+function closeCartConfirm() {
+  const modal = document.getElementById('shopCartConfirm');
+  if (!modal) return;
+  modal.classList.remove('is-open');
+  setTimeout(() => { modal.hidden = true; }, 180);
 }
 
 function bindCartPage() {
@@ -269,6 +329,7 @@ function bindCartPage() {
         address_label: String(fd.get('address_label') || ''),
         coupon_code: String(couponInput?.value || '').trim(),
         source: 'shop',
+        mode: CART_MODE,
       });
       const orderNo = res.data?.order_no || '';
       const payment = res.data?.payment;
@@ -280,7 +341,7 @@ function bindCartPage() {
     } catch (err) {
       showShopToast(err.message);
       if (String(err.message || '').includes('로그인')) {
-        window.location.href = '/login?next=/shop/cart';
+        window.location.href = `/login?redirect=${encodeURIComponent(location.pathname + location.search)}`;
       }
       if (submit) submit.disabled = false;
     }
@@ -293,9 +354,9 @@ function bindCartPage() {
     couponBtn.disabled = true;
     try {
       if (applied) {
-        await ShopAPI.post('/api/shop/coupon/remove', {});
+        await ShopAPI.post('/api/shop/coupon/remove', { mode: CART_MODE });
       } else {
-        await ShopAPI.post('/api/shop/coupon/apply', { code: String(couponInput?.value || '').trim() });
+        await ShopAPI.post('/api/shop/coupon/apply', { code: String(couponInput?.value || '').trim(), mode: CART_MODE });
       }
       location.reload();
     } catch (err) {
@@ -312,13 +373,13 @@ function bindCartPage() {
   const preset = new URLSearchParams(location.search).get('coupon');
   if (preset && couponInput && couponBtn?.dataset.applied !== '1') {
     couponInput.value = preset;
-    ShopAPI.post('/api/shop/coupon/apply', { code: preset })
+    ShopAPI.post('/api/shop/coupon/apply', { code: preset, mode: CART_MODE })
       .then(() => {
-        history.replaceState({}, '', location.pathname);
+        history.replaceState({}, '', CART_MODE ? `?mode=${CART_MODE}` : location.pathname);
         location.reload();
       })
       .catch((err) => {
-        history.replaceState({}, '', location.pathname);
+        history.replaceState({}, '', CART_MODE ? `?mode=${CART_MODE}` : location.pathname);
         showShopToast(err.message);
       });
   }

@@ -12,7 +12,10 @@ $isActive = static fn (string ...$keys): string => in_array($shopSubNav, $keys, 
     <a href="<?= url('/') ?>" aria-label="labelup 홈"><img class="brand-img" src="<?= asset('logo.png') ?>" alt="labelup"></a>
     <small>라벨업 쇼핑몰</small>
   </div>
-  <a class="create create--shop" href="<?= url('shop/products') ?>">⌕ &nbsp;상품 검색하기</a>
+  <div class="create create--shop create-split">
+    <a class="create-split__search" href="<?= url('shop/products') ?>"><span aria-hidden="true">⌕</span>상품검색</a>
+    <a class="create-split__edit" href="<?= url('editor/') ?>"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.21a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>라벨편집</a>
+  </div>
 
   <div class="group group--shop-primary">
     <div class="group-title">쇼핑몰</div>

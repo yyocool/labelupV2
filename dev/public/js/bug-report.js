@@ -285,6 +285,18 @@
   }
 
   document.getElementById('bugReportOpen')?.addEventListener('click', openModal);
+  // 모바일 프로필 메뉴의 단추는 이 스크립트보다 뒤에 그려진다.
+  document.addEventListener('click', (event) => {
+    const trigger = event.target.closest && event.target.closest('[data-bug-report-open]');
+    if (!trigger) return;
+    event.preventDefault();
+    const dropdown = trigger.closest('.profile-dropdown');
+    if (dropdown) {
+      dropdown.hidden = true;
+      document.getElementById('profileTrigger')?.setAttribute('aria-expanded', 'false');
+    }
+    openModal();
+  });
 
   function mountEditorButton() {
     const chip = document.getElementById('lu-credit-chip');

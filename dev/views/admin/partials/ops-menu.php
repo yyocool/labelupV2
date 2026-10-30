@@ -7,6 +7,7 @@ $opsMenus = [
     ['key' => 'ops-mid-banners', 'label' => '중간배너 관리', 'href' => 'admin/ops/mid-banners', 'ic' => '▣'],
     ['key' => 'ops-event-popups', 'label' => '이벤트 팝업관리', 'href' => 'admin/ops/event-popups', 'ic' => '◎'],
     ['key' => 'ops-faq', 'label' => 'FAQ 관리', 'href' => 'admin/ops/faq', 'ic' => '?'],
+    ['key' => 'ops-reviews', 'label' => '리뷰관리', 'href' => 'admin/ops/reviews', 'ic' => '★'],
     ['key' => 'ops-inquiries', 'label' => '1:1 문의', 'href' => 'admin/ops/inquiries', 'ic' => '✉'],
     ['key' => 'ops-error-reports', 'label' => '오류&제안관리', 'href' => 'admin/ops/error-reports', 'ic' => '!'],
     ['key' => 'ops-credit-rewards', 'label' => '잉크보상 관리', 'href' => 'admin/ops/credit-rewards', 'ic' => '◈'],
@@ -15,7 +16,7 @@ $opsMenus = [
 ];
 $opsMenus = admin_filter_menu_items($opsMenus);
 $isOpsOpen = ($menuGroup ?? '') === 'ops'
-    || in_array((string) ($activeMenu ?? ''), ['users', 'ops-credit-grants', 'settings', 'ops-hero-slides', 'ops-mid-banners', 'ops-event-popups', 'ops-faq', 'ops-inquiries', 'ops-error-reports', 'ops-credit-rewards', 'ops-credit-usage', 'ops-purchase-credits'], true);
+    || in_array((string) ($activeMenu ?? ''), ['users', 'ops-credit-grants', 'settings', 'ops-hero-slides', 'ops-mid-banners', 'ops-event-popups', 'ops-faq', 'ops-reviews', 'ops-inquiries', 'ops-error-reports', 'ops-credit-rewards', 'ops-credit-usage', 'ops-purchase-credits'], true);
 if ($opsMenus === []) {
     return;
 }

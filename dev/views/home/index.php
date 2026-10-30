@@ -32,13 +32,36 @@
       <section class="hero" id="heroSlider">
         <div class="hero-track">
           <?php foreach (($heroSlides ?? []) as $slide): ?>
-          <article class="hero-slide">
-            <?php if (!empty($slide['link_url'])): ?>
-            <a href="<?= e($slide['link_url']) ?>" class="hero-slide-link">
+          <?php
+            $heroMobileSrc = (string) ($slide['mobile_image_src'] ?? '');
+            ob_start();
+          ?>
+            <picture>
+              <?php if ($heroMobileSrc !== ''): ?>
+              <source media="(max-width:560px)" srcset="<?= e($heroMobileSrc) ?>">
+              <?php endif; ?>
               <img src="<?= e($slide['image_src'] ?? '') ?>" alt="<?= e($slide['alt_text'] ?? '') ?>">
-            </a>
+            </picture>
+          <?php
+            $heroPicture = ob_get_clean();
+            $heroMain = trim((string) ($slide['main_text'] ?? ''));
+            $heroSub = trim((string) ($slide['sub_text'] ?? ''));
+          ?>
+          <article class="hero-slide<?= $heroMobileSrc !== '' ? ' hero-slide--has-mobile' : '' ?>">
+            <?php if (!empty($slide['link_url'])): ?>
+            <a href="<?= e($slide['link_url']) ?>" class="hero-slide-link"><?= $heroPicture ?></a>
             <?php else: ?>
-            <img src="<?= e($slide['image_src'] ?? '') ?>" alt="<?= e($slide['alt_text'] ?? '') ?>">
+            <?= $heroPicture ?>
+            <?php endif; ?>
+            <?php if ($heroMain !== '' || $heroSub !== ''): ?>
+            <div class="hero-copy hero-copy--h-<?= e((string) ($slide['text_align_h'] ?? 'left')) ?> hero-copy--v-<?= e((string) ($slide['text_align_v'] ?? 'middle')) ?>">
+              <?php if ($heroMain !== ''): ?>
+              <p class="hero-copy-main" style="<?= e((string) ($slide['main_style'] ?? '')) ?>"><?= e($heroMain) ?></p>
+              <?php endif; ?>
+              <?php if ($heroSub !== ''): ?>
+              <p class="hero-copy-sub" style="<?= e((string) ($slide['sub_style'] ?? '')) ?>"><?= e($heroSub) ?></p>
+              <?php endif; ?>
+            </div>
             <?php endif; ?>
           </article>
           <?php endforeach; ?>

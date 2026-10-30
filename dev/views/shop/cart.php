@@ -1,10 +1,16 @@
 <?php
 /** @var App\Services\ShopService $shopService */
 /** @var array{items: array, subtotal: int, shipping_fee: int, total: int, count: int} $cart */
+$buyNow = !empty($buyNow);
 ?>
 <section class="shop-page-head">
+  <?php if ($buyNow): ?>
+  <h1>바로구매</h1>
+  <p>이 상품만 주문합니다. 장바구니에 담아 둔 상품은 그대로 남아 있어요.</p>
+  <?php else: ?>
   <h1>장바구니</h1>
   <p><?= number_format($cart['count']) ?>개 상품</p>
+  <?php endif; ?>
 </section>
 
 <?php if ($cart['items']): ?>
@@ -35,13 +41,15 @@
             <button type="button" class="shop-qty-btn" data-cart-plus>+</button>
           </div>
           <strong class="shop-cart-line"><?= e($shopService->formatPrice((int) $item['line_total'])) ?></strong>
+          <?php if (!$buyNow): ?>
           <button type="button" class="shop-cart-remove" data-cart-remove>삭제</button>
+          <?php endif; ?>
         </div>
       </article>
       <?php endforeach; ?>
     </div>
 
-    <form id="shopCheckoutForm" class="shop-checkout-form" data-checkout-address data-ink-only="<?= !empty($cart['ink_only']) ? '1' : '0' ?>">
+    <form id="shopCheckoutForm" class="shop-checkout-form" data-checkout-address data-ink-only="<?= !empty($cart['ink_only']) ? '1' : '0' ?>" data-cart-mode="<?= $buyNow ? 'buy' : '' ?>">
       <header class="shop-co-pagehead">
         <h2>주문서</h2>
         <p><?= !empty($cart['ink_only']) ? '구매자 정보를 확인한 뒤 결제하면 잉크가 계정에 지급됩니다.' : '구매자 · 수취인 · 배송 정보를 나눠 확인한 뒤 주문을 접수해 주세요.' ?></p>

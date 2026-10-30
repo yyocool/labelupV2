@@ -14,6 +14,13 @@
 .sidebar--shop .group--shop-primary{margin-top:18px}
 .sidebar--shop .group--shop-primary .group-title{color:var(--accent);font-weight:800}
 .sidebar--shop .create--shop{background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+.create.create-split,.app:not(.is-sidebar-collapsed) .create.create-split{display:flex;padding:0;overflow:hidden;background:none}
+.create-split a{flex:1 1 50%;display:flex;align-items:center;justify-content:center;gap:5px;min-width:0;
+  color:#fff;text-decoration:none;font-size:14px;font-weight:800;white-space:nowrap;transition:filter .15s}
+.create-split a:hover{filter:brightness(1.1)}
+.create-split a:focus-visible{outline:2px solid #fff;outline-offset:-4px}
+.create-split__search{background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+.create-split__edit{background:#3a3532;border-left:1px solid rgba(255,255,255,.28)}
 .sidebar--shop .group--shop-secondary{margin-top:20px;padding-top:16px;border-top:1px solid #efeff3}
 .sidebar--shop .menu--compact a{height:36px;font-size:14px;color:#55586a}
 .sidebar--shop .ico--img{width:28px;height:28px;border-radius:8px;overflow:hidden;background:#fff;border:1px solid #ececf2}
@@ -352,7 +359,7 @@
   font-size:15px;font-weight:500;line-height:1.2;
 }
 .shop-detail-compat-chip{display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;background:#fff;border:1px solid #eadfe3;color:#7b2840;font-size:13px;font-weight:800}
-.shop-detail-compat-tm{margin:10px 0 0;padding:9px 12px;border-radius:10px;background:#fff4f6;border:1px solid #a61b37;color:#7c1027;font-size:15px;font-weight:800;line-height:1.45}
+.shop-detail-compat-tm{margin:0 0 28px;padding:0;color:#111;font-size:13px;font-weight:400;line-height:1.45}
 .shop-detail-specs{
   list-style:none;margin:0 0 18px;padding:0;
   display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;
@@ -417,11 +424,159 @@
 }
 .shop-detail-option__live{margin:0;font-size:14px;color:var(--muted)}
 .shop-detail-option__live strong{color:var(--accent);font-weight:900}
-.shop-detail-buy{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:stretch}
-.shop-detail-buy__cart{width:100%;min-height:48px;font-size:15px}
-.shop-detail-secondary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.shop-detail-secondary .shop-btn{width:100%;min-height:42px;font-size:15px}
-.shop-detail-secondary .shop-btn:only-child{grid-column:1/-1}
+/* 가격 박스 오른쪽의 「이 규격으로 편집」 */
+.shop-detail-price:has(.shop-detail-edit){align-items:center}
+.shop-detail-edit{
+  display:inline-flex;align-items:center;gap:6px;align-self:center;
+  height:40px;padding:0 16px;border-radius:999px;white-space:nowrap;
+  background:var(--charcoal);color:#fff;font-size:14px;font-weight:800;text-decoration:none;
+  box-shadow:0 6px 16px rgba(46,42,39,.22);
+  transition:transform .15s,box-shadow .15s,background .15s;
+}
+.shop-detail-edit svg{flex-shrink:0}
+.shop-detail-edit:hover{background:#1c1a18;transform:translateY(-1px);box-shadow:0 8px 20px rgba(46,42,39,.3)}
+.shop-detail-edit:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* 찜 · 수량 · 장바구니 · 바로구매 한 줄 */
+.shop-detail-buy{display:grid;grid-template-columns:48px auto minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:stretch}
+.shop-detail-buy.is-soldout{grid-template-columns:48px minmax(0,1fr)}
+.shop-detail-wish{
+  display:grid;place-items:center;width:48px;height:48px;padding:0;cursor:pointer;
+  border:1px solid #e0dcd8;border-radius:12px;background:#fff;color:#6b6460;font:inherit;
+  transition:color .15s,border-color .15s,box-shadow .15s;
+}
+.shop-detail-wish:hover{color:var(--accent);border-color:var(--accent-soft-2);box-shadow:0 2px 10px rgba(46,42,39,.08)}
+.shop-detail-wish:disabled{opacity:.55;cursor:default}
+.shop-detail-wish:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.shop-detail-wish.is-on{color:var(--accent);border-color:var(--accent-soft-2)}
+.shop-detail-wish.is-on .shop-social-btn__ic svg{fill:currentColor}
+.shop-detail-buy__cart,.shop-detail-buy__now,.shop-detail-buy__soldout{width:100%;min-height:48px;padding:0 10px;font-size:15px;white-space:nowrap}
+.shop-detail-buy__cart{background:#57524e;color:#fff}
+.shop-detail-buy__cart:hover{background:#45413d}
+.shop-detail-buy__now{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;box-shadow:0 8px 20px var(--accent-shadow)}
+.shop-detail-buy__now:hover{filter:brightness(1.05);transform:translateY(-1px)}
+.shop-detail-buy__soldout{background:#efebe8;color:#8a827c}
+.shop-detail-buy .shop-qty-btn{width:34px}
+.shop-detail-buy .shop-qty input{width:44px}
+.shop-detail-info{container-type:inline-size}
+@container (max-width:460px){
+  .shop-detail-buy{grid-template-columns:48px minmax(0,1fr) minmax(0,1fr)}
+  .shop-detail-buy .shop-qty{grid-row:1;grid-column:1/-1;width:100%;justify-content:space-between}
+  .shop-detail-buy .shop-qty input{flex:1}
+  .shop-detail-buy .shop-detail-wish{grid-row:2}
+  .shop-detail-buy.is-soldout .shop-detail-wish{grid-row:auto}
+  .shop-detail-buy.is-soldout .shop-detail-buy__soldout{grid-column:2/-1}
+}
+@container (max-width:400px){
+  .shop-detail-edit{width:100%;justify-content:center}
+}
+/* 장바구니 담기 확인 팝업 */
+.shop-cart-confirm{position:fixed;inset:0;z-index:1300;display:grid;place-items:center;padding:20px}
+.shop-cart-confirm[hidden]{display:none}
+.shop-cart-confirm__dim{position:absolute;inset:0;background:rgba(28,24,22,.45);opacity:0;transition:opacity .18s}
+.shop-cart-confirm__box{
+  position:relative;width:min(360px,100%);padding:28px 24px 22px;border-radius:22px;background:#fff;
+  display:grid;justify-items:center;gap:6px;text-align:center;
+  box-shadow:0 24px 60px rgba(36,20,26,.25);
+  opacity:0;transform:translateY(14px) scale(.97);transition:opacity .18s,transform .18s;
+}
+.shop-cart-confirm.is-open .shop-cart-confirm__dim{opacity:1}
+.shop-cart-confirm.is-open .shop-cart-confirm__box{opacity:1;transform:none}
+.shop-cart-confirm__x{position:absolute;top:10px;right:12px;width:32px;height:32px;border:0;border-radius:50%;background:transparent;font-size:22px;line-height:1;color:#9a948f;cursor:pointer}
+.shop-cart-confirm__x:hover{background:#f6f2ef;color:var(--charcoal)}
+.shop-cart-confirm__ic{margin-bottom:4px}
+.shop-cart-confirm__box strong{font-size:18px;font-weight:900;color:var(--charcoal)}
+.shop-cart-confirm__box p{margin:0 0 14px;font-size:14px;line-height:1.5;color:var(--muted);word-break:keep-all}
+.shop-cart-confirm__actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+.shop-cart-confirm__actions .shop-btn{width:100%;padding:0 10px}
+/* 상품 리뷰 */
+.shop-stars{--rate:0;display:inline-block;font-size:14px;line-height:1;letter-spacing:1px;
+  background:linear-gradient(90deg,#f5a524 calc(var(--rate) / 5 * 100%),#ddd8d4 0);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.shop-stars::before{content:'★★★★★'}
+.shop-stars--lg{font-size:24px;letter-spacing:2px}
+.shop-detail-rating{display:inline-flex;align-items:center;gap:6px;margin:-2px 0 10px;font-size:13px;color:var(--muted);text-decoration:none}
+.shop-detail-rating b{color:var(--charcoal);font-weight:800}
+.shop-detail-rating:hover span:last-child{text-decoration:underline}
+.shop-reviews{margin:0 0 40px;padding:28px;border:1px solid #ece6e1;border-radius:22px;background:#fff;scroll-margin-top:90px}
+.shop-reviews__head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.shop-reviews__head h2{margin:0;font-size:20px;font-weight:900;color:var(--charcoal)}
+.shop-reviews__head h2 span{color:var(--accent)}
+.shop-reviews__write{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 18px;border:0;border-radius:999px;
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;font-size:14px;font-weight:800;cursor:pointer;
+  box-shadow:0 6px 16px var(--accent-shadow)}
+.shop-reviews__write:hover{filter:brightness(1.05)}
+.shop-reviews__pending{margin:-8px 0 16px;padding:10px 14px;border-radius:12px;background:#fff6e8;color:#9a6200;font-size:13px}
+.shop-reviews__summary{display:grid;grid-template-columns:200px 1fr;gap:28px;align-items:center;padding:20px 24px;margin-bottom:18px;border-radius:18px;background:#faf7f5}
+.shop-reviews__score{display:grid;justify-items:center;gap:6px;text-align:center}
+.shop-reviews__score strong{font-size:40px;font-weight:900;line-height:1;color:var(--charcoal)}
+.shop-reviews__score small{font-size:13px;color:var(--muted)}
+.shop-reviews__dist{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.shop-reviews__dist li{display:grid;grid-template-columns:34px 1fr 40px;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.shop-reviews__dist i{display:block;height:8px;border-radius:99px;background:#ebe5e0;overflow:hidden}
+.shop-reviews__dist b{display:block;height:100%;border-radius:inherit;background:#f5a524}
+.shop-reviews__dist em{font-style:normal;text-align:right}
+.shop-reviews__tabs{display:flex;gap:6px;margin-bottom:6px;border-bottom:1px solid #ece6e1}
+.shop-reviews__tabs button{margin-bottom:-1px;padding:10px 14px;border:0;border-bottom:2px solid transparent;background:none;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer}
+.shop-reviews__tabs button span{font-weight:500}
+.shop-reviews__tabs button.is-active{color:var(--charcoal);border-bottom-color:var(--charcoal)}
+.shop-review-list{margin:0;padding:0;list-style:none}
+.shop-review{position:relative;padding:18px 2px;border-bottom:1px solid #f0ebe7}
+.shop-review__meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;color:var(--muted)}
+.shop-review__meta b{color:var(--charcoal);font-weight:700}
+.shop-review__badge{padding:2px 8px;border-radius:99px;background:#f2eeeb;font-size:11px;font-weight:700;color:#6b645f}
+.shop-review__badge--photo{background:#e8f3ff;color:#1d6fd1}
+.shop-review__badge--mine{background:var(--accent-soft,#fdecef);color:var(--accent)}
+.shop-review__body{font-size:14px;line-height:1.7;color:#2e2a27;word-break:break-word;overflow-wrap:anywhere}
+.shop-review__body p{margin:0 0 6px}
+.shop-review__body img{display:inline-block;max-width:min(100%,240px);max-height:240px;margin:4px 6px 4px 0;border-radius:12px;object-fit:cover;cursor:zoom-in;vertical-align:top}
+.shop-review.is-clamped .shop-review__body{max-height:340px;overflow:hidden;-webkit-mask-image:linear-gradient(#000 70%,transparent);mask-image:linear-gradient(#000 70%,transparent)}
+.shop-review__toggle{margin-top:6px;padding:0;border:0;background:none;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;text-decoration:underline}
+.shop-reviews__empty{margin:0;padding:40px 0;text-align:center;font-size:14px;color:var(--muted)}
+.shop-reviews__more{display:block;width:100%;height:44px;margin-top:14px;border:1px solid #e4ddd7;border-radius:12px;background:#fff;font-size:14px;font-weight:700;color:var(--charcoal);cursor:pointer}
+.shop-reviews__more:hover{background:#faf7f5}
+.shop-reviews__more[hidden],.shop-reviews__empty[hidden],.shop-review__toggle[hidden]{display:none}
+.shop-review-lightbox{position:fixed;inset:0;z-index:1400;display:grid;place-items:center;padding:24px;background:rgba(20,16,14,.85);cursor:zoom-out}
+.shop-review-lightbox img{max-width:100%;max-height:100%;border-radius:12px}
+.shop-review-lightbox button{position:absolute;top:14px;right:18px;border:0;background:none;color:#fff;font-size:34px;cursor:pointer}
+.shop-review-modal{position:fixed;inset:0;z-index:1300;display:grid;place-items:center;padding:20px}
+.shop-review-modal[hidden]{display:none}
+.shop-review-modal__backdrop{position:absolute;inset:0;background:rgba(28,24,22,.45)}
+.shop-review-modal__panel{position:relative;display:flex;flex-direction:column;width:min(640px,100%);max-height:calc(100vh - 40px);border-radius:22px;background:#fff;box-shadow:0 24px 60px rgba(36,20,26,.25);overflow:hidden}
+.shop-review-modal__head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #f0ebe7}
+.shop-review-modal__head h3{margin:0;font-size:18px;font-weight:900;color:var(--charcoal)}
+.shop-review-modal__x{width:34px;height:34px;border:0;border-radius:50%;background:none;font-size:24px;color:#9a948f;cursor:pointer}
+.shop-review-modal__x:hover{background:#f6f2ef}
+.shop-review-modal__body{padding:18px 22px;overflow:auto}
+.shop-review-modal__product{margin:0 0 12px;font-size:14px;font-weight:700;color:var(--muted)}
+.shop-review-rate{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.shop-review-rate__label{font-size:14px;font-weight:800;color:var(--charcoal)}
+.shop-review-rate__stars{display:flex;gap:2px}
+.shop-review-rate__stars button{padding:0 2px;border:0;background:none;font-size:32px;line-height:1;color:#ddd8d4;cursor:pointer;transition:transform .12s,color .12s}
+.shop-review-rate__stars button.is-on{color:#f5a524}
+.shop-review-rate__stars button:hover{transform:scale(1.12)}
+.shop-review-rate em{font-style:normal;font-size:13px;color:var(--muted)}
+.shop-review-modal__hint{margin:10px 0 0;font-size:12px;color:var(--muted);line-height:1.5}
+.shop-review-modal__notice{margin:8px 0 0;padding:8px 12px;border-radius:10px;background:#fff6e8;color:#9a6200;font-size:12px}
+.shop-review-modal__foot{display:flex;gap:8px;justify-content:flex-end;padding:14px 22px;border-top:1px solid #f0ebe7}
+.shop-review-modal__foot button{height:44px;padding:0 20px;border:0;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer}
+.shop-review-modal__cancel{background:#f2eeeb;color:var(--charcoal)}
+.shop-review-modal__submit{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff}
+.shop-review-modal__submit:disabled{opacity:.6;cursor:default}
+.shop-review-modal__delete{margin-right:auto;background:#fff;color:#c0392b;border:1px solid #f0d4d0 !important}
+.shop-review-modal .note-editor.note-frame{border-radius:12px;border-color:#e4ddd7}
+.shop-review-modal .note-editable img{max-width:100%}
+body.is-review-modal-open{overflow:hidden}
+body.is-review-modal-open .note-modal{z-index:1450}
+body.is-review-modal-open .note-modal-backdrop{z-index:1440}
+@media (max-width:640px){
+  .shop-reviews{padding:20px 16px;border-radius:18px}
+  .shop-reviews__summary{grid-template-columns:1fr;gap:16px;padding:18px}
+  .shop-reviews__write{height:36px;padding:0 14px;font-size:13px}
+  .shop-review-modal{padding:0;align-items:end}
+  .shop-review-modal__panel{width:100%;max-height:92vh;border-radius:20px 20px 0 0}
+  .shop-review-modal__foot button{flex:1;padding:0 10px}
+  .shop-review-modal__delete{flex:0 0 auto !important}
+}
 /* 찜하기 / 공유하기 — 대표이미지 위에 떠 있는 레이어 */
 .shop-detail-social{
   position:absolute;top:12px;right:12px;z-index:2;
@@ -1039,10 +1194,6 @@ body.lu-postcode-open{overflow:hidden}
   .shop-cart-controls{grid-column:1/-1;justify-items:stretch;grid-template-columns:1fr auto auto;align-items:center}
   .shop-detail{padding:16px;border-radius:18px}
   .shop-detail-specs{grid-template-columns:1fr}
-  .shop-detail-buy{grid-template-columns:1fr}
-  .shop-detail-buy .shop-qty{width:100%;justify-content:space-between}
-  .shop-detail-buy .shop-qty input{flex:1}
-  .shop-detail-secondary{grid-template-columns:1fr}
   .shop-detail-price{padding:12px 14px}
   .shop-detail-stock{margin-left:0;width:100%}
 }

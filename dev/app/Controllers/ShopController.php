@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Services\AuthService;
 use App\Services\EventPopupService;
+use App\Services\ShopReviewService;
 use App\Services\ShopService;
 use App\Services\ShopWishlistService;
 
@@ -109,6 +110,7 @@ final class ShopController extends BaseController
             4
         );
 
+        $reviews = new ShopReviewService();
         $desc = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($product['description'] ?? ''))));
         if ($desc === '') {
             $desc = trim((string) ($product['spec'] ?? ''));
@@ -148,13 +150,24 @@ final class ShopController extends BaseController
                 $related['items'],
                 static fn (array $row): bool => (int) $row['id'] !== (int) $product['id']
             )),
+            'reviewSummary' => $reviews->summary((int) $product['id']),
+            'myReview' => $reviews->myReview((int) ($this->auth->id() ?? 0), (int) $product['id']),
+            'reviewApproval' => $reviews->approvalMode(),
         ]);
     }
 
     public function cart(): void
     {
-        $this->renderShop('shop/cart', '장바구니 — 라벨업 쇼핑몰', [
+        $buyNow = ($_GET['mode'] ?? '') === 'buy';
+        if ($buyNow) {
+            if (!$this->shop->hasBuyNow()) {
+                redirect('shop/cart');
+            }
+            $this->shop->useBuyNow();
+        }
+        $this->renderShop('shop/cart', ($buyNow ? '바로구매' : '장바구니') . ' — 라벨업 쇼핑몰', [
             'seoPage' => 'shop-cart',
+            'buyNow' => $buyNow,
             'cart' => $this->shop->cartSummary(),
             'tossEnabled' => (new \App\Services\TossPaymentsService())->isEnabled(),
         ]);

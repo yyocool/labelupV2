@@ -141,6 +141,8 @@ final class AdminAccessService
             '/api/admin/event-popup' => 'ops-event-popups',
             '/admin/ops/faq' => 'ops-faq',
             '/api/admin/faq' => 'ops-faq',
+            '/admin/ops/reviews' => 'ops-reviews',
+            '/api/admin/reviews' => 'ops-reviews',
             '/admin/ops/inquiries' => 'ops-inquiries',
             '/api/admin/inquiry' => 'ops-inquiries',
             '/admin/ops/error-reports' => 'ops-error-reports',
