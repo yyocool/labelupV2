@@ -8,6 +8,7 @@ use App\Controllers\BaseController;
 use App\Middleware\AuthMiddleware;
 use App\Services\AuthService;
 use App\Services\InquiryService;
+use App\Services\OpsSmsNotifier;
 use RuntimeException;
 
 final class InquiryApiController extends BaseController
@@ -23,6 +24,12 @@ final class InquiryApiController extends BaseController
                 'name' => $payload['name'] ?? ($user['name'] ?? ''),
                 'email' => $payload['email'] ?? ($user['email'] ?? ''),
             ], $auth->id());
+            OpsSmsNotifier::notify('new_inquiry', sprintf(
+                '1:1 문의 #%d %s: %s',
+                $id,
+                mb_substr(trim((string) ($payload['name'] ?? ($user['name'] ?? ''))), 0, 10),
+                mb_substr(trim((string) ($payload['subject'] ?? '')), 0, 40)
+            ));
             $this->jsonSuccess(['id' => $id], '문의가 접수되었습니다.');
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage(), null, 422);

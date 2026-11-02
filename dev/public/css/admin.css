@@ -403,6 +403,11 @@
 .admin-lnb-sub:hover{background:rgba(255,255,255,.08);color:#fff}
 .admin-lnb-sub.is-active{background:rgba(255,248,250,.96);color:var(--burgundy-dark);font-weight:800}
 .admin-lnb-sub .ic{width:18px;text-align:center;font-size:14px;flex-shrink:0}
+.admin-lnb-subhead{display:flex;align-items:center;gap:10px;height:30px;margin-top:4px;padding:0 10px 0 14px;font-size:12px;font-weight:800;color:#a8909a;letter-spacing:.02em}
+.admin-lnb-subhead .ic{width:18px;text-align:center;font-size:12px;flex-shrink:0}
+.admin-lnb-sub--nested{padding-left:30px}
+.admin-app.is-lnb-collapsed .admin-lnb-subhead{display:none}
+.admin-app.is-lnb-collapsed .admin-lnb-sub--nested{padding-left:0}
 
 .admin-kpis--sub{margin-top:-8px;margin-bottom:20px}
 .admin-kpi--sm{min-height:72px;padding:12px 14px}

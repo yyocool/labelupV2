@@ -34,7 +34,7 @@ $menuIcon = static fn (string $key): string => '<span class="profile-dropdown-ic
     </div>
     <nav class="profile-dropdown-nav" aria-label="사용자 메뉴">
       <div class="profile-dropdown-mobile">
-        <a class="profile-dropdown-item profile-dropdown-credit<?= $menuBalance < 0 ? ' is-debt' : '' ?>" href="<?= url('account') ?>#credits">
+        <a class="profile-dropdown-item profile-dropdown-credit<?= $menuBalance < 0 ? ' is-debt' : '' ?>" href="<?= url('account') ?>#credits" data-credit-history-open aria-haspopup="dialog">
           <?= $menuIcon('ink') ?>
           <span><?= $menuBalance < 0 ? '미정산' : '내 잉크' ?></span>
           <strong><?= e(number_format($menuBalance)) ?> C</strong>

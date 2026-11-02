@@ -743,6 +743,13 @@ final class ShopService
             'raw' => $confirmed,
         ]);
         $this->grantPurchasedInk((int) $order['id']);
+        OpsSmsNotifier::notify('paid_order', sprintf(
+            '신규 결제 %s %s원 (%s · %s)',
+            (string) $order['order_no'],
+            number_format((int) $order['total_amount']),
+            mb_substr((string) ($order['customer_name'] ?? '-'), 0, 10),
+            TossPaymentsService::methodLabel($confirmed)
+        ));
 
         return [
             'order_no' => (string) $order['order_no'],

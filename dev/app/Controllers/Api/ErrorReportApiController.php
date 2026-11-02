@@ -8,6 +8,7 @@ use App\Controllers\BaseController;
 use App\Middleware\AuthMiddleware;
 use App\Services\AuthService;
 use App\Services\ErrorReportService;
+use App\Services\OpsSmsNotifier;
 use RuntimeException;
 
 final class ErrorReportApiController extends BaseController
@@ -29,6 +30,12 @@ final class ErrorReportApiController extends BaseController
                 $files = [];
             }
             $id = (new ErrorReportService())->submit((int) $auth->id(), $payload, $files);
+            OpsSmsNotifier::notify('error_report', sprintf(
+                '%s 접수 #%d: %s',
+                ($payload['kind'] ?? 'error') === 'error' ? '오류' : '제안',
+                $id,
+                mb_substr(trim((string) ($payload['title'] ?? '')), 0, 40)
+            ));
             $this->jsonSuccess(['id' => $id], '접수되었습니다. 확인 후 결과를 안내합니다.');
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage(), null, 422);

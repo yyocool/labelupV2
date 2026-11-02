@@ -40,6 +40,13 @@ final class NaverSmsSettings
         return $config;
     }
 
+    /** 회원가입 문자인증 사용 여부와 무관하게 SENS 키가 모두 있으면 반환한다. */
+    public static function sendConfig(): ?array
+    {
+        $config = self::stored();
+        return self::isReady($config) ? $config : null;
+    }
+
     /** @return array<string, mixed> */
     public static function adminPayload(): array
     {

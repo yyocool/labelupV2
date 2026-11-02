@@ -65,6 +65,9 @@ use App\Controllers\SiteIntroAdminController;
 use App\Controllers\Api\SiteIntroAdminApiController;
 use App\Controllers\SiteModeAdminController;
 use App\Controllers\Api\SiteModeAdminApiController;
+use App\Controllers\Api\OpenAiBillingAdminApiController;
+use App\Controllers\NotifySmsAdminController;
+use App\Controllers\Api\NotifySmsAdminApiController;
 use App\Controllers\Api\SiteRuntimeApiController;
 use App\Services\SiteModeService;
 use App\Controllers\MemberGradeAdminController;
@@ -240,6 +243,9 @@ final class Router
         $introAdminApi = new SiteIntroAdminApiController();
         $siteModeAdmin = new SiteModeAdminController();
         $siteModeAdminApi = new SiteModeAdminApiController();
+        $openAiBillingApi = new OpenAiBillingAdminApiController();
+        $notifySmsAdmin = new NotifySmsAdminController();
+        $notifySmsApi = new NotifySmsAdminApiController();
         $siteRuntimeApi = new SiteRuntimeApiController();
         $memberGradeAdmin = new MemberGradeAdminController();
         $memberGradeAdminApi = new MemberGradeAdminApiController();
@@ -311,6 +317,7 @@ final class Router
         $router->get('/admin/settings/tracking', [$seoAdmin, 'marketing']);
         $router->get('/admin/settings/intro', [$introAdmin, 'index']);
         $router->get('/admin/settings/environment', [$siteModeAdmin, 'index']);
+        $router->get('/admin/settings/notify-sms', [$notifySmsAdmin, 'index']);
         $router->get('/partner/login', [$partnerPortal, 'loginForm']);
         $router->post('/partner/login', [$partnerPortal, 'login']);
         $router->get('/partner/logout', [$partnerPortal, 'logout']);
@@ -449,6 +456,12 @@ final class Router
         $router->post('/api/admin/site-mode/save', [$siteModeAdminApi, 'save']);
         $router->post('/api/admin/ai-settings/save', [$siteModeAdminApi, 'saveAi']);
         $router->post('/api/admin/naver-sms/save', [$siteModeAdminApi, 'saveNaverSms']);
+        $router->get('/api/admin/openai-billing/summary', [$openAiBillingApi, 'summary']);
+        $router->post('/api/admin/openai-billing/save', [$openAiBillingApi, 'saveConfig']);
+        $router->post('/api/admin/openai-billing/topup', [$openAiBillingApi, 'addTopup']);
+        $router->post('/api/admin/openai-billing/topup/delete', [$openAiBillingApi, 'deleteTopup']);
+        $router->post('/api/admin/notify-sms/save', [$notifySmsApi, 'save']);
+        $router->post('/api/admin/notify-sms/test', [$notifySmsApi, 'test']);
         $router->get('/api/site/runtime', [$siteRuntimeApi, 'runtime']);
 
         $router->post('/api/admin/login', [$adminApi, 'login']);

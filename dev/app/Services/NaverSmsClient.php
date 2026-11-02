@@ -18,7 +18,12 @@ final class NaverSmsClient
     /** @param array{service_id: string, access_key: string, secret_key: string, sender: string} $config */
     public function sendAuthCode(array $config, string $to, string $code): void
     {
-        $content = '[라벨업] 인증번호 ' . $code;
+        $this->sendText($config, $to, '[라벨업] 인증번호 ' . $code, '라벨업 인증번호', '인증번호를 보내지 못했습니다. 서비스 ID와 발신번호를 확인해 주세요.');
+    }
+
+    /** @param array{service_id: string, access_key: string, secret_key: string, sender: string} $config */
+    public function sendText(array $config, string $to, string $content, string $subject = '라벨업 알림', string $failMessage = '문자를 보내지 못했습니다. 서비스 ID와 발신번호를 확인해 주세요.'): void
+    {
         $type = $this->eucKrBytes($content) > 90 ? 'LMS' : 'SMS';
         $path = '/sms/v2/services/' . $config['service_id'] . '/messages';
         $body = [
@@ -32,14 +37,14 @@ final class NaverSmsClient
             ],
         ];
         if ($type === 'LMS') {
-            $body['subject'] = '라벨업 인증번호';
+            $body['subject'] = $subject;
         }
 
         $timestamp = (string) (int) round(microtime(true) * 1000);
         $signature = $this->sign('POST', $path, $timestamp, $config['access_key'], $config['secret_key']);
         $payload = json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if ($payload === false) {
-            throw new RuntimeException('인증번호 문자를 만들지 못했습니다.');
+            throw new RuntimeException('문자 내용을 만들지 못했습니다.');
         }
 
         $headers = [
@@ -63,7 +68,7 @@ final class NaverSmsClient
         if ($status === 401 || $status === 403) {
             throw new RuntimeException('네이버 문자 API 인증에 실패했습니다. 환경설정의 Access Key와 Secret Key를 확인해 주세요.');
         }
-        throw new RuntimeException('인증번호를 보내지 못했습니다. 서비스 ID와 발신번호를 확인해 주세요.');
+        throw new RuntimeException($failMessage);
     }
 
     private function sign(string $method, string $path, string $timestamp, string $accessKey, string $secretKey): string

@@ -1037,6 +1037,26 @@ PROMPT;
     }
 
     /** @param array<string, mixed> $payload */
+    /** 사용자 입력 문제(400 정책 위반 등)·일시적 속도 제한은 알리지 않고, 서비스가 멈추는 오류만 운영 문자로 보낸다. */
+    private function alertOps(int $status, string $errCode, string $message): void
+    {
+        $blocking = ['insufficient_quota', 'billing_hard_limit_reached', 'billing_not_active', 'invalid_api_key', 'account_deactivated'];
+        if (!in_array($errCode, $blocking, true) && !in_array($status, [401, 403], true) && $status < 500) {
+            return;
+        }
+        $reason = match (true) {
+            in_array($errCode, ['insufficient_quota', 'billing_hard_limit_reached', 'billing_not_active'], true) => '잔액 소진/결제 한도',
+            $errCode === 'invalid_api_key' || $status === 401 => 'API 키 오류',
+            $status >= 500 => 'OpenAI 서버 장애',
+            default => '요청 거부',
+        };
+        OpsSmsNotifier::notify(
+            'ai_api_error',
+            sprintf('Chat GPT API 오류 (%s, HTTP %d): %s', $reason, $status, mb_substr($message, 0, 80)),
+            $errCode !== '' ? $errCode : (string) $status
+        );
+    }
+
     private function request(string $apiKey, string $url, array $payload, int $timeout = 120): array
     {
         $body = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -1096,6 +1116,7 @@ PROMPT;
             if ($errCode !== '') {
                 $message .= ' [' . $errCode . ']';
             }
+            $this->alertOps($status, $errCode, $message);
             throw new RuntimeException($message);
         }
 

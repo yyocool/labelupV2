@@ -7,9 +7,12 @@ $settingsMenus = admin_filter_menu_items([
     ['key' => 'settings-seo', 'label' => 'SEO 설정', 'href' => 'admin/settings/seo', 'ic' => '◎'],
     ['key' => 'settings-tracking', 'label' => '광고 스크립트', 'href' => 'admin/settings/tracking', 'ic' => '◈'],
 ]);
+$notifyMenus = admin_filter_menu_items([
+    ['key' => 'settings-notify-sms', 'label' => '문자알림 설정', 'href' => 'admin/settings/notify-sms', 'ic' => '✉'],
+]);
 $isSettingsOpen = ($menuGroup ?? '') === 'settings'
-    || in_array((string) ($activeMenu ?? ''), ['settings-admins', 'settings-member-grades', 'settings-environment', 'settings-intro', 'settings-seo', 'settings-tracking'], true);
-if ($settingsMenus === []) {
+    || in_array((string) ($activeMenu ?? ''), ['settings-admins', 'settings-member-grades', 'settings-environment', 'settings-intro', 'settings-seo', 'settings-tracking', 'settings-notify-sms'], true);
+if ($settingsMenus === [] && $notifyMenus === []) {
     return;
 }
 ?>
@@ -23,5 +26,13 @@ if ($settingsMenus === []) {
       <span class="ic"><?= $m['ic'] ?></span><span class="label"><?= e($m['label']) ?></span>
     </a>
     <?php endforeach; ?>
+    <?php if ($notifyMenus !== []): ?>
+    <div class="admin-lnb-subhead"><span class="ic">🔔</span><span class="label">알림 설정</span></div>
+    <?php foreach ($notifyMenus as $m): ?>
+    <a class="admin-lnb-sub admin-lnb-sub--nested<?= ($activeMenu ?? '') === $m['key'] ? ' is-active' : '' ?>" href="<?= url($m['href']) ?>" title="알림 설정 › <?= e($m['label']) ?>">
+      <span class="ic"><?= $m['ic'] ?></span><span class="label"><?= e($m['label']) ?></span>
+    </a>
+    <?php endforeach; ?>
+    <?php endif; ?>
   </div>
 </div>

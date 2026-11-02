@@ -192,6 +192,60 @@ img{display:block;max-width:100%}
 .bug-report-modal__alert{margin:0 0 10px;font-size:15px;color:#b42318}
 .bug-report-modal__alert.is-ok{color:#067647}
 .bug-report-modal__foot{display:flex;justify-content:flex-end;gap:8px}
+/* 내 잉크 이력 팝업 */
+.credit-history-modal{position:fixed;inset:0;z-index:1350}
+.credit-history-modal[hidden]{display:none}
+.credit-history-modal__backdrop{position:absolute;inset:0;background:rgba(46,42,39,.08)}
+.credit-history-modal__dialog{
+  position:fixed;top:72px;right:12px;display:flex;flex-direction:column;width:min(440px,calc(100vw - 24px));max-height:min(640px,calc(100vh - 88px));
+  background:#fff;border:1px solid #eee7e3;border-radius:18px;box-shadow:0 18px 48px rgba(46,42,39,.2);
+  transform-origin:var(--arrow-x,90%) 0;animation:creditPop .16s ease-out;
+}
+.credit-history-modal__dialog::before{
+  content:"";position:absolute;top:-7px;left:var(--arrow-x,90%);width:12px;height:12px;margin-left:-6px;
+  background:#fff;border-left:1px solid #eee7e3;border-top:1px solid #eee7e3;transform:rotate(45deg);border-radius:3px 0 0 0;
+}
+.credit-history-modal__dialog > *:last-child{border-radius:0 0 18px 18px}
+@keyframes creditPop{from{opacity:0;transform:translateY(-6px) scale(.98)}to{opacity:1;transform:none}}
+.credit-history-modal__head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 10px}
+.credit-history-modal__head h2{margin:0;font-size:19px;font-weight:900;color:var(--charcoal,#2e2a27)}
+.credit-history-modal__close{width:34px;height:34px;border:0;border-radius:50%;background:transparent;font-size:26px;line-height:1;cursor:pointer;color:#8a8580}
+.credit-history-modal__close:hover{background:#f6f2ef}
+.credit-history-balance{display:flex;align-items:center;gap:10px;margin:0 22px 12px;padding:16px 18px;border-radius:16px;background:linear-gradient(120deg,#fbf3f5,#f7f1ec)}
+.credit-history-balance span{font-size:14px;font-weight:700;color:#7a7d88}
+.credit-history-balance strong{font-size:24px;font-weight:900;color:var(--accent)}
+.credit-history-balance strong.is-debt{color:#b42318}
+.credit-history-charge{margin-left:auto;padding:8px 14px;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;font-size:13px;font-weight:800;text-decoration:none;white-space:nowrap}
+.credit-history-charge:hover{filter:brightness(1.06)}
+.credit-history-debt{margin:-4px 22px 10px;padding:8px 12px;border-radius:10px;background:#fff4f2;color:#b42318;font-size:13px;line-height:1.5}
+.credit-history-debt[hidden]{display:none}
+.credit-history-body{flex:1;min-height:120px;overflow:auto;padding:0 22px 8px;-webkit-overflow-scrolling:touch}
+.credit-history-list{margin:0;padding:0;list-style:none}
+.credit-history-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f1ece8}
+.credit-history-row div:first-child{display:grid;gap:3px;min-width:0}
+.credit-history-row strong{font-size:14px;font-weight:700;color:#2e2a27;overflow-wrap:anywhere}
+.credit-history-row span{font-size:12px;color:#8a8d98}
+.credit-history-amt{display:grid;justify-items:end;gap:2px;flex:0 0 auto;text-align:right}
+.credit-history-amt b{font-size:15px;font-weight:900;white-space:nowrap}
+.credit-history-amt b.is-plus{color:#067647}
+.credit-history-amt b.is-minus{color:#b42318}
+.credit-history-amt small{font-size:11px;color:#9a948f;white-space:nowrap}
+.credit-history-loading,.credit-history-empty{padding:36px 0;text-align:center;font-size:14px;color:#8a8d98;list-style:none}
+.credit-history-empty{margin:0}
+.credit-history-empty[hidden],.credit-history-more[hidden]{display:none}
+.credit-history-more{display:block;width:100%;height:40px;margin:10px 0 4px;border:1px solid #e6e1de;border-radius:12px;background:#fff;font-size:14px;font-weight:700;color:#2e2a27;cursor:pointer}
+.credit-history-more:hover{background:#faf7f5}
+.credit-history-modal__foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 22px 16px;border-top:1px solid #f1ece8;font-size:13px;color:#8a8d98}
+.credit-history-modal__foot a{color:var(--accent);font-weight:700;text-decoration:none}
+.credit-history-modal__foot a:hover{text-decoration:underline}
+body.is-credit-history-open{overflow:hidden}
+@media(max-width:640px){
+  .credit-history-modal__head{padding:14px 16px 8px}
+  .credit-history-balance{margin:0 16px 10px;padding:12px 14px}
+  .credit-history-balance strong{font-size:20px}
+  .credit-history-body{padding:0 16px 8px}
+  .credit-history-modal__foot{padding:10px 16px 14px}
+}
 .login{height:40px;border:0;border-radius:22px;background:var(--charcoal);color:#fff;padding:0 20px;font-size:14px;font-weight:800;display:inline-flex;align-items:center}
 a.create{display:flex;align-items:center;justify-content:center;text-decoration:none;color:#fff}
 a.login{text-decoration:none}

@@ -8,6 +8,7 @@ use App\Middleware\AuthMiddleware;
 use App\Services\AiProviderSettings;
 use App\Services\AuthService;
 use App\Services\NaverSmsSettings;
+use App\Services\OpenAiBillingService;
 use App\Services\SiteModeService;
 
 final class SiteModeAdminController extends BaseController
@@ -34,6 +35,7 @@ final class SiteModeAdminController extends BaseController
             'siteMode' => $this->siteMode->adminPayload(),
             'aiSettings' => AiProviderSettings::adminPayload(),
             'naverSms' => NaverSmsSettings::adminPayload(),
+            'openaiBilling' => OpenAiBillingService::adminPayload(),
         ]);
     }
 

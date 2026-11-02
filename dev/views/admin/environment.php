@@ -30,6 +30,7 @@ $smsSecretReady = !empty($naverSms['secret_configured']);
 $smsReady = !empty($naverSms['ready']);
 $smsSignupEnabled = !empty($naverSms['signup_enabled']);
 $smsSaveUrl = url('api/admin/naver-sms/save');
+$openaiBilling = $openaiBilling ?? [];
 ?>
 <div class="admin-head">
   <div>
@@ -122,6 +123,50 @@ $smsSaveUrl = url('api/admin/naver-sms/save');
       </div>
     </div>
   </form>
+
+  <div class="admin-card admin-seo-form oab" id="openaiBillingCard">
+    <div class="oab-head">
+      <div>
+        <strong>OpenAI 사용량·잔액</strong>
+        <p class="admin-muted">OpenAI는 남은 잔액을 알려주는 API가 없어, 충전 기록 합계에서 첫 충전일 이후 사용 금액(Costs API)을 빼서 추정 잔액을 계산합니다. 대시보드에 표시됩니다.</p>
+      </div>
+      <a class="admin-btn" href="https://platform.openai.com/settings/organization/billing/overview" target="_blank" rel="noopener">OpenAI 결제 페이지 ↗</a>
+    </div>
+    <div class="admin-form-grid">
+      <label class="admin-field">
+        <span>Admin API 키 <em class="oab-key-state" id="oabKeyState"><?= !empty($openaiBilling['key_configured']) ? '저장됨 ' . e((string) $openaiBilling['key_hint']) : '미설정' ?></em></span>
+        <input class="admin-input" type="password" id="oabKey" maxlength="300" autocomplete="new-password" placeholder="<?= !empty($openaiBilling['key_configured']) ? '저장됨 · 바꿀 때만 입력' : 'sk-admin-…' ?>">
+        <small class="admin-muted">platform.openai.com › 조직 설정 › Admin keys 에서 발급 (사이트 OPENAI_API_KEY와 별개)</small>
+      </label>
+      <label class="admin-field">
+        <span>잔액 경고 기준 (USD)</span>
+        <input class="admin-input" type="number" id="oabThreshold" min="0" step="0.01" value="<?= e((string) ($openaiBilling['low_threshold'] ?? 10)) ?>">
+        <small class="admin-muted">추정 잔액이 이 금액 이하이면 대시보드에 경고를 띄웁니다.</small>
+      </label>
+    </div>
+    <div class="oab-actions">
+      <button type="button" class="admin-btn admin-btn--primary" id="oabSave">키·경고 기준 저장</button>
+      <?php if (!empty($openaiBilling['key_configured'])): ?>
+      <button type="button" class="admin-btn" id="oabClearKey">키 삭제</button>
+      <?php endif; ?>
+    </div>
+
+    <div class="oab-topup">
+      <strong>충전 기록</strong>
+      <p class="admin-muted">OpenAI에서 크레딧을 충전할 때마다 기록해 주세요. 처음 쓸 때는 OpenAI 결제 페이지에 보이는 현재 잔액을 오늘 날짜로 한 번 입력하면 됩니다. 날짜는 UTC 기준입니다.</p>
+      <div class="oab-topup-form">
+        <input class="admin-input" type="date" id="oabTopDate" value="<?= e(gmdate('Y-m-d')) ?>" max="<?= e(gmdate('Y-m-d')) ?>">
+        <input class="admin-input" type="number" id="oabTopAmount" min="0.01" step="0.01" placeholder="금액 (USD)">
+        <input class="admin-input" type="text" id="oabTopMemo" maxlength="100" placeholder="메모 (선택)">
+        <button type="button" class="admin-btn admin-btn--primary" id="oabTopAdd">추가</button>
+      </div>
+      <table class="admin-table oab-table">
+        <thead><tr><th>충전일</th><th>금액</th><th>메모</th><th></th></tr></thead>
+        <tbody id="oabTopList"></tbody>
+        <tfoot><tr><th>합계</th><th id="oabTopTotal">$0.00</th><th colspan="2"></th></tr></tfoot>
+      </table>
+    </div>
+  </div>
 </section>
 
 <section class="admin-env-pane" data-pane="sms" id="envPaneSms" hidden>
@@ -190,6 +235,17 @@ $smsSaveUrl = url('api/admin/naver-sms/save');
 .admin-ai-status-item.is-ready{border-color:#86efac;background:#f0fdf4}
 .admin-ai-status-item.is-missing{border-color:#fde68a;background:#fffbeb}
 @media (max-width:1100px){.admin-mode-grid,.admin-ai-status{grid-template-columns:1fr}}
+.oab{margin-top:16px}
+.oab-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+.oab-head strong,.oab-topup strong{font-size:15px;color:#111827}
+.oab-head p,.oab-topup p{margin:6px 0 0}
+.oab-key-state{font-style:normal;font-weight:600;font-size:12px;color:#6b7280;margin-left:6px}
+.oab-actions{display:flex;gap:8px;margin-top:12px}
+.oab-topup{margin-top:22px;padding-top:18px;border-top:1px solid #eef0f3}
+.oab-topup-form{display:grid;grid-template-columns:160px 140px minmax(0,1fr) auto;gap:8px;margin:12px 0}
+.oab-table td:last-child{text-align:right;width:70px}
+.oab-table .empty{text-align:center;color:#9ca3af}
+@media (max-width:800px){.oab-head{flex-direction:column}.oab-topup-form{grid-template-columns:1fr 1fr}}
 </style>
 <script>
 (function () {
@@ -412,5 +468,101 @@ $smsSaveUrl = url('api/admin/naver-sms/save');
 
   var hash = String(location.hash || '').replace('#', '');
   setTab(hash === 'ai' || hash === 'sms' ? hash : 'site');
+})();
+
+(function () {
+  var card = document.getElementById('openaiBillingCard');
+  if (!card) return;
+  var alertEl = document.getElementById('adminAlert');
+  var urls = {
+    save: <?= json_encode(url('api/admin/openai-billing/save'), JSON_UNESCAPED_SLASHES) ?>,
+    topup: <?= json_encode(url('api/admin/openai-billing/topup'), JSON_UNESCAPED_SLASHES) ?>,
+    del: <?= json_encode(url('api/admin/openai-billing/topup/delete'), JSON_UNESCAPED_SLASHES) ?>
+  };
+  var state = <?= json_encode($openaiBilling ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var usd = function (n) { return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+
+  function showAlert(msg, ok) {
+    if (!alertEl) return;
+    alertEl.textContent = msg;
+    alertEl.className = 'admin-alert ' + (ok ? 'is-ok' : 'is-err');
+    alertEl.style.display = 'block';
+  }
+
+  function paint() {
+    var list = document.getElementById('oabTopList');
+    var rows = (state.topups || []).map(function (t) {
+      return '<tr><td>' + esc(t.date) + '</td><td>' + usd(t.amount) + '</td><td>' + esc(t.memo) + '</td>'
+        + '<td><button type="button" class="admin-btn admin-btn--danger" data-oab-del="' + esc(t.id) + '">삭제</button></td></tr>';
+    });
+    list.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="4" class="empty">충전 기록이 없습니다.</td></tr>';
+    document.getElementById('oabTopTotal').textContent = usd(state.topup_total);
+    var keyInput = document.getElementById('oabKey');
+    document.getElementById('oabKeyState').textContent = state.key_configured ? '저장됨 ' + (state.key_hint || '') : '미설정';
+    keyInput.placeholder = state.key_configured ? '저장됨 · 바꿀 때만 입력' : 'sk-admin-…';
+    var clearBtn = document.getElementById('oabClearKey');
+    if (clearBtn) clearBtn.hidden = !state.key_configured;
+  }
+
+  async function post(url, body, btn) {
+    if (btn) btn.disabled = true;
+    try {
+      var res = await fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      var data = await res.json().catch(function () { return {}; });
+      if (!res.ok || data.success === false) throw new Error(data.message || '저장에 실패했습니다.');
+      state = ((data.data || {}).openaiBilling) || state;
+      paint();
+      showAlert(data.message || '저장했습니다.', true);
+      return true;
+    } catch (err) {
+      showAlert(err.message || '저장에 실패했습니다.', false);
+      return false;
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  document.getElementById('oabSave').addEventListener('click', async function () {
+    var keyInput = document.getElementById('oabKey');
+    var ok = await post(urls.save, {
+      admin_key: keyInput.value.trim(),
+      low_threshold: document.getElementById('oabThreshold').value || '0'
+    }, this);
+    if (ok) keyInput.value = '';
+  });
+
+  var clearBtn = document.getElementById('oabClearKey');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', function () {
+      if (!confirm('저장된 Admin API 키를 삭제할까요?')) return;
+      post(urls.save, { clear_key: true }, clearBtn);
+    });
+  }
+
+  document.getElementById('oabTopAdd').addEventListener('click', async function () {
+    var amount = document.getElementById('oabTopAmount');
+    var memo = document.getElementById('oabTopMemo');
+    var ok = await post(urls.topup, {
+      date: document.getElementById('oabTopDate').value,
+      amount: amount.value,
+      memo: memo.value
+    }, this);
+    if (ok) { amount.value = ''; memo.value = ''; }
+  });
+
+  card.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-oab-del]');
+    if (!btn) return;
+    if (!confirm('이 충전 기록을 삭제할까요?')) return;
+    post(urls.del, { id: btn.getAttribute('data-oab-del') }, btn);
+  });
+
+  paint();
 })();
 </script>
