@@ -153,6 +153,14 @@ function e(?string $value): string
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 }
 
+function example_prompt_chip_label(?string $label, string $fallback = '예시'): string
+{
+    $text = trim((string) $label);
+    $stripped = preg_replace('/^[^\p{L}\p{N}]+/u', '', $text);
+    $text = trim((string) $stripped);
+    return $text !== '' ? $text : $fallback;
+}
+
 /**
  * shop_categories.name 이 인코딩 손실로 ???? 가 된 경우 slug로 복구한다.
  */
