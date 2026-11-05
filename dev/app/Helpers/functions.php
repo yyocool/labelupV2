@@ -45,6 +45,34 @@ function view_path(string $path = ''): string
     return base_path('views' . ($path ? '/' . ltrim($path, '/') : ''));
 }
 
+function request_host(): string
+{
+    $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+    $host = preg_replace('/:\d+$/', '', $host) ?? $host;
+    return $host;
+}
+
+function is_labelup_public_host(?string $host = null): bool
+{
+    $host = $host ?? request_host();
+    return $host === 'labelup.co.kr' || $host === 'www.labelup.co.kr';
+}
+
+/** www / apex 가 같은 로그인 세션을 쓰도록 상위 도메인에 쿠키를 둔다. */
+function site_cookie_domain(): string
+{
+    return is_labelup_public_host() ? '.labelup.co.kr' : '';
+}
+
+function site_origin(): string
+{
+    $host = request_host();
+    if (!is_labelup_public_host($host)) {
+        return '';
+    }
+    return 'https://' . $host;
+}
+
 function url(string $path = ''): string
 {
     $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');

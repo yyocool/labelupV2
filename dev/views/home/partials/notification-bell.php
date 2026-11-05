@@ -17,6 +17,7 @@ $wrapClass = trim((string) ($bellWrapClass ?? 'notif-bell-wrap'));
       <div class="notif-panel__actions">
         <button type="button" data-notif-read-all>모두 읽음</button>
         <a href="<?= url('account') ?>#notifications">설정</a>
+        <button type="button" class="notif-panel__close" data-notif-close aria-label="알림 닫기" title="닫기">×</button>
       </div>
     </div>
     <div class="notif-panel__list" data-notif-list>

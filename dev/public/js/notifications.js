@@ -93,6 +93,15 @@
     });
   };
 
+  const fitPanel = (panel) => {
+    panel.style.right = '';
+    const margin = 12;
+    const rect = panel.getBoundingClientRect();
+    if (rect.left < margin) {
+      panel.style.right = (rect.left - margin) + 'px';
+    }
+  };
+
   wraps.forEach((wrap) => {
     const btn = wrap.querySelector('[data-notif-toggle]');
     const panel = wrap.querySelector('[data-notif-panel]');
@@ -105,18 +114,35 @@
       closeAll();
       if (!open) return;
       panel.hidden = false;
+      fitPanel(panel);
       btn.setAttribute('aria-expanded', 'true');
       await refresh();
     });
 
     panel.addEventListener('click', (e) => e.stopPropagation());
+    wrap.querySelector('[data-notif-close]')?.addEventListener('click', () => {
+      closeAll();
+      btn.focus();
+    });
 
     readAll?.addEventListener('click', async () => {
+      if (readAll.disabled) return;
+      const label = readAll.textContent;
+      readAll.disabled = true;
+      setBadge(0);
+      wraps.forEach((w) => w.querySelectorAll('.notif-item.is-unread').forEach((el) => el.classList.remove('is-unread')));
       try {
         const data = await api.post('/api/notifications/read', {});
         setBadge(data.unread || 0);
+        readAll.textContent = '읽음 완료 ✓';
+      } catch (_) {
+        readAll.textContent = '실패, 다시 시도';
         await refresh();
-      } catch (_) { /* ignore */ }
+      }
+      setTimeout(() => {
+        readAll.textContent = label;
+        readAll.disabled = false;
+      }, 1800);
     });
 
     panel.addEventListener('click', async (e) => {
@@ -124,6 +150,12 @@
       if (!item) return;
       const id = Number(item.getAttribute('data-id') || 0);
       if (!id) return;
+      if (item.classList.contains('is-unread')) {
+        item.classList.remove('is-unread');
+        const badge = wrap.querySelector('[data-notif-badge]');
+        const n = badge && !badge.hidden ? parseInt(badge.textContent, 10) : 0;
+        if (n > 0 && n < 100) setBadge(n - 1);
+      }
       try {
         const data = await api.post('/api/notifications/read', { id });
         setBadge(data.unread || 0);
@@ -133,6 +165,12 @@
   });
 
   document.addEventListener('click', closeAll);
+  window.addEventListener('resize', () => {
+    wraps.forEach((wrap) => {
+      const panel = wrap.querySelector('[data-notif-panel]');
+      if (panel && !panel.hidden) fitPanel(panel);
+    });
+  });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeAll();
   });

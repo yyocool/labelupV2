@@ -214,7 +214,12 @@ document.querySelectorAll('.admin-legal-tab').forEach((tab) => {
 });
 
 if (document.querySelector('.js-legal-editor')) {
-  initActiveLegalEditors();
+  const hashKey = location.hash.slice(1);
+  if (hashKey && document.querySelector(`.admin-legal-tab[data-tab="${CSS.escape(hashKey)}"]`)) {
+    switchLegalTab(hashKey);
+  } else {
+    initActiveLegalEditors();
+  }
 }
 
 document.querySelectorAll('.admin-legal-form').forEach((form) => {
@@ -230,7 +235,8 @@ document.querySelectorAll('.admin-legal-form').forEach((form) => {
         title: fd.get('title'),
         content: getLegalEditorContent(contentEl),
       });
-      showAdminAlert('약관이 저장되었습니다.', 'success');
+      showAdminAlert('저장되었습니다.', 'success');
+      history.replaceState(null, '', '#' + form.dataset.docKey);
       setTimeout(() => location.reload(), 600);
     } catch (err) {
       showAdminAlert(err.message, 'error');

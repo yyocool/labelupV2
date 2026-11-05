@@ -36,6 +36,44 @@ final class InquiryApiController extends BaseController
         }
     }
 
+    public function mine(): never
+    {
+        $auth = new AuthService();
+        (new AuthMiddleware($auth))->handle();
+        $this->jsonSuccess(['items' => (new InquiryService())->listForUser((int) $auth->id())]);
+    }
+
+    public function answer(): never
+    {
+        $auth = new AuthService();
+        (new AuthMiddleware($auth))->handle(true);
+        $payload = request_json();
+        try {
+            (new InquiryService())->answer((int) ($payload['id'] ?? 0), (string) ($payload['answer'] ?? ''), $auth->admin() ?? []);
+            $this->jsonSuccess(null, '답변이 등록되었습니다.');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
+        }
+    }
+
+    public function note(): never
+    {
+        $auth = new AuthService();
+        (new AuthMiddleware($auth))->handle(true);
+        $payload = request_json();
+        try {
+            (new InquiryService())->addNote(
+                (int) ($payload['id'] ?? 0),
+                (string) ($payload['note'] ?? ''),
+                (string) ($payload['status'] ?? ''),
+                $auth->admin() ?? []
+            );
+            $this->jsonSuccess(null, '처리 이력이 등록되었습니다.');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
+        }
+    }
+
     public function update(): never
     {
         $auth = new AuthService();
@@ -45,7 +83,8 @@ final class InquiryApiController extends BaseController
             (new InquiryService())->updateStatus(
                 (int) ($payload['id'] ?? 0),
                 (string) ($payload['status'] ?? ''),
-                isset($payload['admin_memo']) ? (string) $payload['admin_memo'] : null
+                isset($payload['admin_memo']) ? (string) $payload['admin_memo'] : null,
+                $auth->admin() ?? []
             );
             $this->jsonSuccess(null, '문의 상태가 변경되었습니다.');
         } catch (RuntimeException $e) {

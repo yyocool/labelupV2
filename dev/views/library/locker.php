@@ -8,7 +8,7 @@ $cliparts = $cliparts ?? [];
     <h1>내 보관함</h1>
     <p>라비가 그린 클립아트와 내 그림을 보관합니다. 삭제하면 휴지통으로 이동합니다.</p>
   </div>
-  <a class="account-btn account-btn--primary" href="<?= url('/') ?>">라비에게 요청하기</a>
+  <a class="account-btn account-btn--primary lib-hero-btn" href="<?= url('/') ?>" aria-label="라비에게 요청하기"><span class="lib-hero-btn-full">라비에게 요청하기</span><span class="lib-hero-btn-short">라비AI</span></a>
 </section>
 
 <section class="card lib-panel">

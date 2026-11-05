@@ -29,6 +29,7 @@ final class OpsSmsNotifier
             'paid_order' => ['label' => '신규 결제 주문', 'desc' => '쇼핑몰 주문 결제가 완료될 때마다 주문번호·금액을 알립니다.', 'critical' => false, 'default_on' => false, 'cooldown' => 0],
             'new_inquiry' => ['label' => '1:1 문의 접수', 'desc' => '회원이 1:1 문의를 남기면 알립니다.', 'critical' => false, 'default_on' => false, 'cooldown' => 0],
             'error_report' => ['label' => '오류&제안 접수', 'desc' => '사용자가 오류&제안을 등록하면 알립니다.', 'critical' => false, 'default_on' => false, 'cooldown' => 0],
+            'db_backup_failed' => ['label' => 'DB 백업 실패', 'desc' => '매일 새벽 DB 자동 백업이 실패하거나 26시간 넘게 성공 기록이 없으면 알립니다.', 'critical' => true, 'default_on' => true, 'cooldown' => 720],
         ];
     }
 
@@ -42,6 +43,7 @@ final class OpsSmsNotifier
             'catalog' => self::events(),
             'sms_ready' => NaverSmsSettings::sendConfig() !== null,
             'monitor' => $state['monitor'] ?? null,
+            'backup' => self::backupStatus(),
             'logs' => array_slice(self::readJson('ops_notify_log.json'), 0, 30),
         ];
     }
@@ -200,6 +202,22 @@ final class OpsSmsNotifier
     public static function monitorState(): array
     {
         return (array) (self::readJson('ops_notify_state.json')['monitor'] ?? []);
+    }
+
+    /** @return array<string, mixed> */
+    public static function backupStatus(): array
+    {
+        $file = dirname(__DIR__, 2) . '/storage/backups/db/latest.json';
+        if (!is_readable($file)) {
+            return ['installed' => false];
+        }
+        $data = json_decode((string) file_get_contents($file), true);
+        if (!is_array($data)) {
+            return ['installed' => true, 'ok' => false, 'error' => '상태 파일을 읽지 못했습니다.'];
+        }
+        $data['installed'] = true;
+
+        return $data;
     }
 
     /** @return array{events: array<string, array{enabled: bool, cooldown: int}>, recipients: array<int, array<string, mixed>>, quiet: array{enabled: bool, start: int, end: int}} */

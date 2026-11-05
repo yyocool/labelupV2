@@ -223,26 +223,23 @@ $usagePct = $usageLimit > 0 ? min(100, (int) round(($usageUsed / max(1, $usageLi
   </section>
 
   <section class="account-panel card">
-    <h2 class="account-section-title">내 템플릿</h2>
+    <h2 class="account-section-title">추천 템플릿</h2>
+    <?php if (empty($dash['templates'])): ?>
+    <p class="account-empty">등록된 템플릿이 없습니다.</p>
+    <?php else: ?>
     <ul class="account-template-list">
       <?php foreach ($dash['templates'] as $tpl): ?>
       <li>
-        <img src="<?= e($tpl['thumb']) ?>" alt="">
-        <span><?= e($tpl['name']) ?></span>
-        <em><?= (int) $tpl['count'] ?></em>
+        <?php if ($tpl['thumb'] !== ''): ?><img src="<?= e($tpl['thumb']) ?>" alt="" loading="lazy"><?php else: ?><span class="account-template-ph" aria-hidden="true">▦</span><?php endif; ?>
+        <div class="account-template-info">
+          <strong><?= e($tpl['name']) ?></strong>
+          <?php if ($tpl['meta'] !== ''): ?><span><?= e($tpl['meta']) ?></span><?php endif; ?>
+        </div>
+        <a class="account-btn account-btn--outline account-btn--sm" href="<?= e($tpl['edit_url']) ?>">편집</a>
       </li>
       <?php endforeach; ?>
     </ul>
-  </section>
-
-  <section class="account-panel card">
-    <h2 class="account-section-title">브랜드 관리</h2>
-    <ul class="account-brand-list">
-      <?php foreach ($dash['brands'] as $brand): ?>
-      <li><span class="account-brand-mark"><?= e($brand['initial']) ?></span><?= e($brand['name']) ?></li>
-      <?php endforeach; ?>
-    </ul>
-    <button type="button" class="account-btn account-btn--outline account-btn--block" disabled>＋ 새 브랜드 추가</button>
+    <?php endif; ?>
   </section>
 
   <section class="account-panel card" id="address">
@@ -290,7 +287,13 @@ $usagePct = $usageLimit > 0 ? min(100, (int) round(($usageUsed / max(1, $usageLi
 </section>
 
 <section class="account-panel card" id="credits">
-  <h2 class="account-section-title">잉크 내역</h2>
+  <?php $creditTotal = (int) ($dash['credit']['total'] ?? 0); ?>
+  <div class="account-panel-head account-history-head">
+    <h2>잉크 내역<?php if ($creditTotal > 0): ?> <em>최근 <?= min(5, $creditTotal) ?>건 / 전체 <?= number_format($creditTotal) ?>건</em><?php endif; ?></h2>
+    <?php if ($creditTotal > 0): ?>
+    <button type="button" class="account-btn account-btn--outline account-btn--sm" data-history-open="credit">상세보기</button>
+    <?php endif; ?>
+  </div>
   <?php $creditBal = (int) ($dash['credit']['balance'] ?? 0); ?>
   <p class="account-meta">보유 잉크 <strong<?= $creditBal < 0 ? ' class="is-debt"' : '' ?>><?= number_format($creditBal) ?> C</strong></p>
   <?php if ($creditBal < 0): ?>
@@ -317,7 +320,13 @@ $usagePct = $usageLimit > 0 ? min(100, (int) round(($usageUsed / max(1, $usageLi
 </section>
 
 <section class="account-panel card" id="ai-usage">
-  <h2 class="account-section-title">AI 사용 이력</h2>
+  <?php $aiTotal = (int) ($aiUsage['total'] ?? 0); ?>
+  <div class="account-panel-head account-history-head">
+    <h2>AI 사용 이력<?php if ($aiTotal > 0): ?> <em>최근 <?= min(5, $aiTotal) ?>건 / 전체 <?= number_format($aiTotal) ?>건</em><?php endif; ?></h2>
+    <?php if ($aiTotal > 0): ?>
+    <button type="button" class="account-btn account-btn--outline account-btn--sm" data-history-open="ai">상세보기</button>
+    <?php endif; ?>
+  </div>
   <p class="account-meta">이번 달 AI 사용 잉크 <strong><?= number_format((int) ($aiUsage['used'] ?? 0)) ?> C</strong>
     · 보유 <strong<?= (int) ($aiUsage['balance'] ?? 0) < 0 ? ' class="is-debt"' : '' ?>><?= number_format((int) ($aiUsage['balance'] ?? 0)) ?> C</strong></p>
   <?php $aiItems = $aiUsage['items'] ?? []; ?>
@@ -349,6 +358,7 @@ $usagePct = $usageLimit > 0 ? min(100, (int) round(($usageUsed / max(1, $usageLi
   </div>
   <div class="account-support-actions">
     <button type="button" class="account-btn account-btn--primary" data-open-modal="inquiryModal">1:1 문의</button>
+    <button type="button" class="account-btn account-btn--outline" data-open-modal="inquiriesModal">내 문의 내역</button>
     <a class="account-btn account-btn--outline" href="<?= url('faq') ?>">FAQ</a>
   </div>
 </section>

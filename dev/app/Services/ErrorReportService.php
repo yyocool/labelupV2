@@ -146,6 +146,7 @@ final class ErrorReportService
             $row['status_label'] = self::statusLabel((string) ($row['status'] ?? ''));
             $row['reward_total'] = (int) ($row['reward_total'] ?? 0);
             $row['image_count'] = (int) ($row['image_count'] ?? 0);
+            $row['action_count'] = (int) ($row['action_count'] ?? 0);
         }
         unset($row);
         return $rows;
@@ -177,6 +178,8 @@ final class ErrorReportService
         $actions = $this->repo->actions($id);
         foreach ($actions as &$action) {
             $action['status_label'] = self::statusLabel((string) ($action['status'] ?? ''));
+            $action['status_from_label'] = self::statusLabel((string) ($action['status_from'] ?? ''));
+            $action['action_type'] = (string) ($action['action_type'] ?? 'result');
             $action['reward_credits'] = (int) ($action['reward_credits'] ?? 0);
         }
         unset($action);
@@ -193,16 +196,29 @@ final class ErrorReportService
         if (!$report) {
             throw new RuntimeException('신고를 찾을 수 없습니다.');
         }
+        $type = ($payload['action_type'] ?? 'result') === 'note' ? 'note' : 'result';
+        $from = (string) ($report['status'] ?? 'open');
         $status = (string) ($payload['status'] ?? '');
-        if (!isset(self::statuses()[$status]) || $status === 'open') {
-            throw new RuntimeException('처리 상태를 선택해주세요.');
-        }
         $note = trim((string) ($payload['result_note'] ?? ''));
-        if (mb_strlen($note) < 2) {
-            throw new RuntimeException('처리 결과를 2자 이상 입력해주세요.');
+        if ($type === 'note') {
+            $status = $status !== '' ? $status : $from;
+            if (!isset(self::statuses()[$status])) {
+                throw new RuntimeException('처리 상태를 선택해주세요.');
+            }
+            if (mb_strlen($note) < 2 && $status === $from) {
+                throw new RuntimeException('처리 내용을 2자 이상 입력하거나 상태를 바꿔주세요.');
+            }
+            $payload['reward_credits'] = 0;
+        } else {
+            if (!isset(self::statuses()[$status]) || $status === 'open') {
+                throw new RuntimeException('처리 상태를 선택해주세요.');
+            }
+            if (mb_strlen($note) < 2) {
+                throw new RuntimeException('처리 결과를 2자 이상 입력해주세요.');
+            }
         }
         if (mb_strlen($note) > 4000) {
-            throw new RuntimeException('처리 결과는 4000자 이내로 입력해주세요.');
+            throw new RuntimeException('처리 내용은 4000자 이내로 입력해주세요.');
         }
         $reward = (int) ($payload['reward_credits'] ?? 0);
         if ($reward < 0) {
@@ -215,10 +231,14 @@ final class ErrorReportService
         $pdo = Database::connection();
         $pdo->beginTransaction();
         try {
-            $this->repo->updateStatus($id, $status);
+            if ($status !== $from) {
+                $this->repo->updateStatus($id, $status);
+            }
             $actionId = $this->repo->insertAction([
                 'report_id' => $id,
                 'admin_id' => $adminId,
+                'action_type' => $type,
+                'status_from' => $from,
                 'status' => $status,
                 'result_note' => $note,
                 'reward_credits' => $reward,
@@ -249,6 +269,9 @@ final class ErrorReportService
             throw new RuntimeException('처리 결과를 저장하지 못했습니다.');
         }
 
+        if ($type === 'note') {
+            return $this->adminDetail($id);
+        }
         $body = $note;
         if ($reward > 0) {
             $body .= "\n포상 잉크 " . number_format($reward) . ' C가 지급되었습니다.';

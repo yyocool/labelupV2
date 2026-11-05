@@ -64,6 +64,46 @@ $parentSlug = (string) (($parentCategory['slug'] ?? '') ?: ($category['slug'] ??
   </div>
 </div>
 <?php endif; ?>
+<script>
+(() => {
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /** 옆으로 더 있는 칩을 알리려고 살짝 밀었다가 제자리로 돌린다. 오른쪽이 끝이면 왼쪽으로 민다. */
+  const nudge = (bar) => {
+    const start = bar.scrollLeft;
+    const room = bar.scrollWidth - bar.clientWidth;
+    const dir = start < room - 4 ? 1 : (start > 4 ? -1 : 0);
+    if (!dir) return;
+    const dist = dir * Math.min(56, dir > 0 ? room - start : start);
+    const duration = 900;
+    let t0 = 0;
+    let stopped = false;
+    const stop = () => { stopped = true; };
+    ['pointerdown', 'touchstart', 'wheel'].forEach((ev) => bar.addEventListener(ev, stop, { once: true, passive: true }));
+    const step = (now) => {
+      if (stopped) return;
+      if (!t0) t0 = now;
+      const p = Math.min(1, (now - t0) / duration);
+      bar.scrollLeft = start + dist * Math.sin(Math.PI * p);
+      if (p < 1) requestAnimationFrame(step);
+      else bar.scrollLeft = start;
+    };
+    requestAnimationFrame(step);
+  };
+  document.querySelectorAll('.shop-filter-bar').forEach((bar, i) => {
+    const sync = () => bar.classList.toggle('is-end', bar.scrollLeft + bar.clientWidth >= bar.scrollWidth - 4);
+    const active = bar.querySelector('.shop-filter-chip.is-active');
+    if (active && bar.scrollWidth > bar.clientWidth) {
+      bar.scrollLeft = active.offsetLeft - 12;
+    }
+    sync();
+    bar.addEventListener('scroll', sync, { passive: true });
+    window.addEventListener('resize', sync);
+    if (!reduceMotion && bar.scrollWidth > bar.clientWidth + 4) {
+      setTimeout(() => nudge(bar), 600 + i * 350);
+    }
+  });
+})();
+</script>
 
 <?php if ($list['items']): ?>
 <div class="shop-product-grid shop-product-grid--list">

@@ -41,6 +41,9 @@ SKIP_REMOTE_OVERWRITE = {
 
 def should_skip(path: str) -> bool:
     parts = path.replace('\\', '/').split('/')
+    # DB 덤프는 원격 storage/backups 에만 둔다. 배포로 올리지 않는다.
+    if 'storage' in parts and 'backups' in parts:
+        return True
     return any(p in SKIP_DIRS for p in parts) or os.path.basename(path) in SKIP_FILES
 
 

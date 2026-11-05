@@ -558,12 +558,20 @@ document.addEventListener('DOMContentLoaded', () => {
     profileForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(profileForm);
+      const submitBtn = profileForm.querySelector('[type="submit"]');
+      if (submitBtn) submitBtn.disabled = true;
       try {
         await API.post('/api/auth/profile', Object.fromEntries(fd.entries()));
         showAlert(alert, '회원정보가 저장되었습니다.', 'success');
+        if (profileForm.closest('.account-modal')) {
+          setTimeout(() => location.reload(), 700);
+          return;
+        }
       } catch (err) {
         showAlert(alert, err.message);
+        alert?.scrollIntoView({ block: 'nearest' });
       }
+      if (submitBtn) submitBtn.disabled = false;
     });
   }
 

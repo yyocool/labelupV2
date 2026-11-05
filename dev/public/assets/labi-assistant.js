@@ -2,36 +2,62 @@
   var FEATURES = {
     design: {
       title: "AI 디자인",
-      hint: "만들고 싶은 라벨을 말해 주세요.",
-      reply: "어떤 라벨이 필요하신가요? 예: 「카페 로고용 원형 스티커, 따뜻한 톤」처럼 용도와 분위기를 알려주시면 시안을 바로 만들어 드릴게요."
+      intro: "만들고 싶은 라벨을 적어 주시면 메인의 라비 AI 입력창에 옮겨 드려요. 그곳에서 보내기를 눌러야 시안이 만들어지고, 그때만 잉크가 사용돼요.",
+      hint: "예: 카페 로고용 원형 스티커",
+      submit: "AI로 이어가기",
+      chips: ["카페 로고용 원형 스티커, 따뜻한 톤", "수제 딸기잼 병 라벨", "택배 박스 주소 라벨"]
     },
     paper: {
       title: "용지 추천",
-      hint: "붙이는 곳·환경을 알려 주세요.",
-      reply: "부착 면(유리·종이·의류), 방수 여부, 실내/실외를 알려주시면 모조·PET·감열 등 맞는 용지를 추천해 드릴게요."
+      intro: "라벨을 어디에, 어떻게 쓰실 건가요? 가장 가까운 상황을 골라 주세요."
     },
     spec: {
       title: "규격 찾기",
-      hint: "칸 수나 사이즈를 알려 주세요.",
-      reply: "A4 24칸, 40×30mm처럼 치수나 사용 중인 규격 코드를 알려주시면 호환 라벨지를 찾아 드릴게요."
+      intro: "품번(A101), 칸 수(24칸), 크기(40x30), 다른 회사 호환 코드(폼텍 3100 등)로 맞는 라벨지를 찾아 드려요.",
+      hint: "예: A101, 24칸, 3100",
+      submit: "찾기",
+      chips: ["1칸", "21칸", "24칸", "65칸"]
     },
     print: {
       title: "출력 도우미",
-      hint: "프린터나 오류 메시지를 알려 주세요.",
-      reply: "여백·스케일·양면 여부를 확인한 뒤 PDF 저장 또는 직접 출력 순서로 안내해 드릴게요. 사용 중인 프린터 기종이 있으면 더 정확해요."
+      intro: "라벨이 칸에서 밀려 나온다면 대부분 인쇄 설정 문제예요. 아래 순서대로 확인해 보세요."
     },
     cs: {
       title: "사용법 / CS",
-      hint: "궁금한 점을 적어 주세요.",
-      reply: "회원가입, 편집기 사용법, 주문·배송까지 도와드릴게요. 지금 막히신 화면이나 단계를 알려주시면 짧게 안내해 드릴게요."
+      intro: "궁금한 내용을 검색하면 자주 묻는 질문에서 답을 찾아 드려요.",
+      hint: "예: 배송, 환불, 잉크",
+      submit: "검색"
     },
     shop: {
       title: "라비 쇼핑",
-      hint: "필요한 상품을 말해 주세요.",
-      reply: "라벨지·스티커·롤 용지를 찾아 드릴게요. 아래에서 추천 상품도 바로 보실 수 있어요.",
-      scroll: ".product-section"
+      intro: "찾는 라벨지를 검색해 보세요. 바로 상세 페이지로 이동할 수 있어요.",
+      hint: "예: 방수 라벨, 주소 라벨",
+      submit: "검색",
+      chips: ["방수", "주소", "바코드", "크라프트"]
     }
   };
+
+  var PAPER_CHOICES = [
+    { label: "물·습기에 닿아요", reason: "냉장고, 욕실, 야외처럼 물기 있는 곳에는 젖어도 번지지 않는 방수 라벨이 좋아요.", cats: [["waterproof-label", "방수 라벨"]] },
+    { label: "병·유리에 투명하게", reason: "배경이 비치는 투명 라벨을 쓰세요. 프린터 종류(잉크젯/레이저)에 맞는 제품을 골라야 해요.", cats: [["inkjet-clear-label", "잉크젯 투명"], ["laser-clear-label", "레이저 투명"]] },
+    { label: "선명하고 고급스럽게", reason: "사진이나 로고가 또렷하게 나오는 광택 라벨을 추천해요.", cats: [["gloss-label", "광택 라벨"]] },
+    { label: "내추럴·핸드메이드", reason: "종이 질감의 크라프트 라벨이 따뜻한 느낌을 줘요.", cats: [["kraft-label", "크라프트 라벨"]] },
+    { label: "눈에 띄는 색으로", reason: "분류하거나 강조할 때는 색이 있는 라벨이 좋아요.", cats: [["color-label", "형광 컬러"], ["pastel-color-label", "파스텔 컬러"]] },
+    { label: "택배·주소·물류", reason: "백색 다용도 라벨 중 주소용·물류관리용 규격이 잘 맞아요.", cats: [["address-label", "주소용"], ["logistics-use", "물류관리용"]] },
+    { label: "바코드·재고 관리", reason: "작은 칸이 많은 바코드용 규격을 추천해요.", cats: [["barcode-label", "바코드용"]] },
+    { label: "서류·파일 정리", reason: "파일 등이나 인덱스에 맞춘 규격이 따로 있어요.", cats: [["index-label", "인덱스용"], ["government-doc", "정부문서화일"]] },
+    { label: "인쇄면 보호", reason: "출력한 라벨 위에 덧붙여 긁힘과 물기를 막아 주는 보호용 필름이 있어요.", cats: [["protective-film", "보호용 필름"]] }
+  ];
+
+  var PRINT_STEPS = [
+    ["배율은 100% (실제 크기)", "인쇄 창에서 「페이지에 맞춤」 대신 「실제 크기」 또는 배율 100%를 선택하세요."],
+    ["용지 크기는 A4", "프린터 설정의 용지 크기가 A4인지 확인하세요. Letter로 되어 있으면 위치가 어긋나요."],
+    ["여백은 없음", "브라우저 인쇄라면 여백을 「없음」으로, 머리글·바닥글은 끄세요."],
+    ["먼저 일반 용지로 테스트", "일반 A4에 한 장 출력한 뒤 라벨지와 겹쳐 비춰 보고 위치를 확인하세요."],
+    ["라벨지 방향 확인", "인쇄면(흰 면)과 넣는 방향을 프린터 안내에 맞춰 넣어 주세요."],
+    ["그래도 밀리면", "편집기 출력 창의 「인쇄 위치 조정」에서 위·왼쪽 위치를 조금씩 옮겨 보세요."],
+    ["아래로 갈수록 밀리면", "출력 창의 「인쇄 배율 보정」에 칼선 테스트 출력물을 자로 잰 길이를 넣어 보세요."]
+  ];
 
   var TIPS = [
     "안녕하세요! 라벨 고민 있으면 저 라비한테 물어보세요 😊",
@@ -72,7 +98,35 @@
     ".labi-bubble strong{display:block;margin-bottom:4px;color:var(--accent,#7B2840);font-size:12px}",
     ".labi-form{display:flex;gap:6px}",
     ".labi-form input{flex:1;height:40px;border:1px solid #e4e6ee;border-radius:12px;padding:0 12px;font-size:13px}",
-    ".labi-form button{height:40px;border:0;border-radius:12px;background:var(--accent,#7B2840);color:#fff;font-size:12px;font-weight:800;padding:0 12px}",
+    ".labi-form button{height:40px;border:0;border-radius:12px;background:var(--accent,#7B2840);color:#fff;font-size:12px;font-weight:800;padding:0 12px;white-space:nowrap;cursor:pointer}",
+    ".labi-form[hidden]{display:none}",
+    ".labi-body{display:flex;flex-direction:column;gap:8px;max-height:min(38vh,330px);overflow:auto;overscroll-behavior:contain}",
+    ".labi-body:empty{display:none}",
+    ".labi-chips{display:flex;flex-wrap:wrap;gap:6px}",
+    ".labi-chip{border:1px solid #e6e6ed;background:#fff;border-radius:999px;padding:6px 11px;font-size:12px;font-weight:700;color:#3a3d4c;cursor:pointer;line-height:1.3;text-align:left}",
+    ".labi-chip:hover,.labi-chip.is-on{border-color:var(--accent-soft-2,#E8D4DB);background:var(--accent-soft,#fdf2f5);color:var(--accent,#7B2840)}",
+    ".labi-note{font-size:12px;line-height:1.55;color:#4a4d5c;background:#fbf7f4;border-radius:12px;padding:9px 11px}",
+    ".labi-status{font-size:12px;color:#8a8d99;padding:4px 2px}",
+    ".labi-results{display:flex;flex-direction:column;gap:6px}",
+    ".labi-item{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;align-items:center;padding:7px;border:1px solid #efeaf0;border-radius:12px;background:#fff;color:inherit;text-decoration:none}",
+    ".labi-item:hover{border-color:var(--accent-soft-2,#E8D4DB);background:#fffafb}",
+    ".labi-item img,.labi-item .labi-ph{width:44px;height:44px;border-radius:9px;object-fit:contain;background:#f7f4f0;display:grid;place-items:center;font-size:18px}",
+    ".labi-item b{display:block;font-size:12.5px;color:#1c1e2a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
+    ".labi-item small{display:block;font-size:11px;color:#7a7d88;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
+    ".labi-item i{font-style:normal;font-size:12px;font-weight:800;color:var(--accent,#7B2840)}",
+    ".labi-item s{font-size:11px;color:#a0a3ad;margin-right:4px}",
+    ".labi-links{display:flex;flex-wrap:wrap;gap:6px}",
+    ".labi-link{display:inline-flex;align-items:center;height:32px;padding:0 12px;border-radius:10px;background:var(--accent,#7B2840);color:#fff;font-size:12px;font-weight:800;text-decoration:none}",
+    ".labi-link--ghost{background:#fff;color:var(--accent,#7B2840);border:1px solid var(--accent-soft-2,#E8D4DB)}",
+    ".labi-steps{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;counter-reset:labi}",
+    ".labi-steps li{position:relative;padding:8px 10px 8px 34px;border-radius:12px;background:#f7f8fc;font-size:12px;line-height:1.5;color:#4a4d5c;counter-increment:labi}",
+    ".labi-steps li::before{content:counter(labi);position:absolute;left:10px;top:9px;width:17px;height:17px;border-radius:50%;background:var(--accent,#7B2840);color:#fff;font-size:10.5px;font-weight:800;display:grid;place-items:center}",
+    ".labi-steps b{display:block;color:#1c1e2a;font-size:12.5px}",
+    ".labi-faq{border:1px solid #efeaf0;border-radius:12px;background:#fff}",
+    ".labi-faq summary{padding:9px 11px;font-size:12.5px;font-weight:700;color:#1c1e2a;cursor:pointer;list-style:none}",
+    ".labi-faq summary::-webkit-details-marker{display:none}",
+    ".labi-faq summary::before{content:'Q ';color:var(--accent,#7B2840);font-weight:900}",
+    ".labi-faq p{margin:0;padding:0 11px 10px;font-size:12px;line-height:1.55;color:#5a5d6b}",
     ".labi-fab{position:relative;flex-shrink:0;width:58px;height:58px;border:0;border-radius:50%;padding:8px;overflow:visible;cursor:pointer;background:linear-gradient(145deg,var(--accent-soft,#F3E8EC) 0%,var(--ivory,#F7F3ED) 52%,#fff 100%);box-shadow:0 0 0 1.5px var(--accent-soft-2,#E8D4DB),0 6px 20px var(--accent-shadow,rgba(123,40,64,.22)),0 2px 8px rgba(46,42,39,.08);transition:transform .18s ease,box-shadow .18s ease,background .18s ease}",
     ".labi-fab:hover{transform:translateY(-2px);background:linear-gradient(145deg,var(--accent-soft-2,#E8D4DB) 0%,var(--accent-soft,#F3E8EC) 45%,var(--ivory,#F7F3ED) 100%);box-shadow:0 0 0 1.5px var(--accent-3,#9A3A55),0 10px 28px var(--accent-shadow,rgba(123,40,64,.26)),0 4px 12px rgba(46,42,39,.1)}",
     ".labi-fab:active{transform:translateY(0);background:linear-gradient(145deg,var(--accent-soft,#F3E8EC) 0%,var(--ivory,#F7F3ED) 100%);box-shadow:0 0 0 1.5px var(--accent-soft-2,#E8D4DB),0 4px 14px var(--accent-glow,rgba(123,40,64,.1)),0 1px 4px rgba(46,42,39,.08)}",
@@ -91,6 +145,14 @@
     ".labi-tip-tail{position:absolute;right:-7px;bottom:18px;width:14px;height:14px;background:#fff;border-right:1px solid #ece8eb;border-bottom:1px solid #ece8eb;transform:rotate(-45deg);box-shadow:4px 4px 8px rgba(46,42,39,.04)}",
     "@media(max-width:768px){.labi-assistant{right:14px;bottom:76px}.labi-float-row{flex-direction:column;align-items:flex-end;gap:10px}.labi-fab{width:52px;height:52px;padding:7px}.labi-tip-wrap{width:min(260px,calc(100vw - 28px))}.labi-tip-text{font-size:12.5px;padding:6px 12px 11px}.labi-tip-tail{right:18px;bottom:-7px;transform:rotate(45deg)}}"
   ].join("");
+
+  function esc(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
 
   function injectStyle() {
     var style = document.getElementById("labi-assistant-style");
@@ -147,9 +209,10 @@
           '<button class="labi-back" type="button">← 기능 목록</button>' +
           '<div class="labi-bubble" id="labiBubble"></div>' +
           '<form class="labi-form" id="labiForm">' +
-            '<input type="text" id="labiInput" placeholder="라비에게 물어보기" autocomplete="off">' +
-            "<button type=\"submit\">보내기</button>" +
+            '<input type="text" id="labiInput" placeholder="라비에게 물어보기" autocomplete="off" maxlength="120">' +
+            '<button type="submit" id="labiSubmit">보내기</button>' +
           "</form>" +
+          '<div class="labi-body" id="labiBody"></div>' +
         "</div>" +
       "</div>" +
       '<div class="labi-float-row">' +
@@ -175,21 +238,195 @@
     var fab = wrap.querySelector(".labi-fab");
     var bubble = wrap.querySelector("#labiBubble");
     var input = wrap.querySelector("#labiInput");
+    var form = wrap.querySelector("#labiForm");
+    var submitBtn = wrap.querySelector("#labiSubmit");
+    var body = wrap.querySelector("#labiBody");
     var current = "design";
+    var requestSeq = 0;
+
+    function closePanel() {
+      wrap.classList.remove("open");
+      wrap.classList.remove("is-chat");
+      fab.setAttribute("aria-expanded", "false");
+    }
+
+    function chipsHtml(list, attr) {
+      return '<div class="labi-chips">' + list.map(function (text, i) {
+        return '<button type="button" class="labi-chip" ' + attr + '="' + esc(attr === "data-labi-paper" ? i : text) + '">' + esc(text) + "</button>";
+      }).join("") + "</div>";
+    }
+
+    function productItem(p) {
+      var thumb = p.thumbnail
+        ? '<img src="' + esc(p.thumbnail) + '" alt="" loading="lazy">'
+        : '<span class="labi-ph" aria-hidden="true">' + (p.is_ink ? "C" : "▦") + "</span>";
+      var price = (p.on_sale ? "<s>" + esc(p.list_price_label) + "</s>" : "") + "<i>" + esc(p.price_label) + "</i>";
+      var size = p.width_mm && p.height_mm ? Number(p.width_mm) + "×" + Number(p.height_mm) + "mm" : "";
+      var meta = [p.category, p.material, size, p.labels_per_sheet ? p.labels_per_sheet + "칸" : ""].filter(Boolean).join(" · ");
+      return '<a class="labi-item" href="/shop/products/' + Number(p.id) + '">' + thumb +
+        "<span><b>" + esc(p.name) + "</b><small>" + esc(meta) + "</small>" + price + "</span></a>";
+    }
+
+    function setBody(html) {
+      body.innerHTML = html;
+      body.scrollTop = 0;
+    }
+
+    function fetchJson(url) {
+      return fetch(url, { credentials: "same-origin", headers: { Accept: "application/json" } })
+        .then(function (res) { return res.json(); })
+        .then(function (json) {
+          if (!json || json.success === false) throw new Error((json && json.message) || "요청 실패");
+          return json.data || {};
+        });
+    }
+
+    function searchProducts(query, category, limit, emptyText, moreHref) {
+      var seq = ++requestSeq;
+      var holder = body.querySelector("[data-labi-results]");
+      if (holder) holder.innerHTML = '<p class="labi-status">찾는 중…</p>';
+      var qs = (query ? "q=" + encodeURIComponent(query) : "") + (category ? (query ? "&" : "") + "category=" + encodeURIComponent(category) : "");
+      fetchJson("/api/shop/catalog?" + qs).then(function (data) {
+        if (seq !== requestSeq || !holder) return;
+        var items = (data.items || []).slice(0, limit);
+        if (!items.length) {
+          holder.innerHTML = '<p class="labi-status">' + esc(emptyText) + "</p>";
+          return;
+        }
+        var more = (data.total || 0) > items.length && moreHref
+          ? '<div class="labi-links"><a class="labi-link labi-link--ghost" href="' + esc(moreHref) + '">전체 ' + Number(data.total) + "개 보기 →</a></div>"
+          : "";
+        holder.innerHTML = '<div class="labi-results">' + items.map(productItem).join("") + "</div>" + more;
+      }).catch(function () {
+        if (seq === requestSeq && holder) holder.innerHTML = '<p class="labi-status">불러오지 못했어요. 잠시 후 다시 시도해 주세요.</p>';
+      });
+    }
+
+    function searchFaq(query) {
+      var seq = ++requestSeq;
+      var holder = body.querySelector("[data-labi-results]");
+      if (holder) holder.innerHTML = '<p class="labi-status">찾는 중…</p>';
+      fetchJson("/api/faq/search?q=" + encodeURIComponent(query || "")).then(function (data) {
+        if (seq !== requestSeq || !holder) return;
+        var items = data.items || [];
+        var list = items.length
+          ? items.map(function (it) {
+              return '<details class="labi-faq"><summary>' + esc(it.question) + "</summary><p>" + esc(it.answer) + "</p></details>";
+            }).join("")
+          : '<p class="labi-status">맞는 답을 찾지 못했어요. 1:1 문의로 남겨 주시면 답변드릴게요.</p>';
+        holder.innerHTML = '<div class="labi-results">' + list + "</div>" +
+          '<div class="labi-links">' +
+            '<a class="labi-link labi-link--ghost" href="' + esc(data.faq_url || "/faq") + '">FAQ 전체 보기</a>' +
+            '<a class="labi-link" href="' + esc(data.inquiry_url || "/account#inquiry") + '">1:1 문의하기</a>' +
+          "</div>";
+      }).catch(function () {
+        if (seq === requestSeq && holder) holder.innerHTML = '<p class="labi-status">불러오지 못했어요. <a href="/faq">FAQ 페이지</a>에서 확인해 주세요.</p>';
+      });
+    }
+
+    function sendToDesign(text) {
+      var promptBox = document.getElementById("promptInput");
+      if (promptBox) {
+        promptBox.value = text;
+        promptBox.dispatchEvent(new Event("input", { bubbles: true }));
+        closePanel();
+        promptBox.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (!promptBox.readOnly) promptBox.focus({ preventScroll: true });
+        return;
+      }
+      window.location.href = "/?labi_prompt=" + encodeURIComponent(text);
+    }
+
+    function showPaperChoice(index) {
+      var choice = PAPER_CHOICES[index];
+      if (!choice) return;
+      body.querySelectorAll("[data-labi-paper]").forEach(function (chip) {
+        chip.classList.toggle("is-on", Number(chip.getAttribute("data-labi-paper")) === index);
+      });
+      var detail = body.querySelector("[data-labi-detail]");
+      detail.innerHTML =
+        '<p class="labi-note">' + esc(choice.reason) + "</p>" +
+        '<div class="labi-links">' + choice.cats.map(function (c) {
+          return '<a class="labi-link labi-link--ghost" href="/shop/products?category=' + encodeURIComponent(c[0]) + '">' + esc(c[1]) + " 보기 →</a>";
+        }).join("") + "</div>" +
+        '<div data-labi-results></div>';
+      var first = choice.cats[0];
+      searchProducts("", first[0], 3, "아직 등록된 상품이 없어요.", "");
+      detail.scrollIntoView({ block: "nearest" });
+    }
 
     function showFeature(id) {
       var feat = FEATURES[id] || FEATURES.design;
       current = id;
+      requestSeq++;
       wrap.classList.add("is-chat");
-      bubble.innerHTML = "<strong>" + feat.title + "</strong>" + feat.reply;
-      input.placeholder = feat.hint;
+      bubble.innerHTML = "<strong>" + feat.title + "</strong>" + esc(feat.intro);
       input.value = "";
-      input.focus();
-      if (feat.scroll) {
-        var el = document.querySelector(feat.scroll);
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      form.hidden = !feat.submit;
+      if (feat.submit) {
+        input.placeholder = feat.hint;
+        submitBtn.textContent = feat.submit;
+      }
+
+      if (id === "design") {
+        setBody(chipsHtml(feat.chips, "data-labi-fill"));
+      } else if (id === "paper") {
+        setBody(chipsHtml(PAPER_CHOICES.map(function (c) { return c.label; }), "data-labi-paper") + '<div data-labi-detail></div>');
+      } else if (id === "spec" || id === "shop") {
+        setBody(chipsHtml(feat.chips, "data-labi-query") + "<div data-labi-results></div>");
+      } else if (id === "print") {
+        setBody(
+          '<ol class="labi-steps">' + PRINT_STEPS.map(function (s) {
+            return "<li><b>" + esc(s[0]) + "</b>" + esc(s[1]) + "</li>";
+          }).join("") + "</ol>" +
+          '<div class="labi-links">' +
+            '<a class="labi-link labi-link--ghost" href="/guide/">사용 가이드</a>' +
+            '<a class="labi-link labi-link--ghost" href="/faq?cat=print">출력 FAQ</a>' +
+            '<a class="labi-link" href="/editor/">편집기 열기</a>' +
+          "</div>"
+        );
+      } else if (id === "cs") {
+        setBody("<div data-labi-results></div>");
+        searchFaq("");
+      }
+
+      if (feat.submit && window.matchMedia("(min-width: 769px)").matches) input.focus();
+    }
+
+    function runQuery(text) {
+      if (current === "design") {
+        sendToDesign(text);
+      } else if (current === "spec") {
+        var q = text.replace(/\s*[×*X]\s*/g, "x").replace(/\s+/g, " ").trim();
+        searchProducts(q, "", 5, "맞는 규격을 찾지 못했어요. 숫자만 바꿔 다시 검색해 보세요.", "/shop/products?q=" + encodeURIComponent(q));
+      } else if (current === "shop") {
+        searchProducts(text, "", 5, "검색 결과가 없어요. 다른 단어로 찾아 보세요.", "/shop/products?q=" + encodeURIComponent(text));
+      } else if (current === "cs") {
+        searchFaq(text);
       }
     }
+
+    body.addEventListener("click", function (e) {
+      var fill = e.target.closest("[data-labi-fill]");
+      if (fill) {
+        input.value = fill.getAttribute("data-labi-fill");
+        input.focus();
+        return;
+      }
+      var paper = e.target.closest("[data-labi-paper]");
+      if (paper) {
+        showPaperChoice(Number(paper.getAttribute("data-labi-paper")));
+        return;
+      }
+      var query = e.target.closest("[data-labi-query]");
+      if (query) {
+        body.querySelectorAll("[data-labi-query]").forEach(function (chip) {
+          chip.classList.toggle("is-on", chip === query);
+        });
+        input.value = query.getAttribute("data-labi-query");
+        runQuery(input.value);
+      }
+    });
 
     fab.addEventListener("click", function () {
       var open = wrap.classList.toggle("open");
@@ -210,33 +447,38 @@
       wrap.classList.remove("is-chat");
     });
 
-    wrap.querySelector("#labiForm").addEventListener("submit", function (e) {
+    form.addEventListener("submit", function (e) {
       e.preventDefault();
       var text = (input.value || "").trim();
-      var feat = FEATURES[current] || FEATURES.design;
       if (!text) {
-        bubble.innerHTML = "<strong>" + feat.title + "</strong>" + feat.reply;
+        input.focus();
         return;
       }
-      bubble.innerHTML = "<strong>" + feat.title + "</strong>「" + text.replace(/</g, "&lt;") + "」 확인했어요. 이 내용으로 바로 도와드릴게요. (시안 미리보기)";
-      input.value = "";
+      runQuery(text);
     });
 
     document.addEventListener("click", function (e) {
-      if (!wrap.contains(e.target)) {
-        wrap.classList.remove("open");
-        wrap.classList.remove("is-chat");
-        fab.setAttribute("aria-expanded", "false");
-      }
+      var path = typeof e.composedPath === "function" ? e.composedPath() : [];
+      if (path.indexOf(wrap) === -1 && !wrap.contains(e.target)) closePanel();
     });
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") {
-        wrap.classList.remove("open");
-        wrap.classList.remove("is-chat");
-        fab.setAttribute("aria-expanded", "false");
+        closePanel();
         hideTip(true);
       }
     });
+
+    (function fillFromQuery() {
+      var promptBox = document.getElementById("promptInput");
+      if (!promptBox || !window.URLSearchParams) return;
+      var params = new URLSearchParams(window.location.search);
+      var text = (params.get("labi_prompt") || "").trim();
+      if (!text) return;
+      params.delete("labi_prompt");
+      var rest = params.toString();
+      history.replaceState(null, "", window.location.pathname + (rest ? "?" + rest : "") + window.location.hash);
+      setTimeout(function () { sendToDesign(text.slice(0, 500)); }, 300);
+    })();
 
     var tipWrap = wrap.querySelector("#labiTipWrap");
     var tipText = wrap.querySelector("#labiTipText");

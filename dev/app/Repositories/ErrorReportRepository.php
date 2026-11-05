@@ -135,12 +135,14 @@ final class ErrorReportRepository extends BaseModel
         return $this->fetchAll(
             "SELECT r.*, u.email AS user_email, COALESCE(p.name, '') AS user_name,
                     COALESCE(rew.reward_total, 0) AS reward_total,
+                    COALESCE(rew.action_count, 0) AS action_count, rew.last_action_at,
                     (SELECT COUNT(*) FROM error_report_images i WHERE i.report_id = r.id) AS image_count
              FROM error_reports r
              INNER JOIN users u ON u.id = r.user_id
              LEFT JOIN user_profiles p ON p.user_id = u.id AND p.deleted_at IS NULL
              LEFT JOIN (
-                SELECT report_id, SUM(reward_credits) AS reward_total
+                SELECT report_id, SUM(reward_credits) AS reward_total,
+                       COUNT(*) AS action_count, MAX(created_at) AS last_action_at
                 FROM error_report_actions
                 GROUP BY report_id
              ) rew ON rew.report_id = r.id
@@ -177,7 +179,7 @@ final class ErrorReportRepository extends BaseModel
              LEFT JOIN users ad ON ad.id = a.admin_id
              LEFT JOIN user_profiles ap ON ap.user_id = ad.id AND ap.deleted_at IS NULL
              WHERE a.report_id = :report_id
-             ORDER BY a.id DESC",
+             ORDER BY a.id ASC",
             ['report_id' => $reportId]
         );
     }
@@ -195,12 +197,14 @@ final class ErrorReportRepository extends BaseModel
     {
         $this->execute(
             'INSERT INTO error_report_actions
-                (report_id, admin_id, status, result_note, reward_credits, credit_tx_id, created_at)
+                (report_id, admin_id, action_type, status_from, status, result_note, reward_credits, credit_tx_id, created_at)
              VALUES
-                (:report_id, :admin_id, :status, :result_note, :reward_credits, :credit_tx_id, :created_at)',
+                (:report_id, :admin_id, :action_type, :status_from, :status, :result_note, :reward_credits, :credit_tx_id, :created_at)',
             [
                 'report_id' => (int) $data['report_id'],
                 'admin_id' => (int) $data['admin_id'],
+                'action_type' => (string) ($data['action_type'] ?? 'result'),
+                'status_from' => $data['status_from'] ?? null,
                 'status' => (string) $data['status'],
                 'result_note' => (string) ($data['result_note'] ?? ''),
                 'reward_credits' => (int) ($data['reward_credits'] ?? 0),

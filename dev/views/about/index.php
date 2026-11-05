@@ -22,13 +22,7 @@ $companyRows = $companyRows ?? [];
   <a class="legal-brand" href="<?= url('/') ?>">
     <img src="<?= asset('logo.png') ?>" alt="labelup" width="120" height="32">
   </a>
-  <nav class="legal-nav" aria-label="소개 메뉴">
-    <a href="<?= url('about') ?>" aria-current="page">서비스 소개</a>
-    <a href="<?= url('shop') ?>">라벨쇼핑</a>
-    <a href="<?= url('terms') ?>">이용약관</a>
-    <a href="<?= url('privacy') ?>">개인정보 처리방침</a>
-    <a href="<?= e($loginUrl ?? url('login')) ?>">로그인</a>
-  </nav>
+  <?php $currentHref = url('about'); require view_path('partials/site-info-nav.php'); ?>
 </header>
 
 <main class="legal-main about-main">

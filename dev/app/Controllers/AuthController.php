@@ -85,6 +85,10 @@ final class AuthController extends BaseController
         $_SESSION['oauth_provider'] = $provider;
         $redirect = safe_redirect_path((string) ($_GET['redirect'] ?? '/'));
         $_SESSION['oauth_redirect'] = $redirect;
+        $origin = site_origin();
+        if ($origin !== '') {
+            $_SESSION['oauth_origin'] = $origin;
+        }
 
         try {
             if ($provider === 'google') {
@@ -112,7 +116,7 @@ final class AuthController extends BaseController
         $error = trim((string) ($_GET['error'] ?? $_GET['error_description'] ?? ''));
         if ($error !== '') {
             $_SESSION['auth_flash'] = '소셜 로그인이 취소되었거나 실패했습니다.';
-            redirect('/login');
+            $this->finishOauthRedirect('/login');
         }
 
         $state = (string) ($_GET['state'] ?? '');
@@ -136,22 +140,39 @@ final class AuthController extends BaseController
             || $code === ''
         ) {
             $_SESSION['auth_flash'] = '소셜 로그인 세션이 만료되었거나 인증 정보가 올바르지 않습니다. 팝업/시크릿 창이 아닌 같은 브라우저에서 다시 시도해 주세요.';
-            redirect('/login');
+            $this->finishOauthRedirect('/login');
         }
 
         try {
             $next = $redirectPath === '/' ? '/account' : $redirectPath;
             $oauth->setAfterLoginPath($next);
-            $user = $oauth->handleCallback($provider, $code);
+            $user = $oauth->handleCallback($provider, $code, $state);
             if ($user === null) {
-                redirect('/register/phone');
+                $this->finishOauthRedirect('/register/phone');
             }
             $this->auth->loginUser($user, true);
-            redirect($next);
+            $this->finishOauthRedirect($next);
         } catch (RuntimeException $e) {
             $_SESSION['auth_flash'] = $e->getMessage();
-            redirect('/login');
+            $this->finishOauthRedirect('/login');
         }
+    }
+
+    private function oauthReturnUrl(string $path): string
+    {
+        $path = safe_redirect_path($path);
+        $origin = (string) ($_SESSION['oauth_origin'] ?? '');
+        if (preg_match('#^https://(www\.)?labelup\.co\.kr$#', $origin) === 1) {
+            return $origin . $path;
+        }
+        return $path;
+    }
+
+    private function finishOauthRedirect(string $path): never
+    {
+        $target = $this->oauthReturnUrl($path);
+        unset($_SESSION['oauth_origin']);
+        redirect($target);
     }
 
     private function snsHoldBackPath(): string
@@ -414,6 +435,7 @@ final class AuthController extends BaseController
         try {
             $user = $users->updateProfile($this->auth->id(), $data);
             $_SESSION[AuthService::SESSION_USER_KEY]['name'] = $user['name'] ?? $_SESSION[AuthService::SESSION_USER_KEY]['name'];
+            $_SESSION[AuthService::SESSION_USER_KEY]['email'] = $user['email'] ?? $_SESSION[AuthService::SESSION_USER_KEY]['email'];
             $this->jsonSuccess($users->sanitizeUser($user), '회원정보가 수정되었습니다.');
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage(), null, 422);
@@ -525,19 +547,22 @@ final class AuthController extends BaseController
             || !hash_equals($expected, $state)
         ) {
             $_SESSION['auth_flash'] = '소셜 로그인 세션이 만료되었거나 인증 정보가 올바르지 않습니다. 같은 브라우저에서 다시 시도해 주세요.';
-            $this->jsonError($_SESSION['auth_flash'], null, 401);
+            $this->jsonError($_SESSION['auth_flash'], ['redirect' => $this->oauthReturnUrl('/login')], 401);
         }
 
         unset($_SESSION['oauth_state'], $_SESSION['oauth_provider'], $_SESSION['oauth_redirect']);
 
         try {
-            $next = $redirectPath === '/' ? '/account' : $redirectPath;
+            $nextPath = $redirectPath === '/' ? '/account' : $redirectPath;
+            $next = $this->oauthReturnUrl($nextPath);
+            $phoneNext = $this->oauthReturnUrl('/register/phone');
+            unset($_SESSION['oauth_origin']);
             $oauth = new OAuthService();
-            $oauth->setAfterLoginPath($next);
+            $oauth->setAfterLoginPath($nextPath);
             $user = $oauth->loginWithAccessToken('google', $accessToken, $expiresIn);
             if ($user === null) {
                 $this->jsonSuccess([
-                    'redirect' => '/register/phone',
+                    'redirect' => $phoneNext,
                 ], '휴대폰 인증 후 가입이 완료됩니다.');
             }
             $this->auth->loginUser($user, true);
@@ -573,7 +598,7 @@ final class AuthController extends BaseController
         $this->renderGoogleBridgePage(
             '구글 로그인 확인 중...',
             'var apiUrl=' . json_encode(url('api/auth/oauth/google'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ';'
-            . 'var failUrl=' . json_encode(url('login'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ';'
+            . 'var failUrl=' . json_encode($this->oauthReturnUrl('/login'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ';'
             . 'var params=new URLSearchParams((location.hash||"").replace(/^#/,""));'
             . 'var token=params.get("access_token")||"";'
             . 'var state=params.get("state")||"";'

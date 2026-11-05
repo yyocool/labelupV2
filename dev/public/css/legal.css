@@ -29,7 +29,9 @@
 .legal-card h2{margin:0 0 14px;font-size:20px}
 .legal-updated{margin:0 0 18px;font-size:14px;color:#8a837c}
 .legal-body{font-size:15px;line-height:1.75;color:#3d3834}
+.legal-body h2{margin:4px 0 14px;font-size:20px;line-height:1.4;color:#1f1b18}
 .legal-body h3{margin:22px 0 8px;font-size:16px}
+.legal-body a{color:inherit;text-decoration:underline}
 .legal-body p,.legal-body li{margin:0 0 8px}
 .legal-body ul{padding-left:1.2em;margin:0 0 12px}
 

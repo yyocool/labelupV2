@@ -14,6 +14,7 @@ final class NotificationService
     public const TYPE_ORDER_PLACED = 'order_placed';
     public const TYPE_ORDER_STATUS = 'order_status';
     public const TYPE_SYSTEM = 'system';
+    public const TYPE_INQUIRY = 'inquiry';
 
     private NotificationRepository $repo;
 
@@ -68,6 +69,7 @@ final class NotificationService
             self::TYPE_ORDER_PLACED => '주문',
             self::TYPE_ORDER_STATUS => '배송',
             self::TYPE_SYSTEM => '공지',
+            self::TYPE_INQUIRY => '문의',
             default => '알림',
         };
     }
@@ -232,6 +234,20 @@ final class NotificationService
             url('account/orders/' . $orderNo),
             'order',
             $orderNo
+        );
+    }
+
+    public function notifyInquiryAnswered(int $userId, int $inquiryId, string $subject): void
+    {
+        $this->notify(
+            $userId,
+            self::TYPE_INQUIRY,
+            '1:1 문의에 답변이 등록되었습니다',
+            '「' . mb_substr(trim($subject), 0, 60) . '」 문의의 답변을 마이페이지에서 확인해 주세요.',
+            url('account') . '#inquiries',
+            'inquiry',
+            (string) $inquiryId,
+            true
         );
     }
 

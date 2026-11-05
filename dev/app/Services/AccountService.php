@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Repositories\CreditRepository;
 use App\Repositories\ShopRepository;
+use App\Repositories\UserOauthAccountRepository;
 use App\Repositories\UserRepository;
 
 final class AccountService
@@ -31,8 +32,8 @@ final class AccountService
         $creditRepo = new CreditRepository();
         $creditRepo->ensureBalanceRow($userId);
         $creditBalance = $creditRepo->getBalance($userId);
-        $creditTx = $creditRepo->transactionsForUser($userId, 1, 10);
-        $aiCredit = (new AiCreditService())->memberSummary($userId, 1, 15);
+        $creditTx = $creditRepo->transactionsForUser($userId, 1, 5);
+        $aiCredit = (new AiCreditService())->memberSummary($userId, 1, 5);
         $cliparts = new UserAiClipartService();
         $myCliparts = $cliparts->listForUser($userId, 48);
         $clipartCount = $cliparts->countForUser($userId);
@@ -53,6 +54,8 @@ final class AccountService
 
         return [
             'user' => $user,
+            'social_providers' => (new UserOauthAccountRepository())->providersForUser($userId),
+            'sms_required' => NaverSmsSettings::isSignupRequired(),
             'grade' => (new MemberGradeService())->forUser($userId),
             'plan' => $this->planInfo($user),
             'stats' => [
@@ -67,6 +70,7 @@ final class AccountService
                     $row['description'] = CreditService::repairUtf8((string) ($row['description'] ?? ''));
                     return $row;
                 }, $creditTx['items'] ?? []),
+                'total' => (int) ($creditTx['total'] ?? 0),
             ],
             'ai_usage' => $aiCredit,
             'usage' => [
@@ -95,8 +99,7 @@ final class AccountService
             ],
             'recentDesigns' => $this->recentDesigns($userId),
             'recentOrders' => $this->formatOrders($orders),
-            'templates' => $this->sampleTemplates(),
-            'brands' => $this->sampleBrands($user),
+            'templates' => $this->popularTemplates(),
             'addresses' => (new UserAddressService())->list($userId),
             'address' => $this->defaultAddress($user, $userId),
             'tools' => [
@@ -143,28 +146,34 @@ final class AccountService
     }
 
     /** @return array<int, array<string, mixed>> */
-    private function sampleTemplates(): array
+    private function popularTemplates(int $limit = 5): array
     {
-        return [
-            ['name' => '핸드메이드 라벨', 'count' => 12, 'thumb' => asset('tpl-handmade.webp')],
-            ['name' => '감사 스티커', 'count' => 8, 'thumb' => asset('tpl-thanks.webp')],
-            ['name' => '가격표 라벨', 'count' => 5, 'thumb' => asset('tpl-price.webp')],
-        ];
-    }
-
-    /** @param array<string, mixed> $user */
-    /** @return array<int, array<string, string>> */
-    private function sampleBrands(array $user): array
-    {
-        $company = trim((string) ($user['company'] ?? ''));
-        $brands = [
-            ['name' => '그린팜', 'initial' => 'G'],
-            ['name' => '내추럴데이즈', 'initial' => 'N'],
-        ];
-        if ($company !== '') {
-            array_unshift($brands, ['name' => $company, 'initial' => mb_substr($company, 0, 1)]);
+        try {
+            $rows = (new LabelTemplateService())->popularForHome($limit);
+        } catch (\Throwable) {
+            return [];
         }
-        return $brands;
+        $items = [];
+        foreach ($rows as $tpl) {
+            $thumb = (string) ($tpl['thumbUrl'] ?? '');
+            $svg = (string) ($tpl['previewSvg'] ?? '');
+            if ($thumb === '' && $svg !== '') {
+                $thumb = 'data:image/svg+xml;base64,' . base64_encode($svg);
+            }
+            $w = (float) ($tpl['widthMm'] ?? 0);
+            $h = (float) ($tpl['heightMm'] ?? 0);
+            $meta = array_filter([
+                (string) ($tpl['categoryName'] ?? ''),
+                $w > 0 && $h > 0 ? rtrim(rtrim(number_format($w, 1), '0'), '.') . '×' . rtrim(rtrim(number_format($h, 1), '0'), '.') . 'mm' : '',
+            ]);
+            $items[] = [
+                'name' => (string) ($tpl['name'] ?? '템플릿'),
+                'meta' => implode(' · ', $meta),
+                'thumb' => $thumb,
+                'edit_url' => url('editor/') . '?template=' . (int) ($tpl['id'] ?? 0),
+            ];
+        }
+        return $items;
     }
 
     /** @param array<string, mixed> $user */

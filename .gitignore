@@ -39,6 +39,7 @@ dev/.env
 
 # ── dev 런타임 / 임시 ──
 dev/tmp_*.txt
+dev/storage/backups/
 dev/public/assets/_labi_backup_blue/
 
 # ── 배포·실험·백업 (소스 제외) ──

@@ -271,7 +271,9 @@ final class Router
         $router->post('/api/launch-checklist/reset', [$launchChecklistApi, 'reset']);
         $router->get('/terms', [$legalPublic, 'terms']);
         $router->get('/privacy', [$legalPublic, 'privacy']);
+        $router->get('/company', [$legalPublic, 'company']);
         $router->get('/faq', [$faqPublic, 'index']);
+        $router->get('/api/faq/search', [$faqPublic, 'search']);
         $router->get('/compat', [$compatPublic, 'index']);
         $router->get('/compat-codes', [$compatPublic, 'index']);
         $router->get('/compat/qr', [$compatPublic, 'qrSample']);
@@ -395,6 +397,7 @@ final class Router
         $router->get('/api/auth/oauth', [$auth, 'oauthProviders']);
         $router->post('/api/auth/oauth/google', [$auth, 'googleTokenLogin']);
         $router->get('/api/credit/me', [$creditApi, 'me']);
+        $router->get('/api/credit/me/ai-usage', [$creditApi, 'aiUsage']);
         $router->get('/api/notifications', [$notificationApi, 'index']);
         $router->get('/api/notifications/unread', [$notificationApi, 'unread']);
         $router->post('/api/notifications/read', [$notificationApi, 'markRead']);
@@ -436,10 +439,13 @@ final class Router
         $router->get('/api/admin/alerts', [$adminWorkspaceApi, 'alerts']);
         $router->post('/api/admin/alerts/ack', [$adminWorkspaceApi, 'ackAlerts']);
         $router->post('/api/inquiry', [$inquiryApi, 'submit']);
+        $router->get('/api/inquiry/mine', [$inquiryApi, 'mine']);
         $router->post('/api/error-reports', [$errorReportApi, 'submit']);
         $router->get('/api/admin/error-reports', [$errorReportApi, 'detail']);
         $router->post('/api/admin/error-reports/process', [$errorReportApi, 'process']);
         $router->post('/api/admin/inquiry/update', [$inquiryApi, 'update']);
+        $router->post('/api/admin/inquiry/answer', [$inquiryApi, 'answer']);
+        $router->post('/api/admin/inquiry/note', [$inquiryApi, 'note']);
 
         $router->get('/api/admin/admins/lookup', [$adminAccountApi, 'lookup']);
         $router->post('/api/admin/admins/save', [$adminAccountApi, 'save']);

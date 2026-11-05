@@ -20,7 +20,24 @@ final class LegalDocumentRepository extends BaseModel
     public function all(): array
     {
         return $this->fetchAll(
-            'SELECT * FROM legal_documents ORDER BY FIELD(doc_key, \'terms\', \'privacy\', \'marketing\'), id ASC'
+            'SELECT * FROM legal_documents ORDER BY FIELD(doc_key, \'terms\', \'privacy\', \'marketing\', \'company\'), id ASC'
+        );
+    }
+
+    public function insertIfMissing(string $docKey, string $title, string $content, bool $isRequired): void
+    {
+        $now = date('Y-m-d H:i:s');
+        $this->execute(
+            'INSERT IGNORE INTO legal_documents (doc_key, title, content, version, is_required, created_at, updated_at)
+             VALUES (:key, :title, :content, 1, :required, :created, :updated)',
+            [
+                'key' => $docKey,
+                'title' => $title,
+                'content' => $content,
+                'required' => $isRequired ? 1 : 0,
+                'created' => $now,
+                'updated' => $now,
+            ]
         );
     }
 

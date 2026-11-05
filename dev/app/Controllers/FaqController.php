@@ -25,4 +25,17 @@ final class FaqController extends BaseController
             'eventPopups' => (new EventPopupService())->activeForSite(),
         ]);
     }
+
+    public function search(): never
+    {
+        $q = mb_substr(trim((string) ($_GET['q'] ?? '')), 0, 60);
+        $loggedIn = (new AuthService())->user() !== null;
+        $this->jsonSuccess([
+            'items' => (new FaqService())->searchForSite($q, 5),
+            'faq_url' => url('faq') . ($q !== '' ? '?q=' . rawurlencode($q) : ''),
+            'inquiry_url' => $loggedIn
+                ? url('account') . '#inquiry'
+                : url('login') . '?redirect=' . rawurlencode('/account#inquiry'),
+        ]);
+    }
 }

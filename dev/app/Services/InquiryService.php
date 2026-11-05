@@ -20,7 +20,61 @@ final class InquiryService
     public function allForAdmin(?string $status = null): array
     {
         $status = $status !== null && $status !== '' && $status !== 'all' ? $status : null;
-        return $this->repo->allForAdmin($status);
+        $items = $this->repo->allForAdmin($status);
+        $logs = $this->repo->logsFor(array_column($items, 'id'));
+        foreach ($items as &$item) {
+            $item['logs'] = $logs[(int) $item['id']] ?? [];
+        }
+        unset($item);
+        return $items;
+    }
+
+    public function addNote(int $id, string $note, string $status, array $admin): void
+    {
+        $note = trim($note);
+        $row = $id > 0 ? $this->repo->find($id) : null;
+        if ($row === null) {
+            throw new RuntimeException('문의를 찾을 수 없습니다.');
+        }
+        $from = (string) ($row['status'] ?? '');
+        $status = $status !== '' ? $status : $from;
+        $this->assertStatus($status);
+        if ($note === '' && $status === $from) {
+            throw new RuntimeException('처리 내용을 입력하거나 상태를 바꿔 주세요.');
+        }
+        if ($status !== $from) {
+            $this->repo->updateStatus($id, $status);
+        }
+        $this->log($id, $admin, 'note', $from, $status, $note);
+    }
+
+    public static function logActionLabel(string $action): string
+    {
+        return match ($action) {
+            'answer' => '회원 답변',
+            'status' => '상태 변경',
+            default => '처리 메모',
+        };
+    }
+
+    private function log(int $id, array $admin, string $action, string $from, string $to, string $note = ''): void
+    {
+        $this->repo->addLog([
+            'inquiry_id' => $id,
+            'admin_id' => $admin['id'] ?? null,
+            'admin_name' => trim((string) ($admin['name'] ?? '')) ?: (string) ($admin['email'] ?? ''),
+            'action' => $action,
+            'status_from' => $from !== $to ? $from : null,
+            'status_to' => $from !== $to ? $to : null,
+            'note' => $note !== '' ? $note : null,
+        ]);
+    }
+
+    private function assertStatus(string $status): void
+    {
+        if (!in_array($status, ['open', 'in_progress', 'answered', 'closed'], true)) {
+            throw new RuntimeException('잘못된 상태입니다.');
+        }
     }
 
     public function submit(array $data, ?int $userId): int
@@ -47,19 +101,53 @@ final class InquiryService
         ]);
     }
 
-    public function updateStatus(int $id, string $status, ?string $memo = null): void
+    public function updateStatus(int $id, string $status, ?string $memo = null, array $admin = []): void
     {
         if ($id <= 0) {
             throw new RuntimeException('문의가 없습니다.');
         }
-        if ($this->repo->find($id) === null) {
+        $row = $this->repo->find($id);
+        if ($row === null) {
             throw new RuntimeException('문의를 찾을 수 없습니다.');
         }
-        $allowed = ['open', 'in_progress', 'answered', 'closed'];
-        if (!in_array($status, $allowed, true)) {
-            throw new RuntimeException('잘못된 상태입니다.');
-        }
+        $this->assertStatus($status);
         $this->repo->updateStatus($id, $status, $memo);
+        $from = (string) ($row['status'] ?? '');
+        if ($from !== $status) {
+            $this->log($id, $admin, 'status', $from, $status);
+        }
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function listForUser(int $userId): array
+    {
+        return array_map(static fn (array $row): array => [
+            'id' => (int) $row['id'],
+            'subject' => (string) ($row['subject'] ?? ''),
+            'content' => (string) ($row['content'] ?? ''),
+            'status' => (string) ($row['status'] ?? ''),
+            'status_label' => self::statusLabel((string) ($row['status'] ?? '')),
+            'answer' => (string) ($row['answer'] ?? ''),
+            'answered_at' => substr((string) ($row['answered_at'] ?? ''), 0, 16),
+            'created_at' => substr((string) ($row['created_at'] ?? ''), 0, 16),
+        ], $this->repo->listForUser($userId));
+    }
+
+    public function answer(int $id, string $answer, array $admin = []): void
+    {
+        $answer = trim($answer);
+        if ($answer === '') {
+            throw new RuntimeException('답변 내용을 입력해 주세요.');
+        }
+        $row = $id > 0 ? $this->repo->find($id) : null;
+        if ($row === null) {
+            throw new RuntimeException('문의를 찾을 수 없습니다.');
+        }
+        $this->repo->saveAnswer($id, $answer);
+        $this->log($id, $admin, 'answer', (string) ($row['status'] ?? ''), 'answered', $answer);
+        if (!empty($row['user_id'])) {
+            (new NotificationService())->notifyInquiryAnswered((int) $row['user_id'], $id, (string) ($row['subject'] ?? ''));
+        }
     }
 
     public static function statusLabel(string $status): string

@@ -8,7 +8,9 @@ $trashItems = $trashItems ?? [];
     <h1>휴지통</h1>
     <p>프로젝트와 보관함에서 삭제한 항목입니다. 복원하거나 여기서만 완전히 지울 수 있습니다.</p>
   </div>
-  <a class="account-btn account-btn--outline" href="<?= url('projects') ?>">프로젝트로</a>
+  <a class="account-icon-btn lib-hero-icon" href="<?= url('projects') ?>" title="프로젝트로" aria-label="프로젝트로 이동">
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.6l2 2.2h8.4A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/></svg>
+  </a>
 </section>
 
 <section class="card lib-panel">

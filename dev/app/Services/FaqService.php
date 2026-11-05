@@ -53,6 +53,46 @@ final class FaqService
         return array_values(array_filter($grouped, static fn (array $g): bool => $g['items'] !== []));
     }
 
+    /** @return list<array{id: int, question: string, answer: string, category: string}> */
+    public function searchForSite(string $query, int $limit = 5): array
+    {
+        $tokens = preg_split('/\s+/u', mb_strtolower(trim($query))) ?: [];
+        $tokens = array_values(array_filter($tokens, static fn (string $t): bool => $t !== ''));
+        $scored = [];
+        foreach ($this->repo->activeFaqs() as $index => $row) {
+            $question = (string) ($row['question'] ?? '');
+            $html = preg_replace('/<(br|\/p|\/div|\/li|\/h\d)\b[^>]*>/i', ' ', (string) ($row['answer'] ?? '')) ?? '';
+            $answer = trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8')) ?? '');
+            $score = 0;
+            if ($tokens !== []) {
+                $q = mb_strtolower($question);
+                $a = mb_strtolower($answer);
+                foreach ($tokens as $token) {
+                    if (str_contains($q, $token)) {
+                        $score += 3;
+                    } elseif (str_contains($a, $token)) {
+                        $score += 1;
+                    }
+                }
+                if ($score === 0) {
+                    continue;
+                }
+            }
+            $scored[] = [
+                'score' => $score,
+                'order' => $index,
+                'item' => [
+                    'id' => (int) ($row['id'] ?? 0),
+                    'question' => $question,
+                    'answer' => mb_strlen($answer) > 160 ? mb_substr($answer, 0, 160) . '…' : $answer,
+                    'category' => (string) ($row['category_name'] ?? ''),
+                ],
+            ];
+        }
+        usort($scored, static fn (array $x, array $y): int => [$y['score'], $x['order']] <=> [$x['score'], $y['order']]);
+        return array_map(static fn (array $s): array => $s['item'], array_slice($scored, 0, max(1, $limit)));
+    }
+
     public function saveCategory(array $data): int
     {
         $name = trim((string) ($data['name'] ?? ''));

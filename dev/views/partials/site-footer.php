@@ -20,14 +20,7 @@ try {
     $socialLinks = [];
 }
 
-$defaultLinks = [
-    ['label' => '회사소개', 'href' => url('about')],
-    ['label' => '이용약관', 'href' => url('terms')],
-    ['label' => '개인정보처리방침', 'href' => url('privacy')],
-    ['label' => '자주 묻는 질문', 'href' => url('faq')],
-    ['label' => '라벨쇼핑', 'href' => url('shop')],
-];
-$links = is_array($links ?? null) ? $links : $defaultLinks;
+$links = is_array($links ?? null) ? $links : require view_path('partials/site-info-links.php');
 
 $companyLine = $name !== '' ? $name : '라벨업';
 if ($ceo !== '') {
@@ -96,9 +89,12 @@ if ($privacyOfficer !== '') {
         </h2>
         <div class="site-footer-cs-links">
           <a href="<?= url('faq') ?>">FAQ</a>
-          <?php if ($email !== ''): ?>
-          <a href="mailto:<?= e($email) ?>">1:1 문의</a>
-          <?php endif; ?>
+          <?php
+            $inquiryHref = !empty($_SESSION[\App\Services\AuthService::SESSION_USER_KEY])
+                ? url('account') . '#inquiry'
+                : url('login') . '?redirect=' . rawurlencode('/account#inquiry');
+          ?>
+          <a href="<?= e($inquiryHref) ?>">1:1 문의</a>
         </div>
         <?php if ($phone !== ''): ?>
         <p class="site-footer-cs-phone">

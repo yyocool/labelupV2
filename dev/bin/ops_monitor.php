@@ -3,9 +3,10 @@
 declare(strict_types=1);
 
 /*
- * 운영 점검 (cron 5분 간격):
- *   * /5 * * * * php /home/wwwroot/labelup/bin/ops_monitor.php >/dev/null 2>&1
+ * 운영 점검 (5분마다, 서비스 서버):
+ *   php /home/uptube1/bin/ops_monitor.php >> /home/uptube1/storage/logs/ops_monitor.log
  * php-fpm 과 같은 사용자로 돌려야 storage/logs 상태 파일을 함께 쓸 수 있다.
+ * DB 백업 상태(storage/backups/db/latest.json)가 있으면 실패·지연도 문자 알림한다.
  */
 
 if (PHP_SAPI !== 'cli') {
@@ -85,6 +86,22 @@ if ($dbOk && $now - (int) ($state['last_ai_check'] ?? 0) >= AI_CHECK_INTERVAL) {
         $state['ai_error'] = !empty($bill['configured']) && empty($bill['ok']) ? (string) ($bill['error'] ?? '') : '';
     } catch (Throwable $e) {
         $state['ai_error'] = $e->getMessage();
+    }
+}
+
+$backupFile = dirname(__DIR__) . '/storage/backups/db/latest.json';
+if (is_readable($backupFile)) {
+    $backup = json_decode((string) file_get_contents($backupFile), true);
+    $finishedAt = is_array($backup) ? (string) ($backup['finished_at'] ?? '') : '';
+    $finishedTs = $finishedAt !== '' ? (int) strtotime($finishedAt) : 0;
+    $backupOk = is_array($backup) && !empty($backup['ok']) && $finishedTs > 0 && ($now - $finishedTs) <= 93600;
+    $state['backup_ok'] = $backupOk;
+    $state['backup_at'] = $finishedAt;
+    if (!$backupOk) {
+        $why = !is_array($backup) || empty($backup['ok'])
+            ? ('실패 ' . (string) ($backup['error'] ?? '원인 없음'))
+            : '최근 성공이 ' . $finishedAt . ' 이라 26시간을 넘었습니다';
+        OpsSmsNotifier::notify('db_backup_failed', 'DB 일일 백업 점검: ' . $why, 'backup');
     }
 }
 

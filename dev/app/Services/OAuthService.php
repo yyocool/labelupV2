@@ -91,9 +91,9 @@ final class OAuthService
      *
      * @return array{id:int,email:string,name:?string,role:string,status:string}|null
      */
-    public function handleCallback(string $provider, string $code): ?array
+    public function handleCallback(string $provider, string $code, ?string $state = null): ?array
     {
-        return $this->completeWithToken($provider, $this->exchangeCode($provider, $code));
+        return $this->completeWithToken($provider, $this->exchangeCode($provider, $code, $state));
     }
 
     /**
@@ -407,10 +407,13 @@ final class OAuthService
     }
 
     /** @return array<string, mixed> */
-    private function exchangeCode(string $provider, string $code): array
+    private function exchangeCode(string $provider, string $code, ?string $state = null): array
     {
         $cfg = $this->requireConfig($provider);
         $redirectUri = $this->callbackUrl($provider);
+        $oauthState = $state !== null && $state !== ''
+            ? $state
+            : (string) ($_SESSION['oauth_state'] ?? '');
 
         return match ($provider) {
             'google' => $this->httpJson('POST', 'https://oauth2.googleapis.com/token', [
@@ -425,7 +428,7 @@ final class OAuthService
                 'client_id' => $cfg['client_id'],
                 'client_secret' => $cfg['client_secret'],
                 'code' => $code,
-                'state' => (string) ($_SESSION['oauth_state'] ?? ''),
+                'state' => $oauthState,
             ]),
             'kakao' => $this->httpJson('POST', 'https://kauth.kakao.com/oauth/token', array_filter([
                 'grant_type' => 'authorization_code',
@@ -505,11 +508,15 @@ final class OAuthService
     private function absoluteUrl(string $path): string
     {
         $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+        $host = preg_replace('/:\d+$/', '', $host) ?? $host;
         $appUrl = rtrim((string) env('APP_URL', ''), '/');
 
         // OAuth redirect_uri는 콘솔에 등록된 https 주소와 바이트 단위로 같아야 한다.
-        if ($host !== '' && (str_ends_with($host, 'labelup.co.kr') || str_contains($host, 'labelup.'))) {
-            $base = 'https://' . preg_replace('/:\d+$/', '', $host);
+        // 네이버에는 www 콜백만 등록되어 있어 apex 호스트를 그대로 쓰면 로그인 전에 거절된다.
+        if ($host === 'labelup.co.kr' || $host === 'www.labelup.co.kr') {
+            $base = 'https://www.labelup.co.kr';
+        } elseif ($host !== '' && (str_ends_with($host, 'labelup.co.kr') || str_contains($host, 'labelup.'))) {
+            $base = 'https://' . $host;
         } elseif ($appUrl !== '') {
             $base = $appUrl;
             if (str_starts_with($base, 'http://') && (str_contains($base, 'labelup.co.kr') || str_contains($base, 'labelup.'))) {

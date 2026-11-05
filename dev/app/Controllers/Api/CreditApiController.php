@@ -6,6 +6,7 @@ namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
 use App\Middleware\AuthMiddleware;
+use App\Services\AiCreditService;
 use App\Services\AuthService;
 use App\Services\CreditService;
 
@@ -26,5 +27,13 @@ final class CreditApiController extends BaseController
         $page = max(1, (int) ($_GET['page'] ?? 1));
         $perPage = max(1, min(50, (int) ($_GET['per_page'] ?? 20)));
         $this->jsonSuccess($this->credits->summaryForUser((int) $this->auth->id(), $page, $perPage));
+    }
+
+    public function aiUsage(): never
+    {
+        (new AuthMiddleware($this->auth))->handle();
+        $page = max(1, (int) ($_GET['page'] ?? 1));
+        $perPage = max(1, min(50, (int) ($_GET['per_page'] ?? 20)));
+        $this->jsonSuccess((new AiCreditService())->memberSummary((int) $this->auth->id(), $page, $perPage));
     }
 }

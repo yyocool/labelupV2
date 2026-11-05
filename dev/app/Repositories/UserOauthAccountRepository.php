@@ -18,6 +18,16 @@ final class UserOauthAccountRepository extends BaseModel
         );
     }
 
+    /** @return list<string> */
+    public function providersForUser(int $userId): array
+    {
+        $rows = $this->fetchAll(
+            'SELECT DISTINCT provider FROM user_oauth_accounts WHERE user_id = :uid AND deleted_at IS NULL ORDER BY provider',
+            ['uid' => $userId]
+        );
+        return array_map(static fn (array $r): string => (string) $r['provider'], $rows);
+    }
+
     public function upsert(
         int $userId,
         string $provider,

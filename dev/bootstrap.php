@@ -48,22 +48,29 @@ if (!headers_sent()) {
 }
 
 if (session_status() === PHP_SESSION_NONE) {
-    session_name($appConfig['session_key'] ?? 'labelupdev_session');
     $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
         || ((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')
         || (isset($_SERVER['SERVER_PORT']) && (string) $_SERVER['SERVER_PORT'] === '443');
-    $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
-    if (!$https && (str_ends_with($host, 'labelup.co.kr') || str_contains($host, 'labelup.'))) {
-        // 리버스 프록시가 X-Forwarded-Proto를 안 넘기는 호스팅 대비
+    $host = request_host();
+    if (!$https && is_labelup_public_host($host)) {
+        // 리버스 프록시가 X-Forwarded-Proto를 안 넘기는 호스팅 대비.
+        // labelup.co.kr / www 만 Secure 쿠키를 강제한다.
         $https = true;
     }
-    session_set_cookie_params([
+    $cookieDomain = site_cookie_domain();
+    // 예전 host-only 쿠키(labelup_session)와 이름이 같으면 www/apex 중 하나만 읽힌다.
+    session_name($cookieDomain !== '' ? 'labelup_site' : ($appConfig['session_key'] ?? 'labelupdev_session'));
+    $cookieParams = [
         'lifetime' => (int) ($appConfig['session_lifetime'] ?? 7200),
         'path' => '/',
         'secure' => $https,
         'httponly' => true,
         'samesite' => 'Lax',
-    ]);
+    ];
+    if ($cookieDomain !== '') {
+        $cookieParams['domain'] = $cookieDomain;
+    }
+    session_set_cookie_params($cookieParams);
     session_start();
 }
 

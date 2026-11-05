@@ -5,6 +5,12 @@ $catalog = $notify['catalog'] ?? [];
 $monitor = is_array($notify['monitor'] ?? null) ? $notify['monitor'] : [];
 $lastRun = (string) ($monitor['last_run'] ?? '');
 $cronAlive = $lastRun !== '' && time() - (int) strtotime($lastRun) < 900;
+$backup = is_array($notify['backup'] ?? null) ? $notify['backup'] : [];
+$backupInstalled = !empty($backup['installed']);
+$backupOk = $backupInstalled && !empty($backup['ok']);
+$backupAt = (string) ($backup['finished_at'] ?? '');
+$backupFile = (string) ($backup['file'] ?? '');
+$backupKeep = (int) ($backup['keep_days'] ?? 14);
 $clientState = [
     'events' => $notify['events'] ?? [],
     'recipients' => $notify['recipients'] ?? [],
@@ -34,6 +40,11 @@ $clientState = [
     <strong>자동 점검 (5분 간격)</strong>
     <span><?= $cronAlive ? '정상 동작 중 · 최근 점검 ' . e($lastRun) : ($lastRun !== '' ? '점검이 멈췄습니다 · 최근 ' . e($lastRun) : '아직 점검 기록이 없습니다.') ?></span>
     <small><?php if (!empty($monitor['last_problem'])): ?>최근 문제: <?= e((string) $monitor['last_problem']) ?><?php elseif (!empty($monitor['down'])): ?>장애 상태<?php else: ?>사이트 장애·AI 잔액은 이 점검으로 감지합니다.<?php endif; ?></small>
+  </div>
+  <div class="admin-ai-status-item<?= $backupOk ? ' is-ready' : ' is-missing' ?>">
+    <strong>DB 일일 백업</strong>
+    <span><?php if (!$backupInstalled): ?>아직 백업 기록이 없습니다.<?php elseif ($backupOk): ?>최근 성공 <?= e($backupAt) ?><?php else: ?>실패<?= $backupAt !== '' ? ' · ' . e($backupAt) : '' ?><?php endif; ?></span>
+    <small><?php if ($backupOk && $backupFile !== ''): ?><?= e($backupFile) ?> · <?= (int) $backupKeep ?>일 보관<?php elseif (!$backupOk && !empty($backup['error'])): ?><?= e((string) $backup['error']) ?><?php else: ?>매일 03:20에 서비스 DB를 압축 저장합니다. 실패 알림을 받으려면 아래 「DB 백업 실패」를 수신 항목에 넣어 주세요.<?php endif; ?></small>
   </div>
 </div>
 
@@ -90,7 +101,7 @@ $clientState = [
 </section>
 
 <style>
-.ns-status{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.ns-status{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:16px}
 .ns-status .admin-ai-status-item{padding:14px;border-radius:12px;border:1px solid #e5e7eb;background:#fff;display:flex;flex-direction:column;gap:4px}
 .ns-status strong{font-size:13px}
 .ns-status span{font-size:13px;color:#4b5563}

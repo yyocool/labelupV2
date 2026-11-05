@@ -66,18 +66,21 @@ final class NotificationRepository extends BaseModel
 
     public function markRead(int $userId, ?int $id = null): int
     {
+        $before = $this->unreadCount($userId);
         if ($id !== null && $id > 0) {
-            return $this->execute(
+            $this->execute(
                 'UPDATE user_notifications SET is_read = 1
                  WHERE user_id = :uid AND id = :id AND is_read = 0',
                 ['uid' => $userId, 'id' => $id]
             );
+        } else {
+            $this->execute(
+                'UPDATE user_notifications SET is_read = 1
+                 WHERE user_id = :uid AND is_read = 0',
+                ['uid' => $userId]
+            );
         }
-        return $this->execute(
-            'UPDATE user_notifications SET is_read = 1
-             WHERE user_id = :uid AND is_read = 0',
-            ['uid' => $userId]
-        );
+        return max(0, $before - $this->unreadCount($userId));
     }
 
     public function ensurePrefs(int $userId): array

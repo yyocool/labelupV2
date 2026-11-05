@@ -153,7 +153,7 @@ final class AdminApiController extends BaseController
                 (string) ($payload['title'] ?? ''),
                 (string) ($payload['content'] ?? '')
             );
-            $this->jsonSuccess($doc, '약관이 저장되었습니다.');
+            $this->jsonSuccess($doc, '저장되었습니다.');
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage());
         }

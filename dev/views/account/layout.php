@@ -20,9 +20,10 @@
 <main class="main account-main">
   <header class="topbar account-topbar">
     <form class="account-search" action="<?= url('shop/products') ?>" method="get" role="search">
-      <input type="search" name="q" placeholder="찾고 있는 라벨 규격이나 재질을 검색해보세요" aria-label="검색">
+      <input type="search" name="q" placeholder="찾고 있는 라벨 규격이나 재질을 검색해보세요" data-mobile-placeholder="검색" aria-label="검색">
       <button type="submit" aria-label="검색">⌕</button>
     </form>
+    <?php require view_path('partials/mobile-search-placeholder.php'); ?>
     <div class="account-topbar-actions">
       <a class="account-icon-btn" href="<?= url('shop/cart') ?>" aria-label="장바구니">
         🛒<?php if (($cartCount ?? 0) > 0): ?><span class="account-badge"><?= (int) $cartCount ?></span><?php endif; ?>

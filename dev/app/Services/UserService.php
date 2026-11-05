@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Helpers\Validator;
 use App\Repositories\RememberTokenRepository;
 use App\Repositories\UserLoginLogRepository;
+use App\Repositories\UserOauthAccountRepository;
 use App\Repositories\UserProfileRepository;
 use App\Repositories\UserRepository;
 use RuntimeException;
@@ -153,14 +154,68 @@ final class UserService
 
     public function updateProfile(int $userId, array $data): array
     {
+        $user = $this->users->findById($userId);
+        if (!$user) {
+            throw new RuntimeException('회원 정보를 찾을 수 없습니다.');
+        }
         if ($err = Validator::name($data['name'] ?? '')) {
             throw new RuntimeException($err);
         }
-        $this->profiles->update($userId, [
-            'name' => trim($data['name']),
-            'phone' => trim($data['phone'] ?? '') ?: null,
-            'company' => trim($data['company'] ?? '') ?: null,
-        ]);
+        $company = trim((string) ($data['company'] ?? ''));
+        if (mb_strlen($company) > 150) {
+            throw new RuntimeException('회사/상호는 150자 이내로 입력해 주세요.');
+        }
+        $profile = [
+            'name' => trim((string) $data['name']),
+            'company' => $company !== '' ? $company : null,
+        ];
+
+        $newEmail = null;
+        if (array_key_exists('email', $data)) {
+            $email = strtolower(trim((string) $data['email']));
+            if ($email !== strtolower((string) ($user['email'] ?? ''))) {
+                if (!Validator::email($email)) {
+                    throw new RuntimeException('올바른 이메일 형식이 아닙니다.');
+                }
+                if ($this->users->emailExists($email, $userId)) {
+                    throw new RuntimeException('이미 사용 중인 이메일입니다.');
+                }
+                $hasSocial = (new UserOauthAccountRepository())->providersForUser($userId) !== [];
+                if (!$hasSocial && !password_verify((string) ($data['current_password'] ?? ''), (string) ($user['password_hash'] ?? ''))) {
+                    throw new RuntimeException('이메일을 바꾸려면 현재 비밀번호를 정확히 입력해 주세요.');
+                }
+                $newEmail = $email;
+            }
+        }
+
+        if (array_key_exists('phone', $data)) {
+            $phoneRaw = trim((string) $data['phone']);
+            $currentDigits = preg_replace('/\D+/', '', (string) ($user['phone'] ?? '')) ?? '';
+            $smsRequired = NaverSmsSettings::isSignupRequired();
+            if ($phoneRaw !== '' && (preg_replace('/\D+/', '', $phoneRaw) ?? '') === $currentDigits) {
+                // 번호가 그대로면 인증 없이 유지한다.
+            } elseif ($phoneRaw === '') {
+                if ($smsRequired && $currentDigits !== '') {
+                    throw new RuntimeException('휴대폰 번호는 비워 둘 수 없습니다.');
+                }
+                $profile['phone'] = null;
+            } elseif ($smsRequired) {
+                $phone = SmsVerificationService::normalizePhone($phoneRaw);
+                if ($phone !== $currentDigits) {
+                    $profile['phone'] = (new SmsVerificationService())->consumeSignupToken($phone, (string) ($data['phone_verify_token'] ?? ''));
+                }
+            } else {
+                if (mb_strlen($phoneRaw) > 30) {
+                    throw new RuntimeException('연락처는 30자 이내로 입력해 주세요.');
+                }
+                $profile['phone'] = $phoneRaw;
+            }
+        }
+
+        if ($newEmail !== null) {
+            $this->users->updateEmail($userId, $newEmail);
+        }
+        $this->profiles->update($userId, $profile);
         return $this->users->findById($userId) ?? [];
     }
 

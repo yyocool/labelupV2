@@ -69,6 +69,14 @@ final class UserRepository extends BaseModel
         return (bool) $this->fetchOne($sql . ' LIMIT 1', $params);
     }
 
+    public function updateEmail(int $id, string $email): void
+    {
+        $this->execute(
+            'UPDATE users SET email = :email, updated_at = :now WHERE id = :id AND deleted_at IS NULL',
+            ['email' => $email, 'now' => date('Y-m-d H:i:s'), 'id' => $id]
+        );
+    }
+
     public function create(string $email, string $passwordHash, string $role = 'member'): int
     {
         $now = date('Y-m-d H:i:s');

@@ -488,6 +488,35 @@
 .shop-cart-confirm__box p{margin:0 0 14px;font-size:14px;line-height:1.5;color:var(--muted);word-break:keep-all}
 .shop-cart-confirm__actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
 .shop-cart-confirm__actions .shop-btn{width:100%;padding:0 10px}
+/* 목록 카드에서 옵션 고르는 하단 시트 */
+.shop-opt-sheet{position:fixed;inset:0;z-index:1300;display:flex;align-items:flex-end;justify-content:center}
+.shop-opt-sheet[hidden]{display:none}
+.shop-opt-sheet__dim{position:absolute;inset:0;background:rgba(28,24,22,.45);opacity:0;transition:opacity .2s}
+.shop-opt-sheet__panel{
+  position:relative;width:min(560px,100%);max-height:86vh;overflow-y:auto;
+  display:grid;gap:14px;padding:10px 20px calc(18px + env(safe-area-inset-bottom));
+  border-radius:22px 22px 0 0;background:#fff;box-shadow:0 -12px 40px rgba(36,20,26,.2);
+  transform:translateY(100%);transition:transform .22s ease-out;
+}
+.shop-opt-sheet.is-open .shop-opt-sheet__dim{opacity:1}
+.shop-opt-sheet.is-open .shop-opt-sheet__panel{transform:none}
+.shop-opt-sheet__grip{justify-self:center;width:40px;height:4px;border-radius:4px;background:#e0dad5}
+.shop-opt-sheet__head{display:flex;align-items:center;gap:12px}
+.shop-opt-sheet__thumb{width:56px;height:56px;flex-shrink:0;object-fit:cover;border-radius:10px;border:1px solid #eee8e3;background:#f6f3f0}
+.shop-opt-sheet__info{display:grid;gap:2px;min-width:0;flex:1}
+.shop-opt-sheet__info strong{font-size:16px;font-weight:900;color:var(--charcoal);line-height:1.3;word-break:keep-all}
+.shop-opt-sheet__info span{font-size:13px;color:var(--muted)}
+.shop-opt-sheet__x{align-self:flex-start;width:32px;height:32px;flex-shrink:0;border:0;border-radius:50%;background:transparent;font-size:22px;line-height:1;color:#9a948f;cursor:pointer}
+.shop-opt-sheet__x:hover{background:#f6f2ef;color:var(--charcoal)}
+.shop-opt-sheet__row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.shop-opt-sheet__lab{font-size:14px;font-weight:800;color:#1c1a22}
+.shop-opt-sheet__total{padding-top:12px;border-top:1px solid #efe9e4}
+.shop-opt-sheet__total strong{font-size:20px;font-weight:900;color:var(--accent)}
+.shop-opt-sheet__submit{width:100%;min-height:50px;font-size:16px}
+.shop-opt-sheet__submit:disabled{opacity:.55;cursor:default}
+.shop-opt-sheet__total strong.is-empty{font-size:14px;font-weight:700;color:var(--muted)}
+html.shop-opt-sheet-open{overflow:hidden}
+html.shop-opt-sheet-open .labi-assistant{display:none}
 /* 상품 리뷰 */
 .shop-stars{--rate:0;display:inline-block;font-size:14px;line-height:1;letter-spacing:1px;
   background:linear-gradient(90deg,#f5a524 calc(var(--rate) / 5 * 100%),#ddd8d4 0);
@@ -975,7 +1004,7 @@ body.lu-postcode-open{overflow:hidden}
 
 .shop-toast{
   position:fixed;left:50%;bottom:88px;transform:translateX(-50%) translateY(12px);
-  z-index:200;padding:12px 18px;border-radius:12px;background:var(--charcoal);color:#fff;
+  z-index:1400;padding:12px 18px;border-radius:12px;background:var(--charcoal);color:#fff;
   font-size:15px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
 }
 .shop-toast.is-show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -1175,6 +1204,27 @@ body.lu-postcode-open{overflow:hidden}
   .shop-float-item{width:auto;flex:1;padding:6px 0}
   .shop-float-label{font-size:12px}
   .shop-fab-cart{display:none!important}
+}
+@media (max-width:768px){
+  .shop-topbar{flex-wrap:nowrap;height:64px;padding:0 12px;gap:7px}
+  .shop-search{order:0;flex:1 1 auto;width:auto;min-width:0;height:40px}
+  .shop-search input{padding:0 4px 0 14px;font-size:14px}
+  .shop-search-btn{width:36px;height:40px}
+  .shop-topbar-actions{gap:7px}
+  .shop-cart-btn{width:40px;height:40px}
+  .shop-filter-level{display:block;min-width:0;margin-bottom:10px}
+  .shop-filter-level-label{display:none}
+  .shop-filter-level--sub{padding:8px 10px}
+  .shop-filter-bar{
+    position:relative;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;padding:2px 0;
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 32px),transparent);
+    mask-image:linear-gradient(90deg,#000 calc(100% - 32px),transparent);
+  }
+  .shop-filter-bar::-webkit-scrollbar{display:none}
+  .shop-filter-bar.is-end{-webkit-mask-image:none;mask-image:none}
+  .shop-filter-chip{flex:0 0 auto;white-space:nowrap}
+  .shop-filter-chip-img{width:24px;height:24px}
 }
 @media (max-width:560px){
   .shop-cat-icons{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}

@@ -100,6 +100,7 @@ final class AuthApiController extends BaseController
         try {
             $user = $this->users->updateProfile($this->auth->id(), $data);
             $_SESSION[AuthService::SESSION_USER_KEY]['name'] = $user['name'] ?? $_SESSION[AuthService::SESSION_USER_KEY]['name'];
+            $_SESSION[AuthService::SESSION_USER_KEY]['email'] = $user['email'] ?? $_SESSION[AuthService::SESSION_USER_KEY]['email'];
             $this->jsonSuccess($this->users->sanitizeUser($user), '회원정보가 수정되었습니다.');
         } catch (RuntimeException $e) {
             $this->jsonError($e->getMessage(), null, 422);

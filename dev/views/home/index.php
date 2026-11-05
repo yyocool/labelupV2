@@ -19,9 +19,10 @@
 <main class="main">
   <header class="topbar">
     <form class="search" action="<?= url('shop/products') ?>" method="get" role="search">
-      <input type="search" name="q" value="<?= e(trim((string) ($_GET['q'] ?? ''))) ?>" placeholder="라벨, 규격, 템플릿 검색" aria-label="상품 검색" autocomplete="off">
+      <input type="search" name="q" value="<?= e(trim((string) ($_GET['q'] ?? ''))) ?>" placeholder="라벨, 규격, 템플릿 검색" data-mobile-placeholder="검색" aria-label="상품 검색" autocomplete="off">
       <button type="submit" class="mag" aria-label="검색">⌕</button>
     </form>
+    <?php require view_path('partials/mobile-search-placeholder.php'); ?>
     <?php require view_path('home/partials/notification-bell.php'); ?>
     <?php require view_path('home/partials/credit-display.php'); ?>
     <?php require view_path('home/partials/profile-menu.php'); ?>
@@ -140,18 +141,18 @@
             $examplePrompts = $examplePrompts ?? [];
             if ($examplePrompts === []) {
               $examplePrompts = [
-                ['label' => '☆ 라벨 추천', 'prompt_text' => '용도에 맞는 라벨 상품을 하나 추천해줘.'],
-                ['label' => '◎ 주소 라벨', 'prompt_text' => '주소 라벨용 용지를 추천해줘.'],
-                ['label' => '▦ 바코드', 'prompt_text' => '바코드 라벨 상품을 추천해줘.'],
-                ['label' => '○ 원형 스티커', 'prompt_text' => '원형 네임 스티커 용지를 추천해줘.'],
-                ['label' => '◇ 가격표', 'prompt_text' => '가격표 라벨 상품을 추천해줘.'],
-                ['label' => '✦ 클립아트', 'prompt_text' => '카페 원두 라벨에 넣을 커피콩 클립아트를 그려줘.'],
-                ['label' => '♡ 일러스트', 'prompt_text' => '핸드메이드 라벨용 하트와 리본 일러스트를 그려줘.'],
+                ['label' => '라벨 추천', 'prompt_text' => '용도에 맞는 라벨 상품을 하나 추천해줘.'],
+                ['label' => '주소 라벨', 'prompt_text' => '주소 라벨용 용지를 추천해줘.'],
+                ['label' => '바코드', 'prompt_text' => '바코드 라벨 상품을 추천해줘.'],
+                ['label' => '원형 스티커', 'prompt_text' => '원형 네임 스티커 용지를 추천해줘.'],
+                ['label' => '가격표', 'prompt_text' => '가격표 라벨 상품을 추천해줘.'],
+                ['label' => '클립아트', 'prompt_text' => '카페 원두 라벨에 넣을 커피콩 클립아트를 그려줘.'],
+                ['label' => '일러스트', 'prompt_text' => '핸드메이드 라벨용 하트와 리본 일러스트를 그려줘.'],
               ];
             }
           ?>
           <?php foreach ($examplePrompts as $i => $prompt): ?>
-          <button class="chip<?= $i === 0 ? ' active' : '' ?>" type="button" data-text="<?= e((string) ($prompt['prompt_text'] ?? '')) ?>"><?= e((string) ($prompt['label'] ?? '예시')) ?></button>
+          <button class="chip<?= $i === 0 ? ' active' : '' ?>" type="button" data-text="<?= e((string) ($prompt['prompt_text'] ?? '')) ?>"><?= e(example_prompt_chip_label($prompt['label'] ?? null)) ?></button>
           <?php endforeach; ?>
         </div>
       </section>

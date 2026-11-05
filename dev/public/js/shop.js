@@ -130,6 +130,19 @@ function bindAddCartButtons() {
       const id = Number(btn.dataset.addCart);
       let qty = 1;
       const qtySel = btn.dataset.qtyInput;
+      // 목록 카드에는 옵션·수량 칸이 없으니, 옵션 상품이면 하단 시트에서 고르게 한다.
+      if (!qtySel && !btn.dataset.optionSelect) {
+        btn.disabled = true;
+        try {
+          await addFromCard(id);
+        } catch (err) {
+          showShopToast(err.message);
+          if (err.status === 401) setTimeout(goLogin, 900);
+        } finally {
+          btn.disabled = false;
+        }
+        return;
+      }
       if (qtySel) {
         const input = document.querySelector(qtySel);
         if (input) qty = Number(input.value || 1);
@@ -163,6 +176,165 @@ function bindAddCartButtons() {
       }
     });
   });
+}
+
+async function addFromCard(productId) {
+  const res = await ShopAPI.request(`/api/shop/products/${productId}`);
+  const product = res.data || {};
+  const options = Array.isArray(product.options) ? product.options : [];
+  if (!options.length) {
+    await addToCart(productId, 1, 0);
+    return;
+  }
+  openOptionSheet(product, options);
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function optionSheet() {
+  let sheet = document.getElementById('shopOptionSheet');
+  if (sheet) return sheet;
+  sheet = document.createElement('div');
+  sheet.id = 'shopOptionSheet';
+  sheet.className = 'shop-opt-sheet';
+  sheet.hidden = true;
+  sheet.innerHTML = `
+    <div class="shop-opt-sheet__dim" data-opt-sheet-close></div>
+    <div class="shop-opt-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="shopOptSheetTitle">
+      <div class="shop-opt-sheet__grip" aria-hidden="true"></div>
+      <div class="shop-opt-sheet__head">
+        <img class="shop-opt-sheet__thumb" alt="" data-opt-sheet-thumb>
+        <div class="shop-opt-sheet__info">
+          <strong id="shopOptSheetTitle" data-opt-sheet-name></strong>
+          <span data-opt-sheet-spec></span>
+        </div>
+        <button type="button" class="shop-opt-sheet__x" data-opt-sheet-close aria-label="닫기">×</button>
+      </div>
+      <fieldset class="shop-option-set">
+        <legend class="shop-detail-option__lab">옵션 선택 <em>필수</em></legend>
+        <div class="shop-option-grid" data-opt-sheet-grid></div>
+      </fieldset>
+      <div class="shop-opt-sheet__row">
+        <span class="shop-opt-sheet__lab">수량</span>
+        <div class="shop-qty">
+          <button type="button" class="shop-qty-btn" data-opt-sheet-minus aria-label="수량 감소">−</button>
+          <input type="number" min="1" value="1" inputmode="numeric" aria-label="수량 입력" data-opt-sheet-qty>
+          <button type="button" class="shop-qty-btn" data-opt-sheet-plus aria-label="수량 증가">+</button>
+        </div>
+      </div>
+      <div class="shop-opt-sheet__row shop-opt-sheet__total">
+        <span class="shop-opt-sheet__lab">선택 금액</span>
+        <strong data-opt-sheet-total>-</strong>
+      </div>
+      <button type="button" class="shop-btn shop-btn--primary shop-opt-sheet__submit" data-opt-sheet-submit>장바구니 담기</button>
+    </div>`;
+  document.body.appendChild(sheet);
+
+  const qtyInput = sheet.querySelector('[data-opt-sheet-qty]');
+  const grid = sheet.querySelector('[data-opt-sheet-grid]');
+  const picked = () => grid.querySelector('input[type=radio]:checked');
+  const clampQty = () => {
+    const max = Number(qtyInput.max || 999);
+    const qty = Math.min(max, Math.max(1, Math.floor(Number(qtyInput.value) || 1)));
+    qtyInput.value = String(qty);
+    return qty;
+  };
+  sheet.refresh = () => {
+    const opt = picked();
+    qtyInput.max = String(Math.max(1, Number(opt?.dataset.stock || 999)));
+    const qty = clampQty();
+    const total = sheet.querySelector('[data-opt-sheet-total]');
+    total.classList.toggle('is-empty', !opt);
+    total.textContent = opt
+      ? `${(Number(opt.dataset.unit || 0) * qty).toLocaleString()}원`
+      : '옵션을 선택해 주세요';
+  };
+
+  sheet.addEventListener('click', (e) => {
+    if (e.target.closest('[data-opt-sheet-close]')) closeOptionSheet();
+  });
+  sheet.querySelector('[data-opt-sheet-minus]').addEventListener('click', () => {
+    qtyInput.value = String(Number(qtyInput.value || 1) - 1);
+    sheet.refresh();
+  });
+  sheet.querySelector('[data-opt-sheet-plus]').addEventListener('click', () => {
+    qtyInput.value = String(Number(qtyInput.value || 1) + 1);
+    sheet.refresh();
+  });
+  qtyInput.addEventListener('change', () => sheet.refresh());
+  grid.addEventListener('change', () => sheet.refresh());
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !sheet.hidden) closeOptionSheet();
+  });
+
+  const submit = sheet.querySelector('[data-opt-sheet-submit]');
+  submit.addEventListener('click', async () => {
+    const opt = picked();
+    if (!opt) {
+      showShopToast('옵션을 선택해 주세요.');
+      grid.querySelector('input[type=radio]:not(:disabled)')?.focus();
+      return;
+    }
+    submit.disabled = true;
+    try {
+      await addToCart(Number(sheet.dataset.productId), clampQty(), Number(opt.value), false);
+      closeOptionSheet();
+      openCartConfirm();
+    } catch (err) {
+      showShopToast(err.message);
+      if (err.status === 401) setTimeout(goLogin, 900);
+    } finally {
+      submit.disabled = false;
+    }
+  });
+  return sheet;
+}
+
+function openOptionSheet(product, options) {
+  const sheet = optionSheet();
+  sheet.dataset.productId = String(product.id);
+  const thumb = sheet.querySelector('[data-opt-sheet-thumb]');
+  thumb.hidden = !product.thumbnail;
+  if (product.thumbnail) thumb.src = product.thumbnail;
+  sheet.querySelector('[data-opt-sheet-name]').textContent = product.name || '';
+  const size = product.width_mm && product.height_mm ? `${product.width_mm}×${product.height_mm}mm` : '';
+  sheet.querySelector('[data-opt-sheet-spec]').textContent = [
+    product.material,
+    size,
+    product.labels_per_sheet ? `${product.labels_per_sheet}칸` : '',
+  ].filter(Boolean).join(' · ');
+  const sellable = options.filter((o) => !o.soldout);
+  sheet.querySelector('[data-opt-sheet-grid]').innerHTML = options.map((o) => {
+    const id = `shopOptSheet${Number(o.id)}`;
+    const extra = o.soldout
+      ? '<span class="shop-option-card__flag">품절</span>'
+      : (o.delta_label ? `<span class="shop-option-card__delta">${escapeHtml(o.delta_label)}</span>` : '');
+    return `<input class="shop-option-radio" type="radio" name="shop_sheet_option" id="${id}" value="${Number(o.id)}"
+        data-unit="${Number(o.unit_price) || 0}" data-stock="${Number(o.stock_qty) || 0}"${o.soldout ? ' disabled' : ''}${sellable.length === 1 && !o.soldout ? ' checked' : ''}>
+      <label class="shop-option-card" for="${id}">
+        <span class="shop-option-card__name">${escapeHtml(o.name)}</span>
+        <span class="shop-option-card__price">${escapeHtml(o.price_label)}</span>${extra}
+      </label>`;
+  }).join('');
+  sheet.querySelector('[data-opt-sheet-qty]').value = '1';
+  const submit = sheet.querySelector('[data-opt-sheet-submit]');
+  submit.disabled = sellable.length === 0;
+  submit.textContent = sellable.length ? '장바구니 담기' : '모든 옵션이 품절되었습니다';
+  sheet.refresh();
+  sheet.hidden = false;
+  document.documentElement.classList.add('shop-opt-sheet-open');
+  requestAnimationFrame(() => sheet.classList.add('is-open'));
+  (sheet.querySelector('.shop-option-radio:checked') || sheet.querySelector('.shop-option-radio:not(:disabled)') || sheet.querySelector('.shop-opt-sheet__x'))?.focus();
+}
+
+function closeOptionSheet() {
+  const sheet = document.getElementById('shopOptionSheet');
+  if (!sheet || sheet.hidden) return;
+  sheet.classList.remove('is-open');
+  document.documentElement.classList.remove('shop-opt-sheet-open');
+  setTimeout(() => { sheet.hidden = true; }, 220);
 }
 
 /** 장바구니에 담은 뒤 바로 갈지, 계속 둘러볼지 묻는다. */

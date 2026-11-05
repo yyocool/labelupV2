@@ -28,6 +28,11 @@ final class LegalPublicController extends BaseController
         $this->show('privacy');
     }
 
+    public function company(): void
+    {
+        $this->show(LegalDocumentService::COMPANY_KEY);
+    }
+
     private function show(string $key): void
     {
         try {
@@ -40,7 +45,11 @@ final class LegalPublicController extends BaseController
 
         $this->render('legal/document', [
             'pageTitle' => (string) ($doc['title'] ?? '약관') . ' — 라벨업',
-            'seoPage' => $key === 'privacy' ? 'privacy' : 'terms',
+            'seoPage' => match ($key) {
+                'privacy' => 'privacy',
+                LegalDocumentService::COMPANY_KEY => null,
+                default => 'terms',
+            },
             'doc' => $doc,
             'company' => (new CompanyInfoService())->all(),
             'year' => (int) date('Y'),

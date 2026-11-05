@@ -23,12 +23,7 @@ $updatedAt = (string) ($doc['updated_at'] ?? '');
   <a class="legal-brand" href="<?= url('/') ?>">
     <img src="<?= asset('logo.png') ?>" alt="labelup" width="120" height="32">
   </a>
-  <nav class="legal-nav" aria-label="약관 메뉴">
-    <a href="<?= url('about') ?>">서비스 소개</a>
-    <a href="<?= url('terms') ?>"<?= (($doc['doc_key'] ?? '') === 'terms') ? ' aria-current="page"' : '' ?>>이용약관</a>
-    <a href="<?= url('privacy') ?>"<?= (($doc['doc_key'] ?? '') === 'privacy') ? ' aria-current="page"' : '' ?>>개인정보 처리방침</a>
-    <a href="<?= url('login') ?>">로그인</a>
-  </nav>
+  <?php $currentHref = url((string) ($doc['doc_key'] ?? '')); require view_path('partials/site-info-nav.php'); ?>
 </header>
 
 <main class="legal-main">

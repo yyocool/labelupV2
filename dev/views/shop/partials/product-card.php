@@ -44,7 +44,7 @@ $isSoldout = ($product['status'] ?? '') === 'soldout' || (!$isInk && (int) ($pro
   </a>
   <div class="shop-product-actions">
     <?php if ($shopService->hasEditableSpec($product)): ?>
-    <a class="shop-edit-btn" href="<?= e($shopService->editorUrlForProduct($product)) ?>">이 규격으로 편집</a>
+    <a class="shop-edit-btn" href="<?= e($shopService->editorUrlForProduct($product)) ?>" title="이 규격으로 편집" aria-label="이 규격으로 라벨 편집">라벨편집</a>
     <?php endif; ?>
     <?php if (!$isSoldout): ?>
     <button type="button" class="shop-add-btn" data-add-cart="<?= (int) $product['id'] ?>">장바구니</button>

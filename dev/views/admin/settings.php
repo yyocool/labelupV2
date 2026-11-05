@@ -1,7 +1,7 @@
 <div class="admin-head">
   <div>
     <h1>운영설정</h1>
-    <p>회원가입 약관 및 정책 문서를 관리합니다.</p>
+    <p>회원가입 약관·정책 문서와 푸터 회사소개 페이지를 관리합니다.</p>
   </div>
 </div>
 
@@ -21,7 +21,11 @@
     <div class="admin-legal-meta">
       <span>문서키: <code><?= e($doc['doc_key']) ?></code></span>
       <span>버전: v<?= (int) $doc['version'] ?></span>
+      <?php if ($doc['doc_key'] === 'company'): ?>
+      <span>공개 페이지: <a href="<?= url('company') ?>" target="_blank" rel="noopener">/company</a> (푸터 「회사소개」)</span>
+      <?php else: ?>
       <span><?= ($doc['is_required'] ?? false) ? '필수 동의' : '선택 동의' ?></span>
+      <?php endif; ?>
       <?php if (!empty($doc['updated_at'])): ?>
       <span>수정: <?= e(substr((string) $doc['updated_at'], 0, 16)) ?></span>
       <?php endif; ?>
