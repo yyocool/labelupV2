@@ -402,11 +402,11 @@
     },
     {
       id: 'm-menu',
-      selector: '.ed-m-more',
-      title: '☰ 메뉴',
-      description: '오른쪽 위 ☰을 누르면 내 디자인, 타사포맷, 저장, 미리보기/프린트, 나가기가 열립니다.',
+      selector: '.ed-m-tabs [data-ed-m-tab="more"]',
+      title: '추가메뉴 탭',
+      description: '아래 툴바 위의 「추가메뉴」 탭을 누르면 내 디자인, 타사포맷, 저장, 미리보기/프린트가 나옵니다.',
       effect: '자주 쓰는 작업을 한곳에서 실행합니다.',
-      speech: '메뉴 버튼을 눌러 볼게요.',
+      speech: '추가메뉴 탭을 눌러 볼게요.',
       wait: 2600,
       cursor: true,
       click: true,
@@ -415,8 +415,8 @@
     {
       id: 'm-menu-items',
       selector: '[data-tut="topbar-actions"]',
-      title: '메뉴 서랍',
-      description: '여기서 내 디자인·타사포맷·저장하기·미리보기/프린트를 할 수 있어요. 바깥을 누르거나 메뉴 닫기를 누르면 접힙니다.',
+      title: '추가메뉴',
+      description: '여기서 내 디자인·타사포맷·저장하기·미리보기/프린트를 할 수 있어요. 「툴바」 탭을 누르면 편집 도구로 돌아갑니다.',
       effect: '상단을 간결하게 유지하면서 기능은 그대로입니다.',
       speech: '저장과 출력은 이 메뉴 안에 있어요.',
       wait: 3000,
@@ -555,15 +555,8 @@
     return isMobileTour() ? STORAGE_SKIP_M : STORAGE_SKIP;
   }
   function setMobileMenuOpen(on) {
-    var actions = document.querySelector('.ed-topbar__actions');
-    var open = !!(actions && actions.classList.contains('is-open'));
-    if (on && !open) {
-      var more = document.querySelector('.ed-m-more');
-      if (more) more.click();
-    } else if (!on && open) {
-      var closer = document.querySelector('.ed-m-drawer-close');
-      if (closer) closer.click();
-    }
+    if (window.labelUpEditor && typeof window.labelUpEditor.setMobileMenuTab === 'function')
+      window.labelUpEditor.setMobileMenuTab(on ? 'more' : 'tools');
   }
   function setMobilePropsOpen(on) {
     var props = document.querySelector('[data-ed-props-panel]');
@@ -897,6 +890,12 @@
     this._updatePlayBtn();
     var tipPause = this.host.querySelector('[data-tut-tip-pause]');
     if (tipPause) tipPause.textContent = '일시정지';
+    // 모바일은 멈춘 동안 안내 화면을 걷어 두므로, 이어 볼 때 현재 단계를 다시 그린다.
+    if (this.mobile) {
+      this._clearTimer();
+      this._runStep();
+      return;
+    }
     this._scheduleAdvance();
     if (this.voiceOn) {
       var step = this.steps[this.index];
@@ -934,6 +933,8 @@
     this.els.playBtn.textContent = (!this.playing || this.paused) ? '▶' : '⏸';
     var tipPause = this.host.querySelector('[data-tut-tip-pause]');
     if (tipPause) tipPause.textContent = this.paused ? '재생' : '일시정지';
+    // 모바일에서 멈추면 어둡게 깐 화면과 설명 카드가 편집 화면 절반을 덮으므로, 작은 조작 바만 남긴다.
+    this.host.classList.toggle('is-paused-mini', !!(this.mobile && this.playing && this.paused));
   };
 
   Tutorial.prototype._clearTimer = function () {

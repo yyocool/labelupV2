@@ -50,7 +50,7 @@
     <?php require view_path('shop/partials/aside-panel.php'); ?>
     <?php endif; ?>
   </div>
-  <?php render_site_footer(['year' => (int) date('Y')]); ?>
+  <?php render_site_footer(['year' => (int) date('Y'), 'bottom_nav' => false]); ?>
 </main>
 </div>
 <?php require view_path('shop/partials/floating-bar.php'); ?>

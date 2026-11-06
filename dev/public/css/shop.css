@@ -189,7 +189,7 @@
 }
 .shop-category-hero img{width:100%;height:100%;object-fit:contain;display:block}
 .shop-page-head{display:flex;align-items:center;gap:18px;margin-bottom:18px}
-.shop-page-head h1{margin:0 0 4px;font-size:24px;font-weight:900}
+.shop-page-head h1{margin:0 0 4px;font-size:24px;font-weight:900;white-space:nowrap;flex:0 0 auto}
 .shop-page-head p{margin:0;font-size:15px;color:var(--muted)}
 .shop-filter-chip{display:inline-flex;align-items:center;gap:8px}
 .shop-filter-chip-img{width:28px;height:28px;border-radius:8px;object-fit:contain;background:#fff;border:1px solid #ececf2}
@@ -292,6 +292,8 @@
 .shop-detail-gallery__frame{
   position:relative;
   display:grid;place-items:center;aspect-ratio:1/1;padding:18px;
+  /* 칸 크기를 액자에 묶어야 img 의 height:100% 가 먹는다. 안 그러면 이미지가 폭만큼 커져 아래가 잘린다. */
+  grid-template:minmax(0,1fr)/minmax(0,1fr);
   border-radius:18px;background:
     radial-gradient(120% 80% at 50% 0%, #fff 0%, #faf8f6 55%, #f3efe9 100%);
   border:1px solid #efeae4;
@@ -299,7 +301,7 @@
 }
 /* 썸네일 이미지까지 채우지 않도록 대표이미지만 고른다. */
 .shop-detail-gallery__frame > img{
-  width:100%;height:100%;max-height:420px;object-fit:contain;display:block;
+  width:100%;height:100%;min-width:0;min-height:0;max-height:min(420px,100%);object-fit:contain;display:block;
 }
 /* 이미지가 2장 이상일 때만 나오는 썸네일 줄. 대표이미지 위 좌측 하단 레이어. */
 .shop-detail-thumbs{
@@ -867,6 +869,9 @@ body.is-review-modal-open .note-modal-backdrop{z-index:1440}
 .shop-checkout-form input,.shop-checkout-form textarea{
   border:1px solid #e6e5ee;border-radius:10px;padding:9px 11px;font:inherit;background:#fff
 }
+/* 입력칸의 기본 최소 폭(size=20) 때문에 좁은 화면에서 칸이 상자 밖으로 밀려 잘리지 않게 한다. */
+.shop-checkout-form input:not([type=checkbox]):not([type=radio]),
+.shop-checkout-form textarea{width:100%;min-width:0;box-sizing:border-box}
 .shop-co-pagehead h2{margin:0;font-size:20px;letter-spacing:-.03em;color:#1c1a22}
 .shop-co-pagehead p{margin:4px 0 2px;font-size:14px;font-weight:600;color:#8a8490}
 .shop-co-block{
@@ -892,8 +897,8 @@ body.is-review-modal-open .note-modal-backdrop{z-index:1440}
 .shop-co-ico svg{width:18px;height:18px}
 .shop-co-ico--rose{color:#9a3a55;background:#fff6f8}
 .shop-co-ico--gold{color:#9a7040;background:#fff8ef}
-.shop-co-block__body{display:grid;gap:10px;padding:14px 16px 16px}
-.shop-co-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.shop-co-block__body{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;padding:14px 16px 16px}
+.shop-co-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .shop-co-field{display:grid;gap:5px;min-width:0}
 .shop-co-lab{font-size:14px;font-weight:800;color:#5b5160}
 .shop-co-save{
@@ -951,9 +956,9 @@ body.is-review-modal-open .note-modal-backdrop{z-index:1440}
 .lu-addr-book-form__actions{display:flex;gap:8px}
 .lu-addr-book-form__actions button[type=button]{flex:0 0 auto;border:1px solid #e6e5ee;border-radius:10px;padding:10px 14px;background:#fff;cursor:pointer}
 body.lu-addr-book-open{overflow:hidden}
-.lu-addr{display:grid;gap:6px}
+.lu-addr{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;min-width:0}
 .lu-addr__legend{font-size:14px;font-weight:700;color:#4e5163}
-.lu-addr__row{display:grid;grid-template-columns:1fr auto;gap:6px}
+.lu-addr__row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px}
 .lu-addr input{border:1px solid #e6e5ee;border-radius:10px;padding:8px 10px;font:inherit;background:#fff}
 .lu-addr input[readonly]{background:#f7f6f4;cursor:pointer}
 .lu-addr__search{
@@ -991,7 +996,13 @@ body.lu-postcode-open{overflow:hidden}
 }
 .shop-float-item:hover{background:var(--accent-soft);color:var(--accent)}
 .shop-float-item--cart{color:var(--accent)}
-.shop-float-ic{font-size:18px;line-height:1}
+.shop-float-ic{
+  width:30px;height:30px;flex-shrink:0;border-radius:50%;background:#fff;
+  display:grid;place-items:center;box-shadow:0 2px 7px rgba(36,34,65,.12);
+  transition:transform .12s,box-shadow .12s;
+}
+.shop-float-ic svg{display:block}
+.shop-float-item:hover .shop-float-ic{transform:scale(1.06);box-shadow:0 3px 10px rgba(36,34,65,.18)}
 .shop-float-badge{right:4px;top:0}
 .shop-fab-cart{
   display:none;position:fixed;right:18px;bottom:18px;z-index:85;
@@ -1201,7 +1212,8 @@ body.lu-postcode-open{overflow:hidden}
     flex-direction:row;justify-content:space-around;
     border-radius:18px 18px 0 0;padding:8px 6px calc(8px + env(safe-area-inset-bottom));
   }
-  .shop-float-item{width:auto;flex:1;padding:6px 0}
+  .shop-float-item{width:auto;flex:1;padding:4px 0;gap:4px}
+  .shop-float-item:hover{background:none}
   .shop-float-label{font-size:12px}
   .shop-fab-cart{display:none!important}
 }
@@ -1232,11 +1244,13 @@ body.lu-postcode-open{overflow:hidden}
   .shop-cat-tile{padding:10px 6px 8px}
   .shop-cat-icon{font-size:13px}
   .shop-cat-icon-name{word-break:keep-all}
-  .shop-page-head{gap:12px;align-items:flex-start}
-  .shop-page-head h1{font-size:20px}
+  .shop-page-head{flex-direction:column;align-items:flex-start;gap:4px;margin-bottom:14px}
+  .shop-page-head h1{font-size:20px;margin:0;white-space:normal;word-break:keep-all}
+  .shop-page-head p{font-size:14px;line-height:1.5;word-break:keep-all}
   .shop-category-hero{width:84px;height:84px;flex-basis:84px;border-radius:14px}
   .shop-filter-chip{min-height:34px;font-size:14px}
   .shop-product-card--ink .shop-product-img{aspect-ratio:1/1;background:#fbf7f4}
+  .shop-detail-gallery__frame,
   .shop-detail--ink .shop-detail-gallery__frame{aspect-ratio:1/1;max-height:none}
   .shop-cart-thumb img{width:72px;height:72px}
   .shop-cart-thumb--ink img{object-fit:contain}

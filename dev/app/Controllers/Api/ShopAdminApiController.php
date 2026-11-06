@@ -86,6 +86,29 @@ final class ShopAdminApiController extends BaseController
         }
     }
 
+    public function reorderSpecs(): never
+    {
+        $this->guard();
+        try {
+            $this->shop->reorderSpecs(request_json()['ids'] ?? null);
+            $this->jsonSuccess(null, '노출 순서를 저장했습니다.');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage());
+        }
+    }
+
+    public function setSpecActive(): never
+    {
+        $this->guard();
+        $body = request_json();
+        try {
+            $active = $this->shop->setSpecActive((int) ($body['id'] ?? 0), !empty($body['is_active']));
+            $this->jsonSuccess(['is_active' => $active], $active ? '규격을 사용으로 바꿨습니다.' : '규격을 사용안함으로 바꿨습니다.');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage());
+        }
+    }
+
     public function deleteSpec(): never
     {
         $this->guard();

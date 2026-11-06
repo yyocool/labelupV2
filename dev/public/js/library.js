@@ -31,7 +31,7 @@
     btn.disabled = true;
     try {
       await post(action, type, id);
-      const card = btn.closest('.lib-card, .account-design-card, .account-clip-card');
+      const card = btn.closest('.lib-card, .mp-design, .mp-clip');
       if (card) card.remove();
       else location.reload();
     } catch (err) {

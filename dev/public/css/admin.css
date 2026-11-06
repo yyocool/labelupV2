@@ -268,6 +268,17 @@
 .admin-badge{display:inline-block;padding:3px 8px;border-radius:999px;font-size:13px;font-weight:700}
 .admin-badge--ok{background:#eaf8ef;color:#176b3a}
 .admin-badge--err{background:#fdecec;color:#9b1c1c}
+.admin-badge--toggle{border:1px solid transparent;font-family:inherit;line-height:1.4;cursor:pointer;white-space:nowrap;transition:box-shadow .12s,opacity .12s}
+.admin-badge--toggle:hover{box-shadow:0 0 0 2px currentColor inset}
+.admin-badge--toggle:disabled{opacity:.55;cursor:wait}
+.admin-sort-col{width:64px;white-space:nowrap}
+.admin-sort-handle{display:inline-grid;place-items:center;width:24px;height:28px;margin-right:4px;border-radius:6px;color:#a09a93;font-size:16px;cursor:grab;user-select:none;touch-action:none;vertical-align:middle}
+body.is-sort-dragging,body.is-sort-dragging *{cursor:grabbing!important;user-select:none}
+.admin-sort-handle:hover{background:#f3f0eb;color:var(--accent)}
+.admin-sort-no{display:inline-block;min-width:20px;color:var(--muted);font-weight:700;font-size:13px;vertical-align:middle}
+tr.is-dragging{opacity:.45}
+tr.is-dragging td{background:#fbf6f8}
+tbody.is-sort-saving{opacity:.6;pointer-events:none}
 /* 규격 목록의 연결 상품 SKU. 한 규격에 여러 상품이 걸리므로 줄바꿈되게 둔다. */
 .admin-badge--sku{background:#f3f0eb;color:#4a423b;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600}
 .admin-spec-skus{max-width:220px}

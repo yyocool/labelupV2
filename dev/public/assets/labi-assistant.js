@@ -553,8 +553,6 @@
     fab.addEventListener("click", function () {
       hideTip(false);
     }, true);
-
-    scheduleTip(4000);
   }
 
   if (document.readyState === "loading") {

@@ -91,7 +91,7 @@
     </div> *@
   </div>
 
-  <button type="button" class="ed-chip ed-m-more" title="메뉴" aria-label="메뉴" aria-expanded="@_mobileMenu" @onclick="ToggleMobileMenu">☰</button>
+  <button type="button" class="ed-chip ed-m-more" title="메뉴" aria-label="메뉴" @onclick="OpenSiteNav">☰</button>
   <button type="button" class="ed-chip ed-m-preview" title="시트 미리보기" aria-label="시트 미리보기" @onclick="ToggleMobilePreview">시트</button>
   <button type="button" class="ed-chip ed-m-props" title="레이어" aria-label="레이어 패널" @onclick="ToggleMobileProps">레이어</button>
   <div class="ed-m-scrim @(_mobileMenu ? "is-open" : null)" @onclick="CloseMobileMenu"></div>
@@ -258,9 +258,11 @@
         }
     }
 
-    private void ToggleMobileMenu()
+    /// <summary>모바일 ☰ 는 메인 사이트와 같은 사이드바를 연다. 편집 메뉴는 하단 「추가메뉴」 탭으로 옮겼다.</summary>
+    private async Task OpenSiteNav()
     {
-        _mobileMenu = !_mobileMenu;
+        CloseMobileMenu();
+        try { await Js.InvokeVoidAsync("labelUpEditor.openSiteNav"); } catch { }
     }
 
     private void CloseMobileMenu()

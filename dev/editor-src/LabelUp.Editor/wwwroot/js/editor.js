@@ -1267,6 +1267,7 @@ window.labelUpEditor = {
     this.ensureMobileChromeButtons();
     this.parkMobileDockButtons();
     this.ensureMobileDrawerExtras();
+    this.ensureMobileMenuTabs();
   },
   closeMobileSheets: function () {
     var root = document.querySelector('[data-ed-root]');
@@ -1367,7 +1368,7 @@ window.labelUpEditor = {
       vendor.type = 'button';
       vendor.className = 'ed-btn';
       vendor.setAttribute('data-ed-m-vendor', '1');
-      vendor.textContent = '타사포맷';
+      vendor.innerHTML = '<svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3.3 1.8h5.6c.3 0 .6.1.8.4l2.6 2.7c.2.2.3.5.3.8v7.5c0 .7-.6 1.2-1.3 1.2H3.3c-.7 0-1.2-.5-1.2-1.2V3c0-.7.5-1.2 1.2-1.2Zm.5 1.4v9.6h7.9V6.1H9.2c-.4 0-.7-.3-.7-.7V3.2H3.8Zm5.6.5v1.7h1.7L9.4 3.7ZM4.8 9.4h2.1V8.1c0-.4.5-.6.8-.3l2.3 2c.2.2.2.6 0 .8l-2.3 2c-.3.3-.8 0-.8-.3v-1.3H4.8a.7.7 0 0 1 0-1.4Z"/></svg>타사포맷';
       vendor.addEventListener('click', function (e) {
         e.preventDefault();
         var src = document.querySelector('.ed-topbar__vendor, .ed-corner-fab--vendor');
@@ -1381,7 +1382,7 @@ window.labelUpEditor = {
       credit.type = 'button';
       credit.className = 'ed-btn';
       credit.setAttribute('data-ed-m-credit', '1');
-      credit.textContent = '남은 잉크';
+      credit.innerHTML = '<svg class="ed-btn__ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 1.6c.2 0 .4.1.5.3 1.2 1.6 4.1 5.4 4.1 8.1a4.6 4.6 0 0 1-9.2 0c0-2.7 2.9-6.5 4.1-8.1.1-.2.3-.3.5-.3Zm0 1.9C6.7 5.3 4.8 8.1 4.8 10a3.2 3.2 0 0 0 6.4 0c0-1.9-1.9-4.7-3.2-6.5Z"/></svg>남은 잉크';
       credit.addEventListener('click', function (e) {
         e.preventDefault();
         var chip = document.getElementById('lu-credit-chip');
@@ -1392,6 +1393,138 @@ window.labelUpEditor = {
     } else if (credit && this._creditGuest) {
       credit.remove();
     }
+  },
+  ensureMobileMenuTabs: function () {
+    var root = document.querySelector('[data-ed-root]');
+    var tools = document.querySelector('[data-ed-float-tools]');
+    var actions = document.querySelector('.ed-topbar__actions');
+    if (!root || !tools || !actions) return;
+    var self = this;
+    var tabs = tools.querySelector('.ed-m-tabs');
+    if (!root.classList.contains('is-mobile')) {
+      if (tabs) tabs.remove();
+      document.documentElement.classList.remove('is-ed-m-more-tab');
+      if (actions.parentElement === tools) {
+        var header = root.querySelector('.ed-topbar');
+        if (header) header.appendChild(actions);
+      }
+      return;
+    }
+    if (!tabs) {
+      tabs = document.createElement('div');
+      tabs.className = 'ed-m-tabs';
+      tabs.setAttribute('role', 'tablist');
+      tabs.innerHTML =
+        '<button type="button" role="tab" data-ed-m-tab="tools">툴바</button>' +
+        '<button type="button" role="tab" data-ed-m-tab="more">추가메뉴</button>';
+      tabs.addEventListener('click', function (e) {
+        var b = e.target.closest && e.target.closest('[data-ed-m-tab]');
+        if (!b) return;
+        e.preventDefault();
+        self.setMobileMenuTab(b.getAttribute('data-ed-m-tab'));
+      });
+    }
+    if (tools.firstElementChild !== tabs) tools.insertBefore(tabs, tools.firstElementChild);
+    if (actions.parentElement !== tools) tools.appendChild(actions);
+    if (!actions._edMoreTabBound) {
+      actions._edMoreTabBound = true;
+      // 항목을 누르면 서랍이 닫히던 것처럼 툴바 탭으로 돌아간다. 파일 선택 창은 그대로 열린다.
+      actions.addEventListener('click', function (e) {
+        if (!document.documentElement.classList.contains('is-ed-m-more-tab')) return;
+        if (!(e.target.closest && e.target.closest('.ed-btn'))) return;
+        setTimeout(function () { self.setMobileMenuTab('tools'); }, 0);
+      });
+    }
+    this.syncMobileMenuTabs();
+    this.prefetchSiteNav();
+  },
+  setMobileMenuTab: function (name) {
+    var more = name === 'more';
+    document.documentElement.classList.toggle('is-ed-m-more-tab', more);
+    if (more) this.closeMobileSheets();
+    this.syncMobileMenuTabs();
+  },
+  syncMobileMenuTabs: function () {
+    var more = document.documentElement.classList.contains('is-ed-m-more-tab');
+    var btns = document.querySelectorAll('.ed-m-tabs [data-ed-m-tab]');
+    for (var i = 0; i < btns.length; i++) {
+      var on = (btns[i].getAttribute('data-ed-m-tab') === 'more') === more;
+      if (btns[i].classList.contains('is-active') !== on) btns[i].classList.toggle('is-active', on);
+      if (btns[i].getAttribute('aria-selected') !== String(on)) btns[i].setAttribute('aria-selected', String(on));
+    }
+  },
+  _siteNavHost: function () {
+    var host = document.getElementById('lu-site-nav');
+    if (host) return host;
+    var self = this;
+    host = document.createElement('div');
+    host.id = 'lu-site-nav';
+    host.style.display = 'none';
+    host.attachShadow({ mode: 'open' });
+    // 메인 home.js 와 같게: 사이드바 밖(어두운 막)이나 ×를 누르면 닫는다.
+    host.shadowRoot.addEventListener('click', function (e) {
+      var t = e.target;
+      if (t.closest && t.closest('.sidebar-toggle')) {
+        e.preventDefault();
+        self.closeSiteNav();
+        return;
+      }
+      if (t.closest && t.closest('.sidebar')) return;
+      self.closeSiteNav();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && host.style.display !== 'none') self.closeSiteNav();
+    });
+    document.body.appendChild(host);
+    return host;
+  },
+  _loadSiteNav: function () {
+    var self = this;
+    if (this._siteNavLoading) return this._siteNavLoading;
+    var host = this._siteNavHost();
+    this._siteNavLoading = fetch('/editor-site-nav', { credentials: 'same-origin', cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .then(function (html) {
+        if (html !== self._siteNavHtml) {
+          self._siteNavHtml = html;
+          host.shadowRoot.innerHTML = html;
+        }
+        return true;
+      })
+      .finally(function () { self._siteNavLoading = null; });
+    return this._siteNavLoading;
+  },
+  prefetchSiteNav: function () {
+    if (this._siteNavHtml || this._siteNavPrefetched) return;
+    this._siteNavPrefetched = true;
+    var self = this;
+    setTimeout(function () { self._loadSiteNav().catch(function () { self._siteNavPrefetched = false; }); }, 1500);
+  },
+  openSiteNav: function () {
+    var self = this;
+    var host = this._siteNavHost();
+    var show = function () {
+      host.style.display = '';
+      var tg = host.shadowRoot.getElementById('sidebarToggle');
+      if (tg) {
+        tg.setAttribute('aria-expanded', 'true');
+        tg.setAttribute('aria-label', '사이드바 접기');
+        tg.title = '사이드바 접기';
+      }
+    };
+    if (this._siteNavHtml) {
+      show();
+      this._loadSiteNav().catch(function () { /* 이미 보이는 메뉴를 유지 */ });
+      return;
+    }
+    // 메뉴를 못 받아 오면 편집 중인 화면을 떠나지 않고 편집기 추가메뉴라도 연다.
+    this._loadSiteNav().then(show).catch(function () {
+      self.setMobileMenuTab('more');
+    });
+  },
+  closeSiteNav: function () {
+    var host = document.getElementById('lu-site-nav');
+    if (host) host.style.display = 'none';
   },
   toggleMobileProps: function () {
     var root = document.querySelector('[data-ed-root]');
@@ -1433,13 +1566,13 @@ window.labelUpEditor = {
       chatApiUrl: this.apiUrl('/api/ai/chat'),
       examplePromptsUrl: this.apiUrl('/api/ai/example-prompts?surface=editor'),
       examplePrompts: [
-        { label: '☆ 라벨 추천', prompt_text: '용도에 맞는 라벨 상품을 하나 추천해줘.' },
-        { label: '◎ 주소 라벨', prompt_text: '주소 라벨용 용지를 추천해줘.' },
-        { label: '▦ 바코드', prompt_text: '바코드 라벨 상품을 추천해줘.' },
-        { label: '○ 원형 스티커', prompt_text: '원형 네임 스티커 용지를 추천해줘.' },
-        { label: '◇ 가격표', prompt_text: '가격표 라벨 상품을 추천해줘.' },
-        { label: '✦ 클립아트', prompt_text: '카페 원두 라벨에 넣을 커피콩 클립아트를 그려줘.' },
-        { label: '♡ 일러스트', prompt_text: '핸드메이드 라벨용 하트와 리본 일러스트를 그려줘.' }
+        { label: '라벨 추천', prompt_text: '용도에 맞는 라벨 상품을 하나 추천해줘.' },
+        { label: '주소 라벨', prompt_text: '주소 라벨용 용지를 추천해줘.' },
+        { label: '바코드', prompt_text: '바코드 라벨 상품을 추천해줘.' },
+        { label: '원형 스티커', prompt_text: '원형 네임 스티커 용지를 추천해줘.' },
+        { label: '가격표', prompt_text: '가격표 라벨 상품을 추천해줘.' },
+        { label: '클립아트', prompt_text: '카페 원두 라벨에 넣을 커피콩 클립아트를 그려줘.' },
+        { label: '일러스트', prompt_text: '핸드메이드 라벨용 하트와 리본 일러스트를 그려줘.' }
       ],
       labiIconUrl: '/assets/labi-icon.png',
       isLoggedIn: !!(user && user.id),
@@ -2363,6 +2496,8 @@ window.labelUpEditor = {
         window.labelUpEditor.parkMobileDockButtons();
       if (window.labelUpEditor && typeof window.labelUpEditor.ensureMobileDrawerExtras === 'function')
         window.labelUpEditor.ensureMobileDrawerExtras();
+      if (window.labelUpEditor && typeof window.labelUpEditor.ensureMobileMenuTabs === 'function')
+        window.labelUpEditor.ensureMobileMenuTabs();
       relabelExport();
       if (window.labelUpEditor && typeof window.labelUpEditor.syncRailColumns === 'function')
         window.labelUpEditor.syncRailColumns();

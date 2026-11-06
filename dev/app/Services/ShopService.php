@@ -1067,6 +1067,26 @@ final class ShopService
         return (int) ($product['ink_amount'] ?? 0) > 0;
     }
 
+    /**
+     * 잉크 충전 상품 카드용 — 할인율과 상세 주소를 함께 싣는다.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function inkProducts(): array
+    {
+        $out = [];
+        foreach ($this->repo->activeInkProducts() as $row) {
+            $item = $this->presentPublicProduct($row);
+            $list = (int) $item['price'];
+            $item['discount_rate'] = $item['on_sale'] && $list > 0
+                ? (int) round((1 - $item['unit_price'] / $list) * 100)
+                : 0;
+            $item['url'] = url('shop/products/' . $item['id']);
+            $out[] = $item;
+        }
+        return $out;
+    }
+
     public function activeProductIdBySku(string $sku): int
     {
         $row = $this->repo->findProductBySku(trim($sku));

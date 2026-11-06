@@ -568,6 +568,10 @@ button.profile-dropdown-item{width:100%;border:0;background:transparent;font:inh
 .ai-labi-spark{position:absolute;width:6px;height:6px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px rgba(123,40,64,.18);opacity:0;animation:aiLabiSpark 2.8s ease-in-out infinite}
 .ai-labi-spark.s1{right:14px;top:12px}
 .ai-labi-spark.s2{left:14px;top:18px;animation-delay:1.2s}
+@media (max-width:768px){
+  .ai-labi-stage{grid-template-columns:1fr}
+  .ai-labi-stage .ai-labi-scene{display:none}
+}
 @keyframes aiLabiBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
 @keyframes aiLabiShadow{0%,100%{transform:scaleX(1);opacity:.55}50%{transform:scaleX(.72);opacity:.28}}
 @keyframes aiLabiHalo{0%,100%{opacity:.45;transform:scale(.92)}50%{opacity:1;transform:scale(1.05)}}

@@ -800,21 +800,21 @@
         var stroke = Math.Max(0.08f, 1f / Math.Max(0.5f, Session.PxPerMm * Session.Zoom));
         using var minor = new SKPaint
         {
-            Color = new SKColor(0x7B, 0x28, 0x40, 55),
+            Color = new SKColor(0x8C, 0x8C, 0x8C, 38),
             StrokeWidth = stroke,
             IsAntialias = false,
             Style = SKPaintStyle.Stroke
         };
         using var mid = new SKPaint
         {
-            Color = new SKColor(0x7B, 0x28, 0x40, 90),
+            Color = new SKColor(0x8C, 0x8C, 0x8C, 60),
             StrokeWidth = stroke,
             IsAntialias = false,
             Style = SKPaintStyle.Stroke
         };
         using var major = new SKPaint
         {
-            Color = new SKColor(0x7B, 0x28, 0x40, 140),
+            Color = new SKColor(0x8C, 0x8C, 0x8C, 95),
             StrokeWidth = stroke * 1.25f,
             IsAntialias = false,
             Style = SKPaintStyle.Stroke
@@ -832,21 +832,21 @@
         canvas.ClipRect(new SKRect(ox, oy, ox + labelW, oy + labelH));
         using var minor = new SKPaint
         {
-            Color = new SKColor(0x7B, 0x28, 0x40, 55),
+            Color = new SKColor(0x8C, 0x8C, 0x8C, 38),
             StrokeWidth = 1f,
             IsAntialias = false,
             Style = SKPaintStyle.Stroke
         };
         using var mid = new SKPaint
         {
-            Color = new SKColor(0x7B, 0x28, 0x40, 90),
+            Color = new SKColor(0x8C, 0x8C, 0x8C, 60),
             StrokeWidth = 1f,
             IsAntialias = false,
             Style = SKPaintStyle.Stroke
         };
         using var major = new SKPaint
         {
-            Color = new SKColor(0x7B, 0x28, 0x40, 140),
+            Color = new SKColor(0x8C, 0x8C, 0x8C, 95),
             StrokeWidth = 1.25f,
             IsAntialias = false,
             Style = SKPaintStyle.Stroke

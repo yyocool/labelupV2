@@ -15,6 +15,16 @@ use App\Services\SiteModeService;
 
 final class HomeController extends BaseController
 {
+    /** 편집기(정적 Blazor)가 모바일 ☰ 에서 메인과 똑같은 사이드바를 띄우도록 조각만 내려준다. */
+    public function editorSiteNav(): void
+    {
+        header('Content-Type: text/html; charset=utf-8');
+        header('Cache-Control: no-store, private');
+        $this->render('home/partials/editor-site-nav', [
+            'authUser' => (new AuthService())->user(),
+        ]);
+    }
+
     public function index(): void
     {
         $auth = new AuthService();

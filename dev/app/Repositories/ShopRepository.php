@@ -263,7 +263,7 @@ final class ShopRepository extends BaseModel
 
              GROUP BY s.id
 
-             ORDER BY s.id DESC"
+             ORDER BY s.sort_order ASC, s.id ASC"
 
         );
 
@@ -335,6 +335,7 @@ final class ShopRepository extends BaseModel
             'labels_per_sheet' => $params['labels_per_sheet'],
             'description' => $params['description'],
             'is_active' => $params['is_active'],
+            'sort_order' => (int) ($this->fetchOne('SELECT COALESCE(MAX(sort_order), 0) + 10 AS next_order FROM label_specs')['next_order'] ?? 10),
             'created_at' => $now,
             'updated_at' => $now,
         ] + self::specLayoutParams($data);
@@ -344,11 +345,11 @@ final class ShopRepository extends BaseModel
             'INSERT INTO label_specs (name,kind,image_path,width_mm,height_mm,paper_size,material,shape,labels_per_sheet,'
             . 'top_margin_mm,left_margin_mm,columns_count,rows_count,h_gap_mm,v_gap_mm,'
             . 'corner_radius_x_mm,corner_radius_y_mm,label_color,custom_path_svg,'
-            . 'description,is_active,created_at,updated_at) '
+            . 'description,is_active,sort_order,created_at,updated_at) '
             . 'VALUES (:name,:kind,:image_path,:width_mm,:height_mm,:paper_size,:material,:shape,:labels_per_sheet,'
             . ':top_margin_mm,:left_margin_mm,:columns_count,:rows_count,:h_gap_mm,:v_gap_mm,'
             . ':corner_radius_x_mm,:corner_radius_y_mm,:label_color,:custom_path_svg,'
-            . ':description,:is_active,:created_at,:updated_at)',
+            . ':description,:is_active,:sort_order,:created_at,:updated_at)',
 
             $insertParams
 
@@ -418,6 +419,35 @@ final class ShopRepository extends BaseModel
 
         $this->execute('DELETE FROM label_specs WHERE id = :id', ['id' => $id]);
 
+    }
+
+    /** @param array<int, int> $ids 화면에 보이는 순서대로의 규격 ID */
+    public function reorderSpecs(array $ids): void
+    {
+        $this->db->beginTransaction();
+        try {
+            foreach (array_values($ids) as $i => $id) {
+                $this->execute(
+                    'UPDATE label_specs SET sort_order = :sort WHERE id = :id',
+                    ['sort' => ($i + 1) * 10, 'id' => $id]
+                );
+            }
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    public function setSpecActive(int $id, bool $active): bool
+    {
+        if ($this->fetchOne('SELECT id FROM label_specs WHERE id = :id', ['id' => $id]) === null) {
+            return false;
+        }
+        return $this->execute(
+            'UPDATE label_specs SET is_active = :active, updated_at = :now WHERE id = :id',
+            ['active' => (int) $active, 'now' => date('Y-m-d H:i:s'), 'id' => $id]
+        );
     }
 
     /**
@@ -1193,7 +1223,7 @@ final class ShopRepository extends BaseModel
     {
         $limit = max(1, min(24, $limit));
         return $this->fetchAll(
-            "SELECT * FROM label_specs WHERE is_active = 1 ORDER BY labels_per_sheet DESC, id ASC LIMIT {$limit}"
+            "SELECT * FROM label_specs WHERE is_active = 1 ORDER BY sort_order ASC, id ASC LIMIT {$limit}"
         );
     }
 
@@ -1421,6 +1451,24 @@ final class ShopRepository extends BaseModel
                AND (p.ink_amount IS NULL OR p.ink_amount = 0)
              ORDER BY p.sort_order ASC, p.id DESC
              LIMIT {$limit}"
+        );
+    }
+
+    /**
+     * 판매중·품절 잉크 충전 상품 전체 — 잉크량 오름차순.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function activeInkProducts(): array
+    {
+        return $this->fetchAll(
+            "SELECT p.*, c.name AS category_name, c.slug AS category_slug,
+                    s.name AS spec_name, s.width_mm, s.height_mm, s.material, s.shape, s.labels_per_sheet
+             FROM shop_products p
+             INNER JOIN shop_categories c ON c.id = p.category_id AND c.is_active = 1
+             LEFT JOIN label_specs s ON s.id = p.spec_id
+             WHERE p.status IN ('active','soldout') AND p.ink_amount > 0
+             ORDER BY p.ink_amount ASC, p.sort_order ASC, p.id ASC"
         );
     }
 

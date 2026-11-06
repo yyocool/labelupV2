@@ -82,33 +82,10 @@ final class AccountService
             'clipartCount' => $clipartCount,
             'wishlist' => $wishlist,
             'wishlistCount' => $wishlistCount,
-            'quickLinks' => [
-                ['label' => '내 클립아트', 'ic' => '✦', 'href' => '#cliparts', 'badge' => $clipartCount],
-                ['label' => '찜한 상품', 'ic' => '♥', 'href' => '#wishlist', 'badge' => $wishlistCount],
-                ['label' => '배송지 관리', 'ic' => '📍', 'href' => '#address'],
-                ['label' => '쿠폰함', 'ic' => '🎫', 'href' => url('account/coupons'), 'badge' => $couponCount],
-            ],
-            'shortcuts' => [
-                ['label' => '라벨 편집', 'ic' => '✎', 'href' => url('editor/')],
-                ['label' => '새 라벨 만들기', 'ic' => '＋', 'href' => url('editor/')],
-                ['label' => 'AI 라벨 디자인', 'ic' => '✦', 'href' => url('/')],
-                ['label' => '내 클립아트', 'ic' => '★', 'href' => '#cliparts'],
-                ['label' => '엑셀로 만들기', 'ic' => '⌘', 'href' => '#', 'disabled' => true],
-                ['label' => '주문하기', 'ic' => '🛒', 'href' => url('shop/cart')],
-                ['label' => '샘플 요청', 'ic' => '📦', 'href' => url('shop/products') . '?category=label-paper'],
-            ],
             'recentDesigns' => $this->recentDesigns($userId),
             'recentOrders' => $this->formatOrders($orders),
-            'templates' => $this->popularTemplates(),
             'addresses' => (new UserAddressService())->list($userId),
             'address' => $this->defaultAddress($user, $userId),
-            'tools' => [
-                ['label' => '라벨 편집', 'ic' => '✎', 'href' => url('editor/')],
-                ['label' => '엑셀 데이터 연동', 'ic' => '⌘', 'href' => '#', 'disabled' => true],
-                ['label' => 'AI 라벨 디자인', 'ic' => '✦', 'href' => url('/')],
-                ['label' => '내 클립아트', 'ic' => '★', 'href' => '#cliparts'],
-                ['label' => '템플릿 둘러보기', 'ic' => '▦', 'href' => url('/')],
-            ],
         ];
     }
 
@@ -140,37 +117,6 @@ final class AccountService
                 'preview_svg' => (string) ($work['preview_svg'] ?? ''),
                 'updated_label' => (string) ($work['updated_label'] ?? ''),
                 'href' => (string) ($work['editor_url'] ?? url('editor/')),
-            ];
-        }
-        return $items;
-    }
-
-    /** @return array<int, array<string, mixed>> */
-    private function popularTemplates(int $limit = 5): array
-    {
-        try {
-            $rows = (new LabelTemplateService())->popularForHome($limit);
-        } catch (\Throwable) {
-            return [];
-        }
-        $items = [];
-        foreach ($rows as $tpl) {
-            $thumb = (string) ($tpl['thumbUrl'] ?? '');
-            $svg = (string) ($tpl['previewSvg'] ?? '');
-            if ($thumb === '' && $svg !== '') {
-                $thumb = 'data:image/svg+xml;base64,' . base64_encode($svg);
-            }
-            $w = (float) ($tpl['widthMm'] ?? 0);
-            $h = (float) ($tpl['heightMm'] ?? 0);
-            $meta = array_filter([
-                (string) ($tpl['categoryName'] ?? ''),
-                $w > 0 && $h > 0 ? rtrim(rtrim(number_format($w, 1), '0'), '.') . '×' . rtrim(rtrim(number_format($h, 1), '0'), '.') . 'mm' : '',
-            ]);
-            $items[] = [
-                'name' => (string) ($tpl['name'] ?? '템플릿'),
-                'meta' => implode(' · ', $meta),
-                'thumb' => $thumb,
-                'edit_url' => url('editor/') . '?template=' . (int) ($tpl['id'] ?? 0),
             ];
         }
         return $items;

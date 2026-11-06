@@ -262,6 +262,7 @@ final class Router
         $launchChecklistApi = new LaunchChecklistApiController();
 
         $router->get('/', [$home, 'index']);
+        $router->get('/editor-site-nav', [$home, 'editorSiteNav']);
         $router->get('/about', [$about, 'index']);
         $router->get('/service', [$about, 'index']);
         $router->get('/launch-checklist', [$launchChecklist, 'index']);
@@ -530,6 +531,8 @@ final class Router
         $router->post('/api/admin/shop/spec/save', [$shopApi, 'saveSpec']);
         $router->post('/api/admin/shop/spec/upload-images', [$shopApi, 'uploadSpecImages']);
         $router->post('/api/admin/shop/spec/delete', [$shopApi, 'deleteSpec']);
+        $router->post('/api/admin/shop/spec/active', [$shopApi, 'setSpecActive']);
+        $router->post('/api/admin/shop/spec/reorder', [$shopApi, 'reorderSpecs']);
         $router->post('/api/admin/shop/product/save', [$shopApi, 'saveProduct']);
         $router->post('/api/admin/shop/product/upload-images', [$shopApi, 'uploadProductImages']);
         $router->post('/api/admin/shop/product/delete', [$shopApi, 'deleteProduct']);
@@ -553,6 +556,7 @@ final class Router
 
         $router->get('/api/shop/editor-papers', [$shopPublicApi, 'editorPapers']);
         $router->get('/api/shop/catalog', [$shopPublicApi, 'catalog']);
+        $router->get('/api/shop/ink-products', [$shopPublicApi, 'inkProducts']);
         $router->get('/api/shop/lookup', [$shopPublicApi, 'lookup']);
         $router->get('/api/shop/products/{id}', [$shopPublicApi, 'product']);
         $router->get('/api/shop/cart', [$shopPublicApi, 'cart']);

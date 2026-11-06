@@ -678,6 +678,32 @@
   width: 40px;
   height: 40px;
 }
+.lu-tut.is-mobile-tour.is-paused-mini .lu-tut__overlay,
+.lu-tut.is-mobile-tour.is-paused-mini .lu-tut__spot,
+.lu-tut.is-mobile-tour.is-paused-mini .lu-tut__tip,
+.lu-tut.is-mobile-tour.is-paused-mini .lu-tut__cursor,
+.lu-tut.is-mobile-tour.is-paused-mini .lu-tut__demo,
+.lu-tut.is-mobile-tour.is-paused-mini .lu-tut__labi-scene,
+.lu-tut.is-mobile-tour.is-paused-mini .lu-tut__progress,
+.lu-tut.is-mobile-tour.is-paused-mini .lu-tut__ctrl-row--opts {
+  display: none !important;
+}
+.lu-tut.is-mobile-tour.is-paused-mini .lu-tut__ctrl {
+  left: auto;
+  right: 12px;
+  bottom: calc(132px + env(safe-area-inset-bottom, 0px));
+  padding: 8px 10px;
+  gap: 6px;
+}
+.lu-tut.is-mobile-tour.is-paused-mini .lu-tut__ctrl-top strong::after {
+  content: " · 일시정지";
+  font-weight: 700;
+  opacity: .7;
+}
+.lu-tut.is-mobile-tour.is-paused-mini .lu-tut__ctrl-row button {
+  width: 36px;
+  height: 36px;
+}
 
 .is-ed-mobile .ed-tut-reopen,
 .ed.is-mobile .ed-tut-reopen {

@@ -1671,14 +1671,33 @@ html[data-ed-save="off"] .ed-autosave:hover {
   left: 8px;
   right: 8px;
   transform: none;
+  width: auto;
   max-width: none;
   /* Keep below mobile topbar/menu (400+) */
   z-index: 200;
 }
+/* 속성이 많으면 각 줄을 손가락으로 좌우 스와이프해서 쓴다. 가려진 쪽 가장자리에만 그림자가 보인다. */
+.ed.is-mobile .ed-ctx-bar__row--main,
 .ed.is-mobile .ed-ctx-bar__row--extra {
-  flex-wrap: wrap;
-  overflow-x: visible;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  background:
+    linear-gradient(90deg, #fff 40%, rgba(255, 255, 255, 0)) left center / 28px 100% no-repeat local,
+    linear-gradient(270deg, #fff 40%, rgba(255, 255, 255, 0)) right center / 28px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgba(123, 40, 64, 0.28), rgba(123, 40, 64, 0)) left center / 14px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgba(123, 40, 64, 0.28), rgba(123, 40, 64, 0)) right center / 14px 100% no-repeat scroll,
+    #fff;
 }
+.ed.is-mobile .ed-ctx-bar__row--main { border-radius: 13px 13px 0 0; }
+.ed.is-mobile .ed-ctx-bar__row--extra { border-radius: 0 0 13px 13px; }
+.ed.is-mobile .ed-ctx-bar:not(:has(.ed-ctx-bar__row--extra:not([hidden]))) .ed-ctx-bar__row--main { border-radius: 13px; }
+.ed.is-mobile .ed-ctx-bar__row--main::-webkit-scrollbar,
+.ed.is-mobile .ed-ctx-bar__row--extra::-webkit-scrollbar { display: none; }
 .ed-props__body {
   padding: 12px;
   display: grid;
@@ -6209,7 +6228,7 @@ html.is-ed-mobile .ed-props.is-m-open,
 }
 
 .ed.is-mobile {
-  --ed-m-dock: 72px;
+  --ed-m-dock: 102px;
   min-width: 0;
   width: 100%;
   height: 100dvh;
@@ -6339,6 +6358,86 @@ html.is-ed-mobile .ed-props.is-m-open,
   font: inherit;
   font-weight: 800;
   color: var(--muted);
+}
+
+/* 모바일 하단 독: 「툴바 / 추가메뉴」 얇은 탭. 추가메뉴에는 예전 ☰ 서랍 항목(.ed-topbar__actions)이 들어온다. */
+.ed-m-tabs { display: none; }
+.ed.is-mobile .ed-float-tools { flex-wrap: wrap; }
+.ed.is-mobile .ed-m-tabs {
+  order: -1;
+  pointer-events: auto;
+  flex: 0 0 100%;
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  height: 30px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--ed-border);
+  border-radius: 16px 16px 0 0;
+  background: #fff;
+}
+.ed.is-mobile .ed-m-tabs button {
+  margin: 0 0 -1px;
+  padding: 0 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
+  cursor: pointer;
+}
+.ed.is-mobile .ed-m-tabs button.is-active {
+  color: var(--burgundy);
+  border-bottom-color: var(--burgundy);
+}
+.ed.is-mobile .ed-m-tabs ~ .ed-float-tools__bar,
+.ed.is-mobile .ed-m-tabs ~ .ed-m-dock-end { border-radius: 0; }
+/* 줄바꿈이 켜진 독에서 도구 줄이 내용 폭만큼 늘어 시트·레이어를 아래 줄로 밀어내지 않게 한다. */
+.ed.is-mobile .ed-m-tabs ~ .ed-float-tools__bar { flex: 1 1 0; }
+html.is-ed-m-more-tab .ed.is-mobile .ed-float-tools__bar,
+html.is-ed-m-more-tab .ed.is-mobile .ed-m-dock-end { display: none; }
+.ed.is-mobile .ed-float-tools > .ed-topbar__actions {
+  position: static;
+  z-index: auto;
+  display: none;
+  flex: 1 1 100%;
+  width: auto;
+  height: auto;
+  margin: 0;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+  overflow: visible;
+  pointer-events: auto;
+  background: #fff;
+  box-shadow: none;
+}
+html.is-ed-m-more-tab .ed.is-mobile .ed-float-tools > .ed-topbar__actions { display: grid; }
+.ed.is-mobile .ed-float-tools > .ed-topbar__actions .ed-m-drawer-close { display: none; }
+.ed.is-mobile .ed-float-tools > .ed-topbar__actions .ed-btn {
+  width: auto;
+  min-width: 0;
+  min-height: 56px;
+  margin: 0;
+  padding: 6px 4px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  white-space: normal;
+  word-break: keep-all;
+}
+.ed.is-mobile .ed-float-tools > .ed-topbar__actions .ed-btn__ico {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
 }
 
 .ed.is-mobile .ed__body {

@@ -5,366 +5,294 @@ $user = $dash['user'];
 $plan = $dash['plan'];
 $grade = $dash['grade'] ?? ['name' => $plan['name'] ?? '일반', 'color' => '#7B2D3E', 'description' => ''];
 $stats = $dash['stats'];
-$usage = $dash['usage'];
 $aiUsage = $dash['ai_usage'] ?? ['items' => [], 'used' => 0, 'limit' => 0];
 $initial = mb_substr((string) ($user['name'] ?? '회'), 0, 1);
-$usageLimit = (int) ($usage['limit'] ?? 0);
-$usageUsed = (int) ($usage['used'] ?? 0);
-$usagePct = $usageLimit > 0 ? min(100, (int) round(($usageUsed / max(1, $usageLimit)) * 100)) : 0;
+$accIcons = require view_path('home/partials/menu-icons.php');
+$accIcon = static fn (string $key, string $cls = ''): string => '<span class="account-ic' . ($cls !== '' ? ' ' . $cls : '') . '" aria-hidden="true"><svg viewBox="0 0 24 24">' . ($accIcons[$key] ?? '') . '</svg></span>';
+$chev = '<svg class="mp-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+$creditBal = (int) ($dash['credit']['balance'] ?? 0);
+$creditTotal = (int) ($dash['credit']['total'] ?? 0);
+$creditTx = array_slice($dash['credit']['transactions'] ?? [], 0, 3);
+$aiTotal = (int) ($aiUsage['total'] ?? 0);
+$clipartCount = (int) ($dash['clipartCount'] ?? 0);
+$wishlistCount = (int) ($dash['wishlistCount'] ?? 0);
+$myCliparts = array_slice($dash['cliparts'] ?? [], 0, 12);
+$quick = [
+    ['label' => '주문내역', 'ic' => 'orders', 'href' => url('account/orders'), 'count' => (int) $stats['orders']],
+    ['label' => '찜한 상품', 'ic' => 'heart', 'href' => '#wishlist', 'count' => $wishlistCount],
+    ['label' => '클립아트', 'ic' => 'clipart', 'href' => '#cliparts', 'count' => $clipartCount],
+    ['label' => '배송지', 'ic' => 'pin', 'href' => '#address', 'count' => 0],
+    ['label' => '쿠폰함', 'ic' => 'coupon', 'href' => url('account/coupons'), 'count' => (int) $stats['coupons']],
+];
 ?>
-<section class="account-hero card">
-  <div class="account-hero-user">
-    <div class="account-avatar"><?= e($initial) ?></div>
-    <div>
-      <div class="account-name-row">
-        <h1><?= e((string) ($user['name'] ?? '회원')) ?>님</h1>
-        <span class="account-plan-badge" style="--grade-color:<?= e((string) ($grade['color'] ?? '#7B2D3E')) ?>"><?= e((string) ($grade['name'] ?? '일반')) ?></span>
+<div class="mp">
+  <div class="mp-side">
+    <section class="mp-top">
+      <div class="mp-profile">
+        <div class="mp-avatar" aria-hidden="true"><?= e($initial) ?></div>
+        <div class="mp-profile__info">
+          <div class="mp-profile__name">
+            <h1><?= e((string) ($user['name'] ?? '회원')) ?>님</h1>
+            <span class="account-plan-badge" style="--grade-color:<?= e((string) ($grade['color'] ?? '#7B2D3E')) ?>"><?= e((string) ($grade['name'] ?? '일반')) ?></span>
+          </div>
+          <p><?= e((string) ($user['email'] ?? '')) ?></p>
+        </div>
+        <button type="button" class="mp-gear" data-open-modal="profileModal" aria-label="회원정보 수정" title="회원정보 수정">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><?= $accIcons['admin'] ?></svg>
+        </button>
       </div>
-      <p class="account-meta"><?= e((string) ($user['email'] ?? '')) ?></p>
-      <p class="account-meta"><?= e((string) ($user['phone'] ?? '연락처 미등록')) ?></p>
-      <div class="account-hero-btns">
-        <button type="button" class="account-btn account-btn--outline" data-open-modal="profileModal">회원정보 수정</button>
-        <button type="button" class="account-btn account-btn--outline" data-open-modal="passwordModal">비밀번호 변경</button>
+      <div class="mp-wallet">
+        <button type="button" class="mp-wallet__item" data-history-open="credit">
+          <span>보유 잉크</span>
+          <strong<?= $creditBal < 0 ? ' class="is-debt"' : '' ?>><?= number_format($creditBal) ?> C</strong>
+        </button>
+        <button type="button" class="mp-wallet__item" data-history-open="ai">
+          <span>이번 달 AI</span>
+          <strong><?= number_format((int) ($aiUsage['used'] ?? 0)) ?> C</strong>
+        </button>
+        <a class="mp-wallet__item" href="<?= url('account/coupons') ?>">
+          <span>쿠폰</span>
+          <strong><?= (int) $stats['coupons'] ?>장</strong>
+        </a>
       </div>
-    </div>
-  </div>
-  <div class="account-hero-plan">
-    <p class="account-grade-kicker">회원등급</p>
-    <h2><?= e((string) ($grade['name'] ?? '일반')) ?></h2>
-    <p class="account-plan-period"><?= e((string) (($grade['description'] ?? '') !== '' ? $grade['description'] : '현재 적용 중인 회원등급입니다.')) ?></p>
-    <div class="account-usage">
-      <div class="account-usage-head">
-        <span><?= e($usage['label']) ?></span>
-        <span><?php if ($usageLimit > 0): ?><?= number_format($usageUsed) ?> / <?= number_format($usageLimit) ?> C<?php else: ?><?= number_format($usageUsed) ?> C<?php endif; ?></span>
-      </div>
-      <?php if ($usageLimit > 0): ?>
-      <div class="account-usage-bar"><span style="width:<?= $usagePct ?>%"></span></div>
+      <?php if ($creditBal < 0): ?>
+      <p class="mp-warn">AI 사용으로 잉크가 <?= number_format(abs($creditBal)) ?> C 부족합니다. 다음 충전 때 먼저 차감됩니다.</p>
       <?php endif; ?>
-    </div>
-  </div>
-  <div class="account-hero-stats">
-    <a class="account-stat" href="#credits"><span class="account-stat-ic purple">C</span><span class="account-stat-val"><?= number_format((int) $stats['points']) ?> C</span><span class="account-stat-label">잉크</span></a>
-    <a class="account-stat" href="#ai-usage"><span class="account-stat-ic yellow">✦</span><span class="account-stat-val"><?= number_format((int) ($aiUsage['used'] ?? 0)) ?> C</span><span class="account-stat-label">이번달 AI</span></a>
-    <a class="account-stat" href="<?= url('account/coupons') ?>"><span class="account-stat-ic green">🎫</span><span class="account-stat-val"><?= (int) $stats['coupons'] ?></span><span class="account-stat-label">쿠폰</span></a>
-    <a class="account-stat" href="<?= url('account/orders') ?>"><span class="account-stat-ic yellow">📦</span><span class="account-stat-val"><?= (int) $stats['orders'] ?></span><span class="account-stat-label">최근 주문</span></a>
-    <a class="account-stat" href="<?= url('account/orders') ?>"><span class="account-stat-ic blue">🚚</span><span class="account-stat-val"><?= (int) $stats['shipping'] ?></span><span class="account-stat-label">배송중</span></a>
-  </div>
-  <div class="account-quick-links">
-    <?php foreach ($dash['quickLinks'] as $link): ?>
-    <a class="account-quick-link<?= !empty($link['disabled']) ? ' is-disabled' : '' ?>" href="<?= e($link['href'] ?? '#') ?>">
-      <span class="ic"><?= $link['ic'] ?></span>
-      <span><?= e($link['label']) ?></span>
-      <?php if (!empty($link['badge'])): ?><span class="account-quick-badge"><?= (int) $link['badge'] ?></span><?php endif; ?>
-    </a>
-    <?php endforeach; ?>
-  </div>
-</section>
+      <a class="mp-charge" href="<?= url('shop/products') ?>?category=ink-charge"><?= $accIcon('ink', 'account-ic--sm') ?>잉크 충전하기<?= $chev ?></a>
+    </section>
 
-<section class="account-shortcuts card">
-  <h2 class="account-section-title">바로가기</h2>
-  <div class="account-shortcut-row">
-    <?php foreach ($dash['shortcuts'] as $s): ?>
-    <a class="account-shortcut<?= !empty($s['disabled']) ? ' is-disabled' : '' ?>" href="<?= e($s['href']) ?>">
-      <span class="ic"><?= $s['ic'] ?></span>
-      <span><?= e($s['label']) ?></span>
-    </a>
-    <?php endforeach; ?>
-  </div>
-</section>
+    <nav class="mp-quick" aria-label="마이페이지 바로가기">
+      <?php foreach ($quick as $q): ?>
+      <a class="mp-quick__item" href="<?= e($q['href']) ?>">
+        <?= $accIcon($q['ic'], 'account-ic--lg') ?>
+        <span><?= e($q['label']) ?></span>
+        <?php if ($q['count'] > 0): ?><em><?= number_format($q['count']) ?></em><?php endif; ?>
+      </a>
+      <?php endforeach; ?>
+    </nav>
 
-<div class="account-grid-main">
-  <section class="account-panel card account-panel--wide">
-    <div class="account-panel-head">
-      <h2>최근 디자인</h2>
-      <a href="<?= url('projects') ?>">전체 보기 →</a>
-    </div>
-    <div class="account-design-grid">
+    <nav class="mp-menus" aria-label="마이페이지 메뉴">
+      <div class="mp-menu">
+        <h2>라벨 디자인</h2>
+        <a class="mp-row" href="<?= url('editor/?new=1') ?>"><?= $accIcon('plus', 'account-ic--sm') ?><span>새 라벨 만들기</span><?= $chev ?></a>
+        <a class="mp-row" href="<?= url('/') ?>"><?= $accIcon('ai', 'account-ic--sm') ?><span>AI 라벨 디자인</span><?= $chev ?></a>
+        <a class="mp-row" href="<?= url('projects') ?>"><?= $accIcon('project', 'account-ic--sm') ?><span>프로젝트</span><?= $chev ?></a>
+        <a class="mp-row" href="<?= url('locker') ?>"><?= $accIcon('locker', 'account-ic--sm') ?><span>내 보관함</span><?= $chev ?></a>
+        <a class="mp-row" href="<?= url('trash') ?>"><?= $accIcon('trash', 'account-ic--sm') ?><span>휴지통</span><?= $chev ?></a>
+      </div>
+      <div class="mp-menu">
+        <h2>나의 쇼핑</h2>
+        <a class="mp-row" href="<?= url('account/orders') ?>"><?= $accIcon('orders', 'account-ic--sm') ?><span>주문 내역</span><?php if ((int) $stats['shipping'] > 0): ?><em>배송중 <?= (int) $stats['shipping'] ?></em><?php endif; ?><?= $chev ?></a>
+        <a class="mp-row" href="<?= url('shop/cart') ?>"><?= $accIcon('cart', 'account-ic--sm') ?><span>장바구니</span><?= $chev ?></a>
+        <a class="mp-row" href="<?= url('account/coupons') ?>"><?= $accIcon('coupon', 'account-ic--sm') ?><span>쿠폰함</span><?php if ((int) $stats['coupons'] > 0): ?><em><?= (int) $stats['coupons'] ?>장</em><?php endif; ?><?= $chev ?></a>
+        <a class="mp-row" href="<?= url('shop') ?>"><?= $accIcon('shop', 'account-ic--sm') ?><span>라벨 구매</span><?= $chev ?></a>
+      </div>
+      <div class="mp-menu">
+        <h2>계정</h2>
+        <button type="button" class="mp-row" data-open-modal="profileModal"><?= $accIcon('profile', 'account-ic--sm') ?><span>회원정보 수정</span><?= $chev ?></button>
+        <button type="button" class="mp-row" data-open-modal="passwordModal"><?= $accIcon('lock', 'account-ic--sm') ?><span>비밀번호 변경</span><?= $chev ?></button>
+        <button type="button" class="mp-row" data-open-modal="notifPrefsModal"><?= $accIcon('notify', 'account-ic--sm') ?><span>알림 설정</span><?= $chev ?></button>
+      </div>
+      <div class="mp-menu">
+        <h2>고객센터</h2>
+        <button type="button" class="mp-row" data-open-modal="inquiryModal"><?= $accIcon('bug', 'account-ic--sm') ?><span>1:1 문의하기</span><?= $chev ?></button>
+        <button type="button" class="mp-row" data-open-modal="inquiriesModal"><?= $accIcon('orders', 'account-ic--sm') ?><span>내 문의 내역</span><?= $chev ?></button>
+        <a class="mp-row" href="<?= url('faq') ?>"><?= $accIcon('faq', 'account-ic--sm') ?><span>자주 묻는 질문</span><?= $chev ?></a>
+        <?php if (($user['role'] ?? '') === 'admin'): ?>
+        <a class="mp-row" href="<?= url('admin') ?>"><?= $accIcon('admin', 'account-ic--sm') ?><span>관리자 콘솔</span><?= $chev ?></a>
+        <?php endif; ?>
+      </div>
+    </nav>
+  </div>
+
+  <div class="mp-main">
+    <section class="mp-sec">
+      <div class="mp-sec__head">
+        <h2>최근 디자인</h2>
+        <a href="<?= url('projects') ?>">전체보기<?= $chev ?></a>
+      </div>
+      <div class="mp-designs">
+        <a class="mp-design mp-design--new" href="<?= url('editor/?new=1') ?>">
+          <span class="mp-design__thumb"><?= $accIcon('plus', 'account-ic--lg') ?></span>
+          <strong>새 디자인</strong>
+        </a>
+        <?php foreach ($dash['recentDesigns'] as $d): ?>
+        <div class="mp-design">
+          <button type="button" class="mp-del js-lib-act" data-act="trash" data-type="workspace" data-id="<?= (int) ($d['id'] ?? 0) ?>" title="휴지통으로" aria-label="휴지통으로"><svg viewBox="0 0 24 24" aria-hidden="true"><?= $accIcons['trash'] ?></svg></button>
+          <a href="<?= e((string) ($d['href'] ?? url('editor/'))) ?>">
+            <span class="mp-design__thumb">
+              <?php if (!empty($d['preview_svg'])): ?>
+              <span class="tpl-preview"><?= $d['preview_svg'] ?></span>
+              <?php elseif (!empty($d['thumb'])): ?>
+              <img src="<?= e((string) $d['thumb']) ?>" alt="" loading="lazy">
+              <?php else: ?>
+              <span class="mp-design__fallback"><?= e(mb_substr((string) ($d['name'] ?? '라벨'), 0, 10)) ?></span>
+              <?php endif; ?>
+            </span>
+            <strong><?= e((string) $d['name']) ?></strong>
+            <?php if (!empty($d['updated_label'])): ?><em><?= e((string) $d['updated_label']) ?></em><?php endif; ?>
+          </a>
+        </div>
+        <?php endforeach; ?>
+      </div>
       <?php if (empty($dash['recentDesigns'])): ?>
-      <p class="account-empty account-design-empty">아직 저장된 디자인이 없습니다. 편집기에서 저장하면 여기에 미리보기가 표시됩니다.</p>
+      <p class="mp-empty">편집기에서 저장한 디자인이 여기에 모입니다.</p>
       <?php endif; ?>
-      <?php foreach ($dash['recentDesigns'] as $d): ?>
-      <div class="account-design-card">
-        <button type="button" class="account-design-del js-lib-act" data-act="trash" data-type="workspace" data-id="<?= (int) ($d['id'] ?? 0) ?>" title="휴지통으로" aria-label="삭제">🗑</button>
-        <a href="<?= e((string) ($d['href'] ?? url('editor/'))) ?>">
-          <div class="account-design-thumb">
-            <?php if (!empty($d['preview_svg'])): ?>
-            <span class="tpl-preview"><?= $d['preview_svg'] ?></span>
-            <?php elseif (!empty($d['thumb'])): ?>
-            <img src="<?= e((string) $d['thumb']) ?>" alt="<?= e((string) $d['name']) ?>">
-            <?php else: ?>
-            <span class="account-design-fallback"><?= e(mb_substr((string) ($d['name'] ?? '라벨'), 0, 10)) ?></span>
-            <?php endif; ?>
-          </div>
-          <span class="account-design-status is-editing">편집중</span>
-          <strong><?= e((string) $d['name']) ?></strong>
-          <?php if (!empty($d['updated_label'])): ?>
-          <em class="account-design-updated"><?= e((string) $d['updated_label']) ?></em>
-          <?php endif; ?>
-        </a>
+    </section>
+
+    <section class="mp-sec" id="orders">
+      <div class="mp-sec__head">
+        <h2>최근 주문<?php if ((int) $stats['shipping'] > 0): ?> <small>배송중 <?= (int) $stats['shipping'] ?></small><?php endif; ?></h2>
+        <a href="<?= url('account/orders') ?>">전체보기<?= $chev ?></a>
       </div>
-      <?php endforeach; ?>
-      <a class="account-design-card account-design-new" href="<?= url('editor/?new=1') ?>">
-        <span>＋</span>
-        <strong>새 디자인</strong>
-      </a>
-    </div>
-  </section>
-
-  <section class="account-panel card" id="orders">
-    <div class="account-panel-head">
-      <h2>최근 주문 내역</h2>
-      <a href="<?= url('account/orders') ?>">더보기 →</a>
-    </div>
-    <?php if (empty($dash['recentOrders'])): ?>
-    <p class="account-empty">아직 주문 내역이 없습니다.</p>
-    <?php else: ?>
-    <ul class="account-order-list">
-      <?php foreach ($dash['recentOrders'] as $order): ?>
-      <li>
-        <a class="account-order-link" href="<?= e((string) ($order['href'] ?? url('account/orders'))) ?>">
-          <img src="<?= e($order['thumb']) ?>" alt="">
-          <div class="account-order-info">
-            <strong><?= e($order['name']) ?></strong>
-            <span><?= e($order['date']) ?> · <?= number_format((int) $order['total']) ?>원</span>
-          </div>
-          <span class="account-order-status <?= e($accountService->orderStatusClass($order['status'])) ?>"><?= e($order['status_label']) ?></span>
-        </a>
-      </li>
-      <?php endforeach; ?>
-    </ul>
-    <?php endif; ?>
-  </section>
-</div>
-
-<section class="account-panel card" id="wishlist">
-  <div class="account-panel-head">
-    <h2>찜한 상품<?php if (!empty($dash['wishlistCount'])): ?> <small class="account-count"><?= (int) $dash['wishlistCount'] ?></small><?php endif; ?></h2>
-    <a href="<?= url('shop/products') ?>">상품 더 보기 →</a>
-  </div>
-  <ul class="account-wish-list" id="accountWishList">
-    <?php foreach (($dash['wishlist'] ?? []) as $item): ?>
-    <li class="account-wish" data-wish-product-id="<?= (int) $item['product_id'] ?>">
-      <?php if ($item['openable']): ?>
-      <a class="account-wish__thumb" href="<?= e($item['url']) ?>">
-        <img src="<?= e($item['thumb_url']) ?>" alt="<?= e($item['name']) ?>" loading="lazy">
-      </a>
+      <?php if (empty($dash['recentOrders'])): ?>
+      <p class="mp-empty">아직 주문 내역이 없습니다. <a href="<?= url('shop') ?>">라벨 구매하러 가기</a></p>
       <?php else: ?>
-      <span class="account-wish__thumb">
-        <img src="<?= e($item['thumb_url']) ?>" alt="<?= e($item['name']) ?>" loading="lazy">
-      </span>
+      <ul class="mp-list">
+        <?php foreach ($dash['recentOrders'] as $order): ?>
+        <li>
+          <a class="mp-item" href="<?= e((string) ($order['href'] ?? url('account/orders'))) ?>">
+            <img src="<?= e($order['thumb']) ?>" alt="" loading="lazy">
+            <span class="mp-item__body">
+              <strong><?= e($order['name']) ?></strong>
+              <span><?= e($order['date']) ?> · <?= number_format((int) $order['total']) ?>원</span>
+            </span>
+            <span class="account-order-status <?= e($accountService->orderStatusClass($order['status'])) ?>"><?= e($order['status_label']) ?></span>
+          </a>
+        </li>
+        <?php endforeach; ?>
+      </ul>
       <?php endif; ?>
-      <div class="account-wish__info">
-        <?php if ($item['openable']): ?>
-        <a class="account-wish__name" href="<?= e($item['url']) ?>"><?= e($item['name']) ?></a>
-        <?php else: ?>
-        <strong class="account-wish__name"><?= e($item['name']) ?></strong>
-        <?php endif; ?>
-        <span class="account-wish__meta">
-          <?php if ($item['category_name'] !== ''): ?><?= e($item['category_name']) ?> · <?php endif; ?>
-          <b><?= e($item['price_label']) ?></b>
-          <?php if ($item['list_price_label'] !== ''): ?><del><?= e($item['list_price_label']) ?></del><?php endif; ?>
-        </span>
-        <?php if ($item['soldout']): ?>
-        <span class="account-wish__tag">품절</span>
-        <?php elseif (!$item['openable']): ?>
-        <span class="account-wish__tag">판매 중지</span>
-        <?php endif; ?>
+    </section>
+
+    <section class="mp-sec" id="wishlist">
+      <div class="mp-sec__head">
+        <h2>찜한 상품<?php if ($wishlistCount > 0): ?> <small><?= $wishlistCount ?></small><?php endif; ?></h2>
+        <a href="<?= url('shop/products') ?>">상품 보기<?= $chev ?></a>
       </div>
-      <button type="button" class="account-btn account-btn--outline js-wish-remove" data-product-id="<?= (int) $item['product_id'] ?>">찜 해제</button>
-    </li>
-    <?php endforeach; ?>
-  </ul>
-  <p class="account-empty" id="accountWishEmpty"<?= empty($dash['wishlist']) ? '' : ' hidden' ?>>찜한 상품이 없습니다. 상품 상세에서 ♥ 찜하기를 눌러 모아보세요.</p>
-</section>
-
-<section class="account-panel card" id="cliparts">
-  <div class="account-panel-head">
-    <h2>내 클립아트</h2>
-    <a href="<?= url('locker') ?>">보관함 보기 →</a>
-  </div>
-  <?php $myCliparts = $dash['cliparts'] ?? []; ?>
-  <?php if (empty($myCliparts)): ?>
-  <p class="account-empty">아직 생성한 클립아트가 없습니다. 홈에서 라비에게 그림을 요청하면 여기에 모아집니다.</p>
-  <?php else: ?>
-  <p class="account-meta" style="margin-top:-6px;margin-bottom:12px">총 <b><?= number_format((int) ($dash['clipartCount'] ?? count($myCliparts))) ?></b>개</p>
-  <div class="account-clip-grid">
-    <?php foreach ($myCliparts as $clip): ?>
-    <?php
-      $clipUrl = (string) ($clip['image_url'] ?? '');
-      $clipTitle = (string) ($clip['title'] ?? '라비가 그린 클립아트');
-      $clipEdit = (string) ($clip['editor_url'] ?? url('editor/'));
-      $clipDate = substr((string) ($clip['created_at'] ?? ''), 0, 16);
-    ?>
-    <article class="account-clip-card">
-      <button type="button" class="account-clip-thumb js-clip-preview" data-src="<?= e($clipUrl) ?>" data-title="<?= e($clipTitle) ?>" data-edit="<?= e($clipEdit) ?>">
-        <img src="<?= e($clipUrl) ?>" alt="<?= e($clipTitle) ?>">
-      </button>
-      <strong><?= e($clipTitle) ?></strong>
-      <span class="account-meta"><?= e($clipDate) ?></span>
-      <div class="account-clip-actions">
-        <button type="button" class="account-btn account-btn--outline js-clip-preview" data-src="<?= e($clipUrl) ?>" data-title="<?= e($clipTitle) ?>" data-edit="<?= e($clipEdit) ?>">확대보기</button>
-        <a class="account-btn account-btn--primary" href="<?= e($clipEdit) ?>">바로편집</a>
-        <button type="button" class="account-btn account-btn--outline js-lib-act" data-act="trash" data-type="clipart" data-id="<?= (int) ($clip['id'] ?? 0) ?>">삭제</button>
-      </div>
-    </article>
-    <?php endforeach; ?>
-  </div>
-  <?php endif; ?>
-</section>
-
-<div class="account-grid-sub">
-  <section class="account-panel card">
-    <h2 class="account-section-title">라벨 편집 도구</h2>
-    <ul class="account-link-list">
-      <?php foreach ($dash['tools'] as $tool): ?>
-      <li><a class="<?= !empty($tool['disabled']) ? 'is-disabled' : '' ?>" href="<?= e($tool['href']) ?>"><span><?= $tool['ic'] ?></span><?= e($tool['label']) ?></a></li>
-      <?php endforeach; ?>
-    </ul>
-  </section>
-
-  <section class="account-panel card">
-    <h2 class="account-section-title">추천 템플릿</h2>
-    <?php if (empty($dash['templates'])): ?>
-    <p class="account-empty">등록된 템플릿이 없습니다.</p>
-    <?php else: ?>
-    <ul class="account-template-list">
-      <?php foreach ($dash['templates'] as $tpl): ?>
-      <li>
-        <?php if ($tpl['thumb'] !== ''): ?><img src="<?= e($tpl['thumb']) ?>" alt="" loading="lazy"><?php else: ?><span class="account-template-ph" aria-hidden="true">▦</span><?php endif; ?>
-        <div class="account-template-info">
-          <strong><?= e($tpl['name']) ?></strong>
-          <?php if ($tpl['meta'] !== ''): ?><span><?= e($tpl['meta']) ?></span><?php endif; ?>
-        </div>
-        <a class="account-btn account-btn--outline account-btn--sm" href="<?= e($tpl['edit_url']) ?>">편집</a>
-      </li>
-      <?php endforeach; ?>
-    </ul>
-    <?php endif; ?>
-  </section>
-
-  <section class="account-panel card" id="address">
-    <h2 class="account-section-title">배송지 관리</h2>
-    <div id="accountAddressList">
-      <?php foreach (($dash['addresses'] ?? []) as $addr): ?>
-      <article class="account-address" data-address-id="<?= (int) $addr['id'] ?>">
-        <span class="account-address-label"><?= e($addr['label']) ?><?= !empty($addr['is_default']) ? ' · 기본' : '' ?></span>
-        <strong><?= e($addr['recipient_name']) ?></strong>
-        <p><?= e($addr['recipient_phone']) ?></p>
-        <p><?= e($addr['address_line']) ?></p>
-        <div class="account-address-actions">
-          <?php if (empty($addr['is_default'])): ?>
-          <button type="button" class="account-btn account-btn--outline" data-address-default="<?= (int) $addr['id'] ?>">기본</button>
+      <ul class="mp-list" id="accountWishList">
+        <?php foreach (($dash['wishlist'] ?? []) as $item): ?>
+        <li class="mp-item" data-wish-product-id="<?= (int) $item['product_id'] ?>">
+          <?php if ($item['openable']): ?>
+          <a href="<?= e($item['url']) ?>"><img src="<?= e($item['thumb_url']) ?>" alt="" loading="lazy"></a>
+          <?php else: ?>
+          <img src="<?= e($item['thumb_url']) ?>" alt="" loading="lazy">
           <?php endif; ?>
-          <button type="button" class="account-btn account-btn--outline" data-address-edit="<?= (int) $addr['id'] ?>">수정</button>
-          <button type="button" class="account-btn account-btn--danger" data-address-del="<?= (int) $addr['id'] ?>">삭제</button>
+          <span class="mp-item__body">
+            <?php if ($item['openable']): ?>
+            <a href="<?= e($item['url']) ?>"><strong><?= e($item['name']) ?></strong></a>
+            <?php else: ?>
+            <strong><?= e($item['name']) ?></strong>
+            <?php endif; ?>
+            <span>
+              <b><?= e($item['price_label']) ?></b>
+              <?php if ($item['list_price_label'] !== ''): ?><del><?= e($item['list_price_label']) ?></del><?php endif; ?>
+              <?php if ($item['soldout']): ?> · 품절<?php elseif (!$item['openable']): ?> · 판매 중지<?php endif; ?>
+            </span>
+          </span>
+          <button type="button" class="mp-mini-btn js-wish-remove" data-product-id="<?= (int) $item['product_id'] ?>">찜 해제</button>
+        </li>
+        <?php endforeach; ?>
+      </ul>
+      <p class="mp-empty" id="accountWishEmpty"<?= empty($dash['wishlist']) ? '' : ' hidden' ?>>상품 상세에서 ♥ 찜하기를 누르면 여기에 모입니다.</p>
+    </section>
+
+    <section class="mp-sec" id="cliparts">
+      <div class="mp-sec__head">
+        <h2>내 클립아트<?php if ($clipartCount > 0): ?> <small><?= number_format($clipartCount) ?></small><?php endif; ?></h2>
+        <a href="<?= url('locker') ?>">보관함<?= $chev ?></a>
+      </div>
+      <?php if (empty($myCliparts)): ?>
+      <p class="mp-empty">라비에게 그림을 요청하면 여기에 모입니다. <a href="<?= url('/') ?>">라비에게 요청하기</a></p>
+      <?php else: ?>
+      <div class="mp-clips">
+        <?php foreach ($myCliparts as $clip): ?>
+        <?php
+          $clipUrl = (string) ($clip['image_url'] ?? '');
+          $clipTitle = (string) ($clip['title'] ?? '라비가 그린 클립아트');
+          $clipEdit = (string) ($clip['editor_url'] ?? url('editor/'));
+        ?>
+        <div class="mp-clip">
+          <button type="button" class="mp-clip__thumb js-clip-preview" data-src="<?= e($clipUrl) ?>" data-title="<?= e($clipTitle) ?>" data-edit="<?= e($clipEdit) ?>" title="<?= e($clipTitle) ?>">
+            <img src="<?= e($clipUrl) ?>" alt="<?= e($clipTitle) ?>" loading="lazy">
+          </button>
+          <button type="button" class="mp-del js-lib-act" data-act="trash" data-type="clipart" data-id="<?= (int) ($clip['id'] ?? 0) ?>" title="휴지통으로" aria-label="휴지통으로"><svg viewBox="0 0 24 24" aria-hidden="true"><?= $accIcons['trash'] ?></svg></button>
         </div>
-      </article>
-      <?php endforeach; ?>
-    </div>
-    <p class="account-empty" id="accountAddressEmpty" <?= empty($dash['addresses']) ? '' : 'hidden' ?>>저장된 배송지가 없습니다. 자주 쓰는 주소를 등록해 두세요.</p>
-    <button type="button" class="account-btn account-btn--outline account-btn--block" data-address-add>＋ 배송지 추가</button>
-  </section>
-
-  <section class="account-panel card">
-    <h2 class="account-section-title">계정 · 설정</h2>
-    <div class="account-settings-grid">
-      <button type="button" data-open-modal="profileModal"><span>◎</span>회원정보</button>
-      <button type="button" data-open-modal="notifPrefsModal"><span>♧</span>알림 설정</button>
-      <button type="button" data-open-modal="passwordModal"><span>🔒</span>보안 설정</button>
-    </div>
-  </section>
-</div>
-
-<section class="account-panel card" id="notifications">
-  <div class="account-panel-head">
-    <h2>알림 설정</h2>
-    <button type="button" class="account-btn account-btn--outline" data-open-modal="notifPrefsModal">설정 변경</button>
-  </div>
-  <p class="account-meta">받고 싶은 알림 종류와 잉크 부족 기준을 직접 조절할 수 있습니다.</p>
-  <ul class="account-notif-summary" id="accountNotifSummary">
-    <li>설정을 불러오는 중…</li>
-  </ul>
-</section>
-
-<section class="account-panel card" id="credits">
-  <?php $creditTotal = (int) ($dash['credit']['total'] ?? 0); ?>
-  <div class="account-panel-head account-history-head">
-    <h2>잉크 내역<?php if ($creditTotal > 0): ?> <em>최근 <?= min(5, $creditTotal) ?>건 / 전체 <?= number_format($creditTotal) ?>건</em><?php endif; ?></h2>
-    <?php if ($creditTotal > 0): ?>
-    <button type="button" class="account-btn account-btn--outline account-btn--sm" data-history-open="credit">상세보기</button>
-    <?php endif; ?>
-  </div>
-  <?php $creditBal = (int) ($dash['credit']['balance'] ?? 0); ?>
-  <p class="account-meta">보유 잉크 <strong<?= $creditBal < 0 ? ' class="is-debt"' : '' ?>><?= number_format($creditBal) ?> C</strong></p>
-  <?php if ($creditBal < 0): ?>
-  <p class="account-meta account-meta--warn">AI 사용으로 마이너스 잔액이 생겼습니다. 다음에 충전하면 부족한 <?= number_format(abs($creditBal)) ?> C이(가) 먼저 차감됩니다.</p>
-  <?php endif; ?>
-  <?php $creditTx = $dash['credit']['transactions'] ?? []; ?>
-  <?php if (empty($creditTx)): ?>
-  <p class="account-empty">잉크 사용·적립 내역이 없습니다.</p>
-  <?php else: ?>
-  <div class="account-credit-list">
-    <?php foreach ($creditTx as $tx): ?>
-    <div class="account-credit-row">
-      <div>
-        <strong><?= e($tx['description'] ?? '') ?></strong>
-        <span class="account-meta"><?= e(substr((string) ($tx['created_at'] ?? ''), 0, 16)) ?> · <?= e(\App\Services\CreditService::txTypeLabel((string) ($tx['tx_type'] ?? ''))) ?><?php if (!empty($tx['source'])): ?> · <?= e(\App\Services\CreditService::sourceLabel((string) $tx['source'])) ?><?php endif; ?></span>
+        <?php endforeach; ?>
       </div>
-      <span class="account-credit-amt<?= (int) ($tx['amount'] ?? 0) >= 0 ? ' is-plus' : ' is-minus' ?>">
-        <?= (int) ($tx['amount'] ?? 0) >= 0 ? '+' : '' ?><?= number_format((int) ($tx['amount'] ?? 0)) ?> C
-      </span>
-    </div>
-    <?php endforeach; ?>
-  </div>
-  <?php endif; ?>
-</section>
+      <?php endif; ?>
+    </section>
 
-<section class="account-panel card" id="ai-usage">
-  <?php $aiTotal = (int) ($aiUsage['total'] ?? 0); ?>
-  <div class="account-panel-head account-history-head">
-    <h2>AI 사용 이력<?php if ($aiTotal > 0): ?> <em>최근 <?= min(5, $aiTotal) ?>건 / 전체 <?= number_format($aiTotal) ?>건</em><?php endif; ?></h2>
-    <?php if ($aiTotal > 0): ?>
-    <button type="button" class="account-btn account-btn--outline account-btn--sm" data-history-open="ai">상세보기</button>
-    <?php endif; ?>
-  </div>
-  <p class="account-meta">이번 달 AI 사용 잉크 <strong><?= number_format((int) ($aiUsage['used'] ?? 0)) ?> C</strong>
-    · 보유 <strong<?= (int) ($aiUsage['balance'] ?? 0) < 0 ? ' class="is-debt"' : '' ?>><?= number_format((int) ($aiUsage['balance'] ?? 0)) ?> C</strong></p>
-  <?php $aiItems = $aiUsage['items'] ?? []; ?>
-  <?php if (empty($aiItems)): ?>
-  <p class="account-empty">아직 AI 사용 이력이 없습니다.</p>
-  <?php else: ?>
-  <div class="account-credit-list">
-    <?php foreach ($aiItems as $row): ?>
-    <div class="account-credit-row">
-      <div>
-        <strong><?= e((string) ($row['intent_label'] ?? 'AI')) ?></strong>
-        <span class="account-meta"><?= e(substr((string) ($row['created_at'] ?? ''), 0, 16)) ?>
-          · <?= e((string) ($row['surface_label'] ?? '')) ?>
-          · <?= ((string) ($row['status'] ?? '')) === 'ok' ? '성공' : '오류' ?>
-          <?php if ((int) ($row['total_tokens'] ?? 0) > 0): ?> · <?= number_format((int) $row['total_tokens']) ?> 토큰<?php endif; ?>
-        </span>
+    <section class="mp-sec" id="address">
+      <div class="mp-sec__head">
+        <h2>배송지 관리</h2>
+        <button type="button" class="mp-sec__act" data-address-add>＋ 추가</button>
       </div>
-      <span class="account-credit-amt"><?= e((string) ($row['intent'] ?? '')) ?></span>
-    </div>
-    <?php endforeach; ?>
-  </div>
-  <?php endif; ?>
-</section>
+      <div id="accountAddressList" class="mp-addrs">
+        <?php foreach (($dash['addresses'] ?? []) as $addr): ?>
+        <article class="account-address" data-address-id="<?= (int) $addr['id'] ?>">
+          <span class="account-address-label"><?= e($addr['label']) ?><?= !empty($addr['is_default']) ? ' · 기본' : '' ?></span>
+          <strong><?= e($addr['recipient_name']) ?></strong>
+          <p><?= e($addr['recipient_phone']) ?></p>
+          <p><?= e($addr['address_line']) ?></p>
+          <div class="account-address-actions">
+            <?php if (empty($addr['is_default'])): ?>
+            <button type="button" class="account-btn account-btn--outline" data-address-default="<?= (int) $addr['id'] ?>">기본</button>
+            <?php endif; ?>
+            <button type="button" class="account-btn account-btn--outline" data-address-edit="<?= (int) $addr['id'] ?>">수정</button>
+            <button type="button" class="account-btn account-btn--danger" data-address-del="<?= (int) $addr['id'] ?>">삭제</button>
+          </div>
+        </article>
+        <?php endforeach; ?>
+      </div>
+      <p class="mp-empty" id="accountAddressEmpty" <?= empty($dash['addresses']) ? '' : 'hidden' ?>>자주 쓰는 주소를 등록해 두면 주문할 때 바로 불러올 수 있어요.</p>
+    </section>
 
-<section class="account-support card">
-  <div>
-    <strong>도움이 필요하신가요?</strong>
-    <p>1:1 문의와 FAQ에서 빠르게 답변을 받아보세요.</p>
-  </div>
-  <div class="account-support-actions">
-    <button type="button" class="account-btn account-btn--primary" data-open-modal="inquiryModal">1:1 문의</button>
-    <button type="button" class="account-btn account-btn--outline" data-open-modal="inquiriesModal">내 문의 내역</button>
-    <a class="account-btn account-btn--outline" href="<?= url('faq') ?>">FAQ</a>
-  </div>
-</section>
+    <section class="mp-sec" id="credits">
+      <div class="mp-sec__head">
+        <h2>잉크 내역<?php if ($creditTotal > 0): ?> <small><?= number_format($creditTotal) ?>건</small><?php endif; ?></h2>
+        <?php if ($creditTotal > 0): ?><button type="button" class="mp-sec__act" data-history-open="credit">전체보기<?= $chev ?></button><?php endif; ?>
+      </div>
+      <?php if (empty($creditTx)): ?>
+      <p class="mp-empty">잉크 사용·적립 내역이 없습니다.</p>
+      <?php else: ?>
+      <ul class="mp-list mp-list--tx">
+        <?php foreach ($creditTx as $tx): ?>
+        <?php $amt = (int) ($tx['amount'] ?? 0); ?>
+        <li class="mp-tx">
+          <span class="mp-item__body">
+            <strong><?= e($tx['description'] ?? '') ?></strong>
+            <span><?= e(substr((string) ($tx['created_at'] ?? ''), 0, 16)) ?> · <?= e(\App\Services\CreditService::txTypeLabel((string) ($tx['tx_type'] ?? ''))) ?></span>
+          </span>
+          <b class="<?= $amt >= 0 ? 'is-plus' : 'is-minus' ?>"><?= $amt >= 0 ? '+' : '' ?><?= number_format($amt) ?> C</b>
+        </li>
+        <?php endforeach; ?>
+      </ul>
+      <?php endif; ?>
+    </section>
 
-<?php if (($user['role'] ?? '') === 'admin'): ?>
-<div class="account-admin-banner card">
-  <a href="<?= url('admin') ?>">관리자 콘솔로 이동 →</a>
+    <section class="mp-sec" id="ai-usage">
+      <div class="mp-sec__head">
+        <h2>AI 사용 이력<?php if ($aiTotal > 0): ?> <small><?= number_format($aiTotal) ?>건</small><?php endif; ?></h2>
+        <?php if ($aiTotal > 0): ?><button type="button" class="mp-sec__act" data-history-open="ai">전체보기<?= $chev ?></button><?php endif; ?>
+      </div>
+      <?php $aiItems = array_slice($aiUsage['items'] ?? [], 0, 3); ?>
+      <?php if (empty($aiItems)): ?>
+      <p class="mp-empty">아직 AI 사용 이력이 없습니다.</p>
+      <?php else: ?>
+      <ul class="mp-list mp-list--tx">
+        <?php foreach ($aiItems as $row): ?>
+        <?php $ok = ((string) ($row['status'] ?? '')) === 'ok'; ?>
+        <li class="mp-tx">
+          <span class="mp-item__body">
+            <strong><?= e((string) ($row['intent_label'] ?? 'AI')) ?></strong>
+            <span><?= e(substr((string) ($row['created_at'] ?? ''), 0, 16)) ?><?php if ((string) ($row['surface_label'] ?? '') !== ''): ?> · <?= e((string) $row['surface_label']) ?><?php endif; ?></span>
+          </span>
+          <em class="account-history-badge<?= $ok ? '' : ' is-error' ?>"><?= $ok ? '성공' : '오류' ?></em>
+        </li>
+        <?php endforeach; ?>
+      </ul>
+      <?php endif; ?>
+    </section>
+  </div>
 </div>
-<?php endif; ?>

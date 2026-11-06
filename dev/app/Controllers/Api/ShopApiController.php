@@ -25,6 +25,11 @@ final class ShopApiController extends BaseController
         $this->jsonSuccess($this->shop->editorPapers());
     }
 
+    public function inkProducts(): never
+    {
+        $this->jsonSuccess(['items' => $this->shop->inkProducts()]);
+    }
+
     public function catalog(): never
     {
         $q = trim((string) ($_GET['q'] ?? ''));

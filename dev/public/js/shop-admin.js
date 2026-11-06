@@ -33,6 +33,8 @@ const SHOP_ENDPOINTS = {
   spec: {
     save: '/api/admin/shop/spec/save',
     delete: '/api/admin/shop/spec/delete',
+    active: '/api/admin/shop/spec/active',
+    reorder: '/api/admin/shop/spec/reorder',
     uploadImages: '/api/admin/shop/spec/upload-images',
   },
   product: {
@@ -1062,6 +1064,102 @@ document.querySelectorAll('.js-shop-delete').forEach((btn) => {
     }
   });
 });
+
+document.querySelectorAll('.js-spec-active').forEach((btn) => {
+  btn.addEventListener('click', async () => {
+    const id = Number(btn.dataset.id);
+    const next = btn.dataset.active !== '1';
+    if (!id || btn.disabled) return;
+    btn.disabled = true;
+    try {
+      const res = await ShopAPI.post(SHOP_ENDPOINTS.spec.active, { id, is_active: next ? 1 : 0 });
+      btn.dataset.active = next ? '1' : '0';
+      btn.textContent = next ? '사용' : '사용안함';
+      btn.title = `클릭하면 ${next ? '사용안함' : '사용'}으로 바뀝니다`;
+      btn.setAttribute('aria-pressed', next ? 'true' : 'false');
+      btn.classList.toggle('admin-badge--ok', next);
+      btn.classList.toggle('admin-badge--err', !next);
+      const edit = btn.closest('tr')?.querySelector('.js-shop-edit');
+      if (edit?.dataset.row) {
+        try {
+          const row = JSON.parse(edit.dataset.row);
+          row.is_active = next ? 1 : 0;
+          edit.dataset.row = JSON.stringify(row);
+        } catch (_) { /* keep row */ }
+      }
+      if (typeof showAdminAlert === 'function') showAdminAlert(res.message || '변경되었습니다.', 'success');
+    } catch (err) {
+      if (typeof showAdminAlert === 'function') showAdminAlert(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+});
+
+(() => {
+  const list = document.getElementById('specSortList');
+  if (!list) return;
+  const rows = () => Array.from(list.querySelectorAll('.js-spec-row'));
+  const order = () => rows().map((tr) => Number(tr.dataset.id));
+  const renumber = () => rows().forEach((tr, i) => {
+    const no = tr.querySelector('.js-spec-no');
+    if (no) no.textContent = String(i + 1);
+  });
+
+  list.addEventListener('pointerdown', (e) => {
+    const handle = e.target.closest('.js-spec-handle');
+    if (!handle || e.button > 0 || list.classList.contains('is-sort-saving')) return;
+    const row = handle.closest('.js-spec-row');
+    if (!row) return;
+    e.preventDefault();
+    const before = order().join(',');
+    handle.setPointerCapture?.(e.pointerId);
+    row.classList.add('is-dragging');
+    document.body.classList.add('is-sort-dragging');
+
+    const onMove = (ev) => {
+      const target = rows().find((tr) => {
+        if (tr === row) return false;
+        const r = tr.getBoundingClientRect();
+        return ev.clientY >= r.top && ev.clientY <= r.bottom;
+      });
+      if (target) {
+        const r = target.getBoundingClientRect();
+        list.insertBefore(row, ev.clientY < r.top + r.height / 2 ? target : target.nextSibling);
+      }
+      const edge = 60;
+      if (ev.clientY < edge) window.scrollBy(0, -12);
+      else if (ev.clientY > window.innerHeight - edge) window.scrollBy(0, 12);
+    };
+
+    const onUp = async () => {
+      handle.removeEventListener('pointermove', onMove);
+      handle.removeEventListener('pointerup', onUp);
+      handle.removeEventListener('pointercancel', onUp);
+      row.classList.remove('is-dragging');
+      document.body.classList.remove('is-sort-dragging');
+      renumber();
+      const ids = order();
+      if (ids.join(',') === before) return;
+      list.classList.add('is-sort-saving');
+      try {
+        const res = await ShopAPI.post(SHOP_ENDPOINTS.spec.reorder, { ids });
+        if (typeof showAdminAlert === 'function') showAdminAlert(res.message || '노출 순서를 저장했습니다.', 'success');
+      } catch (err) {
+        if (typeof showAdminAlert === 'function') showAdminAlert(err.message, 'error');
+        const byId = new Map(rows().map((tr) => [tr.dataset.id, tr]));
+        before.split(',').forEach((id) => { const tr = byId.get(id); if (tr) list.appendChild(tr); });
+        renumber();
+      } finally {
+        list.classList.remove('is-sort-saving');
+      }
+    };
+
+    handle.addEventListener('pointermove', onMove);
+    handle.addEventListener('pointerup', onUp);
+    handle.addEventListener('pointercancel', onUp);
+  });
+})();
 
 document.querySelectorAll('.js-shop-modal-close').forEach((el) => {
   el.addEventListener('click', closeShopModal);

@@ -542,6 +542,9 @@ function render_site_footer(array $opts = []): void
     $year = (int) ($opts['year'] ?? date('Y'));
     $links = $opts['links'] ?? null;
     require view_path('partials/site-footer.php');
+    if (($opts['bottom_nav'] ?? true) !== false) {
+        require view_path('partials/mobile-bottom-nav.php');
+    }
 }
 
 /** 이름 가운데 글자를 가린다. 두 글자는 뒤 글자, 세 글자 이상은 첫·끝만 남긴다. */

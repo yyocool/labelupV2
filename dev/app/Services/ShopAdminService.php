@@ -355,6 +355,33 @@ final class ShopAdminService
         return ShopProductImageService::storeSpecUploads($files);
     }
 
+    /** @param mixed $ids */
+    public function reorderSpecs($ids): void
+    {
+        if (!is_array($ids)) {
+            throw new RuntimeException('잘못된 요청입니다.');
+        }
+        $clean = [];
+        foreach ($ids as $id) {
+            $id = (int) $id;
+            if ($id > 0 && !in_array($id, $clean, true)) {
+                $clean[] = $id;
+            }
+        }
+        if ($clean === []) {
+            throw new RuntimeException('변경할 규격이 없습니다.');
+        }
+        $this->repo->reorderSpecs($clean);
+    }
+
+    public function setSpecActive(int $id, bool $active): bool
+    {
+        if ($id <= 0 || !$this->repo->setSpecActive($id, $active)) {
+            throw new RuntimeException('규격을 찾을 수 없습니다.');
+        }
+        return $active;
+    }
+
     public function deleteSpec(int $id): void
     {
         if ($id <= 0) {

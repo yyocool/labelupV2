@@ -379,6 +379,10 @@ section{position:relative;scroll-margin-top:calc(var(--nav-h) + 12px)}
 .prod .sale{display:block;font-size:25px;font-weight:900;letter-spacing:-.03em;color:var(--wine-strong);font-variant-numeric:tabular-nums}
 .prod .sale small{font-size:15px;font-weight:700;margin-left:1px}
 .prod .btn{margin-top:auto;width:100%;min-height:46px;font-size:15.5px;padding:0 14px}
+.prod.is-soldout .btn{background:#e7e1df;color:#8a7f7c;box-shadow:none;cursor:not-allowed}
+.products:empty{display:none}
+.products-msg{margin:0;padding:28px 16px;text-align:center;font-size:15px;color:var(--ink-3)}
+.products-msg a{margin-left:6px;color:var(--wine-strong);font-weight:800}
 @media (max-width:1080px){.products{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:720px){.products{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.prod{padding:6px;border-radius:22px}.prod-face{padding:18px 13px 14px;border-radius:17px}.prod-face::before{left:13px;right:13px;top:108px}}
 @media (max-width:380px){.products{grid-template-columns:1fr}}
@@ -811,14 +815,15 @@ footer .f-space{height:8px}
       <div class="sec-head">
         <p class="eyebrow">Ink Charge</p>
         <h2 id="buy-title" class="sec-title" tabindex="-1">필요한 만큼 <em class="hl">잉크 충전하기</em></h2>
-        <p class="promo"><b>30%</b>런칭 기념, 잉크 단품 상품 30% 할인</p>
+        <p class="promo" id="ink-promo" hidden></p>
       </div>
       <p class="onetime">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>
         구독이 아닌, 한 번 결제하는 일회성 충전 상품이에요
       </p>
     </div>
-    <ul class="products" id="products"></ul>
+    <ul class="products" id="products" aria-busy="true"></ul>
+    <p class="products-msg" id="products-msg" hidden></p>
 
     <!-- 구독 서비스 예고 -->
     <aside class="sub" aria-labelledby="sub-title">
@@ -896,43 +901,59 @@ footer .f-space{height:8px}
    ========================================================= */
 const LINKS = {
   signup:    "/register",   // 회원가입 페이지
-  paperShop: "/shop",       // 라벨업 용지 판매 페이지
-  buyInk: {
-    "50000":  "/shop/products/INK-50000",
-    "80000":  "/shop/products/INK-80000",
-    "100000": "/shop/products/INK-100000",
-    "150000": "/shop/products/INK-150000",
-    "200000": "/shop/products/INK-200000"
-  }
+  paperShop: "/shop"        // 라벨업 용지 판매 페이지
 };
 
-/* 잉크 단품 상품 (런칭 기념 30% 할인) */
-const PRODUCTS = [
-  { up: 50000,  regular: 5000,  sale: 3500 },
-  { up: 80000,  regular: 8000,  sale: 5600 },
-  { up: 100000, regular: 10000, sale: 7000 },
-  { up: 150000, regular: 15000, sale: 10500 },
-  { up: 200000, regular: 20000, sale: 14000 }
-];
-
 (function(){
-  const fmt = n => n.toLocaleString("ko-KR");
+  const fmt = n => Number(n).toLocaleString("ko-KR");
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
-  /* ---------- 상품 카드 ---------- */
+  /* ---------- 잉크 상품 카드: 쇼핑몰 DB 의 잉크 상품을 그대로 보여 준다 ---------- */
   const list = document.getElementById("products");
-  list.innerHTML = PRODUCTS.map(p => `
-    <li class="prod">
+  const listMsg = document.getElementById("products-msg");
+  const promo = document.getElementById("ink-promo");
+  function showListMsg(text){
+    list.innerHTML = "";
+    listMsg.innerHTML = `${text} <a href="/shop/products?category=ink-charge">쇼핑몰에서 보기</a>`;
+    listMsg.hidden = false;
+  }
+  function renderPromo(items){
+    const rates = items.map(p => p.discount_rate || 0);
+    const max = Math.max(0, ...rates);
+    if (!max) { promo.hidden = true; return; }
+    const label = rates.every(r => r === max) ? `${max}%` : `최대 ${max}%`;
+    promo.innerHTML = `<b>${label}</b>런칭 기념, 잉크 단품 상품 ${label} 할인`;
+    promo.hidden = false;
+  }
+  function renderCard(p){
+    const amount = fmt(p.ink_amount);
+    const price = fmt(p.unit_price);
+    const button = p.soldout
+      ? `<button class="btn btn-primary" type="button" disabled aria-label="${amount} Ink 품절">품절</button>`
+      : `<a class="btn btn-primary" href="${p.url}" aria-label="${amount} Ink 구매하기, ${price}원">구매하기</a>`;
+    return `
+    <li class="prod${p.soldout ? " is-soldout" : ""}">
       <div class="prod-face">
-        <span class="tag">30% 할인</span>
-        <h3>${fmt(p.up)}<span>Ink</span></h3>
+        ${p.discount_rate > 0 ? `<span class="tag">${p.discount_rate}% 할인</span>` : ""}
+        <h3>${amount}<span>Ink</span></h3>
         <p class="price">
-          <del><span class="sr-only">정상가 </span>${fmt(p.regular)}원</del>
-          <span class="sale"><span class="sr-only">할인 판매가 </span>${fmt(p.sale)}<small>원</small></span>
+          ${p.on_sale ? `<del><span class="sr-only">정상가 </span>${fmt(p.price)}원</del>` : ""}
+          <span class="sale"><span class="sr-only">${p.on_sale ? "할인 판매가 " : "판매가 "}</span>${price}<small>원</small></span>
         </p>
-        <a class="btn btn-primary" href="#" data-link="buyInk" data-key="${p.up}" aria-label="${fmt(p.up)} Ink 구매하기, ${fmt(p.sale)}원">구매하기</a>
+        ${button}
       </div>
-    </li>`).join("");
+    </li>`;
+  }
+  fetch("/api/shop/ink-products", { credentials: "same-origin", headers: { Accept: "application/json" } })
+    .then(res => res.ok ? res.json() : Promise.reject(res.status))
+    .then(json => {
+      const items = (json && json.data && Array.isArray(json.data.items)) ? json.data.items : [];
+      if (!items.length) { showListMsg("지금 판매 중인 잉크 상품이 없어요."); return; }
+      renderPromo(items);
+      list.innerHTML = items.map(renderCard).join("");
+    })
+    .catch(() => showListMsg("잉크 상품을 불러오지 못했어요."))
+    .finally(() => list.removeAttribute("aria-busy"));
 
   /* ---------- 외부 링크 연결 ---------- */
   const toast = document.getElementById("toast");
@@ -944,9 +965,7 @@ const PRODUCTS = [
     toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
   }
   function resolve(el){
-    const key = el.dataset.link;
-    if (key === "buyInk") return (LINKS.buyInk || {})[el.dataset.key] || "";
-    return LINKS[key] || "";
+    return LINKS[el.dataset.link] || "";
   }
   document.querySelectorAll("[data-link]").forEach(el => {
     const url = resolve(el);
