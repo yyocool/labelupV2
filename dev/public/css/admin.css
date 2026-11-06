@@ -272,7 +272,7 @@
 .admin-badge--toggle:hover{box-shadow:0 0 0 2px currentColor inset}
 .admin-badge--toggle:disabled{opacity:.55;cursor:wait}
 .admin-sort-col{width:64px;white-space:nowrap}
-.admin-sort-handle{display:inline-grid;place-items:center;width:24px;height:28px;margin-right:4px;border-radius:6px;color:#a09a93;font-size:16px;cursor:grab;user-select:none;touch-action:none;vertical-align:middle}
+.admin-sort-handle{display:inline-grid;place-items:center;width:24px;height:28px;margin-right:4px;border-radius:6px;color:#a09a93;font-size:16px;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;vertical-align:middle}
 body.is-sort-dragging,body.is-sort-dragging *{cursor:grabbing!important;user-select:none}
 .admin-sort-handle:hover{background:#f3f0eb;color:var(--accent)}
 .admin-sort-no{display:inline-block;min-width:20px;color:var(--muted);font-weight:700;font-size:13px;vertical-align:middle}

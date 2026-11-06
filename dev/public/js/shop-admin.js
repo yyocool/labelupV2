@@ -1100,64 +1100,130 @@ document.querySelectorAll('.js-spec-active').forEach((btn) => {
   const list = document.getElementById('specSortList');
   if (!list) return;
   const rows = () => Array.from(list.querySelectorAll('.js-spec-row'));
-  const order = () => rows().map((tr) => Number(tr.dataset.id));
+  const order = () => rows().map((tr) => Number(tr.dataset.id)).join(',');
   const renumber = () => rows().forEach((tr, i) => {
     const no = tr.querySelector('.js-spec-no');
     if (no) no.textContent = String(i + 1);
   });
 
-  list.addEventListener('pointerdown', (e) => {
+  const findScroller = () => {
+    let el = list.parentElement;
+    while (el && el !== document.body) {
+      const oy = getComputedStyle(el).overflowY;
+      if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight) return el;
+      el = el.parentElement;
+    }
+    return null;
+  };
+
+  const moveRow = (row, clientY) => {
+    const target = rows().find((tr) => {
+      if (tr === row) return false;
+      const r = tr.getBoundingClientRect();
+      return clientY >= r.top && clientY <= r.bottom;
+    });
+    if (!target) return;
+    const r = target.getBoundingClientRect();
+    const ref = clientY < r.top + r.height / 2 ? target : target.nextSibling;
+    if (ref !== row && ref !== row.nextSibling) list.insertBefore(row, ref);
+  };
+
+  const autoScroll = (scroller, clientY) => {
+    const box = scroller ? scroller.getBoundingClientRect() : { top: 0, bottom: window.innerHeight };
+    const dy = clientY < box.top + 60 ? -14 : clientY > box.bottom - 60 ? 14 : 0;
+    if (dy) (scroller || window).scrollBy(0, dy);
+  };
+
+  const save = async (before) => {
+    renumber();
+    if (order() === before) return;
+    list.classList.add('is-sort-saving');
+    try {
+      const res = await ShopAPI.post(SHOP_ENDPOINTS.spec.reorder, { ids: order().split(',').map(Number) });
+      if (typeof showAdminAlert === 'function') showAdminAlert(res.message || '노출 순서를 저장했습니다.', 'success');
+    } catch (err) {
+      if (typeof showAdminAlert === 'function') showAdminAlert(err.message, 'error');
+      const byId = new Map(rows().map((tr) => [tr.dataset.id, tr]));
+      before.split(',').forEach((id) => { const tr = byId.get(id); if (tr) list.appendChild(tr); });
+      renumber();
+    } finally {
+      list.classList.remove('is-sort-saving');
+    }
+  };
+
+  // 마우스: 손잡이를 누른 동안만 행을 draggable 로 두고 브라우저 기본 드래그앤드롭을 쓴다.
+  let drag = null;
+  list.addEventListener('mousedown', (e) => {
     const handle = e.target.closest('.js-spec-handle');
-    if (!handle || e.button > 0 || list.classList.contains('is-sort-saving')) return;
-    const row = handle.closest('.js-spec-row');
-    if (!row) return;
+    const row = handle?.closest('.js-spec-row');
+    if (!row || e.button !== 0 || list.classList.contains('is-sort-saving')) return;
+    row.draggable = true;
+    const release = () => {
+      window.removeEventListener('mouseup', release);
+      if (!drag) row.draggable = false;
+    };
+    window.addEventListener('mouseup', release);
+  });
+
+  list.addEventListener('dragstart', (e) => {
+    const row = e.target.closest?.('.js-spec-row');
+    if (!row || !row.draggable) return;
+    drag = { row, before: order(), scroller: findScroller() };
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', row.dataset.id); } catch (_) { }
+    requestAnimationFrame(() => row.classList.add('is-dragging'));
+  });
+
+  list.addEventListener('dragover', (e) => {
+    if (!drag) return;
     e.preventDefault();
-    const before = order().join(',');
-    handle.setPointerCapture?.(e.pointerId);
+    e.dataTransfer.dropEffect = 'move';
+    moveRow(drag.row, e.clientY);
+    autoScroll(drag.scroller, e.clientY);
+  });
+
+  list.addEventListener('drop', (e) => {
+    if (drag) e.preventDefault();
+  });
+
+  list.addEventListener('dragend', () => {
+    if (!drag) return;
+    const { row, before } = drag;
+    drag = null;
+    row.draggable = false;
+    row.classList.remove('is-dragging');
+    save(before);
+  });
+
+  // 터치·펜: 브라우저 드래그앤드롭이 없으므로 포인터 이벤트로 옮긴다.
+  list.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse') return;
+    const handle = e.target.closest('.js-spec-handle');
+    const row = handle?.closest('.js-spec-row');
+    if (!row || list.classList.contains('is-sort-saving')) return;
+    e.preventDefault();
+    const before = order();
+    const scroller = findScroller();
+    const pointerId = e.pointerId;
     row.classList.add('is-dragging');
-    document.body.classList.add('is-sort-dragging');
 
     const onMove = (ev) => {
-      const target = rows().find((tr) => {
-        if (tr === row) return false;
-        const r = tr.getBoundingClientRect();
-        return ev.clientY >= r.top && ev.clientY <= r.bottom;
-      });
-      if (target) {
-        const r = target.getBoundingClientRect();
-        list.insertBefore(row, ev.clientY < r.top + r.height / 2 ? target : target.nextSibling);
-      }
-      const edge = 60;
-      if (ev.clientY < edge) window.scrollBy(0, -12);
-      else if (ev.clientY > window.innerHeight - edge) window.scrollBy(0, 12);
+      if (ev.pointerId !== pointerId) return;
+      ev.preventDefault();
+      moveRow(row, ev.clientY);
+      autoScroll(scroller, ev.clientY);
     };
-
-    const onUp = async () => {
-      handle.removeEventListener('pointermove', onMove);
-      handle.removeEventListener('pointerup', onUp);
-      handle.removeEventListener('pointercancel', onUp);
+    const onUp = (ev) => {
+      if (ev.pointerId !== pointerId) return;
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
       row.classList.remove('is-dragging');
-      document.body.classList.remove('is-sort-dragging');
-      renumber();
-      const ids = order();
-      if (ids.join(',') === before) return;
-      list.classList.add('is-sort-saving');
-      try {
-        const res = await ShopAPI.post(SHOP_ENDPOINTS.spec.reorder, { ids });
-        if (typeof showAdminAlert === 'function') showAdminAlert(res.message || '노출 순서를 저장했습니다.', 'success');
-      } catch (err) {
-        if (typeof showAdminAlert === 'function') showAdminAlert(err.message, 'error');
-        const byId = new Map(rows().map((tr) => [tr.dataset.id, tr]));
-        before.split(',').forEach((id) => { const tr = byId.get(id); if (tr) list.appendChild(tr); });
-        renumber();
-      } finally {
-        list.classList.remove('is-sort-saving');
-      }
+      save(before);
     };
-
-    handle.addEventListener('pointermove', onMove);
-    handle.addEventListener('pointerup', onUp);
-    handle.addEventListener('pointercancel', onUp);
+    window.addEventListener('pointermove', onMove, { passive: false });
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
   });
 })();
 
