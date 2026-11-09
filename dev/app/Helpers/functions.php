@@ -383,6 +383,15 @@ function admin_menu_catalog(): array
         ['key' => 'ops-credit-rewards', 'label' => '잉크보상 관리', 'href' => 'admin/ops/credit-rewards', 'group' => '운영관리', 'ic' => '◈'],
         ['key' => 'ops-credit-usage', 'label' => '잉크 사용 설정', 'href' => 'admin/ops/credit-usage', 'group' => '운영관리', 'ic' => 'C'],
         ['key' => 'ops-purchase-credits', 'label' => '구매잉크', 'href' => 'admin/ops/purchase-credits', 'group' => '운영관리', 'ic' => '▣'],
+        ['key' => 'stats-overview', 'label' => '개요', 'href' => 'admin/stats', 'group' => '접속통계', 'ic' => '▣'],
+        ['key' => 'stats-trend', 'label' => '기간 추이', 'href' => 'admin/stats/trend', 'group' => '접속통계', 'ic' => '↗'],
+        ['key' => 'stats-pages', 'label' => '페이지', 'href' => 'admin/stats/pages', 'group' => '접속통계', 'ic' => '▦'],
+        ['key' => 'stats-referrers', 'label' => '유입 경로', 'href' => 'admin/stats/referrers', 'group' => '접속통계', 'ic' => '◎'],
+        ['key' => 'stats-visitors', 'label' => '방문자', 'href' => 'admin/stats/visitors', 'group' => '접속통계', 'ic' => '◇'],
+        ['key' => 'stats-environment', 'label' => '접속 환경', 'href' => 'admin/stats/environment', 'group' => '접속통계', 'ic' => '◐'],
+        ['key' => 'stats-hours', 'label' => '시간대', 'href' => 'admin/stats/hours', 'group' => '접속통계', 'ic' => '◷'],
+        ['key' => 'stats-live', 'label' => '실시간', 'href' => 'admin/stats/live', 'group' => '접속통계', 'ic' => '●'],
+        ['key' => 'stats-logs', 'label' => '접속 로그', 'href' => 'admin/stats/logs', 'group' => '접속통계', 'ic' => '≡'],
         ['key' => 'settings-admins', 'label' => '관리자', 'href' => 'admin/settings/admins', 'group' => '설정', 'ic' => '⚙'],
         ['key' => 'settings-member-grades', 'label' => '회원등급 설정', 'href' => 'admin/settings/member-grades', 'group' => '설정', 'ic' => '◇'],
         ['key' => 'settings-environment', 'label' => '환경설정', 'href' => 'admin/settings/environment', 'group' => '설정', 'ic' => '◐'],
@@ -493,6 +502,7 @@ function marketing_render_body_end(): void
     } catch (\Throwable) {
     }
     site_intro_render();
+    access_beacon_render();
 }
 
 function site_intro_render(): void
@@ -645,4 +655,60 @@ function admin_masked_contact(int $userId, string $field, ?string $value): strin
         . ' title="클릭 후 로그인 비밀번호를 입력하면 확인할 수 있습니다">'
         . e($masked)
         . '</button>';
+}
+
+function access_beacon_render(): void
+{
+    echo '<script>window.LABELUP_ACCESS_BEACON=' . json_encode(url('api/access/beacon'), JSON_UNESCAPED_SLASHES) . ';</script>';
+    echo '<script src="' . e(js('access-beacon.js')) . '" defer></script>';
+}
+
+function stats_duration(int|float|null $ms): string
+{
+    $ms = (int) $ms;
+    if ($ms <= 0) {
+        return '-';
+    }
+    $sec = (int) round($ms / 1000);
+    if ($sec < 60) {
+        return $sec . '초';
+    }
+    $min = intdiv($sec, 60);
+    $rem = $sec % 60;
+    if ($min < 60) {
+        return $rem > 0 ? $min . '분 ' . $rem . '초' : $min . '분';
+    }
+
+    return intdiv($min, 60) . '시간 ' . ($min % 60) . '분';
+}
+
+function stats_share(int|float $part, int|float $total): string
+{
+    if ((float) $total <= 0) {
+        return '0%';
+    }
+
+    return number_format(((float) $part / (float) $total) * 100, 1) . '%';
+}
+
+/** @return array{text:string,dir:string} */
+function stats_delta(int|float $current, int|float $previous): array
+{
+    if ((float) $previous == 0.0) {
+        return [
+            'text' => (float) $current > 0 ? '신규' : '0%',
+            'dir' => (float) $current > 0 ? 'up' : 'flat',
+        ];
+    }
+    $pct = (((float) $current - (float) $previous) / (float) $previous) * 100;
+    $dir = $pct > 0.05 ? 'up' : ($pct < -0.05 ? 'down' : 'flat');
+
+    return ['text' => ($pct > 0 ? '+' : '') . number_format($pct, 1) . '%', 'dir' => $dir];
+}
+
+function stats_delta_html(int|float $current, int|float $previous): string
+{
+    $delta = stats_delta($current, $previous);
+
+    return '<span class="stats-delta ' . $delta['dir'] . '">' . e($delta['text']) . '</span>';
 }

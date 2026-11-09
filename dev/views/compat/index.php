@@ -145,5 +145,6 @@ $payload = [
     window.COMPAT_PAGE = <?= json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
   </script>
   <script src="<?= js('compat-codes.js') ?>" defer></script>
+  <?php access_beacon_render(); ?>
 </body>
 </html>

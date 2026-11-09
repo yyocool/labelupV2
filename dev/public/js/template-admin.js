@@ -73,22 +73,10 @@
         <label class="admin-field"><span>포인트 컬러</span><input name="tone" class="admin-input" value="${escapeHtml(
           row.tone || "#7B2840"
         )}"></label>
-        <label class="admin-field"><span>용지번호</span><input name="paper_no" class="admin-input" value="${escapeHtml(
-          row.paper_no || row.paperNo || ""
-        )}"></label>
-        <label class="admin-field"><span>라벨 폭 mm</span><input type="number" step="0.1" name="paper_w_mm" class="admin-input" value="${
-          row.paper_w_mm || row.widthMm || 70
-        }"></label>
-        <label class="admin-field"><span>라벨 높이 mm</span><input type="number" step="0.1" name="paper_h_mm" class="admin-input" value="${
-          row.paper_h_mm || row.heightMm || 36
-        }"></label>
-        <label class="admin-field"><span>형상</span>
-          <select name="paper_shape" class="admin-input">
-            <option value="rect"${(row.paper_shape || row.shape) === "rect" ? " selected" : ""}>사각형</option>
-            <option value="roundrect"${(row.paper_shape || row.shape) === "roundrect" ? " selected" : ""}>라운드</option>
-            <option value="ellipse"${(row.paper_shape || row.shape) === "ellipse" ? " selected" : ""}>원형</option>
-          </select>
-        </label>
+        <input type="hidden" name="paper_no" value="${escapeHtml(row.paper_no || row.paperNo || "")}">
+        <input type="hidden" name="paper_w_mm" value="${row.paper_w_mm || row.widthMm || 70}">
+        <input type="hidden" name="paper_h_mm" value="${row.paper_h_mm || row.heightMm || 36}">
+        <input type="hidden" name="paper_shape" value="${escapeHtml(row.paper_shape || row.shape || "rect")}">
         <label class="admin-field admin-field--full"><span>태그</span>
           <input name="tags" class="admin-input" placeholder="꿀,식품,원형" value="${escapeHtml(row.tags || "")}">
         </label>
@@ -143,10 +131,7 @@
         }
       }
       if (meta) {
-        const size = [row.paper_no || row.paperNo, `${row.paper_w_mm || row.widthMm || ""}×${row.paper_h_mm || row.heightMm || ""}mm`]
-          .filter(Boolean)
-          .join(" · ");
-        meta.textContent = [row.categoryName || row.category, size].filter(Boolean).join(" · ");
+        meta.textContent = row.categoryName || row.category || "";
       }
       openModal("tplPreviewModal");
     });

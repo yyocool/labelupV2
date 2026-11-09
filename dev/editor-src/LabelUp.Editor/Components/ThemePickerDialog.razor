@@ -35,7 +35,7 @@
           <div class="ed-theme-hero__meta">
             <p class="ed-theme-hero__kicker">미리보기</p>
             <h4>@_preview.Name</h4>
-            <p>@_preview.DisplayCategory @(string.IsNullOrWhiteSpace(_preview.SizeText) ? "" : " · " + _preview.SizeText)</p>
+            <p>@_preview.DisplayCategory</p>
             @if (!string.IsNullOrWhiteSpace(_preview.Description))
             {
               <p class="ed-theme-hero__desc">@_preview.Description</p>
@@ -46,7 +46,7 @@
       }
 
       <div class="ed-paper-toolbar">
-        <input class="ed-paper-search" type="search" placeholder="이름, 태그, 용지번호 검색"
+        <input class="ed-paper-search" type="search" placeholder="이름, 태그 검색"
                @bind="_query" @bind:event="oninput" />
         <select class="ed-paper-select" @bind="_category">
           <option value="">전체 템플릿</option>
@@ -93,7 +93,7 @@
               </div>
               <div class="ed-paper-card__meta">
                 <strong>@item.Name</strong>
-                <span>@item.DisplayCategory @(string.IsNullOrWhiteSpace(item.SizeText) ? "" : " · " + item.SizeText)</span>
+                <span>@item.DisplayCategory</span>
               </div>
             </button>
           }
@@ -188,9 +188,16 @@
                 Session.Status = "템플릿 문서를 불러오지 못했습니다";
                 return;
             }
+            var paper = Session.Document.Paper.Clone();
+            var shopId = Session.CurrentShopProductId;
             History.Push(Session.Document);
             Session.ReplaceDocument(doc);
+            // 템플릿 문서에 적힌 용지 이름·규격은 쓰지 않는다. 지금 용지에 디자인을 맞춘다.
+            Session.Document.ApplyPaper(paper, keepDesign: true, scaleObjects: true);
+            Session.CurrentShopProductId = shopId;
+            Session.PendingFit = true;
             Session.Status = $"「{doc.Name}」 템플릿으로 편집합니다";
+            Session.InvalidateRender();
             Session.CloseDialog();
         }
         catch (Exception ex)

@@ -43,5 +43,6 @@ $activeMenu = (string) ($activeMenu ?? 'images');
     </main>
   </div>
 </div>
+<?php access_beacon_render(); ?>
 </body>
 </html>

@@ -54,9 +54,6 @@ $filters = $filters ?? ['q' => '', 'category' => ''];
     <div class="clip-card-body">
       <span class="clip-card-cat"><?= e($row['categoryName'] ?? $row['category'] ?? '') ?></span>
       <strong><?= e($row['name'] ?? '') ?></strong>
-      <div class="clip-card-tags">
-        <span><?= e(($row['paper_no'] ?? '') . ' · ' . rtrim(rtrim(number_format((float) ($row['paper_w_mm'] ?? 0), 1), '0'), '.') . '×' . rtrim(rtrim(number_format((float) ($row['paper_h_mm'] ?? 0), 1), '0'), '.') . 'mm') ?></span>
-      </div>
       <div class="clip-card-actions">
         <a class="admin-btn admin-btn--sm" href="<?= e(url('editor/?template=' . (int) ($row['id'] ?? 0))) ?>" target="_blank" rel="noopener">편집</a>
         <button type="button" class="admin-btn admin-btn--sm js-tpl-edit">수정</button>

@@ -232,5 +232,6 @@ $homeUrl = (string) ($homeUrl ?? url('/'));
     <p>© <?= (int) ($year ?? date('Y')) ?> LABEL UP</p>
   </footer>
   <?php endif; ?>
+<?php access_beacon_render(); ?>
 </body>
 </html>

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App;
 
+use App\Controllers\AccessStatsAdminController;
 use App\Controllers\AdminController;
 use App\Controllers\Api\CreditAdminApiController;
 use App\Controllers\Api\CreditApiController;
@@ -28,6 +29,7 @@ use App\Controllers\Api\MidBannerAdminApiController;
 use App\Controllers\ShopAdminController;
 use App\Controllers\ShopController;
 use App\Controllers\ShopPaymentController;
+use App\Controllers\Api\AccessBeaconController;
 use App\Controllers\Api\AdminApiController;
 use App\Controllers\Api\AdminWorkspaceApiController;
 use App\Controllers\Api\InquiryApiController;
@@ -349,6 +351,18 @@ final class Router
         $router->get('/admin/ops/reviews', [$reviewAdmin, 'index']);
         $router->get('/admin/ops/inquiries', [$inquiryAdmin, 'index']);
         $router->get('/admin/ops/error-reports', [$errorReportAdmin, 'index']);
+        $accessStats = new AccessStatsAdminController();
+        $router->get('/admin/stats', [$accessStats, 'overview']);
+        $router->get('/admin/stats/trend', [$accessStats, 'trend']);
+        $router->get('/admin/stats/pages', [$accessStats, 'pages']);
+        $router->get('/admin/stats/referrers', [$accessStats, 'referrers']);
+        $router->get('/admin/stats/visitors', [$accessStats, 'visitors']);
+        $router->get('/admin/stats/environment', [$accessStats, 'environment']);
+        $router->get('/admin/stats/hours', [$accessStats, 'hours']);
+        $router->get('/admin/stats/live', [$accessStats, 'live']);
+        $router->get('/admin/stats/logs', [$accessStats, 'logs']);
+        $router->get('/admin/stats/logs/export', [$accessStats, 'export']);
+        $router->post('/api/access/beacon', [new AccessBeaconController(), 'store']);
         $router->get('/admin/qr-coupons', [$qrCouponAdmin, 'index']);
         $router->post('/api/admin/qr-coupons/credit/save', [$qrCouponAdminApi, 'saveCredit']);
         $router->post('/api/admin/qr-coupons/generate', [$qrCouponAdminApi, 'generate']);

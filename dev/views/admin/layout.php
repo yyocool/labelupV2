@@ -30,6 +30,7 @@
       <?php require view_path('admin/partials/content-menu.php'); ?>
       <?php require view_path('admin/partials/ai-menu.php'); ?>
       <?php require view_path('admin/partials/ops-menu.php'); ?>
+      <?php require view_path('admin/partials/stats-menu.php'); ?>
       <?php require view_path('admin/partials/settings-menu.php'); ?>
       <?php if (admin_can_menu('partners')): ?>
       <a class="admin-lnb-item<?= ($activeMenu ?? '') === 'partners' ? ' is-active' : '' ?>" href="<?= url('admin/partners') ?>" title="협력사 관리">
@@ -276,6 +277,7 @@ window.LABELUP_ADMIN_INQUIRIES_URL = <?= json_encode(url('admin/ops/inquiries'),
 window.LABELUP_ADMIN_CREDIT_OVERVIEW_URL = <?= json_encode(url('api/admin/credit/overview'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 </script>
 <script src="<?= js('admin.js') ?>"></script>
+<?php access_beacon_render(); ?>
 <?php if (in_array((string) ($activeMenu ?? ''), ['settings-seo', 'settings-tracking'], true)): ?>
 <script src="<?= js('admin-seo.js') ?>"></script>
 <?php endif; ?>
