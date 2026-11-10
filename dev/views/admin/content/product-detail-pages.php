@@ -170,7 +170,14 @@ $queryParams = array_filter([
               type="button"
               class="admin-btn admin-btn--sm js-product-detail-images"
               data-download-url="<?= e(url('admin/content/product-detail-pages/images/' . (int) ($row['id'] ?? 0))) ?>"
-            >이미지</button>
+            >다운로드</button>
+            <button
+              type="button"
+              class="admin-btn admin-btn--sm js-product-detail-apply"
+              data-product-id="<?= (int) ($row['id'] ?? 0) ?>"
+              data-product-name="<?= e((string) ($row['name'] ?? '상품')) ?>"
+              title="현재 헤더·상품규격·촬영 이미지로 상세 내용을 다시 넣어 저장"
+            >적용</button>
           </div>
         </td>
       </tr>

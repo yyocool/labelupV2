@@ -286,6 +286,23 @@ final class ProductDetailPageService
     }
 
     /**
+     * 지금 등록된 헤더·상품규격·촬영 이미지로 상세 본문을 다시 만들어 저장한다.
+     * 기존 본문은 덮어쓴다.
+     *
+     * @return array<string, mixed>
+     */
+    public function applyComposed(int $productId): array
+    {
+        $product = $this->requireProduct($productId);
+        $html = self::composeProductImages($product);
+        if ($html === '') {
+            throw new RuntimeException('넣을 헤더·상품규격·촬영 이미지가 없습니다.');
+        }
+        $this->repo->saveForProduct($productId, $html, 'published');
+        return $this->getForEdit($productId);
+    }
+
+    /**
      * 헤더, 상품규격, 촬영 이미지만 위에서부터 붙인다.
      *
      * @param array<string, mixed> $product

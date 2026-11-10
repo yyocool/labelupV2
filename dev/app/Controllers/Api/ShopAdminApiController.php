@@ -401,6 +401,18 @@ final class ShopAdminApiController extends BaseController
         }
     }
 
+    public function applyProductDetailPage(): never
+    {
+        $this->guard();
+        try {
+            $payload = request_json();
+            $saved = $this->detailPages->applyComposed((int) ($payload['product_id'] ?? 0));
+            $this->jsonSuccess($saved, '현재 이미지로 상세 내용을 다시 넣어 저장했습니다.');
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage(), null, 422);
+        }
+    }
+
     private function guard(): void
     {
         (new AuthMiddleware($this->auth))->handle(true);

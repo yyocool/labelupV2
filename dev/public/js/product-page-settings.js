@@ -8,6 +8,7 @@ const PageSettingsAPI = {
     categorySave: '/api/admin/shop/product-page-category-settings/save',
     detailGet: '/api/admin/shop/product-detail-page',
     detailSave: '/api/admin/shop/product-detail-page/save',
+    detailApply: '/api/admin/shop/product-detail-page/apply',
   },
   async post(path, body) {
     const res = await fetch(path, {
@@ -607,6 +608,25 @@ document.querySelectorAll('.js-product-detail-images').forEach((btn) => {
       URL.revokeObjectURL(link.href);
     } catch (err) {
       if (typeof showAdminAlert === 'function') showAdminAlert(err.message || '이미지를 받지 못했습니다.', 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+});
+
+document.querySelectorAll('.js-product-detail-apply').forEach((btn) => {
+  btn.addEventListener('click', async () => {
+    const productId = Number(btn.dataset.productId || 0);
+    if (!productId || btn.disabled) return;
+    const name = btn.dataset.productName || '상품';
+    if (!confirm(`「${name}」 상세 내용을 현재 헤더·상품규격·촬영 이미지로 다시 넣어 저장할까요?\n기존 상세 내용은 덮어씁니다.`)) return;
+    btn.disabled = true;
+    try {
+      const saved = await PageSettingsAPI.post(PageSettingsAPI.endpoints.detailApply, { product_id: productId });
+      updateDetailStatusBadge(productId, !!(saved.data || {}).has_detail_page);
+      if (typeof showAdminAlert === 'function') showAdminAlert(saved.message || '적용했습니다.', 'success');
+    } catch (err) {
+      if (typeof showAdminAlert === 'function') showAdminAlert(err.message, 'error');
     } finally {
       btn.disabled = false;
     }

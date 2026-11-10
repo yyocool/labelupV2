@@ -567,6 +567,7 @@ final class Router
         $router->post('/api/admin/shop/product-page-category-settings/save', [$shopApi, 'saveProductPageCategorySettings']);
         $router->get('/api/admin/shop/product-detail-page', [$shopApi, 'productDetailPage']);
         $router->post('/api/admin/shop/product-detail-page/save', [$shopApi, 'saveProductDetailPage']);
+        $router->post('/api/admin/shop/product-detail-page/apply', [$shopApi, 'applyProductDetailPage']);
 
         $router->get('/api/shop/editor-papers', [$shopPublicApi, 'editorPapers']);
         $router->get('/api/shop/catalog', [$shopPublicApi, 'catalog']);
