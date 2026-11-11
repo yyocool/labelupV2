@@ -38,6 +38,12 @@ window.LabelUpTossPay = (function () {
       '.lu-toss-modal__head p{margin:4px 0 0;color:#7a716b;font-size:13px}' +
       '.lu-toss-modal__close{border:0;background:transparent;font-size:24px;line-height:1;cursor:pointer;color:#6b635d}' +
       '.lu-toss-widget,.lu-toss-agree{margin-top:8px}' +
+      '.lu-toss-method-wrap{position:relative}' +
+      '.lu-toss-naver{position:absolute;z-index:2;display:flex;align-items:center;justify-content:center;margin:0;padding:0 8px;border:1px solid #e5e8eb;border-radius:8px;background:#fff;cursor:pointer;box-sizing:border-box}' +
+      '.lu-toss-naver[hidden]{display:none!important}' +
+      '.lu-toss-naver:hover{background:#f8f9fa}' +
+      '.lu-toss-naver.is-selected{border:2px solid #191f28}' +
+      '.lu-toss-naver svg{display:block;height:22px;width:auto}' +
       '.lu-toss-modal__foot{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}' +
       '.lu-toss-btn{border:1px solid #ddd5ce;background:#fff;border-radius:12px;padding:10px 14px;font-weight:700;cursor:pointer}' +
       '.lu-toss-btn--primary{background:#7B2840;border-color:#7B2840;color:#fff}' +
@@ -74,7 +80,16 @@ window.LabelUpTossPay = (function () {
       '    <div><h2 id="luTossPayTitle">토스페이먼츠 결제</h2><p data-toss-meta></p></div>' +
       '    <button type="button" class="lu-toss-modal__close" data-toss-close aria-label="닫기">×</button>' +
       '  </header>' +
-      '  <div id="luTossPaymentMethod" class="lu-toss-widget"></div>' +
+      '  <div class="lu-toss-method-wrap">' +
+      '    <div id="luTossPaymentMethod" class="lu-toss-widget"></div>' +
+      '    <button type="button" class="lu-toss-naver" data-toss-naver hidden aria-label="네이버페이" aria-pressed="false">' +
+      '      <svg viewBox="0 0 92 28" aria-hidden="true">' +
+      '        <rect width="28" height="28" rx="6" fill="#03C75A"/>' +
+      '        <path fill="#fff" d="M8.1 7.1h3.4l5.2 8.3V7.1h3.2v13.8h-3.4l-5.2-8.3v8.3H8.1V7.1z"/>' +
+      '        <text x="36" y="20.2" fill="#191919" font-family="Arial,Helvetica,sans-serif" font-size="18" font-weight="700">pay</text>' +
+      '      </svg>' +
+      '    </button>' +
+      '  </div>' +
       '  <div id="luTossAgreement" class="lu-toss-agree"></div>' +
       '  <div class="lu-toss-modal__foot">' +
       '    <button type="button" class="lu-toss-btn" data-toss-close>취소</button>' +
@@ -184,12 +199,61 @@ window.LabelUpTossPay = (function () {
     return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'via=api';
   }
 
+  /**
+   * 위젯 결제수단은 토스 어드민 구성이라 네이버페이가 칸에 없다.
+   * 계좌이체 오른쪽 빈칸에 같은 크기 선택 칸을 올려, 고른 뒤 결제하기로 연다.
+   */
+  function placeNaverTile(root) {
+    const widget = document.getElementById('luTossPaymentMethod');
+    const btn = root.querySelector('[data-toss-naver]');
+    const iframe = widget && widget.querySelector('iframe');
+    if (!widget || !btn || btn.hidden || !iframe) return;
+    const h = iframe.offsetHeight;
+    const w = iframe.offsetWidth;
+    if (h < 80 || w < 80) return;
+    // 위젯 버튼은 iframe 안쪽 여백(좌우 24px, 칸 간격 8px) 안에 있다.
+    // 왼쪽 끝은 가운데 기준과 같고, 폭만 그 여백만큼 줄여야 오른쪽이 맞는다.
+    const sidePad = 24;
+    const gap = 8;
+    const tileW = Math.round((w - sidePad * 2 - gap) / 2);
+    btn.style.left = (Math.round(w / 2) + gap / 2) + 'px';
+    btn.style.width = tileW + 'px';
+    if (w < 340) {
+      btn.style.top = (h + 8) + 'px';
+      btn.style.left = '0px';
+      btn.style.width = w + 'px';
+      btn.style.height = '52px';
+      return;
+    }
+    // 결제수단 칸은 위젯 상단에 고정 높이다. 계좌이체 오른쪽 빈칸.
+    btn.style.top = '200px';
+    btn.style.height = '54px';
+  }
+
+  function setNaverSelected(btn, on) {
+    if (!btn) return;
+    btn.classList.toggle('is-selected', !!on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  function naverIsSelected(root) {
+    const btn = root.querySelector('[data-toss-naver]');
+    return !!(btn && !btn.hidden && btn.classList.contains('is-selected'));
+  }
+
+  function selectionKey(selected) {
+    return JSON.stringify({
+      method: selected && selected.method ? String(selected.method) : '',
+      easy: resolveEasyPay(selected) || '',
+    });
+  }
+
   /** 위젯 키(gck)로는 결제창을 열 수 없어(NOT_SUPPORTED_WIDGET_KEY) API 개별 연동 키로 따로 연다. */
   async function requestDirectEasyPay(TossPayments, payment, easyPay) {
     const allowed = Array.isArray(payment.direct_easy_pays) ? payment.direct_easy_pays : [];
     const label = EASY_PAY_LABELS[easyPay] || '선택한 간편결제';
     if (!payment.api_client_key || allowed.indexOf(easyPay) < 0) {
-      throw new Error(label + '는 현재 결제할 수 없습니다. 다른 결제수단(카드·카카오페이·토스페이 등)을 선택해 주세요.');
+      throw new Error(label + '는 현재 결제할 수 없습니다. 다른 결제수단(카드·네이버페이·카카오페이·토스페이)을 선택해 주세요.');
     }
     const paymentWindow = TossPayments(payment.api_client_key).payment({ customerKey: payment.customer_key });
     const base = paymentRequestBase(payment);
@@ -238,6 +302,34 @@ window.LabelUpTossPay = (function () {
       selector: '#luTossAgreement',
       variantKey: payment.agreement_variant_key || 'AGREEMENT',
     });
+    const naverBtn = root.querySelector('[data-toss-naver]');
+    const allowedEasy = Array.isArray(payment.direct_easy_pays) ? payment.direct_easy_pays : [];
+    const naverReady = !!payment.api_client_key && allowedEasy.indexOf('NAVERPAY') >= 0;
+    if (naverBtn) {
+      naverBtn.hidden = !naverReady;
+      naverBtn.disabled = false;
+      setNaverSelected(naverBtn, false);
+      naverBtn.onclick = async () => {
+        setNaverSelected(naverBtn, true);
+        naverBtn.dataset.widgetKey = selectionKey(await readSelectedMethod(paymentMethodWidget));
+        if (errEl) {
+          errEl.hidden = true;
+          errEl.textContent = '';
+        }
+      };
+      placeNaverTile(root);
+      window.requestAnimationFrame(() => placeNaverTile(root));
+      if (window.ResizeObserver) {
+        if (root._naverObserver) root._naverObserver.disconnect();
+        const observer = new ResizeObserver(() => placeNaverTile(root));
+        const iframe = document.querySelector('#luTossPaymentMethod iframe');
+        if (iframe) observer.observe(iframe);
+        root._naverObserver = observer;
+      }
+    }
+    if (paymentMethodWidget && typeof paymentMethodWidget.on === 'function') {
+      paymentMethodWidget.on('paymentMethodSelect', () => setNaverSelected(naverBtn, false));
+    }
 
     payBtn.onclick = async () => {
       payBtn.disabled = true;
@@ -248,6 +340,15 @@ window.LabelUpTossPay = (function () {
       try {
         await ensureAgreed(agreementWidget);
         const selected = await readSelectedMethod(paymentMethodWidget);
+        if (naverIsSelected(root)) {
+          const naverBtnNow = root.querySelector('[data-toss-naver]');
+          const stillNaver = !naverBtnNow.dataset.widgetKey || naverBtnNow.dataset.widgetKey === selectionKey(selected);
+          if (stillNaver) {
+            await requestDirectEasyPay(TossPayments, payment, 'NAVERPAY');
+            return;
+          }
+          setNaverSelected(naverBtnNow, false);
+        }
         const easyPay = resolveEasyPay(selected);
         if (isCustomMethod(selected) && easyPay) {
           await requestDirectEasyPay(TossPayments, payment, easyPay);
@@ -258,7 +359,7 @@ window.LabelUpTossPay = (function () {
         } catch (err) {
           if (!isCustomUnableError(err)) throw err;
           if (!easyPay) {
-            throw new Error('선택한 결제수단으로는 바로 결제할 수 없습니다. 카드·카카오페이·토스페이 등 다른 결제수단을 선택해 주세요.');
+            throw new Error('선택한 결제수단으로는 바로 결제할 수 없습니다. 카드·네이버페이·카카오페이·토스페이 중 다른 결제수단을 선택해 주세요.');
           }
           await requestDirectEasyPay(TossPayments, payment, easyPay);
         }

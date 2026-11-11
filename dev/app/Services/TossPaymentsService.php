@@ -48,13 +48,13 @@ final class TossPaymentsService
     }
 
     /**
-     * 결제 어드민에 '직연동'으로 넣은 간편결제 중, 우리 토스 계약(결제창)으로 실제 결제되는 것.
-     * 네이버페이는 이 계약에서 막혀 있어 결제창이 「지원되지 않는 간편결제 수단」을 낸다.
+     * 결제 어드민에 '직연동'으로 넣은 간편결제 중, 결제창(API 개별 연동)으로 여는 수단.
+     * 네이버페이는 심사 통과 후 카카오페이·토스페이와 같이 연다.
      * @return list<string>
      */
     public function directEasyPays(): array
     {
-        $raw = (string) env('TOSS_DIRECT_EASY_PAYS', 'KAKAOPAY,TOSSPAY');
+        $raw = (string) env('TOSS_DIRECT_EASY_PAYS', 'KAKAOPAY,TOSSPAY,NAVERPAY');
         $list = array_values(array_filter(array_map(
             static fn (string $v): string => strtoupper(trim($v)),
             explode(',', $raw)

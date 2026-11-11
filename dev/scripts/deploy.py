@@ -168,6 +168,17 @@ def main():
     toss_secret = pick_env(existing_env, 'TOSS_SECRET_KEY')
     toss_variant = pick_env(existing_env, 'TOSS_VARIANT_KEY', 'DEFAULT')
     toss_agree = pick_env(existing_env, 'TOSS_AGREEMENT_VARIANT_KEY', 'AGREEMENT')
+    toss_api_client = pick_env(existing_env, 'TOSS_API_CLIENT_KEY')
+    toss_api_secret = pick_env(existing_env, 'TOSS_API_SECRET_KEY')
+    toss_direct = pick_env(existing_env, 'TOSS_DIRECT_EASY_PAYS', 'KAKAOPAY,TOSSPAY,NAVERPAY')
+    direct_parts = []
+    for part in toss_direct.split(','):
+        code = part.strip().upper()
+        if code and code not in direct_parts:
+            direct_parts.append(code)
+    if 'NAVERPAY' not in direct_parts:
+        direct_parts.append('NAVERPAY')
+    toss_direct = ','.join(direct_parts)
     session_key = existing_env.get('SESSION_KEY') or 'labelup_session'
     app_url = existing_env.get('APP_URL') or APP_URL
     # DB는 로컬 .env로 덮지 않음 (원격 전용)
@@ -209,6 +220,9 @@ TOSS_CLIENT_KEY={toss_client}
 TOSS_SECRET_KEY={toss_secret}
 TOSS_VARIANT_KEY={toss_variant}
 TOSS_AGREEMENT_VARIANT_KEY={toss_agree}
+TOSS_API_CLIENT_KEY={toss_api_client}
+TOSS_API_SECRET_KEY={toss_api_secret}
+TOSS_DIRECT_EASY_PAYS={toss_direct}
 """
     with sftp.open(REMOTE_ROOT + '/.env', 'w') as f:
         f.write(env_content)
